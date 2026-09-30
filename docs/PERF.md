@@ -26,8 +26,8 @@ re-proving recall (slower Windows hardware needs ≥1500, possibly more).
 
 ## Budget analysis (official timeout 1800 s)
 
-Settle dominates: 14 pages × ~1.5 s ≈ 21 s crawl + ~21 s live-detect pass
-≈ 44 s total. Linear extrapolation: ~200 pages ≈ 10 min on THIS hardware.
+Settle dominates: 15 pages × ~1.5 s ≈ 22 s crawl + ~22 s live-detect pass
+≈ 46 s total. Linear extrapolation: ~200 pages ≈ 10 min on THIS hardware.
 Derating ×4 for i6-class CPU + Windows overhead ≈ 40 min — OVER budget at
 max limits. Mitigations (frozen defaults already conservative):
 

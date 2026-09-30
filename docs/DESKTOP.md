@@ -22,7 +22,7 @@ diagnostics on stderr). Tauri spawns it with `--session <id>`; clients pass
 scan parameters only, never shell strings.
 
 OBSERVED: `--help` usage exit 2; combined fixture → 2 findings
-(HOMOGLYPH + TRANSPARENT); full hub → 15 findings, valid techniques,
+(HOMOGLYPH + TRANSPARENT); full hub → 17 findings, valid techniques,
 no BOM.
 
 ## Rust host (`src-tauri/`)
@@ -42,7 +42,7 @@ no BOM.
 
 ## Verification status (honest)
 
-- Web `typecheck`/`lint`/`build` clean; worker 15/15 on fixtures.
+- Web `typecheck`/`lint`/`build` clean; worker 17/17 on fixtures.
 - `cargo check` BLOCKED on Linux CI: Tauri 2 pulls WebKit system deps
   (`atk-sys`, `gdk-sys`, `soup3-sys`, …) unavailable without sudo, and the
   system cargo 1.75 cannot parse modern manifests (rustup stable 1.98

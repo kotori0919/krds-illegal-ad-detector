@@ -36,7 +36,7 @@ budget for unproven recall — deferred, not dropped.
 
 Multimodal fallback stays disabled by default (`enabled: false`, refuses
 with rationale). Same rationale: unbenchmarked per-candidate latency
-threatens the timeout; deterministic evidence already scores 15/15.
+threatens the timeout; deterministic evidence already scores 17/17.
 
 ## OBSERVED (this machine)
 

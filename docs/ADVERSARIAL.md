@@ -14,7 +14,7 @@
   inserts (extras channel, not official technique).
 - Crawler edges: case-sensitive paths stay distinct (correct — servers may
   differ); fragment/trailing-slash/dup-query collapse verified; hub crawl
-  bounded at 14 pages with ref/index dup flags.
+  bounded at 14 pages with ref/index dup flags (15 after comments page).
 
 ---
 
