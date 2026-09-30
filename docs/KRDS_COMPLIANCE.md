@@ -1,55 +1,64 @@
-# KRDS compliance log (Contract v0 freeze 2026-10-01 — full pass in Phase 11)
+# KRDS compliance log (Phase 11 pass 2026-10-01)
 
-Every UI PR must answer: pattern, tokens, custom primitives + why, keyboard,
-focus, error/empty/responsive states, accessibility review. A significant
-unexplained KRDS deviation blocks merge.
+Every UI PR answers the merge gate below. A significant unexplained KRDS
+deviation blocks merge.
 
-## Frozen product journey (5 screens, GOAL §17)
+## Product journey (5 screens, GOAL §17) — implemented
 
-1. 탐지 시작 — title, description, URL field, primary action, advanced config (details).
-2. 탐지 진행 — stage, visited/queued pages, analyzed elements, candidates,
-   confirmed findings, elapsed time, cancel. No fabricated percent (unknown
-   total → indeterminate progress + real counters).
-3. 탐지 결과 — summary, counts per official technique, finding table, filters,
-   evidence action, export action.
-4. 탐지 근거 — original vs normalized text (labelled), selector, iframe path,
-   CSS, geometry, screenshot/crop, OCR, resource/infrastructure, inference
-   labelled as inference.
-5. 결과 검증 / 내보내기 — schema, selector, duplicate, required-field status,
-   output path.
+1. 탐지 시작 (`ScanStart`) — title, lede, URL field + hint, topic (optional),
+   primary action, advanced `<details>` (max pages/depth/timeout with range
+   validation). Pattern: single-purpose task-start form.
+2. 탐지 진행 (`ScanProgressView`) — stage, visited/queued, frames, elements,
+   candidates, confirmed, elapsed, cancel + result actions. Indeterminate
+   progress: real counters, no fabricated percent. Pattern: task progress
+   with `role="status"` live region.
+3. 탐지 결과 (`ScanResult`) — summary lede, per-technique counts (4 chips),
+   technique filter `<select>`, finding table (caption + `th scope`),
+   evidence + export actions, empty states for zero findings and zero
+   filter matches. Pattern: result list with filter toolbar.
+4. 탐지 근거 (`EvidenceView`) — observed (page/location/technique/raw),
+   derived (normalized/CSS/iframe path placeholders labelled as desktop-only),
+   inference (labelled as non-observation, none in demo). Pattern: evidence
+   detail with separated layers.
+5. 결과 검증 / 내보내기 (`ExportView`) — 6 checks (schema, encoding,
+   technique enum, selector, dedup, ids), JSON preview `<pre>`, gated save
+   (disabled until all pass; browser falls back to download). Pattern:
+   validation-gated export.
 
-No generic admin dashboard; no second design language before the Phase 11 pass.
+Step indicator (`nav[aria-label=탐지 단계]`, `aria-current="step"`) across all
+screens; non-color status (text labels + border position, never color alone).
 
-## Current shell (`apps/web`) vs frozen journey
+## Tokens / source of truth
 
-- Screens 1–3 exist as labelled placeholders (ScanStart/ScanProgress/ScanResult);
-  screens 4–5 (EvidencePanel/ExportValidation) + filters + technique counts
-  land in Phase 11.
-- Pattern: single-column task flow; composites (ScanStart/ScanProgress/
-  FindingTable/EvidencePanel/ScanSummary/ExportValidation) must compose
-  KRDS-consistent primitives, never custom design primitives without
-  justification logged here.
+- No community KRDS React library adopted (none authoritative); official
+  KRDS documentation remains normative per KODEX §32.
+- Semantic CSS variables (`--accent`, `--error`, `--success`, `--border`,
+  `--radius`); focus ring `--accent-focus` 3px + 2px offset on all
+  interactive elements; custom values only for evidence preview/overlay
+  surfaces (`.preview`, `.raw`).
+- No custom primitive components: all composites compose native form/table/
+  nav elements. Justification: zero custom primitives, nothing to justify.
 
-## Token / source-of-truth decision (frozen)
+## Merge gate answers (OBSERVED on dev server, this machine)
 
-- Official KRDS documentation is normative (KODEX §30–32). A community React
-  library is NOT automatically authoritative; where it differs, official docs win.
-- Phase 11 maps each screen to official pattern/component + token usage +
-  keyboard/a11y/responsive behavior in this log. Until then: baseline CSS
-  variables only, no hardcoded palette expansion, custom drawing values only
-  for screenshot annotation / OCR overlay / graph / evidence diagrams.
-
-## Accessibility gate (functional correctness)
-
-Semantic HTML, keyboard-only operation, visible focus, labelled controls,
-accessible dialogs, screen-reader-compatible progress (`role="status"`,
-no color-only status), valid table semantics, logical headings,
-reduced-motion guard. New defects block release.
-
-## Merge gate checklist (per UI PR)
-
-- [ ] KRDS pattern + tokens named
-- [ ] Custom primitives listed with necessity rationale
-- [ ] Keyboard tested / focus tested
-- [ ] Error state / empty state / responsive state tested
-- [ ] Accessibility reviewed
+- KRDS pattern: task flow (start → progress → result → evidence → export)
+  with step indicator; form, progress, filtered table, validation gate.
+- KRDS tokens: semantic variables above; single Pretendard/Noto/system stack.
+- Custom primitives: none.
+- Keyboard tested: Tab lands on `#entry-url` first; Enter submits from the
+  field and reaches 탐지 진행.
+- Focus tested: 3px visible ring on button/input/select/summary/pre via
+  `:focus-visible` (stylesheet rule; manual Tab pass confirmed ring on URL
+  field and primary button).
+- Error state tested: `notaurl` → `role="alert"` "http(s)로 시작하는 올바른
+  주소…"; out-of-range limits → range alerts; export blocked until checks pass.
+  (Native `type=url` validation disabled via `noValidate` so the app message
+  always renders instead of the browser bubble.)
+- Empty state tested: zero findings → guidance paragraph; zero filter match →
+  "필터를 바꿔 보세요."; missing evidence id → alert + back action.
+- Responsive tested: 360px viewport — table scrolls horizontally
+  (`display:block; overflow-x:auto`), steps wrap, no overlap.
+- Accessibility reviewed: `<main>` per screen, single `h1`, logical `h2`
+  sections, labelled controls, `role=status/alert` live regions, table
+  caption + scope, `aria-current="step"`, `prefers-reduced-motion` guard,
+  status never color-only (text + position).

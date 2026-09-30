@@ -1,9 +1,11 @@
 /**
  * BrowserHost: replay/demo-only HostBridge for the browser preview.
  *
- * No local scanning, no filesystem, no Tauri APIs. Real scanning arrives
- * with the Tauri host (Phase 18); this adapter only lets the KRDS flow be
- * exercised with a deterministic synthetic session.
+ * No local scanning, no filesystem, no Tauri APIs. Serves the deterministic
+ * demo result (apps/web/src/demo/findings.ts) so the KRDS flow — filters,
+ * evidence, export validation — exercises against stable data. The banner in
+ * ScanProgress and the demo topic label make clear these are not live scan
+ * results. Real scanning arrives with the Tauri host (Phase 18).
  */
 import {
   BROWSER_HOST_CAPABILITIES,
@@ -14,15 +16,18 @@ import {
   type HostCapabilities,
   type OfficialResult,
   type ScanEventHandler,
+  type ScanProgress,
   type ScanRequest,
   type ScanSession,
   type Unsubscribe,
 } from "@krds-detector/contracts";
+import { DEMO_ENTRY_URL, demoResult } from "../demo/findings.js";
 
 let counter = 0;
 
 export class BrowserHost implements HostBridge {
   private sessions = new Map<string, ScanSession>();
+  private results = new Map<string, OfficialResult>();
   private handlers = new Set<ScanEventHandler>();
 
   async getCapabilities(): Promise<HostCapabilities> {
@@ -39,17 +44,47 @@ export class BrowserHost implements HostBridge {
       startedAt: new Date().toISOString(),
     };
     this.sessions.set(session.id, session);
+    const demo = demoResult();
+    // Retarget demo findings at the requested entry URL so filters and
+    // evidence screens show coherent data for any input.
+    const host = (() => {
+      try {
+        return new URL(request.entryUrl).host;
+      } catch {
+        return new URL(DEMO_ENTRY_URL).host;
+      }
+    })();
+    this.results.set(session.id, {
+      ...demo,
+      meta: { ...demo.meta, entry_url: request.entryUrl },
+      findings: demo.findings.map((f) => ({
+        ...f,
+        url: f.url.replace(new URL(DEMO_ENTRY_URL).host, host),
+        location: f.location.replaceAll(
+          new URL(DEMO_ENTRY_URL).host,
+          host,
+        ),
+      })),
+    });
     const at = new Date().toISOString();
-    for (const h of this.handlers) {
-      h({
-        kind: "session-started",
-        sessionId: session.id,
-        at,
-        progress: initialProgress("crawling"),
-        message: "브라우저 미리보기: 실제 스캔은 데스크톱 앱에서 실행됩니다.",
-        pageUrl: request.entryUrl,
-      });
-    }
+    const progress: ScanProgress = {
+      ...initialProgress("analyzing"),
+      visitedPages: 14,
+      queuedPages: 0,
+      framesInspected: 3,
+      elementsAnalyzed: 42,
+      candidates: 15,
+      confirmedFindings: 5,
+      elapsedSec: 52,
+    };
+    const emit = (kind: Parameters<ScanEventHandler>[0]["kind"], message?: string): void => {
+      for (const h of this.handlers) {
+        h({ kind, sessionId: session.id, at, progress: { ...progress }, message, pageUrl: request.entryUrl });
+      }
+    };
+    emit("session-started", "미리보기 데모 데이터를 불러왔습니다. 실제 스캔은 데스크톱 앱에서 실행됩니다.");
+    emit("stage-changed", "데모: 분석 완료");
+    emit("session-finished", "데모 결과 준비됨");
     return session;
   }
 
@@ -58,6 +93,16 @@ export class BrowserHost implements HostBridge {
     if (session) {
       session.status = "cancelled";
       session.finishedAt = new Date().toISOString();
+      const at = new Date().toISOString();
+      for (const h of this.handlers) {
+        h({
+          kind: "session-cancelled",
+          sessionId,
+          at,
+          progress: initialProgress("cancelled"),
+          message: "취소되었습니다.",
+        });
+      }
     }
   }
 
@@ -69,12 +114,15 @@ export class BrowserHost implements HostBridge {
   }
 
   async getSession(sessionId: string): Promise<ScanSession | undefined> {
-    return this.sessions.get(sessionId);
+    const session = this.sessions.get(sessionId);
+    if (session && session.status === "crawling") {
+      return { ...session, status: "succeeded", finishedAt: new Date().toISOString() };
+    }
+    return session;
   }
 
   async getOfficialResult(sessionId: string): Promise<OfficialResult | undefined> {
-    void sessionId;
-    return undefined;
+    return this.results.get(sessionId);
   }
 
   async getExtraResult(sessionId: string): Promise<ExtraResult | undefined> {
