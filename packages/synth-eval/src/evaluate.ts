@@ -131,7 +131,7 @@ export async function modelPage(adHint: string): Promise<{ html: string; dynamic
   }
   if (adHint === "/structural/delayed.html") {
     const html = await readFile(resolve(dir, "structural/delayed.html"), "utf-8");
-    return { html, dynamic: [{ id: "ad-delayed", rawText: "대출 무서류 당일 승인", styleAttr: "position:absolute;left:-9999px", classAttr: "" }] };
+    return { html, dynamic: [{ id: "ad-delayed-injected", rawText: "대출 무서류 당일 승인", styleAttr: "position:absolute;left:-9999px", classAttr: "" }] };
   }
   const file = adHint.split("?", 1)[0] ?? adHint;
   const html = await readFile(resolve(dir, file.replace(/^[/\\]+/, "")), "utf-8");

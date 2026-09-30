@@ -6,7 +6,9 @@
       "kind": "positive",
       "page": "/positives/homoglyph.html",
       "selector": "#ad-hg-casino",
-      "techniques": ["HOMOGLYPH"],
+      "techniques": [
+        "HOMOGLYPH"
+      ],
       "notes": "Fullwidth K + casino ad semantics"
     },
     {
@@ -14,7 +16,9 @@
       "kind": "positive",
       "page": "/positives/homoglyph.html",
       "selector": "#ad-hg-baccarat",
-      "techniques": ["HOMOGLYPH"],
+      "techniques": [
+        "HOMOGLYPH"
+      ],
       "notes": "Fullwidth B + baccarat ad semantics"
     },
     {
@@ -22,7 +26,9 @@
       "kind": "positive",
       "page": "/positives/jamo.html",
       "selector": "#ad-jamo-casino",
-      "techniques": ["JAMO"],
+      "techniques": [
+        "JAMO"
+      ],
       "notes": "Compatibility Jamo spelling of casino"
     },
     {
@@ -30,7 +36,9 @@
       "kind": "positive",
       "page": "/positives/jamo.html",
       "selector": "#ad-jamo-loan",
-      "techniques": ["JAMO"],
+      "techniques": [
+        "JAMO"
+      ],
       "notes": "Spaced syllables spelling loan ad"
     },
     {
@@ -38,7 +46,9 @@
       "kind": "positive",
       "page": "/positives/transparent.html",
       "selector": "#ad-tr-opacity",
-      "techniques": ["TRANSPARENT"],
+      "techniques": [
+        "TRANSPARENT"
+      ],
       "notes": "opacity:0 loan ad"
     },
     {
@@ -46,7 +56,9 @@
       "kind": "positive",
       "page": "/positives/transparent.html",
       "selector": "#ad-tr-samecolor",
-      "techniques": ["TRANSPARENT"],
+      "techniques": [
+        "TRANSPARENT"
+      ],
       "notes": "Same fg/bg cash-conversion ad"
     },
     {
@@ -54,7 +66,9 @@
       "kind": "positive",
       "page": "/positives/offscreen.html",
       "selector": "#ad-off-displaynone",
-      "techniques": ["OFFSCREEN"],
+      "techniques": [
+        "OFFSCREEN"
+      ],
       "notes": "display:none betting ad"
     },
     {
@@ -62,7 +76,9 @@
       "kind": "positive",
       "page": "/positives/offscreen.html",
       "selector": "#ad-off-negpos",
-      "techniques": ["OFFSCREEN"],
+      "techniques": [
+        "OFFSCREEN"
+      ],
       "notes": "left:-9999px casino bonus ad"
     },
     {
@@ -70,7 +86,9 @@
       "kind": "positive",
       "page": "/positives/offscreen.html",
       "selector": "#ad-off-fontsize",
-      "techniques": ["OFFSCREEN"],
+      "techniques": [
+        "OFFSCREEN"
+      ],
       "notes": "font-size:0 holdem exchange ad"
     },
     {
@@ -78,7 +96,10 @@
       "kind": "positive",
       "page": "/positives/combined.html",
       "selector": "#ad-combo",
-      "techniques": ["HOMOGLYPH", "TRANSPARENT"],
+      "techniques": [
+        "HOMOGLYPH",
+        "TRANSPARENT"
+      ],
       "notes": "One element, two techniques: fullwidth C + opacity:0"
     },
     {
@@ -86,10 +107,18 @@
       "kind": "positive",
       "page": "/structural/inner.html",
       "selector": "#ad-frame-jamo",
-      "techniques": ["JAMO"],
+      "techniques": [
+        "JAMO"
+      ],
       "framePath": [
-        { "src": "/structural/middle.html", "selector": "#frame-outer" },
-        { "src": "/structural/inner.html", "selector": "#frame-inner" }
+        {
+          "src": "/structural/middle.html",
+          "selector": "#frame-outer"
+        },
+        {
+          "src": "/structural/inner.html",
+          "selector": "#frame-inner"
+        }
       ],
       "notes": "Nested iframe Jamo ad; outer page /structural/outer.html"
     },
@@ -98,15 +127,20 @@
       "kind": "positive",
       "page": "/structural/board.html?id=101",
       "selector": "#ad-query-hg",
-      "techniques": ["HOMOGLYPH"],
+      "techniques": [
+        "HOMOGLYPH"
+      ],
       "notes": "Query-param page; id=102 variant is clean (tests value-preserving dedup)"
     },
     {
       "id": "delayed-offscreen",
       "kind": "positive",
       "page": "/structural/delayed.html",
-      "selector": "#ad-delayed",
-      "techniques": ["JAMO", "OFFSCREEN"],
+      "selector": "#ad-delayed-injected",
+      "techniques": [
+        "JAMO",
+        "OFFSCREEN"
+      ],
       "notes": "JS-injected after ~1.2s; Jamo loan text placed offscreen (two techniques, one element)"
     },
     {

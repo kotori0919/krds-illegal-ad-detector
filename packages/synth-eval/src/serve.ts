@@ -39,9 +39,24 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
   }
 }
 
-const port = Number(process.env["SYNTH_PORT"] ?? 4123);
-createServer((req, res) => {
-  void handler(req, res);
-}).listen(port, "127.0.0.1", () => {
-  console.log(`synthetic fixtures on http://127.0.0.1:${String(port)}/`);
-});
+export function startFixtureServer(port: number): { url: string; close: () => Promise<void> } {
+  const server = createServer((req, res) => {
+    void handler(req, res);
+  });
+  server.listen(port, "127.0.0.1");
+  return {
+    url: `http://127.0.0.1:${String(port)}`,
+    close: () => new Promise<void>((resolve, reject) => {
+      server.close((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    }),
+  };
+}
+
+const standalonePort = Number(process.env["SYNTH_PORT"] ?? 4123);
+if (process.argv[1]?.endsWith("serve.js")) {
+  startFixtureServer(standalonePort);
+  console.log(`synthetic fixtures on http://127.0.0.1:${String(standalonePort)}/`);
+}
