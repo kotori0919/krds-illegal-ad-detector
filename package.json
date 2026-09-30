@@ -5,17 +5,19 @@
   "type": "module",
   "workspaces": [
     "apps/web",
-    "packages/contracts"
+    "packages/contracts",
+    "packages/synth-eval"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/web",
-    "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json",
+    "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json && tsc --noEmit -p packages/synth-eval/tsconfig.check.json",
     "test": "vitest run",
     "build": "npm run build -w apps/web",
     "lint": "eslint .",
-    "clean": "rm -rf packages/contracts/dist apps/web/dist"
+    "clean": "rm -rf packages/contracts/dist apps/web/dist packages/synth-eval/dist"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
     "eslint": "^9.34.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.41.0",

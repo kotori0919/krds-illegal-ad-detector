@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>정상 숨김 UI 모음</title>
+    <style>
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+      }
+      .responsive-note { display: none; }
+      @media (min-width: 1024px) {
+        .responsive-note { display: block; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>포털 안내</h1>
+      <a id="skip-link" class="sr-only" href="#main-content">본문으로 건너뛰기</a>
+      <div id="main-content">
+        <p>민원 신청 절차를 안내합니다.</p>
+        <p id="jamo-legit">한글 자모 ㅋㅋㅋ 교육 자료: 자음과 모음의 결합 원리</p>
+        <p id="unicode-legit">다국어 안내: SEOUL · МОСКВА · 東京 (도시명 표기)</p>
+      </div>
+      <nav aria-label="주 메뉴">
+        <button id="nav-toggle" aria-expanded="false">메뉴 열기</button>
+        <ul id="nav-hidden" hidden>
+          <li><a href="/index.html">평가 허브</a></li>
+          <li><a href="/posts/notice.html">공지 상세</a></li>
+        </ul>
+      </nav>
+      <div id="modal-hidden" style="display: none" role="dialog" aria-modal="true" aria-label="알림">
+        <p>저장되지 않은 내용이 있습니다.</p>
+      </div>
+      <p id="responsive-note" class="responsive-note">넓은 화면에서만 보이는 보조 안내입니다.</p>
+      <div id="app-state" style="display: none" data-app-state="draft">임시 저장된 초안 상태</div>
+    </main>
+  </body>
+</html>
