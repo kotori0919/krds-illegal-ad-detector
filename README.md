@@ -1,4 +1,5 @@
-# krds-illegal-ad-detector
+[![ci](https://github.com/snowman0919/krds-illegal-ad-detector/actions/workflows/ci.yml/badge.svg)](https://github.com/snowman0919/krds-illegal-ad-detector/actions/workflows/ci.yml)
+
 
 Real Windows-capable public-website illegal-advertisement inspection tool for the
 2026 행정안전부 / 한국지능정보사회진흥원 "공공 웹사이트 불법광고 탐지 도구 개발 공모전".
