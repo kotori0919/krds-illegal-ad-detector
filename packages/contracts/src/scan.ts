@@ -1,5 +1,5 @@
 /**
- * Contract v0 (draft): scan lifecycle.
+ * Contract v0 (frozen 2026-10-01): scan lifecycle.
  *
  * The UI drives scans only through HostBridge; these types are the shared
  * vocabulary between the React app, the Tauri host, and the scanner worker.

@@ -1,4 +1,4 @@
-/** Contract v0 (draft) barrel export. */
+/** Contract v0 (frozen 2026-10-01) barrel export. */
 export * from "./technique.js";
 export * from "./result.js";
 export * from "./scan.js";

@@ -1,5 +1,5 @@
 /**
- * Contract v0 (draft): official technique enum.
+ * Contract v0 (frozen 2026-10-01): official technique enum.
  *
  * `result.json` is sacred: only these four values may appear as `technique`.
  * Extended intelligence uses technique "ETC" plus a project-defined

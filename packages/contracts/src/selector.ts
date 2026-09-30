@@ -1,5 +1,5 @@
 /**
- * Contract v0 (draft): selector + frame-path serialization.
+ * Contract v0 (frozen 2026-10-01): selector + frame-path serialization.
  *
  * Convention: iframe[src="ABSOLUTE_URL"] >>> selector, repeated `>>>` for
  * nested frames. Relative iframe src values normalize to absolute URLs before
@@ -14,8 +14,11 @@ export interface FramePathSegment {
   selector: string;
 }
 
+/** Ordered outer-to-inner iframe chain for one located element. */
+export type FramePath = FramePathSegment[];
+
 export interface LocatedElement {
-  framePath: FramePathSegment[];
+  framePath: FramePath;
   selector: string;
 }
 

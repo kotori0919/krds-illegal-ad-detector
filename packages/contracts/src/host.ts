@@ -1,5 +1,5 @@
 /**
- * Contract v0 (draft): host capability model + bridge.
+ * Contract v0 (frozen 2026-10-01): host capability model + bridge.
  *
  * Normal React code talks to `HostBridge` only. Tauri APIs stay inside the
  * platform adapter (apps/web/src/host/tauri.ts + src-tauri). BrowserHost

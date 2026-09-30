@@ -16,7 +16,7 @@ function validResult(): OfficialResult {
       started_at: "2026-09-30T00:00:00.000Z",
       finished_at: "2026-09-30T00:01:00.000Z",
       elapsed_sec: 60,
-      tool_version: "0.1.0-bootstrap",
+      tool_version: "0.1.0",
     },
     findings: [
       {

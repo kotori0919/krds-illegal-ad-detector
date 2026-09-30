@@ -1,5 +1,5 @@
 /**
- * Contract v0 (draft): official + extra result shapes.
+ * Contract v0 (frozen 2026-10-01): official + extra result shapes.
  *
  * Identity rule: one finding per (url, location, technique). One element
  * carrying two official techniques emits two findings; several strings with
@@ -8,7 +8,7 @@
 
 import { EXTRA_TECHNIQUE, type OfficialTechnique } from "./technique.js";
 
-export const TOOL_VERSION = "0.1.0-bootstrap";
+export const TOOL_VERSION = "0.1.0";
 
 export interface OfficialMeta {
   topic: string;
@@ -32,6 +32,9 @@ export interface OfficialResult {
   meta: OfficialMeta;
   findings: OfficialFinding[];
 }
+
+/** Short alias: an official result.json entry. */
+export type Finding = OfficialFinding;
 
 /**
  * Extended intelligence finding. Serialized per the competition extra-result

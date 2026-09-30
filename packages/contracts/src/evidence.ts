@@ -1,5 +1,5 @@
 /**
- * Contract v0 (draft): evidence graph + finding detail.
+ * Contract v0 (frozen 2026-10-01): evidence graph + finding detail.
  *
  * The graph observes ad infrastructure (external domains are observed, never
  * recursively crawled). Finding detail separates observed / derived /
