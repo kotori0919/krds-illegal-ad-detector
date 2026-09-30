@@ -97,7 +97,7 @@ describe("selector engine", () => {
       const middle = (outer?.frames ?? []).find((f) => f.url.endsWith("/structural/middle.html"));
       const inner = (outer?.frames ?? []).find((f) => f.url.endsWith("/structural/inner.html"));
       expect(middle?.selectorChain).toEqual(["#frame-outer"]);
-      expect(inner?.selectorChain).toEqual(["#frame-inner"]);
+      expect(inner?.selectorChain).toEqual(["#frame-outer", "#frame-inner"]);
       const location = serializeFramePath({
         framePath: [
           { src: `${started.url}/structural/middle.html`, selector: "#frame-outer" },

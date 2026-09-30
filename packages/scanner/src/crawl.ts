@@ -242,27 +242,40 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             const fUrl = f.url();
             if (!fUrl || fUrl === "about:blank") continue;
             const fHtml = await f.content().catch(() => "");
-            let selector = "iframe";
-            try {
-              const ownerHandle = await f.frameElement();
-              const resolved: unknown = await ownerHandle.evaluate((el: Element) => {
-                if (el.id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(el.id)) return `#${el.id}`;
-                const parent = el.parentElement;
-                if (!parent) return "iframe";
-                const sibs = Array.from(parent.children).filter(
-                  (s) => s.tagName.toLowerCase() === "iframe",
-                );
-                const index = sibs.indexOf(el) + 1;
-                return el.id ? `iframe#${el.id}` : `iframe:nth-of-type(${String(index)})`;
-              }).catch(() => "iframe");
-              if (typeof resolved === "string" && resolved.length > 0) selector = resolved;
-              await ownerHandle.dispose().catch(() => undefined);
-            } catch {
-              /* cross-origin owner: keep generic selector */
+            // Ancestor chain: walk parentFrame() up to main, resolving each
+            // level's selector via its frameElement handle.
+            const chain: { url: string; selector: string }[] = [];
+            let cursor = f;
+            let guard = 0;
+            while (cursor && cursor.parentFrame() && guard < 5) {
+              let selector = "iframe";
+              try {
+                const ownerHandle = await cursor.frameElement();
+                const resolved: unknown = await ownerHandle.evaluate((el: Element) => {
+                  if (el.id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(el.id)) return `#${el.id}`;
+                  const parent = el.parentElement;
+                  if (!parent) return "iframe";
+                  const sibs = Array.from(parent.children).filter(
+                    (s) => s.tagName.toLowerCase() === "iframe",
+                  );
+                  const index = sibs.indexOf(el) + 1;
+                  return el.id ? `iframe#${el.id}` : `iframe:nth-of-type(${String(index)})`;
+                }).catch(() => "iframe");
+                if (typeof resolved === "string" && resolved.length > 0) selector = resolved;
+                await ownerHandle.dispose().catch(() => undefined);
+              } catch {
+                /* cross-origin owner: keep generic selector */
+              }
+              chain.unshift({ url: cursor.url() || fUrl, selector });
+              const parent = cursor.parentFrame();
+              if (!parent || parent === page.mainFrame()) break;
+              cursor = parent;
+              guard += 1;
             }
+            if (chain.length === 0) chain.push({ url: fUrl, selector: "iframe" });
             frameSnapshots.push({
-              srcChain: [fUrl],
-              selectorChain: [selector],
+              srcChain: chain.map((c) => c.url),
+              selectorChain: chain.map((c) => c.selector),
               url: fUrl,
               html: fHtml.slice(0, maxBodyBytes),
             });

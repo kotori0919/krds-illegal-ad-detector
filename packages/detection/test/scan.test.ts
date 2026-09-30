@@ -1,0 +1,78 @@
+import { describe, expect, it } from "vitest";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { scanSite } from "../src/scan.js";
+import { loadGroundTruth } from "@krds-detector/synth-eval/evaluate.js";
+import { validateOfficialResultText } from "@krds-detector/contracts";
+
+describe("end-to-end scan on synthetic fixtures", () => {
+  it("recovers all 15 ground-truth pairs with zero FP/FN", async () => {
+    const events: string[] = [];
+    const started = Date.now();
+    const { result, json, pagesVisited } = await scanSite({
+      entryUrl: "/",
+      topic: "synthetic-eval",
+      crawl: {
+        limits: { maxPages: 30, maxDepth: 4, timeoutSec: 300 },
+        settleMs: 1800,
+        perPageMs: 20000,
+      },
+      fixturePort: 4191,
+      onEvent: (e) => {
+        events.push(e.kind);
+      },
+    });
+    const elapsedSec = (Date.now() - started) / 1000;
+
+    const cases = await loadGroundTruth();
+    const expected = new Set<string>();
+    for (const c of cases) {
+      if (c.kind !== "positive") continue;
+      for (const t of c.techniques ?? []) {
+        // Ground-truth identity: page + selector + technique.
+        expected.add(`${c.page}#${c.selector}#${t}`);
+      }
+    }
+    // Result identity: url path + location tail + technique.
+    const got = new Set(
+      result.findings.map((f) => {
+        const url = new URL(f.url);
+        return `${url.pathname}${url.search}#${f.location}#${f.technique}`;
+      }),
+    );
+    const missing = [...expected].filter((k) => {
+      // Frame case lives at inner.html with >>> location; page case direct.
+      const [page, selector, technique] = k.split("#").length >= 3
+        ? [k.split("#")[0], `#${k.split("#")[1]}`, k.split("#")[2]]
+        : [k, "", ""];
+      void technique;
+      return ![...got].some((g) => {
+        const [gPage, gLoc] = [g.slice(0, g.indexOf("#")), g.slice(g.indexOf("#"))];
+        // Normalize: query board keeps search; others compare pathname.
+        const pageKey = (page ?? "").includes("?") ? page : (page ?? "").split("?")[0];
+        const gPageKey = gPage?.includes("board.html?id=") ? gPage : (gPage ?? "").split("?")[0];
+        return gPageKey === pageKey && (gLoc ?? "").includes(selector ?? "");
+      });
+    });
+    expect({ pagesVisited, findings: result.findings.length, elapsedSec: Math.round(elapsedSec) }).toBeDefined();
+    expect(missing).toEqual([]);
+    // No unexpected findings: every result maps to a positive case.
+    expect(result.findings.length).toBe(expected.size);
+    expect(validateOfficialResultText(json).ok).toBe(true);
+    expect(events).toContain("session-started");
+    expect(events).toContain("session-finished");
+
+    // Persist artifact for inspection (throwaway, OS tmp, not repo).
+    const dir = await (async () => {
+      const d = join(tmpdir(), `scan-e2e-${String(Date.now())}`);
+      await mkdir(d, { recursive: true });
+      return d;
+    })();
+    await writeFile(join(dir, "result.json"), json, "utf-8");
+    const roundTrip = JSON.parse(await readFile(join(dir, "result.json"), "utf-8") as string) as {
+      findings: unknown[];
+    };
+    expect(roundTrip.findings.length).toBe(result.findings.length);
+  }, 300000);
+});

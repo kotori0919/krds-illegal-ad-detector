@@ -7,15 +7,16 @@
     "apps/web",
     "packages/contracts",
     "packages/synth-eval",
-    "packages/scanner"
+    "packages/scanner",
+    "packages/detection"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/web",
-    "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json && tsc --noEmit -p packages/synth-eval/tsconfig.check.json && tsc --noEmit -p packages/scanner/tsconfig.check.json",
+    "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json && tsc --noEmit -p packages/synth-eval/tsconfig.check.json && tsc --noEmit -p packages/scanner/tsconfig.check.json && tsc --noEmit -p packages/detection/tsconfig.check.json",
     "test": "vitest run",
     "build": "npm run build -w apps/web",
     "lint": "eslint .",
-    "clean": "rm -rf packages/contracts/dist apps/web/dist packages/synth-eval/dist packages/scanner/dist"
+    "clean": "rm -rf packages/contracts/dist apps/web/dist packages/synth-eval/dist packages/scanner/dist packages/detection/dist"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
