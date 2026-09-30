@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "불법광고 탐지 도구",
+  "version": "0.1.0",
+  "identifier": "kr.go.nia.illegal-ad-detector",
+  "build": {
+    "frontendDist": "../apps/web/dist",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeDevCommand": "npm run dev -w apps/web",
+    "beforeBuildCommand": "npm run build -w apps/web"
+  },
+  "app": {
+    "windows": [{ "title": "불법광고 탐지 도구", "width": 1200, "height": 860 }],
+    "security": { "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "category": "Utility",
+    "windows": { "nsis": { "languages": ["Korean", "English"] } }
+  }
+}

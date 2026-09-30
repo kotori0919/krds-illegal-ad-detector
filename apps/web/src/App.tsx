@@ -1,13 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { HostBridge } from "@krds-detector/contracts";
-import { BrowserHost } from "./host/browser.js";
+import { createHost } from "./host/index.js";
 import { ScanStart } from "./screens/ScanStart.js";
 import { ScanProgressView } from "./screens/ScanProgress.js";
 import { ScanResult } from "./screens/ScanResult.js";
 import { EvidenceView } from "./screens/EvidenceView.js";
 import { ExportView } from "./screens/ExportView.js";
-
-const host: HostBridge = new BrowserHost();
 
 type Phase = "start" | "progress" | "result" | "evidence" | "export";
 
@@ -23,12 +21,30 @@ export function App() {
   const [phase, setPhase] = useState<Phase>("start");
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [findingId, setFindingId] = useState<string | undefined>(undefined);
+  const [host, setHost] = useState<HostBridge | undefined>(undefined);
+
+  useEffect(() => {
+    let alive = true;
+    createHost().then((h) => {
+      if (alive) setHost(h);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const goResult = useCallback(() => setPhase("result"), []);
   const goExport = useCallback(() => setPhase("export"), []);
 
   const stepIndex = STEPS.findIndex((s) => s.id === phase);
 
+  if (!host) {
+    return (
+      <main className="page">
+        <p role="status">실행 환경을 확인하는 중입니다…</p>
+      </main>
+    );
+  }
   return (
     <>
       <nav aria-label="탐지 단계" className="steps-nav">

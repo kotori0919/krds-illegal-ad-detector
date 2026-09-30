@@ -11,12 +11,13 @@
   },
   "dependencies": {
     "@krds-detector/contracts": "0.1.0",
+    "@tauri-apps/api": "^2.12.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^6.1.1",
     "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^6.1.1",
     "vite": "^8.0.0"
   }
 }
