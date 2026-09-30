@@ -12,13 +12,9 @@ use tokio::process::Command;
 use tokio::sync::Mutex;
 
 #[cfg(windows)]
-mod job;
-#[cfg(windows)]
-pub use job::JobGuard;
+use crate::job::JobGuard;
 #[cfg(not(windows))]
-mod job_fallback;
-#[cfg(not(windows))]
-pub use job_fallback::JobGuard;
+use crate::job_fallback::JobGuard;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SessionStatus {
@@ -44,6 +40,15 @@ impl SessionStatus {
     }
 }
 
+/// Tauri commands must be Send: raw HANDLE (*mut c_void) is neither Send
+/// nor Sync, so the guard is stored as a boxed opaque owner instead.
+/// The Drop impl on JobGuard still runs when the box drops.
+/// SAFETY: the guard is only touched on the same async task that created it,
+/// and process-handle close is thread-safe at the OS level.
+pub(crate) struct SendJobGuard(JobGuard);
+unsafe impl Send for SendJobGuard {}
+unsafe impl Sync for SendJobGuard {}
+
 pub struct SessionRecord {
     pub id: String,
     pub entry_url: String,
@@ -53,7 +58,7 @@ pub struct SessionRecord {
     pub finished_at: Option<String>,
     pub error: Option<String>,
     pub child: Option<tokio::process::Child>,
-    pub job: Option<JobGuard>,
+    pub job: Option<SendJobGuard>,
     pub result_json: Option<String>,
     pub extra_json: Option<String>,
 }
@@ -124,7 +129,6 @@ impl SessionRegistry {
         let record = guard
             .get_mut(session_id)
             .ok_or_else(|| "unknown session".to_string())?;
-        #[allow(unused_mut)]
         let mut cmd = Command::new(sidecar_path);
         cmd.args(args)
             .kill_on_drop(true)
@@ -133,6 +137,7 @@ impl SessionRegistry {
             .stderr(std::process::Stdio::piped());
         #[cfg(windows)]
         {
+            #[allow(unused_imports)]
             use std::os::windows::process::CommandExt;
             // CREATE_NO_WINDOW: no console flash for the worker.
             cmd.creation_flags(0x0800_0000);
@@ -147,4 +152,37 @@ impl SessionRegistry {
 pub fn new_session(entry_url: String, topic: String, started_at: String) -> SessionRecord {
     let id = uuid::Uuid::new_v4().to_string();
     SessionRecord::new(id, entry_url, topic, started_at)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{new_session, SessionRegistry, SessionStatus};
+
+    #[tokio::test]
+    async fn cancel_unknown_session_returns_false() {
+        let registry = SessionRegistry::shared();
+        let done = registry.cancel("no-such-session", "2026-10-01T00:00:00Z".to_string()).await;
+        assert!(!done);
+    }
+
+    #[tokio::test]
+    async fn cancel_known_session_marks_cancelled_without_child() {
+        let registry = SessionRegistry::shared();
+        let record = new_session(
+            "https://example.kr/".to_string(),
+            "test".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let id = record.id.clone();
+        registry.insert(record).await;
+        let done = registry.cancel(&id, "2026-10-01T00:01:00Z".to_string()).await;
+        assert!(done);
+    }
+
+    #[test]
+    fn status_strings_match_contract() {
+        assert_eq!(SessionStatus::Crawling.as_str(), "crawling");
+        assert_eq!(SessionStatus::Cancelled.as_str(), "cancelled");
+        assert_eq!(SessionStatus::Failed.as_str(), "failed");
+    }
 }
