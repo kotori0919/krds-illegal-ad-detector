@@ -23,7 +23,7 @@ Production crawler on the Playwright API (`packages/scanner`).
 - Delayed injection: `id="ad-delayed-injected"` present at settle 1800 ms,
   absent at settle 0 (element selector, not script-text match).
 - Query page: `ad-query-hg` executed in live DOM.
-- Full suite: 7 files / 50 tests passed; typecheck/lint/build clean.
+- Full suite at the time: 7 files / 50 tests passed; typecheck/lint/build clean. (Historical record — see CI for current counts.)
 
 ## Safeguards (hostile pages)
 

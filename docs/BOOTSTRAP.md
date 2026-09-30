@@ -8,7 +8,7 @@ Date: 2026-09-30. Branch: `dev/bootstrap`. Tracking: issue #1.
 - `npm run typecheck` (`tsc -b` + `tsc --noEmit -p packages/contracts/tsconfig.check.json`): clean.
 - `npm run lint` (`eslint .`): clean.
 - `npm run test` (`vitest run`): 3 files / 21 tests passed
-  (`result.test.ts` 17, `selector.test.ts` 3, `technique.test.ts` 1).
+  (`result.test.ts` 17, `selector.test.ts` 3, `technique.test.ts` 1; historical Phase 0 record).
 - `npm run build` (`tsc -b && vite build`): clean, 28 modules,
   `dist/index.html` 0.41 kB, CSS 1.22 kB, JS 226.17 kB (pre-gzip; gzip 71.20 kB).
 
