@@ -23,6 +23,14 @@ export interface FrameSnapshot {
   html: string;
 }
 
+export interface LocatedSnapshot {
+  /** Contract-conformant location: iframe[src="ABS"] >>> selector. */
+  location: string;
+  selector: string;
+  framePath: { src: string; selector: string }[];
+  url: string;
+}
+
 export interface PageSnapshot {
   url: string;
   finalUrl: string;
@@ -234,9 +242,27 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             const fUrl = f.url();
             if (!fUrl || fUrl === "about:blank") continue;
             const fHtml = await f.content().catch(() => "");
+            let selector = "iframe";
+            try {
+              const ownerHandle = await f.frameElement();
+              const resolved: unknown = await ownerHandle.evaluate((el: Element) => {
+                if (el.id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(el.id)) return `#${el.id}`;
+                const parent = el.parentElement;
+                if (!parent) return "iframe";
+                const sibs = Array.from(parent.children).filter(
+                  (s) => s.tagName.toLowerCase() === "iframe",
+                );
+                const index = sibs.indexOf(el) + 1;
+                return el.id ? `iframe#${el.id}` : `iframe:nth-of-type(${String(index)})`;
+              }).catch(() => "iframe");
+              if (typeof resolved === "string" && resolved.length > 0) selector = resolved;
+              await ownerHandle.dispose().catch(() => undefined);
+            } catch {
+              /* cross-origin owner: keep generic selector */
+            }
             frameSnapshots.push({
               srcChain: [fUrl],
-              selectorChain: [],
+              selectorChain: [selector],
               url: fUrl,
               html: fHtml.slice(0, maxBodyBytes),
             });
