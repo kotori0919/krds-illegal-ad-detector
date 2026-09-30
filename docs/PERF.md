@@ -8,10 +8,11 @@ and carry explicit derating notes.
 
 ## MEASURED (this machine, synthetic fixtures, settle 1500 ms)
 
-- Full worker scan (14 pages, hub): wall 43.8 s, peak RSS 152 MB, CPU 2%
-  (I/O-bound on settle waits), 15/15 findings.
-- Crawl only: 21.3 s for 14 pages → 0.66 pages/s; per-page 1514/1516/1533
-  ms min/med/max (settle-dominated, as designed).
+Settle floor (depth probe, delayed fixture with 1200 ms injection):
+settle 400/800/1000/1200 → delayed ad MISSED; 1300/1500 → found.
+1500 ms is the proven minimum on this hardware — do NOT lower without
+re-proving recall (slower Windows hardware needs ≥1500, possibly more).
+
 - Detector per page (live, incl. evaluate round-trip): median 5 ms
   (homoglyph 6 ms / offscreen 4 ms / negatives 5 ms).
 - Browser cold start: 46 ms (launch + blank page).
