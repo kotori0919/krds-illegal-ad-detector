@@ -1,9 +1,22 @@
-# Adversarial evaluation (Phase 21 — OBSERVED 2026-10-01)
+# Adversarial evaluation (Phase 21 — OBSERVED 2026-10-01, depth sweep +1)
 
-Fixture: `fixtures/synthetic/adversarial.html` (8 attacks + 2 legitimate
-controls), regression test `packages/detection/test/adversarial.test.ts`.
+## Depth sweep (this turn)
 
-## Results (live, this machine)
+- Probed: space/hyphen/underscore splits, fullwidth latin (ＣＡＳＩＮＯ),
+  spaced latin, zero-width inserts, mixed Jamo, crawler case/dup edges.
+- Found + fixed: hyphen-split (카-지-노) fired no technique — fold now
+  strips `-` for matching and the split-signal includes it; fixture
+  `#adv-hyphen` + regression expectation added (now 9/9).
+- Deliberately NOT fixed: space-split technique signal (precision — normal
+  Korean is full of spaces; gate already folds them for matching, so
+  카 지 노 still matches post-fold when other evidence corroborates);
+  underscore-Jamo without ad terms (gate correctly silent); zero-width
+  inserts (extras channel, not official technique).
+- Crawler edges: case-sensitive paths stay distinct (correct — servers may
+  differ); fragment/trailing-slash/dup-query collapse verified; hub crawl
+  bounded at 14 pages with ref/index dup flags.
+
+---
 
 | Attack | Detector | Verdict |
 |---|---|---|
@@ -17,6 +30,7 @@ controls), regression test `packages/detection/test/adversarial.test.ts`.
 | Overflow-hidden micro box | OFFSCREEN | FIRES (pre-existing) |
 | Transparent animation, no ad text | — | SILENT (correct) |
 | Latin brand, no ad semantics | — | SILENT (correct) |
+| Hyphen split (카-지-노) | HOMOGLYPH | FIRES (depth sweep) |
 | All 7 negatives.html cases | — | SILENT (no regression) |
 
 ## Fixes (all with regression coverage)

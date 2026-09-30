@@ -50,8 +50,10 @@ const AD_DESTINATION_HINTS = [
 ] as const;
 
 export function normalizeForMatch(raw: string): string {
-  // Adversarial folding: punctuation inserted between syllables (카.지.노)
-  // and leet digit/letter swaps (C4sino) are stripped before matching.
+  // Adversarial folding: punctuation inserted between syllables (카.지.노,
+  // 카-지-노) and leet digit/letter swaps (C4sino) are stripped before
+  // matching. Plain spaces are folded by \s+ below (not stripped here) so
+  // spaced syllables (카 지 노) still match after whitespace removal.
   // Raw text is always preserved separately; this form is match-only.
   const leet = raw
     .replace(/4/g, "a")
@@ -61,7 +63,7 @@ export function normalizeForMatch(raw: string): string {
     .replace(/5/g, "s");
   return leet
     .normalize("NFKC")
-    .replace(/[.・ㆍ·∙⋅‐‑‒–—_~^|/\\]/g, "")
+    .replace(/[.・ㆍ·∙⋅‐‑‒–—_~^|/\\-]/g, "")
     .replace(/\s+/g, "");
 }
 

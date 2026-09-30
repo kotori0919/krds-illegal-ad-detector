@@ -20,6 +20,7 @@ describe("adversarial fixtures", () => {
       for (const expected of [
         "#adv-cyrillic:HOMOGLYPH",
         "#adv-punct:HOMOGLYPH",
+        "#adv-hyphen:HOMOGLYPH",
         "#adv-digit:HOMOGLYPH",
         "#adv-mixed-jamo:JAMO",
         "#adv-ancestor-child:TRANSPARENT",
