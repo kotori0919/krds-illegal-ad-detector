@@ -40,14 +40,9 @@ impl SessionStatus {
     }
 }
 
-/// Tauri commands must be Send: raw HANDLE (*mut c_void) is neither Send
-/// nor Sync, so the guard is stored as a boxed opaque owner instead.
-/// The Drop impl on JobGuard still runs when the box drops.
-/// SAFETY: the guard is only touched on the same async task that created it,
-/// and process-handle close is thread-safe at the OS level.
+/// Session-state owner for the Job guard. JobGuard itself is Send+Sync
+/// (see job.rs); this wrapper names the ownership role.
 pub(crate) struct SendJobGuard(JobGuard);
-unsafe impl Send for SendJobGuard {}
-unsafe impl Sync for SendJobGuard {}
 
 pub struct SessionRecord {
     pub id: String,
@@ -141,6 +136,14 @@ impl SessionRegistry {
             use std::os::windows::process::CommandExt;
             // CREATE_NO_WINDOW: no console flash for the worker.
             cmd.creation_flags(0x0800_0000);
+        }
+        #[cfg(windows)]
+        {
+            // Attach the sidecar to a kill-on-close Job before spawn so the
+            // whole tree (worker -> browser -> renderers) dies with the guard
+            // on cancel, crash, timeout, or app exit — even on kill escalation.
+            let job = JobGuard::attach_current()?;
+            record.job = Some(SendJobGuard(job));
         }
         let child = cmd.spawn().map_err(|e| format!("sidecar spawn failed: {e}"))?;
         let pid = child.id().unwrap_or(0);

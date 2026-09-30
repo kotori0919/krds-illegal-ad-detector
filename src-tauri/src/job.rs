@@ -19,6 +19,12 @@ mod imp {
         handle: HANDLE,
     }
 
+    // SAFETY: the HANDLE is an owned kernel object closed exactly once in
+    // Drop on the thread that drops the guard. Tauri commands are Send
+    // futures, so the guard must be Send+Sync to live in session state.
+    unsafe impl Send for JobGuard {}
+    unsafe impl Sync for JobGuard {}
+
     impl JobGuard {
         /// Create a kill-on-close job and attach the current process; the
         /// sidecar child inherits membership, covering browser descendants.
