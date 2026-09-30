@@ -1,0 +1,24 @@
+{
+  "name": "krds-illegal-ad-detector",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "packages/contracts"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json",
+    "test": "vitest run",
+    "build": "npm run build -w apps/web",
+    "lint": "eslint .",
+    "clean": "rm -rf packages/contracts/dist apps/web/dist"
+  },
+  "devDependencies": {
+    "eslint": "^9.34.0",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.41.0",
+    "vitest": "^3.2.4"
+  }
+}

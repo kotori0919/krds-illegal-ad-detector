@@ -1,0 +1,23 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.DS_Store
+Thumbs.db
+coverage/
+*.tsbuildinfo
+apps/web/dist/
+packages/*/dist/
+src-tauri/target/
+playwright-report/
+test-results/
+result.json
+result_extra.json
+.env
+.env.*
+!.env.example
+# tsc composite emit noise (sources are .ts/.tsx; never commit emit)
+**/*.js
+**/*.js.map
+**/*.d.ts
+**/*.d.ts.map
