@@ -203,6 +203,17 @@
       "kind": "structural",
       "page": "/structural/board.html?id=102",
       "notes": "Clean query variant; must NOT merge with id=101"
+    },
+    {
+      "id": "comment-hidden",
+      "kind": "positive",
+      "page": "/posts/comments.html",
+      "selector": "#comment-2",
+      "techniques": [
+        "HOMOGLYPH",
+        "OFFSCREEN"
+      ],
+      "notes": "Hidden comment ad: fullwidth S + display:none"
     }
   ]
 }

@@ -29,7 +29,7 @@ result engine, end-to-end scan.
   on positives, silent on educational/visible negatives.
 - Page pipeline: homoglyph 2, jamo 2, transparent 2, offscreen 3, combined 2,
   negatives 0.
-- End-to-end: 14 pages, 15/15 pairs, FP 0, FN 0, result.json validates,
+- End-to-end: 15 pages, 17/17 pairs, FP 0, FN 0, result.json validates,
   BOM-free; nested iframe location serializes outer >>> inner with absolute
   srcs; query/delayed/dedup all correct.
 

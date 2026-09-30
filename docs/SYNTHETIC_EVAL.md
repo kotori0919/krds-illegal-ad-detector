@@ -20,7 +20,7 @@ Static server: `packages/synth-eval/src/serve.ts` (path-traversal guard,
 
 - Data: `fixtures/synthetic/ground-truth.json` (22 cases: 13 positive,
   7 negative, 2 structural). Schema: `ground-truth.schema.json`.
-- 15 expected finding pairs (combo element + delayed element count twice —
+- 17 expected finding pairs (combo + delayed + comment elements count twice —
   KODEX §6: two techniques on one element → two findings).
 - Positive techniques per case; negatives carry `selector` + rationale and
   must produce zero findings; structural cases constrain crawler dedup.
@@ -31,7 +31,7 @@ Static server: `packages/synth-eval/src/serve.ts` (path-traversal guard,
 + technique signal), scored by `scoreStatic` → TP/FP/FN, precision, recall,
 elapsed. CLI: `npm run eval -w @krds-detector/synth-eval`.
 
-OBSERVED (this machine): TP 15 / FP 0 / FN 0, precision 1, recall 1,
+OBSERVED (this machine): TP 17 / FP 0 / FN 0, precision 1, recall 1,
 elapsed ~1 ms (static parse, not a browser timing claim).
 
 ## Case map

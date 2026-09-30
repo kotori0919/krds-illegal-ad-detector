@@ -28,6 +28,7 @@ describe("ground truth", () => {
       "positive:frame-jamo",
       "positive:query-hg",
       "positive:delayed-offscreen",
+      "positive:comment-hidden",
       "negative:neg-skip-link",
       "negative:neg-nav",
       "negative:neg-modal",
@@ -42,9 +43,9 @@ describe("ground truth", () => {
     }
   });
 
-  it("expects 15 positive pairs (combo + delayed count twice)", async () => {
+  it("expects 17 positive pairs (combo + delayed + comment count twice)", async () => {
     const cases = await loadGroundTruth();
-    expect(expectedPairs(cases).size).toBe(15);
+    expect(expectedPairs(cases).size).toBe(17);
   });
 });
 
@@ -111,13 +112,13 @@ describe("technique signals", () => {
 });
 
 describe("static baseline", () => {
-  it("scores 15 TP with zero FP/FN on fixtures", async () => {
+  it("scores 17 TP with zero FP/FN on fixtures", async () => {
     const cases = await loadGroundTruth();
     const { predictions, elapsedMs } = await predictStatic();
     const m = scoreStatic(cases, predictions, elapsedMs);
     expect(m.missing).toEqual([]);
     expect(m.unexpected).toEqual([]);
-    expect(m.tp).toBe(15);
+    expect(m.tp).toBe(17);
     expect(m.fp).toBe(0);
     expect(m.fn).toBe(0);
     expect(m.precision).toBe(1);

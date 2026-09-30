@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>게시글과 댓글</title>
+  </head>
+  <body>
+    <main>
+      <h1>자유 게시판</h1>
+      <article id="post-1">
+        <h2 id="post-1-title">주말 등산 모임 후기</h2>
+        <p id="post-1-body">지난 주말 관악산 등산 모임에 열 분이 오셨습니다. 다음 달에도 만나요.</p>
+      </article>
+      <section aria-label="댓글">
+        <h2>댓글</h2>
+        <ul id="comment-list">
+          <li id="comment-1">수고하셨습니다! 사진 잘 봤어요.</li>
+          <li id="comment-2" style="display: none">Ｓ슬롯 무료체험 머니 지급</li>
+          <li id="comment-3">다음엔 저도参加하고 싶네요.</li>
+        </ul>
+        <button id="comment-more" type="button">댓글 더 보기</button>
+      </section>
+      <script>
+        document.getElementById("comment-more").addEventListener("click", function () {
+          var li = document.createElement("li");
+          li.id = "comment-4";
+          li.style.cssText = "position:absolute;left:-9999px";
+          li.textContent = "ㅋㅏㅈㅣㄴㅗ 첫충전 이벤트";
+          document.getElementById("comment-list").appendChild(li);
+        });
+      </script>
+    </main>
+  </body>
+</html>

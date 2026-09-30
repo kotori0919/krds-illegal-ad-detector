@@ -7,7 +7,7 @@ import { loadGroundTruth } from "@krds-detector/synth-eval/evaluate.js";
 import { validateOfficialResultText } from "@krds-detector/contracts";
 
 describe("end-to-end scan on synthetic fixtures", () => {
-  it("recovers all 15 ground-truth pairs with zero FP/FN", async () => {
+  it("recovers all 17 ground-truth pairs with zero FP/FN", async () => {
     const events: string[] = [];
     const started = Date.now();
     const { result, json, pagesVisited } = await scanSite({
