@@ -20,7 +20,14 @@ export function jamoSignal(rawText: string): TechniqueEvidence | undefined {
   if (!COMPAT_JAMO_RE.test(rawText) && !CONJOINING_JAMO_RE.test(rawText)) return undefined;
   const hasSyllables = /[가-힣]/.test(rawText);
   const jamoCount = (rawText.match(new RegExp(JAMO_ANY_RE.source, "g")) ?? []).length;
-  const fragmented = !hasSyllables || jamoCount >= 4;
+  // Mixed complete/decomposed evasion (카ㅈㅣ노): syllables present, the
+  // NFKC form folds Jamo into syllables (length shrinks), and ad semantics
+  // will confirm illegality downstream. Pure laughter (ㅋㅋㅋ) has no such
+  // folding — NFKC keeps every Jamo (length unchanged) — so it stays silent.
+  const nospace = rawText.replace(/\s+/g, "");
+  const folded = rawText.normalize("NFKC").replace(/\s+/g, "");
+  const mixedDecomposed = hasSyllables && jamoCount >= 2 && folded.length < nospace.length;
+  const fragmented = !hasSyllables || jamoCount >= 4 || mixedDecomposed;
   const spacedSingle = /\s[ㄱ-ㅎㅏ-ㅣᄀ-ᇿ]\s/.test(rawText);
   if (!fragmented && !spacedSingle) return undefined;
   const normalizedText = rawText.normalize("NFKC").replace(/\s+/g, "");

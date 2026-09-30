@@ -39,7 +39,9 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
     <main className="page" aria-busy="true">
       <p className="eyebrow">진행 상태</p>
       <h1>탐지 진행</h1>
-      {notice ? <p role="status">{notice}</p> : null}
+      <p role="status" aria-live="polite">
+        {notice ?? `현재 단계: ${progress.stage}, 확정된 탐지 ${progress.confirmedFindings}건`}
+      </p>
       <section aria-label="탐지 현황" aria-describedby="progress-hint">
         <p id="progress-hint" className="hint">
           전체 작업량을 미리 알 수 없어 백분율 대신 실제 개수를 표시합니다.

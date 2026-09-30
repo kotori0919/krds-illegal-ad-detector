@@ -28,6 +28,18 @@ function codepointList(raw: string, normalized: string): string {
 export function homoglyphSignal(rawText: string): TechniqueEvidence | undefined {
   const hasFullwidth = FULLWIDTH_RE.test(rawText);
   const hasCyrillic = CYRILLIC_RE.test(rawText);
+  const hasPunctSplit = /[가-힣][.・ㆍ·∙⋅‐‑‒–—_~^|/\\][가-힣]/.test(rawText);
+  const hasLeetDigit = /[a-zA-Z][40135][a-zA-Z]/.test(rawText) || /C4sino/i.test(rawText);
+  if (hasPunctSplit || hasLeetDigit) {
+    const normalizedText = rawText.normalize("NFKC");
+    return {
+      kind: "homoglyph-signal",
+      technique: "HOMOGLYPH",
+      rawText,
+      normalizedText,
+      detail: `evasion split ${codepointList(rawText, normalizedText)}`,
+    };
+  }
   if (!hasFullwidth && !hasCyrillic) {
     // NFKC-only delta without confusable blocks: Jamo composition or
     // compatibility folding the Jamo detector owns. Not a homoglyph.

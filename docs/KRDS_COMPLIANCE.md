@@ -1,9 +1,31 @@
-# KRDS compliance log (Phase 11 pass 2026-10-01)
+# KRDS compliance log (Phase 11 pass + Phase 22 review 2026-10-01)
 
-Every UI PR answers the merge gate below. A significant unexplained KRDS
-deviation blocks merge.
+## Phase 22 independent review (this phase)
 
-## Product journey (5 screens, GOAL §17) — implemented
+- Initial task clarity: PASS — start screen states one URL in, sub-pages
+  auto-collected, 4 techniques judged.
+- KRDS hierarchy: PASS — eyebrow + h1 + h2 sections + lede on all screens.
+- Form behavior: PASS — URL + topic + 3 validated limits; `noValidate` so
+  app errors render in `role=alert` (native bubble suppressed).
+- Tables: PASS — caption + `th scope`, horizontal scroll at 360px.
+- Dialogs: N/A — none used (`details/summary` only).
+- Alerts: PASS — error `role=alert`, validation failures block export.
+- Progress feedback: FIXED — persistent `role=status aria-live=polite`
+  region (previously conditional, absent when no notice message).
+- Keyboard-only: PASS — Tab reaches URL field first, Enter submits.
+- Focus handling: PASS — 3px `:focus-visible` ring on all interactives.
+- Screen-reader semantics: PASS — `lang=ko`, landmarks, one h1/screen,
+  labelled controls, step `aria-current`, table caption/scope.
+- Error recovery: PASS — invalid URL/limits alert inline; missing evidence
+  id alerts with back action; export disabled until checks pass.
+- Responsiveness: PASS — 360px verified, steps wrap, table scrolls.
+- Evidence readability: PASS — observed/derived/inference separated with
+  headings; raw text in `.raw` pre-wrap block.
+
+Fix applied: persistent polite live region on 탐지 진행.
+
+---
+
 
 1. 탐지 시작 (`ScanStart`) — title, lede, URL field + hint, topic (optional),
    primary action, advanced `<details>` (max pages/depth/timeout with range

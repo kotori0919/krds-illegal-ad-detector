@@ -30,6 +30,8 @@ const AD_TERMS = [
   "고액",
   "배당",
   "보장",
+  "casino",
+  "무료체험",
 ] as const;
 
 /** Suspicious destination markers (path/query/host fragments). */
@@ -48,7 +50,19 @@ const AD_DESTINATION_HINTS = [
 ] as const;
 
 export function normalizeForMatch(raw: string): string {
-  return raw.normalize("NFKC").replace(/\s+/g, "");
+  // Adversarial folding: punctuation inserted between syllables (카.지.노)
+  // and leet digit/letter swaps (C4sino) are stripped before matching.
+  // Raw text is always preserved separately; this form is match-only.
+  const leet = raw
+    .replace(/4/g, "a")
+    .replace(/0/g, "o")
+    .replace(/1/g, "l")
+    .replace(/3/g, "e")
+    .replace(/5/g, "s");
+  return leet
+    .normalize("NFKC")
+    .replace(/[.・ㆍ·∙⋅‐‑‒–—_~^|/\\]/g, "")
+    .replace(/\s+/g, "");
 }
 
 export function matchedAdTerms(raw: string): string[] {
