@@ -100,10 +100,10 @@ async fn scan_start(
                 .into_owned(),
         ];
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-        state
-            .registry
-            .spawn_sidecar(&session_id, &path, &arg_refs)
-            .await?;
+        if let Err(detail) = state.registry.spawn_sidecar(&session_id, &path, &arg_refs).await {
+            state.registry.fail(&session_id, detail.clone(), chrono::Utc::now().to_rfc3339()).await;
+            return Err(format!("scanner sidecar failed to start ({path}): {detail}"));
+        }
         let app_handle = app.clone();
         let registry = state.registry.inner_clone();
         let finished_session = session_id.clone();
