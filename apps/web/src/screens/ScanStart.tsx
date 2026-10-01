@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import type { HostBridge } from "@krds-detector/contracts";
 
 interface Props {
@@ -6,53 +6,85 @@ interface Props {
   onStarted: (sessionId: string) => void;
 }
 
+type FieldName = "url" | "maxPages" | "maxDepth" | "timeoutSec";
+
+/** DOM order. The first entry carrying an error is the one focused on submit. */
+const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
+
 export function ScanStart({ host, onStarted }: Props) {
   const [url, setUrl] = useState("");
   const [topic, setTopic] = useState("");
   const [maxPages, setMaxPages] = useState("200");
   const [maxDepth, setMaxDepth] = useState("4");
   const [timeoutSec, setTimeoutSec] = useState("1500");
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldName, string>>>({});
+  const [formError, setFormError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const urlRef = useRef<HTMLInputElement>(null);
+  const pagesRef = useRef<HTMLInputElement>(null);
+  const depthRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<HTMLInputElement>(null);
+  const advancedRef = useRef<HTMLDetailsElement>(null);
+
+  const FIELD_REFS: Record<FieldName, () => HTMLInputElement | null> = {
+    url: () => urlRef.current,
+    maxPages: () => pagesRef.current,
+    maxDepth: () => depthRef.current,
+    timeoutSec: () => timeoutRef.current,
+  };
+
+  /** Move focus to the first invalid field, opening 고급 설정 first if the target is hidden there. */
+  function focusFirstInvalid(errors: Partial<Record<FieldName, string>>) {
+    const target = FIELD_ORDER.find((f) => errors[f]);
+    if (!target) return;
+    if (target !== "url" && advancedRef.current && !advancedRef.current.open) {
+      advancedRef.current.open = true;
+    }
+    FIELD_REFS[target]()?.focus();
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const entryUrl = url.trim();
+    const errors: Partial<Record<FieldName, string>> = {};
     if (!entryUrl) {
-      setError("검사할 웹사이트 주소를 입력해 주세요.");
-      return;
+      errors.url = "검사할 웹사이트 주소를 입력해 주세요.";
+    } else {
+      let parsed: URL | undefined;
+      try {
+        parsed = new URL(entryUrl);
+      } catch {
+        parsed = undefined;
+      }
+      if (!parsed || (parsed.protocol !== "http:" && parsed.protocol !== "https:")) {
+        errors.url = "http(s)로 시작하는 올바른 주소를 입력해 주세요.";
+      }
     }
-    let parsed: URL;
-    try {
-      parsed = new URL(entryUrl);
-    } catch {
-      setError("http(s)로 시작하는 올바른 주소를 입력해 주세요.");
-      return;
-    }
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      setError("http(s)로 시작하는 올바른 주소를 입력해 주세요.");
-      return;
-    }
-    const limits: Record<string, number> = {};
     const pages = Number.parseInt(maxPages, 10);
     const depth = Number.parseInt(maxDepth, 10);
     const timeout = Number.parseInt(timeoutSec, 10);
     if (!Number.isFinite(pages) || pages < 1 || pages > 2000) {
-      setError("최대 페이지 수는 1부터 2000까지 입력해 주세요.");
-      return;
+      errors.maxPages = "최대 페이지 수는 1부터 2000까지 입력해 주세요.";
     }
     if (!Number.isFinite(depth) || depth < 0 || depth > 10) {
-      setError("탐색 깊이는 0부터 10까지 입력해 주세요.");
-      return;
+      errors.maxDepth = "탐색 깊이는 0부터 10까지 입력해 주세요.";
     }
     if (!Number.isFinite(timeout) || timeout < 60 || timeout > 1750) {
-      setError("제한 시간은 60초부터 1750초까지 입력해 주세요.");
+      errors.timeoutSec = "제한 시간은 60초부터 1750초까지 입력해 주세요.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFormError(undefined);
+      setFieldErrors(errors);
+      focusFirstInvalid(errors);
       return;
     }
-    limits["maxPages"] = pages;
-    limits["maxDepth"] = depth;
-    limits["timeoutSec"] = timeout;
-    setError(undefined);
+    const limits: Record<string, number> = {
+      maxPages: pages,
+      maxDepth: depth,
+      timeoutSec: timeout,
+    };
+    setFieldErrors({});
+    setFormError(undefined);
     setBusy(true);
     try {
       const session = await host.startScan({
@@ -62,7 +94,8 @@ export function ScanStart({ host, onStarted }: Props) {
       });
       onStarted(session.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "탐지를 시작하지 못했습니다.");
+      // Not the user's URL text: report at form level so the URL input is not marked invalid.
+      setFormError(err instanceof Error ? err.message : "탐지를 시작하지 못했습니다.");
     } finally {
       setBusy(false);
     }
@@ -88,14 +121,20 @@ export function ScanStart({ host, onStarted }: Props) {
             placeholder="https://example.kr/"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "entry-url-error" : "scan-hint"}
+            ref={urlRef}
+            aria-invalid={fieldErrors.url ? true : undefined}
+            aria-describedby={fieldErrors.url ? "entry-url-error" : "scan-hint"}
             required
           />
           <p id="scan-hint" className="hint">
             하나의 시작 주소만 입력합니다. 같은 사이트 안의 하위 페이지는
             도구가 자동으로 수집합니다.
           </p>
+          {fieldErrors.url ? (
+            <p id="entry-url-error" role="alert" className="error">
+              {fieldErrors.url}
+            </p>
+          ) : null}
         </div>
         <div className="field">
           <label htmlFor="scan-topic">주제 (선택)</label>
@@ -108,43 +147,85 @@ export function ScanStart({ host, onStarted }: Props) {
             placeholder="예: 2026년 10월 정기 점검"
           />
         </div>
-        {error ? (
-          <p id="entry-url-error" role="alert" className="error">
-            {error}
+        {formError ? (
+          <p id="scan-form-error" role="alert" className="error">
+            {formError}
           </p>
         ) : null}
         <button type="submit" disabled={busy} className="primary">
           {busy ? "시작 중…" : "탐지 시작"}
         </button>
-        <details className="advanced">
+        <details className="advanced" ref={advancedRef}>
           <summary>고급 설정</summary>
           <div className="advanced-grid">
             <div className="field">
               <label htmlFor="limit-pages">최대 페이지 수</label>
               <input
                 id="limit-pages"
+                ref={pagesRef}
+                type="number"
                 inputMode="numeric"
+                min={1}
+                max={2000}
+                step={1}
                 value={maxPages}
                 onChange={(e) => setMaxPages(e.target.value)}
+                aria-invalid={fieldErrors.maxPages ? true : undefined}
+                aria-describedby={
+                  fieldErrors.maxPages ? "limit-pages-error" : undefined
+                }
               />
+              {fieldErrors.maxPages ? (
+                <p id="limit-pages-error" role="alert" className="error">
+                  {fieldErrors.maxPages}
+                </p>
+              ) : null}
             </div>
             <div className="field">
               <label htmlFor="limit-depth">탐색 깊이</label>
               <input
                 id="limit-depth"
+                ref={depthRef}
+                type="number"
                 inputMode="numeric"
+                min={0}
+                max={10}
+                step={1}
                 value={maxDepth}
                 onChange={(e) => setMaxDepth(e.target.value)}
+                aria-invalid={fieldErrors.maxDepth ? true : undefined}
+                aria-describedby={
+                  fieldErrors.maxDepth ? "limit-depth-error" : undefined
+                }
               />
+              {fieldErrors.maxDepth ? (
+                <p id="limit-depth-error" role="alert" className="error">
+                  {fieldErrors.maxDepth}
+                </p>
+              ) : null}
             </div>
             <div className="field">
               <label htmlFor="limit-timeout">제한 시간(초)</label>
               <input
                 id="limit-timeout"
+                ref={timeoutRef}
+                type="number"
                 inputMode="numeric"
+                min={60}
+                max={1750}
+                step={1}
                 value={timeoutSec}
                 onChange={(e) => setTimeoutSec(e.target.value)}
+                aria-invalid={fieldErrors.timeoutSec ? true : undefined}
+                aria-describedby={
+                  fieldErrors.timeoutSec ? "limit-timeout-error" : undefined
+                }
               />
+              {fieldErrors.timeoutSec ? (
+                <p id="limit-timeout-error" role="alert" className="error">
+                  {fieldErrors.timeoutSec}
+                </p>
+              ) : null}
             </div>
           </div>
           <p className="hint">
