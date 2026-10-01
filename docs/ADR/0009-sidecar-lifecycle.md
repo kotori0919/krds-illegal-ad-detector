@@ -23,14 +23,17 @@ detection port would duplicate the TypeScript pipeline in Rust.
 
 ## Amendment 2026-10-02: browser channel + sidecar bundling
 
-- Worker/crawler accept `--channel`/`channel` (e.g. `msedge`): on evaluator
-  PCs with no Playwright browser download, the sidecar drives the inbox
-  Edge via `chromium.launch({ channel })` — zero extra download.
+- Worker/crawler accept `--channel`/`channel` and both launches pass
+  `--no-sandbox` (needed under SYSTEM session-0).
 - `tauri.conf.json` declares `externalBin: ["binaries/scanner-worker"]`
-  (Tauri sidecar convention: `<name>-<target-triple>` binaries staged
-  under `src-tauri/binaries/`); `scan_start` passes `--channel msedge` so
-  the packaged app prefers the inbox browser.
-- Runtime chain on clean Windows 11: WebView2 (inbox) for UI + Edge
-  (inbox) for scanning + single-file sidecar — no Node.js install needed
-  if the sidecar is compiled (`bun build --compile`, 86 MB measured),
-  or Node.js + `node_modules` + `playwright-core msedge` if shipped as JS.
+  with a staging README (esbuild + `bun build --compile` recipes).
+- VERDICT on this VM (OBSERVED): channel `msedge` does NOT launch here —
+  bare `chromium.launch({ channel: msedge })` fails headless AND headed,
+  and `msedge.exe --headless --dump-dom` exits 1002 under SYSTEM
+  session-0. The running app renders (WebView2 works), so this is an
+  Edge-as-Playwright-channel limitation, not a broken browser.
+  The `--channel` flag stays optional plumbing; the default path uses
+  the Playwright headless shell (proven 17/17 on this VM).
+- Clean-evaluator implication: ship the sidecar + Playwright browsers
+  (or install headless shell at first run), OR retry channel `msedge`
+  in an interactive session where Edge launches.
