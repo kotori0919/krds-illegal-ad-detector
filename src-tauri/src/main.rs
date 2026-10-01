@@ -158,26 +158,22 @@ fn sidecar_path(app: &tauri::AppHandle) -> Option<String> {
 }
 
 fn main() {
+    // WebView2 profile must exist before wry creates its environment (which
+    // happens before .setup()). Default to %LOCALAPPDATA% so service-like
+    // profiles never poison the path. Overridable via env for harnesses.
+    if std::env::var_os("WEBVIEW2_USER_DATA_FOLDER").is_none() {
+        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+            std::env::set_var(
+                "WEBVIEW2_USER_DATA_FOLDER",
+                std::path::Path::new(&local).join("kr.go.nia.illegal-ad-detector").join("EBWebView"),
+            );
+        }
+    }
     let registry = SessionRegistry::shared();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .manage(AppState { registry })
-        // WebView2 profile: default to %LOCALAPPDATA% so SYSTEM-like service
-        // profiles never poison the path. Overridable via
-        // WEBVIEW2_USER_DATA_FOLDER for test harnesses.
-        .setup(|app| {
-            if std::env::var_os("WEBVIEW2_USER_DATA_FOLDER").is_none() {
-                if let Ok(local) = std::env::var("LOCALAPPDATA") {
-                    std::env::set_var(
-                        "WEBVIEW2_USER_DATA_FOLDER",
-                        std::path::Path::new(&local).join("kr.go.nia.illegal-ad-detector").join("EBWebView"),
-                    );
-                }
-            }
-            let _ = app;
-            Ok(())
-        })
         // Exit cleanup: dropping the registry kills owned sidecar children
         // (kill_on_drop) and releases Job Objects (kill-on-close).
         .on_window_event(|window, event| {
