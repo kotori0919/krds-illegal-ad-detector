@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   initialProgress,
   type HostBridge,
@@ -12,22 +12,41 @@ interface Props {
   onCancel: () => void;
 }
 
+const INITIAL = initialProgress("crawling");
+
 export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
-  const [progress, setProgress] = useState<ScanProgress>(initialProgress("crawling"));
-  const [notice, setNotice] = useState<string | undefined>(undefined);
+  const [progress, setProgress] = useState<ScanProgress>(INITIAL);
+  const [notice, setNotice] = useState<string>(
+    `탐지를 시작했습니다. 현재 단계: ${INITIAL.stage}`,
+  );
   const [cancelling, setCancelling] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  // The host emits one event per page. Only stage / confirmed-count / message
+  // transitions are worth speaking aloud; the per-page counters stay in the
+  // <dl> below, which is not a live region.
+  const lastSpoken = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     return host.onScanEvent((event) => {
       if (event.sessionId !== sessionId) return;
       setProgress(event.progress);
-      if (event.message) setNotice(event.message);
-      if (event.kind === "session-finished") onDone();
+      const line = event.message
+        ? `${event.message} (${event.progress.stage}, 확정된 탐지 ${event.progress.confirmedFindings}건)`
+        : `현재 단계: ${event.progress.stage}, 확정된 탐지 ${event.progress.confirmedFindings}건`;
+      if (line !== lastSpoken.current) {
+        lastSpoken.current = line;
+        setNotice(line);
+      }
+      if (event.kind === "session-finished") {
+        setFinishing(true);
+        onDone();
+      }
     });
   }, [host, sessionId, onDone]);
 
   async function cancel() {
     setCancelling(true);
+    setFinishing(true);
     try {
       await host.cancelScan(sessionId);
     } finally {
@@ -36,11 +55,15 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
   }
 
   return (
-    <main className="page" aria-busy="true">
+    // aria-busy is scoped to the finishing transition only. A long-running scan
+    // is a live view, not a region whose content is still settling: leaving the
+    // container busy would suppress the status region nested inside it, and
+    // aria-busy would stay "true" while onDone unmounts the screen.
+    <main className="page" aria-busy={finishing ? "true" : undefined}>
       <p className="eyebrow">진행 상태</p>
       <h1>탐지 진행</h1>
       <p role="status" aria-live="polite">
-        {notice ?? `현재 단계: ${progress.stage}, 확정된 탐지 ${progress.confirmedFindings}건`}
+        {notice}
       </p>
       <section aria-label="탐지 현황" aria-describedby="progress-hint">
         <p id="progress-hint" className="hint">
