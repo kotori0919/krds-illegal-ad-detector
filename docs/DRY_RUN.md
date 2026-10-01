@@ -31,22 +31,29 @@ with WebView2 (Win11 inbox) + the app's own Chromium worker path.
    elements/candidates/confirmed/elapsed), no fabricated percent (screenshot).
 6. [ ] NOT RUN — cancel mid-scan via packaged app (worker e2e covers cancel
    at the supervisor level: `cancel_unknown`/`cancel_known` unit tests PASS).
-7. [~] PARTIAL — headless worker e2e on the SAME Windows VM: 17/17 findings
-   (HOMOGLYPH 5 / JAMO 4 / TRANSPARENT 3 / OFFSCREEN 5), ids + identity unique,
-   BOM-free. Packaged-app full scan via form: NOT RUN (blocked on input above).
+7. [x] PASS — synced scan-loop worker on the SAME Windows VM (2026-10-02,
+   `--out-file` fix): 17/17 findings (HOMOGLYPH 5 / JAMO 4 / TRANSPARENT 3 /
+   OFFSCREEN 5), ids + identity unique, contract-valid, UTF-8 no BOM
+   (magic `7B 0A 20 20`). File `C:\prov\vm-final2.json`, 4650 bytes.
+   Packaged-app full scan via form: NOT RUN (blocked on input above).
+   Lesson: PowerShell `>` forces UTF-16 even for raw fd-1 bytes — the
+   worker's `--out-file` bypasses the shell pipe; Tauri captures piped
+   stdout directly so it is unaffected.
 8. [x] PASS — evidence panel shows raw text + location + technique
    (verified in interactive screenshots during CUA lane).
 
 ## C. result.json validation
 
-9. [x] PASS (headless worker output on Windows VM):
-   file `C:\prov\win-e2e-final.json`, 4650 bytes.
-10. [x] PASS — UTF-8, no BOM (byte check).
+9. [x] PASS (synced scan-loop worker on Windows VM, `--out-file`):
+   file `C:\prov\vm-final2.json`, 4650 bytes, magic `7B 0A 20 20`.
+   Prior sample `C:\prov\win-e2e-final.json` (4650 bytes) also valid.
+10. [x] PASS — UTF-8, no BOM (byte check on both files).
 11. [x] PASS — `meta` (topic/entry_url/tool_version) + flat `findings`;
     technique ∈ 4 official; ids unique; no duplicate
     `url+location+technique`.
-12. [x] PASS — contract round-trip tests (selector.test.ts) green on VM
-    as part of the 12-file / 73-test suite.
+12. [x] PASS — full validation on VM: `valid=true`, 17 findings
+    (H 5 / J 4 / T 3 / O 5) via contracts validator; contract round-trip
+    tests green as part of the suite.
 
 ## D. Process hygiene (release-blocking)
 
@@ -78,7 +85,7 @@ with WebView2 (Win11 inbox) + the app's own Chromium worker path.
 - [x] Complete source code (dev/bootstrap, tree clean)
 - [x] `docs/BUILD_MANUAL.md` + `docs/USER_MANUAL.md`
 - [x] `docs/PLANNING_DOC.md` (+ application forms: user to attach)
-- [x] `result.json` sample (`C:\prov\win-e2e-final.json`, 17 findings)
+- [x] `result.json` sample (`C:\prov\vm-final2.json`, 17 findings, valid)
       + `result_extra.json` engine (validated separately)
 - [ ] Attachment size / signature / email verification (user step)
 - [ ] NSIS installer (MSVC-lane, SDK-gated)
