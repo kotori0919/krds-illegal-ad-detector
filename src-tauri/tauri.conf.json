@@ -10,13 +10,23 @@
     "beforeBuildCommand": "npm run build -w apps/web"
   },
   "app": {
-    "windows": [{ "title": "불법광고 탐지 도구", "width": 1200, "height": 860 }],
-    "security": { "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" }
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "category": "Utility",
-    "windows": { "nsis": { "languages": ["Korean", "English"] } }
+    "windows": {
+      "nsis": {
+        "languages": [
+          "Korean",
+          "English"
+        ]
+      }
+    }
   }
 }

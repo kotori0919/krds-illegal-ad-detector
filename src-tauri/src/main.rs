@@ -17,7 +17,7 @@ mod session;
 
 use session::{new_session, SessionRegistry, SessionStatus};
 use std::sync::Arc;
-use tauri::{Emitter, Manager, State};
+use tauri::{Emitter, Manager, State, WebviewWindowBuilder};
 
 struct AppState {
     registry: Arc<SessionRegistry>,
@@ -157,6 +157,33 @@ fn sidecar_path(app: &tauri::AppHandle) -> Option<String> {
         .map(|p| p.to_string_lossy().to_string())
 }
 
+
+/// Resolve a writable WebView profile dir. Order: explicit env override,
+/// %LOCALAPPDATA% unless service-poisoned, first interactive C:\Users profile,
+/// %ProgramData% last resort.
+fn webview_data_dir() -> Option<std::path::PathBuf> {
+    if let Some(dir) = std::env::var_os("WEBVIEW2_USER_DATA_FOLDER") {
+        return Some(std::path::PathBuf::from(dir));
+    }
+    if let Ok(local) = std::env::var("LOCALAPPDATA") {
+        let p = std::path::PathBuf::from(&local);
+        if !p.to_string_lossy().replace('/', "\\").to_lowercase().contains("system32\\config") {
+            return Some(p.join("kr.go.nia.illegal-ad-detector").join("EBWebView"));
+        }
+    }
+    if let Ok(entries) = std::fs::read_dir("C:\\Users") {
+        for e in entries.flatten() {
+            let p = e.path().join("AppData").join("Local");
+            if p.is_dir() {
+                return Some(p.join("kr.go.nia.illegal-ad-detector").join("EBWebView"));
+            }
+        }
+    }
+    std::env::var("ProgramData").ok().map(|d| {
+        std::path::PathBuf::from(d).join("kr.go.nia.illegal-ad-detector").join("EBWebView")
+    })
+}
+
 fn main() {
     // WebView2 profile must exist before wry creates its environment (which
     // happens before .setup()). Resolve order:
@@ -191,10 +218,26 @@ fn main() {
         }
     }
     let registry = SessionRegistry::shared();
+    let data_dir = webview_data_dir();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .manage(AppState { registry })
+        .setup(move |app| {
+            let dir = data_dir.clone().ok_or("no writable WebView profile dir")?;
+            std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+            let _window: tauri::WebviewWindow = WebviewWindowBuilder::new(
+                app,
+                "main",
+                tauri::WebviewUrl::App("index.html".into()),
+            )
+            .title("불법광고 탐지 도구")
+            .inner_size(1200.0, 860.0)
+            .data_directory(dir)
+            .build()
+            .map_err(|e| e.to_string())?;
+            Ok(())
+        })
         // Exit cleanup: dropping the registry kills owned sidecar children
         // (kill_on_drop) and releases Job Objects (kill-on-close).
         .on_window_event(|window, event| {
