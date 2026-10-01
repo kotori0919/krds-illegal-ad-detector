@@ -218,9 +218,17 @@ impl SessionRegistry {
                 }
                 drop(guard);
                 if output.status.success() {
-                    SessionOutcome::Succeeded {
-                        stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+                    let mut stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+                    // --out-file fallback: the sidecar writes UTF-8 directly
+                    // when shell redirection would corrupt the pipe.
+                    if stdout.trim().is_empty() {
+                        let candidate = std::env::temp_dir().join(format!("krds-result-{session_id}.json"));
+                        if let Ok(text) = std::fs::read_to_string(&candidate) {
+                            stdout = text;
+                        }
+                        let _ = std::fs::remove_file(&candidate);
                     }
+                    SessionOutcome::Succeeded { stdout }
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
                     SessionOutcome::Failed {

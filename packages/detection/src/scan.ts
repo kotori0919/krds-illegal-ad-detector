@@ -60,6 +60,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       limits: input.crawl?.limits,
       settleMs: input.crawl?.settleMs,
       perPageMs: input.crawl?.perPageMs,
+      executablePath: input.crawl?.executablePath,
+      channel: input.crawl?.channel,
     });
     progress.visitedPages = summary.pages.length;
     progress.queuedPages = 0;
@@ -68,7 +70,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
 
     // Detect per discovered page in a fresh context (crawler snapshots are
     // static HTML; live pages give computed style + geometry).
-    browser = await chromium.launch();
+    browser = await chromium.launch({ executablePath: input.crawl?.executablePath, channel: input.crawl?.channel });
     const context = await browser.newContext();
     const allCandidates = [];
     for (const snapshot of summary.pages) {

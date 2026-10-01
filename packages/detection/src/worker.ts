@@ -18,6 +18,7 @@ interface WorkerArgs {
   timeoutSec: number;
   settleMs: number;
   executablePath?: string;
+  channel?: string;
   outFile?: string;
 }
 
@@ -35,6 +36,7 @@ function parseArgs(argv: string[]): WorkerArgs {
     timeoutSec: Number(get("--timeout-sec") ?? 1500),
     settleMs: Number(get("--settle-ms") ?? 1500),
     executablePath: get("--executable-path"),
+    channel: get("--channel"),
     outFile: get("--out-file"),
   };
 }
@@ -56,6 +58,7 @@ async function main(): Promise<void> {
     crawl: {
       limits: { maxPages: args.maxPages, maxDepth: args.maxDepth, timeoutSec: args.timeoutSec },
       settleMs: args.settleMs,
+      channel: args.channel,
       executablePath: args.executablePath,
     },
     onEvent: (e) => {

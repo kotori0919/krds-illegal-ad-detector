@@ -90,6 +90,15 @@ async fn scan_start(
             max_depth.to_string(),
             "--timeout-sec".to_string(),
             timeout_sec.to_string(),
+            // Prefer the inbox Edge on evaluator PCs (no browser download).
+            "--channel".to_string(),
+            "msedge".to_string(),
+            // Shell-safe capture path (PowerShell `>` forces UTF-16).
+            "--out-file".to_string(),
+            std::env::temp_dir()
+                .join(format!("krds-result-{session_id}.json"))
+                .to_string_lossy()
+                .into_owned(),
         ];
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
         state

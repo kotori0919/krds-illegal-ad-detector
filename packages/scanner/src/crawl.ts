@@ -61,6 +61,8 @@ export interface CrawlOptions {
   maxBodyBytes?: number;
   /** Headless shell path override (uses installed browsers by default). */
   executablePath?: string;
+  /** Installed-browser channel (e.g. msedge on Windows evaluators). */
+  channel?: string;
 }
 
 export interface CrawlSummary {
@@ -141,7 +143,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   let context: BrowserContext | undefined;
   let timedOut = false;
   try {
-    browser = await chromium.launch({ executablePath: options.executablePath });
+    browser = await chromium.launch({ executablePath: options.executablePath, channel: options.channel });
     context = await browser.newContext({
       acceptDownloads: false,
       bypassCSP: false,
