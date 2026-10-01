@@ -8,7 +8,7 @@
 //! packaged path cannot drift from the tested e2e seam.
 
 import { scanSite } from "./scan.js";
-
+import { writeFileSync } from "node:fs";
 interface WorkerArgs {
   session: string;
   entryUrl: string;
@@ -61,7 +61,9 @@ async function main(): Promise<void> {
     },
   });
   void startedAt;
-  process.stdout.write(json.endsWith("\n") ? json : `${json}\n`);
+  // Raw bytes: PowerShell `>` redirection re-encodes stdout as UTF-16;
+  // writing to fd 1 keeps result.json BOM-free UTF-8 on every host.
+  writeFileSync(1, json.endsWith("\n") ? json : `${json}\n`);
 }
 
 void main().catch((err: unknown) => {
