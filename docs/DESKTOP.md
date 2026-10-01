@@ -40,31 +40,39 @@ no BOM.
   restrictive CSP. `capabilities/default.json` — minimal set (event
   emit/listen, dialog open, text-file write).
 
-## Verification status (honest, updated Windows VM 2026-10-01)
+## Verification status (honest, updated 2026-10-02, HEAD ed5f5ef)
 
-- Web on Windows VM: `npm ci` PASS; `typecheck` PASS; `lint` PASS;
-  production `vite build` PASS; full `vitest` 12 files / 73 tests PASS
+- Packaged scan loop CLOSED in tree (not yet rebuilt on VM): `scan_start`
+  forwards entry-url/topic/limits to the sidecar, waits for exit,
+  validates stdout (BOM/JSON/official shape), stores canonical
+  `result.json`, emits `session-finished`/`session-failed`; registry gains
+  result store + snapshot/readback + `wait_sidecar`; `scan_export` writes
+  the validated file; worker routes through `scanSite` (ADR-0007) so the
+  packaged path cannot drift from the 17/17 e2e seam.
+- Linux evidence (OBSERVED): typecheck + lint + 15 files/93 tests + vite
+  build green; `cargo check --target x86_64-pc-windows-msvc` green;
+  bundled worker 17/17 findings on local fixtures; CI success on ed5f5ef.
+- VM rebuild BLOCKED on channel, not code: QGA `guest-exec` returns
+  truncated/empty output for multi-statement probes (only trivial
+  `Write-Output` round-trips); `where.exe node/git/cargo`, directory
+  listings, and drive probes return empty. The VM ran `C:\work\repo`
+  builds before (docs/DRY_RUN.md), so toolchains exist — the current
+  session cannot address them without an interactive-session channel
+  (RDP/WinRM/VNC clipboard or scheduled-task script drop).
+- Web on Windows VM (prior session): `npm ci` PASS; `typecheck` PASS;
+  `lint` PASS; production `vite build` PASS; full `vitest` PASS
   (after `playwright-core install chromium --only-shell`).
-- Windows cross-check from Linux: `cargo check --target
-  x86_64-pc-windows-msvc` green (warnings only).
-- `cargo test` on Windows: PASS via MinGW-w64 GCC 16.2 (gnu host toolchain,
-  3 passed / 0 failed) — the MSVC lane stays BLOCKED (SDK import libs absent),
-  so the gnu lane is the executed evidence and MSVC remains the packaging lane.
-- MSVC `link.exe` present (14.44) but
-  the Windows 11 SDK import libs (`kernel32.lib`, `ucrt.lib`) are absent
-  and every install channel tried failed silently (Build Tools modify,
-  standalone winsdksetup, VS-installer modify). Even `cargo new` hello-world
-  fails at LNK1181. Dead ends recorded, do NOT retry without a new channel:
-  (a) dumpbin/lib.exe vendored import libs — built, but UCRT needs more
-  than kernel32 (mainCRTStartup/_tls_index/type_info unresolved);
-  (b) MinGW `.a` renamed to `.lib` — COFF-incompatible for MSVC link;
-  (c) raw-dylib `#[link(kind="raw-dylib")]` — fixes OUR crate only, std
-  build scripts still demand the real SDK libs.
-- Next Windows step: install Visual Studio with the
-  "Desktop development with C++" workload + Windows 11 SDK component on a
-  network that allows the VS installer payload, OR provision a fresh VM
-  image with the SDK preinstalled. Then: `cargo test` → `cargo build
-  --release` → `tauri build` (NSIS) → clean-install → CUA user flow.
+- `cargo test` on Windows (prior session): PASS via MinGW-w64 GCC 16.2
+  (gnu host toolchain) — the MSVC lane stays BLOCKED (SDK import libs absent).
+- MSVC `link.exe` present (14.44) but the Windows 11 SDK import libs
+  (`kernel32.lib`, `ucrt.lib`) are absent and every install channel tried
+  failed silently. Dead ends recorded, do NOT retry without a new channel:
+  (a) dumpbin/lib.exe vendored import libs; (b) MinGW `.a` renamed to
+  `.lib`; (c) raw-dylib fixes our crate only, std build scripts still
+  demand the real SDK libs.
+- Next Windows step: open an interactive-session channel, then `cargo test`
+  → `cargo build --release` (gnu lane) → `tauri build` (NSIS needs MSVC+SDK)
+  → clean-install → packaged form-submit + cancel/recovery CUA flow.
 - Windows test matrix (Phase 19): normal completion, cancel, scanner crash,
   browser crash, app-close-during-scan, repeat-after-failure — all funnel
-  through `kill_child` + Job Drop; execution on Windows pending SDK.
+  through `kill_child` + Job Drop; packaged execution pending rebuild.
