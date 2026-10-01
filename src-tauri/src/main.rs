@@ -15,7 +15,7 @@ mod job;
 mod job_fallback;
 mod session;
 
-use session::{new_session, SessionRegistry, SessionStatus};
+use session::{SessionOutcome, SessionRegistry, SessionStatus};
 use std::sync::Arc;
 use tauri::{Emitter, Manager, State, WebviewWindowBuilder};
 
@@ -24,11 +24,21 @@ struct AppState {
 }
 
 #[derive(Debug, serde::Deserialize)]
+struct ScanLimitsArg {
+    #[serde(rename = "maxPages")]
+    max_pages: Option<u32>,
+    #[serde(rename = "maxDepth")]
+    max_depth: Option<u32>,
+    #[serde(rename = "timeoutSec")]
+    timeout_sec: Option<u64>,
+}
+
+#[derive(Debug, serde::Deserialize)]
 struct ScanStartRequest {
     #[serde(rename = "entryUrl")]
     entry_url: String,
     topic: Option<String>,
-    limits: Option<serde_json::Value>,
+    limits: Option<ScanLimitsArg>,
 }
 
 #[tauri::command]
@@ -41,44 +51,172 @@ async fn scan_start(
         return Err("entryUrl is required".to_string());
     }
     let parsed = url_like_valid(&request.entry_url)?;
+    let none_limits = ScanLimitsArg {
+        max_pages: None,
+        max_depth: None,
+        timeout_sec: None,
+    };
+    let limits = request.limits.as_ref().unwrap_or(&none_limits);
+    let max_pages = limits.max_pages.unwrap_or(200);
+    let max_depth = limits.max_depth.unwrap_or(4);
+    let timeout_sec = limits.timeout_sec.unwrap_or(1500);
+    if max_pages == 0 || max_pages > 2000 {
+        return Err("maxPages must be 1..=2000".to_string());
+    }
+    if max_depth > 10 {
+        return Err("maxDepth must be 0..=10".to_string());
+    }
+    if timeout_sec < 60 || timeout_sec > 1750 {
+        return Err("timeoutSec must be 60..=1750".to_string());
+    }
+    let topic = request.topic.clone().unwrap_or_default();
     let started_at = chrono::Utc::now().to_rfc3339();
-    let record = new_session(
-        parsed,
-        request.topic.unwrap_or_default(),
-        started_at.clone(),
-    );
+    let record = session::new_session(parsed.clone(), topic.clone(), started_at.clone());
     let session_id = record.id.clone();
     state.registry.insert(record).await;
-    // Resolve the bundled sidecar; dev falls back to a no-op heartbeat so
-    // the UI flow exercises without a packaged worker.
-    let sidecar_path = sidecar_path(&app);
-    if let Some(path) = sidecar_path {
+    // Bundled sidecar (resources/binaries/scanner-worker*); dev has no
+    // sidecar and keeps the no-op heartbeat so the UI flow still exercises.
+    if let Some(path) = sidecar_path(&app) {
         let args: Vec<String> = vec![
             "--session".to_string(),
             session_id.clone(),
+            "--entry-url".to_string(),
+            parsed.clone(),
+            "--topic".to_string(),
+            topic.clone(),
+            "--max-pages".to_string(),
+            max_pages.to_string(),
+            "--max-depth".to_string(),
+            max_depth.to_string(),
+            "--timeout-sec".to_string(),
+            timeout_sec.to_string(),
         ];
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
-        let _pid = state
+        state
             .registry
             .spawn_sidecar(&session_id, &path, &arg_refs)
             .await?;
+        let app_handle = app.clone();
+        let registry = state.registry.inner_clone();
+        let finished_session = session_id.clone();
+        let finished_entry = parsed.clone();
+        tauri::async_runtime::spawn(async move {
+            let outcome = registry.wait_sidecar(&finished_session).await;
+            finish_session(
+                &app_handle,
+                &registry,
+                &finished_session,
+                &finished_entry,
+                outcome,
+            )
+            .await;
+        });
     }
-    let _ = request.limits;
-    app.emit("scan-event", serde_json::json!({
-        "kind": "session-started",
-        "sessionId": session_id,
-        "at": started_at,
-        "progress": {"visitedPages": 0, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "crawling"},
-        "pageUrl": request.entry_url,
-    }))
+    app.emit(
+        "scan-event",
+        serde_json::json!({
+            "kind": "session-started",
+            "sessionId": session_id,
+            "at": started_at,
+            "progress": {"visitedPages": 0, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "crawling"},
+            "pageUrl": parsed,
+        }),
+    )
     .map_err(|e| e.to_string())?;
     Ok(serde_json::json!({
         "id": session_id,
-        "entryUrl": request.entry_url,
-        "topic": "",
+        "entryUrl": parsed,
+        "topic": topic,
         "status": SessionStatus::Crawling.as_str(),
         "startedAt": started_at,
     }))
+}
+
+/// Sidecar completion: persist validated stdout, mark status, notify the UI.
+/// Validation failure marks the session failed (release-blocking, KODEX §38).
+async fn finish_session(
+    app: &tauri::AppHandle,
+    registry: &Arc<SessionRegistry>,
+    session_id: &str,
+    entry_url: &str,
+    outcome: SessionOutcome,
+) {
+    let finished_at = chrono::Utc::now().to_rfc3339();
+    let (kind, status, message): (String, String, String) = match outcome {
+        SessionOutcome::Succeeded { stdout } => match validate_sidecar_stdout(entry_url, &stdout) {
+            Ok(canonical) => {
+                registry.store_result(session_id, canonical, finished_at.clone()).await;
+                ("session-finished".into(), "succeeded".into(), "탐지가 완료되었습니다.".into())
+            }
+            Err(detail) => {
+                registry.fail(session_id, detail.clone(), finished_at.clone()).await;
+                ("session-failed".into(), "failed".into(), detail)
+            }
+        },
+        SessionOutcome::Failed { detail } => {
+            registry.fail(session_id, detail.clone(), finished_at.clone()).await;
+            ("session-failed".into(), "failed".into(), detail)
+        }
+        // Cancel already emitted session-cancelled synchronously; stay silent.
+        SessionOutcome::Cancelled => return,
+    };
+    let progress = registry.progress_snapshot(session_id).await;
+    let _ = app.emit(
+        "scan-event",
+        serde_json::json!({
+            "kind": kind,
+            "sessionId": session_id,
+            "at": finished_at,
+            "progress": {"visitedPages": progress.pages, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": progress.findings, "elapsedSec": 0, "stage": status},
+            "message": message,
+            "pageUrl": entry_url,
+        }),
+    );
+}
+
+/// stdout is result.json only: reject BOM, reject non-JSON, require the
+/// official contract shape, then re-serialize the canonical bytes.
+fn validate_sidecar_stdout(entry_url: &str, stdout: &str) -> Result<String, String> {
+    if stdout.starts_with('\u{FEFF}') {
+        return Err("sidecar result contained a BOM".to_string());
+    }
+    let parsed: serde_json::Value =
+        serde_json::from_str(stdout).map_err(|e| format!("sidecar result is not JSON: {e}"))?;
+    let meta_ok = parsed
+        .get("meta")
+        .and_then(|m| m.get("entry_url"))
+        .and_then(|u| u.as_str())
+        .is_some_and(|u| !u.is_empty());
+    let findings_ok = parsed.get("findings").is_some_and(|f| f.is_array());
+    if !meta_ok || !findings_ok {
+        return Err("sidecar result missing meta/findings".to_string());
+    }
+    let technical: Vec<String> = parsed
+        .get("findings")
+        .and_then(|f| f.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.get("technique"))
+                .filter_map(|t| t.as_str())
+                .filter(|t| !matches!(*t, "HOMOGLYPH" | "JAMO" | "TRANSPARENT" | "OFFSCREEN"))
+                .map(|t| t.to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    if !technical.is_empty() {
+        return Err(format!(
+            "sidecar result has non-official techniques: {}",
+            technical.join(",")
+        ));
+    }
+    let canonical = serde_json::to_string_pretty(&parsed)
+        .map_err(|e| format!("sidecar result not serializable: {e}"))?;
+    if canonical.starts_with('\u{FEFF}') {
+        return Err("canonical serializer emitted a BOM".to_string());
+    }
+    let _ = entry_url;
+    Ok(format!("{canonical}\n"))
 }
 
 #[tauri::command]
@@ -91,32 +229,33 @@ async fn scan_cancel(
     if !state.registry.cancel(&session_id, finished_at.clone()).await {
         return Err("unknown session".to_string());
     }
-    app.emit("scan-event", serde_json::json!({
-        "kind": "session-cancelled",
-        "sessionId": session_id,
-        "at": finished_at,
-        "progress": {"visitedPages": 0, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "cancelled"},
-    }))
+    app.emit(
+        "scan-event",
+        serde_json::json!({
+            "kind": "session-cancelled",
+            "sessionId": session_id,
+            "at": finished_at,
+            "progress": {"visitedPages": 0, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "cancelled"},
+        }),
+    )
     .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 async fn scan_get_session(
-    _state: State<'_, AppState>,
-    _session_id: String,
+    state: State<'_, AppState>,
+    session_id: String,
 ) -> Result<Option<serde_json::Value>, String> {
-    // Sessions are tracked in the registry; full read-back ships with the
-    // sidecar result-store slice. Unknown ids return None (no throw).
-    Ok(None)
+    Ok(state.registry.snapshot(&session_id).await)
 }
 
 #[tauri::command]
 async fn scan_get_result(
-    _state: State<'_, AppState>,
-    _session_id: String,
+    state: State<'_, AppState>,
+    session_id: String,
 ) -> Result<Option<serde_json::Value>, String> {
-    Ok(None)
+    Ok(state.registry.result_value(&session_id).await)
 }
 
 #[tauri::command]
@@ -124,19 +263,30 @@ async fn scan_get_extra_result(
     _state: State<'_, AppState>,
     _session_id: String,
 ) -> Result<Option<serde_json::Value>, String> {
+    // Extra intel ships after the official path proves itself; explicit None.
     Ok(None)
 }
 
 #[tauri::command]
 async fn scan_export(
-    _app: tauri::AppHandle,
-    _session_id: String,
+    state: State<'_, AppState>,
+    session_id: String,
     directory: String,
 ) -> Result<serde_json::Value, String> {
     if directory.trim().is_empty() {
         return Err("directory is required".to_string());
     }
-    Err("no result stored for session yet (sidecar result-store slice)".to_string())
+    let Some(text) = state.registry.result_text(&session_id).await else {
+        return Err("no result stored for session yet".to_string());
+    };
+    if text.starts_with('\u{FEFF}') {
+        return Err("stored result contained a BOM".to_string());
+    }
+    let path = std::path::Path::new(directory.trim()).join("result.json");
+    std::fs::write(&path, text.as_bytes()).map_err(|e| format!("export failed: {e}"))?;
+    Ok(serde_json::json!({
+        "resultJson": path.to_string_lossy(),
+    }))
 }
 
 fn url_like_valid(raw: &str) -> Result<String, String> {
@@ -156,7 +306,6 @@ fn sidecar_path(app: &tauri::AppHandle) -> Option<String> {
         .ok()
         .map(|p| p.to_string_lossy().to_string())
 }
-
 
 /// Resolve a writable WebView profile dir. Order: explicit env override,
 /// %LOCALAPPDATA% unless service-poisoned, first interactive C:\Users profile,

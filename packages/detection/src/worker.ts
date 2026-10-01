@@ -4,11 +4,10 @@
 //! validated result.json to stdout (BOM-free) and exits. Stdout is JSON only;
 //! diagnostics go to stderr. This keeps detection semantics out of Tauri
 //! commands (KODEX §13) and makes the worker testable headlessly.
+//! The worker routes through scanSite (ADR-0007 live-page loop) so the
+//! packaged path cannot drift from the tested e2e seam.
 
-import { crawlSite } from "@krds-detector/scanner";
-import { detectPageCandidates } from "./pipeline.js";
-import { buildOfficialResult, serializeValidatedResult } from "./result-engine.js";
-import { chromium } from "playwright-core";
+import { scanSite } from "./scan.js";
 
 interface WorkerArgs {
   session: string;
@@ -18,6 +17,7 @@ interface WorkerArgs {
   maxDepth: number;
   timeoutSec: number;
   settleMs: number;
+  executablePath?: string;
 }
 
 function parseArgs(argv: string[]): WorkerArgs {
@@ -33,6 +33,7 @@ function parseArgs(argv: string[]): WorkerArgs {
     maxDepth: Number(get("--max-depth") ?? 4),
     timeoutSec: Number(get("--timeout-sec") ?? 1500),
     settleMs: Number(get("--settle-ms") ?? 1500),
+    executablePath: get("--executable-path"),
   };
 }
 
@@ -43,49 +44,24 @@ async function main(): Promise<void> {
     process.exitCode = 2;
     return;
   }
+  // scanSite owns crawl → live-page detection → validated result.json
+  // (the same seam the 17/17 e2e test exercises). Progress events stay on
+  // stderr so stdout remains result.json only.
   const startedAt = new Date().toISOString();
-  const summary = await crawlSite({
+  const { json } = await scanSite({
     entryUrl: args.entryUrl,
-    limits: { maxPages: args.maxPages, maxDepth: args.maxDepth, timeoutSec: args.timeoutSec },
-    settleMs: args.settleMs,
+    topic: args.topic,
+    crawl: {
+      limits: { maxPages: args.maxPages, maxDepth: args.maxDepth, timeoutSec: args.timeoutSec },
+      settleMs: args.settleMs,
+      executablePath: args.executablePath,
+    },
+    onEvent: (e) => {
+      console.error(`[${args.session}] ${e.kind} ${e.message ?? ""}`.trimEnd());
+    },
   });
-  const browser = await chromium.launch();
-  const allCandidates = [];
-  try {
-    const context = await browser.newContext();
-    for (const snapshot of summary.pages) {
-      const page = await context.newPage();
-      try {
-        await page.goto(snapshot.url, { waitUntil: "commit", timeout: 20000 });
-        await page.waitForTimeout(Math.min(args.settleMs, 5000));
-        const found = await detectPageCandidates(page, { pageUrl: snapshot.url });
-        for (const c of found) allCandidates.push(c);
-      } finally {
-        await page.close().catch(() => undefined);
-      }
-      for (const frame of snapshot.frames) {
-        const framePage = await context.newPage();
-        try {
-          await framePage.goto(frame.url, { waitUntil: "commit", timeout: 20000 });
-          await framePage.waitForTimeout(500);
-          const chain = frame.srcChain.map((src, i) => ({ src, selector: frame.selectorChain[i] ?? "iframe" }));
-          const found = await detectPageCandidates(framePage, { pageUrl: frame.url, framePath: chain, baseUrl: snapshot.finalUrl });
-          for (const c of found) allCandidates.push(c);
-        } finally {
-          await framePage.close().catch(() => undefined);
-        }
-      }
-    }
-    await context.close();
-  } finally {
-    await browser.close();
-  }
-  const finishedAt = new Date().toISOString();
-  const result = buildOfficialResult(
-    { topic: args.topic, entryUrl: args.entryUrl, startedAt, finishedAt },
-    allCandidates,
-  );
-  process.stdout.write(serializeValidatedResult(result));
+  void startedAt;
+  process.stdout.write(json.endsWith("\n") ? json : `${json}\n`);
 }
 
 void main().catch((err: unknown) => {

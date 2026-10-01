@@ -44,6 +44,7 @@ impl SessionStatus {
 /// (see job.rs); this wrapper names the ownership role.
 pub(crate) struct SendJobGuard(JobGuard);
 
+// `Child`/`JobGuard` are not Debug; keep an explicit opaque record.
 pub struct SessionRecord {
     pub id: String,
     pub entry_url: String,
@@ -85,6 +86,20 @@ impl SessionRecord {
     }
 }
 
+/// Sidecar wait outcome: stdout bytes on success, detail on failure.
+/// Cancelled means an explicit cancel already owns the session state.
+pub enum SessionOutcome {
+    Succeeded { stdout: String },
+    Failed { detail: String },
+    Cancelled,
+}
+
+#[derive(Default, Clone, Copy)]
+pub struct ProgressSnapshot {
+    pub pages: u64,
+    pub findings: u64,
+}
+
 #[derive(Default)]
 pub struct SessionRegistry {
     inner: Mutex<HashMap<String, SessionRecord>>,
@@ -94,6 +109,10 @@ impl SessionRegistry {
     #[must_use]
     pub fn shared() -> Arc<Self> {
         Arc::new(Self::default())
+    }
+
+    pub fn inner_clone(self: &Arc<Self>) -> Arc<Self> {
+        Arc::clone(self)
     }
 
     pub async fn insert(&self, record: SessionRecord) {
@@ -111,8 +130,116 @@ impl SessionRegistry {
         true
     }
 
+    pub async fn store_result(&self, session_id: &str, canonical: String, finished_at: String) {
+        let mut guard = self.inner.lock().await;
+        let Some(record) = guard.get_mut(session_id) else {
+            return;
+        };
+        record.result_json = Some(canonical);
+        record.status = SessionStatus::Succeeded;
+        record.finished_at = Some(finished_at);
+        record.error = None;
+    }
+
+    pub async fn fail(&self, session_id: &str, detail: String, finished_at: String) {
+        let mut guard = self.inner.lock().await;
+        let Some(record) = guard.get_mut(session_id) else {
+            return;
+        };
+        record.status = SessionStatus::Failed;
+        record.finished_at = Some(finished_at);
+        record.error = Some(detail);
+    }
+
+    pub async fn snapshot(&self, session_id: &str) -> Option<serde_json::Value> {
+        let guard = self.inner.lock().await;
+        let record = guard.get(session_id)?;
+        Some(serde_json::json!({
+            "id": record.id,
+            "entryUrl": record.entry_url,
+            "topic": record.topic,
+            "status": record.status.as_str(),
+            "startedAt": record.started_at,
+            "finishedAt": record.finished_at,
+            "error": record.error,
+        }))
+    }
+
+    pub async fn result_value(&self, session_id: &str) -> Option<serde_json::Value> {
+        let guard = self.inner.lock().await;
+        let text = guard.get(session_id)?.result_json.clone()?;
+        serde_json::from_str(&text).ok()
+    }
+
+    pub async fn result_text(&self, session_id: &str) -> Option<String> {
+        let guard = self.inner.lock().await;
+        guard.get(session_id)?.result_json.clone()
+    }
+
+    pub async fn progress_snapshot(&self, session_id: &str) -> ProgressSnapshot {
+        let guard = self.inner.lock().await;
+        let Some(record) = guard.get(session_id) else {
+            return ProgressSnapshot::default();
+        };
+        let findings = record
+            .result_json
+            .as_deref()
+            .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok())
+            .and_then(|value| value.get("findings")?.as_array().cloned())
+            .map(|items| items.len() as u64)
+            .unwrap_or(0);
+        ProgressSnapshot { pages: 0, findings }
+    }
+
+    /// Wait for the owned sidecar child to exit and collect its output.
+    /// Takes the child out of the record so cancel/kill owns termination;
+    /// a missing child means cancel already reaped it.
+    pub async fn wait_sidecar(&self, session_id: &str) -> SessionOutcome {
+        let child = {
+            let mut guard = self.inner.lock().await;
+            let Some(record) = guard.get_mut(session_id) else {
+                return SessionOutcome::Failed {
+                    detail: "unknown session".to_string(),
+                };
+            };
+            record.child.take()
+        };
+        let Some(child) = child else {
+            return SessionOutcome::Cancelled;
+        };
+        match child.wait_with_output().await {
+            Ok(output) => {
+                let mut guard = self.inner.lock().await;
+                let cancelled = guard
+                    .get(session_id)
+                    .is_some_and(|r| r.status == SessionStatus::Cancelled);
+                if cancelled {
+                    return SessionOutcome::Cancelled;
+                }
+                drop(guard);
+                if output.status.success() {
+                    SessionOutcome::Succeeded {
+                        stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+                    }
+                } else {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    SessionOutcome::Failed {
+                        detail: format!(
+                            "sidecar exited {}: {}",
+                            output.status,
+                            stderr.trim()
+                        ),
+                    }
+                }
+            }
+            Err(e) => SessionOutcome::Failed {
+                detail: format!("sidecar wait failed: {e}"),
+            },
+        }
+    }
+
     /// Spawn the scanner sidecar for a session and register the child.
-    /// The sidecar command is fixed (node + bundled worker); the frontend
+    /// The sidecar command is fixed (bundled worker binary); the frontend
     /// supplies only scan parameters, never a shell string.
     pub async fn spawn_sidecar(
         self: &Arc<Self>,
@@ -180,6 +307,46 @@ mod tests {
         registry.insert(record).await;
         let done = registry.cancel(&id, "2026-10-01T00:01:00Z".to_string()).await;
         assert!(done);
+    }
+
+    #[tokio::test]
+    async fn store_result_round_trips_through_result_value() {
+        let registry = SessionRegistry::shared();
+        let record = new_session(
+            "https://example.kr/".to_string(),
+            "test".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let id = record.id.clone();
+        registry.insert(record).await;
+        let canonical = "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[]}\n";
+        registry
+            .store_result(&id, canonical.to_string(), "2026-10-01T00:01:00Z".to_string())
+            .await;
+        let snapshot = registry.snapshot(&id).await.expect("session snapshot");
+        assert_eq!(snapshot["status"], "succeeded");
+        let value = registry.result_value(&id).await.expect("result value");
+        assert!(value["findings"].as_array().is_some_and(|f| f.is_empty()));
+        let text = registry.result_text(&id).await.expect("result text");
+        assert_eq!(text, canonical);
+    }
+
+    #[tokio::test]
+    async fn fail_marks_session_failed_with_detail() {
+        let registry = SessionRegistry::shared();
+        let record = new_session(
+            "https://example.kr/".to_string(),
+            "test".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let id = record.id.clone();
+        registry.insert(record).await;
+        registry
+            .fail(&id, "sidecar exited 1: boom".to_string(), "2026-10-01T00:01:00Z".to_string())
+            .await;
+        let snapshot = registry.snapshot(&id).await.expect("session snapshot");
+        assert_eq!(snapshot["status"], "failed");
+        assert!(registry.result_value(&id).await.is_none());
     }
 
     #[test]
