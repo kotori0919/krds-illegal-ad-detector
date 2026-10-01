@@ -30,9 +30,6 @@
     },
     "externalBin": [
       "binaries/scanner-worker"
-    ],
-    "resources": [
-      "binaries/README.md"
     ]
   }
 }
