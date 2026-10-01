@@ -143,7 +143,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   let context: BrowserContext | undefined;
   let timedOut = false;
   try {
-    browser = await chromium.launch({ executablePath: options.executablePath, channel: options.channel });
+    browser = await chromium.launch({ executablePath: options.executablePath, channel: options.channel, args: ["--no-sandbox"] });
     context = await browser.newContext({
       acceptDownloads: false,
       bypassCSP: false,

@@ -70,7 +70,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
 
     // Detect per discovered page in a fresh context (crawler snapshots are
     // static HTML; live pages give computed style + geometry).
-    browser = await chromium.launch({ executablePath: input.crawl?.executablePath, channel: input.crawl?.channel });
+    browser = await chromium.launch({ executablePath: input.crawl?.executablePath, channel: input.crawl?.channel, args: ["--no-sandbox"] });
     const context = await browser.newContext();
     const allCandidates = [];
     for (const snapshot of summary.pages) {
