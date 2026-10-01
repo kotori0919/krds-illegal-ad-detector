@@ -21,3 +21,4 @@ result_extra.json
 **/*.js.map
 **/*.d.ts
 **/*.d.ts.map
+src-tauri/gen/
