@@ -159,13 +159,34 @@ fn sidecar_path(app: &tauri::AppHandle) -> Option<String> {
 
 fn main() {
     // WebView2 profile must exist before wry creates its environment (which
-    // happens before .setup()). Default to %LOCALAPPDATA% so service-like
-    // profiles never poison the path. Overridable via env for harnesses.
+    // happens before .setup()). Resolve order:
+    // 1. WEBVIEW2_USER_DATA_FOLDER if already set (harness override);
+    // 2. %LOCALAPPDATA% unless it points inside system32\config (service
+    //    profiles such as SYSTEM/systemprofile are unwritable for WebView2);
+    // 3. first interactive user profile under C:\Users with Local AppData;
+    // 4. %ProgramData% as a last resort.
+    // Fixes the "couldn't create the data directory" dialog on service-launched
+    // processes. Real interactive launches hit branch 2 and are unaffected.
     if std::env::var_os("WEBVIEW2_USER_DATA_FOLDER").is_none() {
-        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+        let base: Option<std::path::PathBuf> = std::env::var("LOCALAPPDATA")
+            .ok()
+            .map(std::path::PathBuf::from)
+            .filter(|p| {
+                !p.to_string_lossy().replace('/', "\\").to_lowercase().contains("system32\\config")
+            })
+            .or_else(|| {
+                std::fs::read_dir("C:\\Users").ok().and_then(|entries| {
+                    entries.flatten().find_map(|e| {
+                        let p = e.path().join("AppData").join("Local");
+                        p.is_dir().then_some(p)
+                    })
+                })
+            })
+            .or_else(|| std::env::var("ProgramData").ok().map(std::path::PathBuf::from));
+        if let Some(base) = base {
             std::env::set_var(
                 "WEBVIEW2_USER_DATA_FOLDER",
-                std::path::Path::new(&local).join("kr.go.nia.illegal-ad-detector").join("EBWebView"),
+                base.join("kr.go.nia.illegal-ad-detector").join("EBWebView"),
             );
         }
     }
