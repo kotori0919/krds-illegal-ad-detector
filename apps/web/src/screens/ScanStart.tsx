@@ -95,7 +95,10 @@ export function ScanStart({ host, onStarted }: Props) {
       onStarted(session.id);
     } catch (err) {
       // Not the user's URL text: report at form level so the URL input is not marked invalid.
-      setFormError(err instanceof Error ? err.message : "탐지를 시작하지 못했습니다.");
+      // Tauri IPC errors may stringify with an empty message — fall back to
+      // the raw payload so the surfaced sidecar detail is never blank.
+      const raw = err instanceof Error ? err.message : String(err ?? "");
+      setFormError(raw.trim() ? raw : `탐지를 시작하지 못했습니다. (${String(err ?? "unknown")})`);
     } finally {
       setBusy(false);
     }

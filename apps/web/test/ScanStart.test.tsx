@@ -154,6 +154,19 @@ describe("ScanStart field validation", () => {
     ).toBe("alert");
   });
 
+  it("never renders a blank form error when the host rejection has no message", async () => {
+    const start = vi.fn(async () => {
+      throw "sidecar exploded";
+    });
+    render(<Harness startScan={start} />);
+    fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
+    submit();
+    await vi.waitFor(() =>
+      expect(document.getElementById("scan-form-error")?.textContent?.trim().length).toBeGreaterThan(0),
+    );
+    expect(document.getElementById("scan-form-error")?.textContent).toContain("sidecar exploded");
+  });
+
   it("exposes min/max matching the validator bounds on the advanced limits", () => {
     render(<Harness startScan={ok()} />);
     expect(byId("limit-pages").getAttribute("min")).toBe("1");
