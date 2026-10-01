@@ -226,7 +226,7 @@ fn main() {
         .setup(move |app| {
             let dir = data_dir.clone().ok_or("no writable WebView profile dir")?;
             std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-            let _window: tauri::WebviewWindow = WebviewWindowBuilder::new(
+            let window: tauri::WebviewWindow = WebviewWindowBuilder::new(
                 app,
                 "main",
                 tauri::WebviewUrl::App("index.html".into()),
@@ -234,8 +234,12 @@ fn main() {
             .title("불법광고 탐지 도구")
             .inner_size(1200.0, 860.0)
             .data_directory(dir)
+            .visible(true)
+            .focused(true)
             .build()
             .map_err(|e| e.to_string())?;
+            window.show().map_err(|e| e.to_string())?;
+            window.set_focus().map_err(|e| e.to_string())?;
             Ok(())
         })
         // Exit cleanup: dropping the registry kills owned sidecar children
