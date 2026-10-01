@@ -40,15 +40,28 @@ no BOM.
   restrictive CSP. `capabilities/default.json` — minimal set (event
   emit/listen, dialog open, text-file write).
 
-## Verification status (honest)
+## Verification status (honest, updated Windows VM 2026-10-01)
 
-- Web `typecheck`/`lint`/`build` clean; worker 17/17 on fixtures.
-- `cargo check` BLOCKED on Linux CI: Tauri 2 pulls WebKit system deps
-  (`atk-sys`, `gdk-sys`, `soup3-sys`, …) unavailable without sudo, and the
-  system cargo 1.75 cannot parse modern manifests (rustup stable 1.98
-  installed for future use). Full `cargo check` + `cargo test` + NSIS build
-  must run on Windows (Phase 23 dry run). Rust sources reviewed for
-  correctness; session/job logic is small and auditable.
+- Web on Windows VM: `npm ci` PASS; `typecheck` PASS; `lint` PASS;
+  production `vite build` PASS; full `vitest` 12 files / 73 tests PASS
+  (after `playwright-core install chromium --only-shell`).
+- Windows cross-check from Linux: `cargo check --target
+  x86_64-pc-windows-msvc` green (warnings only).
+- `cargo test` on Windows: NOT RUN — MSVC `link.exe` present (14.44) but
+  the Windows 11 SDK import libs (`kernel32.lib`, `ucrt.lib`) are absent
+  and every install channel tried failed silently (Build Tools modify,
+  standalone winsdksetup, VS-installer modify). Even `cargo new` hello-world
+  fails at LNK1181. Dead ends recorded, do NOT retry without a new channel:
+  (a) dumpbin/lib.exe vendored import libs — built, but UCRT needs more
+  than kernel32 (mainCRTStartup/_tls_index/type_info unresolved);
+  (b) MinGW `.a` renamed to `.lib` — COFF-incompatible for MSVC link;
+  (c) raw-dylib `#[link(kind="raw-dylib")]` — fixes OUR crate only, std
+  build scripts still demand the real SDK libs.
+- Next Windows step: install Visual Studio with the
+  "Desktop development with C++" workload + Windows 11 SDK component on a
+  network that allows the VS installer payload, OR provision a fresh VM
+  image with the SDK preinstalled. Then: `cargo test` → `cargo build
+  --release` → `tauri build` (NSIS) → clean-install → CUA user flow.
 - Windows test matrix (Phase 19): normal completion, cancel, scanner crash,
   browser crash, app-close-during-scan, repeat-after-failure — all funnel
-  through `kill_child` + Job Drop; execution on Windows pending.
+  through `kill_child` + Job Drop; execution on Windows pending SDK.
