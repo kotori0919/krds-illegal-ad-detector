@@ -42,7 +42,7 @@ mod imp {
         peak_job_memory_used: usize,
     }
 
-    #[link(name = "kernel32")]
+    #[link(name = "kernel32", kind = "raw-dylib")]
     unsafe extern "system" {
         fn CreateJobObjectW(attrs: LPVOID, name: LPCWSTR) -> HANDLE;
         fn SetInformationJobObject(
