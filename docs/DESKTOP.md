@@ -47,7 +47,10 @@ no BOM.
   (after `playwright-core install chromium --only-shell`).
 - Windows cross-check from Linux: `cargo check --target
   x86_64-pc-windows-msvc` green (warnings only).
-- `cargo test` on Windows: NOT RUN — MSVC `link.exe` present (14.44) but
+- `cargo test` on Windows: PASS via MinGW-w64 GCC 16.2 (gnu host toolchain,
+  3 passed / 0 failed) — the MSVC lane stays BLOCKED (SDK import libs absent),
+  so the gnu lane is the executed evidence and MSVC remains the packaging lane.
+- MSVC `link.exe` present (14.44) but
   the Windows 11 SDK import libs (`kernel32.lib`, `ucrt.lib`) are absent
   and every install channel tried failed silently (Build Tools modify,
   standalone winsdksetup, VS-installer modify). Even `cargo new` hello-world
