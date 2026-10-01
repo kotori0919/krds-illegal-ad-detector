@@ -53,11 +53,17 @@ export class TauriHost implements HostBridge {
 
   private async ensureSubscribed(): Promise<void> {
     if (this.subscribed) return;
-    const { listen } = await loadTauri();
-    await listen("scan-event", (e) => {
-      for (const h of this.handlers) h(e.payload);
-    });
-    this.subscribed = true;
+    // A subscription denial must never block the scan command itself:
+    // startScan invokes first, progress subscription is best-effort.
+    try {
+      const { listen } = await loadTauri();
+      await listen("scan-event", (e) => {
+        for (const h of this.handlers) h(e.payload);
+      });
+      this.subscribed = true;
+    } catch {
+      this.subscribed = false;
+    }
   }
 
   async getCapabilities(): Promise<HostCapabilities> {
@@ -65,9 +71,10 @@ export class TauriHost implements HostBridge {
   }
 
   async startScan(request: ScanRequest): Promise<ScanSession> {
-    await this.ensureSubscribed();
     const invoke = await this.invoke();
-    return invoke<ScanSession>("scan_start", { request });
+    const session = await invoke<ScanSession>("scan_start", { request });
+    await this.ensureSubscribed();
+    return session;
   }
 
   async cancelScan(sessionId: string): Promise<void> {
