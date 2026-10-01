@@ -164,3 +164,13 @@ describe("ScanStart field validation", () => {
     expect(byId("limit-timeout").getAttribute("max")).toBe("1750");
   });
 });
+describe("ScanStart stale-error clearing (CUA-found)", () => {
+  it("clears the URL error as soon as the user types a valid URL", () => {
+    render(<Harness startScan={ok()} />);
+    submit();
+    expect(document.getElementById("entry-url-error")).toBeTruthy();
+    fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
+    expect(document.getElementById("entry-url-error")).toBeNull();
+    expect(byId("entry-url").hasAttribute("aria-invalid")).toBe(false);
+  });
+});

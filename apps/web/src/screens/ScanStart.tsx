@@ -120,7 +120,12 @@ export function ScanStart({ host, onStarted }: Props) {
             autoComplete="url"
             placeholder="https://example.kr/"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              if (fieldErrors.url) {
+                setFieldErrors((prev) => ({ ...prev, url: undefined }));
+              }
+            }}
             ref={urlRef}
             aria-invalid={fieldErrors.url ? true : undefined}
             aria-describedby={fieldErrors.url ? "entry-url-error" : "scan-hint"}
@@ -143,7 +148,10 @@ export function ScanStart({ host, onStarted }: Props) {
             name="scan-topic"
             type="text"
             value={topic}
-            onChange={(e) => setTopic(e.target.value)}
+            onChange={(e) => {
+              setTopic(e.target.value);
+              if (formError) setFormError(undefined);
+            }}
             placeholder="예: 2026년 10월 정기 점검"
           />
         </div>
@@ -169,7 +177,12 @@ export function ScanStart({ host, onStarted }: Props) {
                 max={2000}
                 step={1}
                 value={maxPages}
-                onChange={(e) => setMaxPages(e.target.value)}
+                onChange={(e) => {
+                  setMaxPages(e.target.value);
+                  if (fieldErrors.maxPages) {
+                    setFieldErrors((prev) => ({ ...prev, maxPages: undefined }));
+                  }
+                }}
                 aria-invalid={fieldErrors.maxPages ? true : undefined}
                 aria-describedby={
                   fieldErrors.maxPages ? "limit-pages-error" : undefined
@@ -192,7 +205,12 @@ export function ScanStart({ host, onStarted }: Props) {
                 max={10}
                 step={1}
                 value={maxDepth}
-                onChange={(e) => setMaxDepth(e.target.value)}
+                onChange={(e) => {
+                  setMaxDepth(e.target.value);
+                  if (fieldErrors.maxDepth) {
+                    setFieldErrors((prev) => ({ ...prev, maxDepth: undefined }));
+                  }
+                }}
                 aria-invalid={fieldErrors.maxDepth ? true : undefined}
                 aria-describedby={
                   fieldErrors.maxDepth ? "limit-depth-error" : undefined
@@ -215,7 +233,12 @@ export function ScanStart({ host, onStarted }: Props) {
                 max={1750}
                 step={1}
                 value={timeoutSec}
-                onChange={(e) => setTimeoutSec(e.target.value)}
+                onChange={(e) => {
+                  setTimeoutSec(e.target.value);
+                  if (fieldErrors.timeoutSec) {
+                    setFieldErrors((prev) => ({ ...prev, timeoutSec: undefined }));
+                  }
+                }}
                 aria-invalid={fieldErrors.timeoutSec ? true : undefined}
                 aria-describedby={
                   fieldErrors.timeoutSec ? "limit-timeout-error" : undefined
