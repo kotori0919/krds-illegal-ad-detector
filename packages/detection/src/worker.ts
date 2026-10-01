@@ -18,6 +18,7 @@ interface WorkerArgs {
   timeoutSec: number;
   settleMs: number;
   executablePath?: string;
+  outFile?: string;
 }
 
 function parseArgs(argv: string[]): WorkerArgs {
@@ -34,6 +35,7 @@ function parseArgs(argv: string[]): WorkerArgs {
     timeoutSec: Number(get("--timeout-sec") ?? 1500),
     settleMs: Number(get("--settle-ms") ?? 1500),
     executablePath: get("--executable-path"),
+    outFile: get("--out-file"),
   };
 }
 
@@ -61,9 +63,11 @@ async function main(): Promise<void> {
     },
   });
   void startedAt;
-  // Raw bytes: PowerShell `>` redirection re-encodes stdout as UTF-16;
-  // writing to fd 1 keeps result.json BOM-free UTF-8 on every host.
-  writeFileSync(1, json.endsWith("\n") ? json : `${json}\n`);
+  // --out-file bypasses shell redirection entirely (PowerShell `>` forces
+  // UTF-16); stdout stays a fallback for piped Tauri capture (bytes).
+  const text = json.endsWith("\n") ? json : `${json}\n`;
+  if (args.outFile) writeFileSync(args.outFile, text, "utf8");
+  else writeFileSync(1, text);
 }
 
 void main().catch((err: unknown) => {
