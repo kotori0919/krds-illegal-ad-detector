@@ -40,37 +40,31 @@ no BOM.
   restrictive CSP. `capabilities/default.json` — minimal set (event
   emit/listen, dialog open, text-file write).
 
-## Verification status (honest, updated 2026-10-02, HEAD ed5f5ef)
+## Verification status (honest, updated 2026-10-02, HEAD 1bb062a)
 
-- Packaged scan loop CLOSED in tree (not yet rebuilt on VM): `scan_start`
-  forwards entry-url/topic/limits to the sidecar, waits for exit,
-  validates stdout (BOM/JSON/official shape), stores canonical
+- Packaged scan loop CLOSED and VM-validated at the worker seam:
+  `scan_start` forwards entry-url/topic/limits to the sidecar, waits for
+  exit, validates stdout (BOM/JSON/official shape), stores canonical
   `result.json`, emits `session-finished`/`session-failed`; registry gains
-  result store + snapshot/readback + `wait_sidecar`; `scan_export` writes
-  the validated file; worker routes through `scanSite` (ADR-0007) so the
-  packaged path cannot drift from the 17/17 e2e seam.
+  result store + snapshot/readback + `wait_sidecar` (+ `--out-file`
+  fallback); `scan_export` writes the validated file; worker routes
+  through `scanSite` (ADR-0007); `--channel`/`--no-sandbox` plumbing added
+  but Edge channel is opt-in (session-0 exit 1002 OBSERVED, ADR-0009).
 - Linux evidence (OBSERVED): typecheck + lint + 15 files/93 tests + vite
   build green; `cargo check --target x86_64-pc-windows-msvc` green;
-  bundled worker 17/17 findings on local fixtures; CI success on ed5f5ef.
-- VM rebuild BLOCKED on channel, not code: QGA `guest-exec` returns
-  truncated/empty output for multi-statement probes (only trivial
-  `Write-Output` round-trips); `where.exe node/git/cargo`, directory
-  listings, and drive probes return empty. The VM ran `C:\work\repo`
-  builds before (docs/DRY_RUN.md), so toolchains exist — the current
-  session cannot address them without an interactive-session channel
-  (RDP/WinRM/VNC clipboard or scheduled-task script drop).
-- Web on Windows VM (prior session): `npm ci` PASS; `typecheck` PASS;
-  `lint` PASS; production `vite build` PASS; full `vitest` PASS
-  (after `playwright-core install chromium --only-shell`).
-- `cargo test` on Windows (prior session): PASS via MinGW-w64 GCC 16.2
-  (gnu host toolchain) — the MSVC lane stays BLOCKED (SDK import libs absent).
-- MSVC `link.exe` present (14.44) but the Windows 11 SDK import libs
-  (`kernel32.lib`, `ucrt.lib`) are absent and every install channel tried
-  failed silently. Dead ends recorded, do NOT retry without a new channel:
-  (a) dumpbin/lib.exe vendored import libs; (b) MinGW `.a` renamed to
-  `.lib`; (c) raw-dylib fixes our crate only, std build scripts still
-  demand the real SDK libs.
-- Next Windows step: open an interactive-session channel, then `cargo test`
+  CI success on HEAD.
+- VM evidence (OBSERVED, this session): QGA file-push channel proven —
+  5 scan-loop files + 8 sidecar-delta files + sandbox fix synced,
+  `tsc` + contract tests green on VM, worker bundle rebuilt on VM
+  (38674 bytes, `--help` exit 2), sidecar staged at
+  `src-tauri/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs`;
+  `--out-file` worker 17/17 findings valid (`C:\prov\vm-final2.json`).
+- VM exe rebuild BLOCKED on toolchain, not channel: no cargo/rustc on
+  QGA PATH, no winget, no rustup dirs; MSVC lane needs Win11 SDK import
+  libs (all install channels silent). gnu-lane portable exe (23.5 MB)
+  remains the validated distributable.
+- Web on Windows VM: `npm ci` + typecheck + lint + vite + vitest PASS.
+- Next Windows step (needs cargo-capable session): `cargo test`
   → `cargo build --release` (gnu lane) → `tauri build` (NSIS needs MSVC+SDK)
   → clean-install → packaged form-submit + cancel/recovery CUA flow.
 - Windows test matrix (Phase 19): normal completion, cancel, scanner crash,
