@@ -6,19 +6,11 @@ import { ScanProgressView } from "./screens/ScanProgress.js";
 import { ScanResult } from "./screens/ScanResult.js";
 import { EvidenceView } from "./screens/EvidenceView.js";
 import { ExportView } from "./screens/ExportView.js";
-
-type Phase = "start" | "progress" | "result" | "evidence" | "export";
-
-const STEPS: { id: Phase; label: string }[] = [
-  { id: "start", label: "탐지 시작" },
-  { id: "progress", label: "탐지 진행" },
-  { id: "result", label: "탐지 결과" },
-  { id: "evidence", label: "탐지 근거" },
-  { id: "export", label: "검증·내보내기" },
-];
+import { stepStates, type Phase } from "./steps.js";
 
 export function App() {
   const [phase, setPhase] = useState<Phase>("start");
+  const [visited, setVisited] = useState<ReadonlySet<Phase>>(() => new Set<Phase>(["start"]));
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [findingId, setFindingId] = useState<string | undefined>(undefined);
   const [host, setHost] = useState<HostBridge | undefined>(undefined);
@@ -33,10 +25,21 @@ export function App() {
     };
   }, []);
 
-  const goResult = useCallback(() => setPhase("result"), []);
-  const goExport = useCallback(() => setPhase("export"), []);
+  /** Record a phase navigation so completion reflects the actual route taken. */
+  const go = useCallback((next: Phase) => {
+    setVisited((prev) => (prev.has(next) ? prev : new Set([...prev, next])));
+    setPhase(next);
+  }, []);
 
-  const stepIndex = STEPS.findIndex((s) => s.id === phase);
+  const goResult = useCallback(() => go("result"), [go]);
+  const goExport = useCallback(() => go("export"), [go]);
+  /** Cancel/restart resets the whole flow, so completion state resets too. */
+  const goStart = useCallback(() => {
+    setVisited(new Set<Phase>(["start"]));
+    setPhase("start");
+  }, []);
+
+  const steps = stepStates(phase, visited);
 
   if (!host) {
     return (
@@ -49,8 +52,10 @@ export function App() {
     <>
       <nav aria-label="탐지 단계" className="steps-nav">
         <ol className="steps">
-          {STEPS.map((s, i) => (
-            <li key={s.id} aria-current={s.id === phase ? "step" : undefined} className={i < stepIndex ? "done" : i === stepIndex ? "current" : "todo"}>
+          {steps.map((s) => (
+            <li key={s.id} aria-current={s.current ? "step" : undefined} className={s.className}>
+              {s.done && <span aria-hidden="true" className="done-check">✓ </span>}
+              {s.done && <span className="sr-only">완료 </span>}
               {s.label}
             </li>
           ))}
@@ -61,7 +66,7 @@ export function App() {
           host={host}
           sessionId={sessionId}
           onDone={goResult}
-          onCancel={() => setPhase("start")}
+          onCancel={goStart}
         />
       ) : phase === "result" && sessionId ? (
         <ScanResult
@@ -69,10 +74,10 @@ export function App() {
           sessionId={sessionId}
           onEvidence={(id) => {
             setFindingId(id);
-            setPhase("evidence");
+            go("evidence");
           }}
           onExport={goExport}
-          onRestart={() => setPhase("start")}
+          onRestart={goStart}
         />
       ) : phase === "evidence" && sessionId && findingId ? (
         <EvidenceView
@@ -83,13 +88,13 @@ export function App() {
           onExport={goExport}
         />
       ) : phase === "export" && sessionId ? (
-        <ExportView host={host} sessionId={sessionId} onBack={goResult} onRestart={() => setPhase("start")} />
+        <ExportView host={host} sessionId={sessionId} onBack={goResult} onRestart={goStart} />
       ) : (
         <ScanStart
           host={host}
           onStarted={(id) => {
             setSessionId(id);
-            setPhase("progress");
+            go("progress");
           }}
         />
       )}

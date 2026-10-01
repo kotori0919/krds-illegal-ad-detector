@@ -42,7 +42,7 @@ body {
 
 h1 {
   font-size: 1.75rem;
-  line-height: 1.3;
+  line-height: 1.5;
   margin: 0 0 0.75rem;
 }
 
@@ -167,7 +167,7 @@ pre:focus-visible {
 .stats div,
 .evidence div {
   display: grid;
-  grid-template-columns: 10rem 1fr;
+  grid-template-columns: 10rem minmax(0, 1fr);
   gap: 0.5rem;
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-soft);
@@ -181,6 +181,7 @@ pre:focus-visible {
 .stats dd,
 .evidence dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .counts {
@@ -284,6 +285,24 @@ code {
 
 .steps li.done {
   color: var(--accent);
+}
+
+/* Completion cue is the ✓ glyph (aria-hidden, plus sr-only "완료"); the
+   visible glyph keeps the state perceivable without color. */
+.steps li.done > .done-check {
+  text-decoration: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .checks {
