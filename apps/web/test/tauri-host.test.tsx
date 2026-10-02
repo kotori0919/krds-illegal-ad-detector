@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup } from "@testing-library/react";
 import { TauriHost } from "../src/host/tauri.js";
 import type { ScanSession } from "@krds-detector/contracts";
 
