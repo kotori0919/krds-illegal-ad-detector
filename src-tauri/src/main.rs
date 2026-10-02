@@ -381,10 +381,25 @@ async fn scan_export(
             .file()
             .set_file_name("result.json")
             .add_filter("JSON", &["json"]);
-        // Default to the user's Documents folder: the dialog otherwise
-        // opens in System32 (the service CWD), which rejects writes and
-        // forces the permission-redirect dance observed on the VM.
-        if let Ok(docs) = app.path().document_dir() {
+        // Default to the INTERACTIVE user's Documents folder. document_dir()
+        // resolves for the process user (SYSTEM under the service task),
+        // whose profile has no Documents redirect — the dialog then falls
+        // back to System32 and forces the permission-redirect dance
+        // observed on the VM (SYSTEM profile confirmed via whoami).
+        let docs = app
+            .path()
+            .document_dir()
+            .ok()
+            .filter(|p| p.is_dir())
+            .or_else(|| {
+                std::fs::read_dir("C:\\Users").ok().and_then(|entries| {
+                    entries.flatten().find_map(|e| {
+                        let docs = e.path().join("Documents");
+                        docs.is_dir().then_some(docs)
+                    })
+                })
+            });
+        if let Some(docs) = docs {
             dlg = dlg.set_directory(&docs);
         }
         let picked = dlg.blocking_save_file();
