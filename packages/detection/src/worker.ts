@@ -62,7 +62,16 @@ async function main(): Promise<void> {
       executablePath: args.executablePath,
     },
     onEvent: (e) => {
-      console.error(`[${args.session}] ${e.kind} ${e.message ?? ""}`.trimEnd());
+      // Machine-readable progress for the Tauri host (KODEX §36): the host
+      // forwards KRDSPROGRESS lines as scan-event IPC so the progress screen
+      // shows real counters. Stdout stays result.json only.
+      const payload = JSON.stringify({
+        kind: e.kind,
+        message: e.message ?? null,
+        pageUrl: e.pageUrl ?? null,
+        progress: e.progress,
+      });
+      console.error(`KRDSPROGRESS ${payload}`);
     },
   });
   void startedAt;

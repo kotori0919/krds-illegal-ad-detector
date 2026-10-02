@@ -104,6 +104,11 @@ pub enum SessionOutcome {
     Cancelled,
 }
 
+/// Live progress callback: receives one `scan-event`-shaped JSON value per
+/// `KRDSPROGRESS {...}` worker-stderr line, so the progress screen shows real
+/// counters (KODEX §36) instead of zeros until completion.
+pub type ProgressSink = std::sync::Arc<dyn Fn(serde_json::Value) + Send + Sync>;
+
 #[derive(Default, Clone, Copy)]
 pub struct ProgressSnapshot {
     pub pages: u64,
@@ -216,6 +221,57 @@ impl SessionRegistry {
             .unwrap_or(0);
         ProgressSnapshot { pages: 0, findings }
     }
+    /// Wait with live progress forwarding: `on_progress` receives one
+    /// `scan-event`-shaped JSON value per KRDSPROGRESS stderr line.
+    pub async fn wait_sidecar_with_progress(
+        &self,
+        session_id: &str,
+        on_progress: ProgressSink,
+    ) -> SessionOutcome {
+        use tokio::io::{AsyncBufReadExt, BufReader};
+        let stderr = {
+            let mut guard = self.inner.lock().await;
+            let Some(record) = guard.get_mut(session_id) else {
+                return SessionOutcome::Failed {
+                    detail: "unknown session".to_string(),
+                };
+            };
+            record.child.as_mut().and_then(|c| c.stderr.take())
+        };
+        let Some(stderr) = stderr else {
+            return self.wait_sidecar(session_id).await;
+        };
+        let session_owned = session_id.to_string();
+        let pump = tokio::spawn(async move {
+            let mut lines = BufReader::new(stderr).lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                let Some(payload) = line.split_once("KRDSPROGRESS ") else {
+                    continue;
+                };
+                let Ok(value) = serde_json::from_str::<serde_json::Value>(payload.1) else {
+                    continue;
+                };
+                let kind = value.get("kind").and_then(|k| k.as_str()).unwrap_or("stage-changed");
+                let progress = value.get("progress").cloned().unwrap_or(serde_json::json!({
+                    "visitedPages": 0, "queuedPages": 0, "framesInspected": 0,
+                    "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0,
+                    "elapsedSec": 0, "stage": "crawling",
+                }));
+                on_progress(serde_json::json!({
+                    "kind": kind,
+                    "sessionId": session_owned,
+                    "at": chrono::Utc::now().to_rfc3339(),
+                    "progress": progress,
+                    "message": value.get("message"),
+                    "pageUrl": value.get("pageUrl"),
+                }));
+            }
+        });
+        let outcome = self.wait_sidecar(session_id).await;
+        pump.abort();
+        outcome
+    }
+
 
     /// Wait for the owned sidecar child WITHOUT removing it from the record:
     /// the Child stays registered so `cancel` can always kill it. Poll via

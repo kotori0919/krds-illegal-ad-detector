@@ -111,11 +111,17 @@ async fn scan_start(
             return Err(format!("scanner sidecar failed to start ({path}): {detail}"));
         }
         let app_handle = app.clone();
+        let forward_handle = app.clone();
         let registry = state.registry.inner_clone();
         let finished_session = session_id.clone();
         let finished_entry = parsed.clone();
         tauri::async_runtime::spawn(async move {
-            let outcome = registry.wait_sidecar(&finished_session).await;
+            let sink: session::ProgressSink = std::sync::Arc::new(move |event| {
+                let _ = forward_handle.emit("scan-event", event);
+            });
+            let outcome = registry
+                .wait_sidecar_with_progress(&finished_session, sink)
+                .await;
             finish_session(
                 &app_handle,
                 &registry,
