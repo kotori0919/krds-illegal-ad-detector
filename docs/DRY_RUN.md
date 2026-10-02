@@ -66,15 +66,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 
 ## C. result.json validation
 
-9. [x] PASS (PACKAGED APP + worker CLI, OBSERVED 2026-10-02) — export
-   screen on build `21E751C1…` shows all 6 checks green incl.
-   `17건 모두 고유합니다` (screenshot win11-xexp) over the desktop-host
-   session. Native save dialog opened on save; bytes-on-disk NOT
-   captured (dialog dismissed to start screen — save-path capture
-   pending). Worker-CLI files `C:\prov\vm-final2.json` /
-   `win-e2e-final.json` also valid.
-10. [x] PASS (worker CLI bytes) — UTF-8, no BOM on both files above.
-    Desktop-exported bytes: [ ] UNVERIFIED (미근거).
+9. [x] PASS (PACKAGED APP END-TO-END, OBSERVED 2026-10-02) — build
+   `FFEF22E3…` (interactive-Documents lane): export screen 6 checks
+   green → native save dialog (Documents default) → file on disk
+   `C:\Users\dbsgu\OneDrive\Documents\result.json`, 4650 bytes,
+   magic `7B 0A 20 20`, `valid=true`, 17 findings
+   (H 5 / J 4 / T 3 / O 5), entry `http://127.0.0.1:4123/`,
+   tool `0.1.0` (contracts validator on VM; screenshots
+   win11-afterenter + dialog series). Desktop scan→terminal→export→
+   UTF-8 bytes PROVEN through the actual desktop host.
+10. [x] PASS (PACKAGED APP BYTES, OBSERVED 2026-10-02) — desktop
+    export `C:\Users\dbsgu\OneDrive\Documents\result.json`: UTF-8,
+    no BOM (magic `7B 0A 20 20`), 4650 bytes. Worker-CLI files also
+    BOM-free.
 11. [x] PASS (worker CLI content) — `meta` + flat `findings`;
     technique ∈ 4 official; ids unique; no duplicate identity.
     Desktop-produced content: [ ] UNVERIFIED (미근거) — the only
