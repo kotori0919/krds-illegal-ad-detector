@@ -349,13 +349,11 @@ async fn scan_get_extra_result(
 
 #[tauri::command]
 async fn scan_export(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     session_id: String,
     directory: String,
 ) -> Result<serde_json::Value, String> {
-    if directory.trim().is_empty() {
-        return Err("directory is required".to_string());
-    }
     // Only succeeded sessions export: failed/cancelled/running results
     // must never become a submittable file.
     let Some(snapshot) = state.registry.snapshot(&session_id).await else {
@@ -374,6 +372,25 @@ async fn scan_export(
         &text,
     )
     .map_err(|e| format!("stored result invalid, export blocked: {e}"))?;
+    // Ask the evaluator where to save (native dialog); an empty directory
+    // string means "ask". A cancelled dialog is a clean no-op, not an error.
+    if directory.trim().is_empty() || directory.trim() == "." {
+        use tauri_plugin_dialog::{DialogExt, FilePath};
+        let picked = app
+            .dialog()
+            .file()
+            .set_file_name("result.json")
+            .add_filter("JSON", &["json"])
+            .blocking_save_file();
+        let Some(FilePath::Path(path)) = picked else {
+            return Err("cancelled".to_string());
+        };
+        let path = path.into_os_string();
+        std::fs::write(&path, canonical.as_bytes()).map_err(|e| format!("export failed: {e}"))?;
+        return Ok(serde_json::json!({
+            "resultJson": path.to_string_lossy(),
+        }));
+    }
     let path = std::path::Path::new(directory.trim()).join("result.json");
     std::fs::write(&path, canonical.as_bytes()).map_err(|e| format!("export failed: {e}"))?;
     Ok(serde_json::json!({
