@@ -341,15 +341,6 @@ impl SessionRegistry {
             // `node <sidecar>` invocation, still no caller shell string.
             cmd.arg(sidecar_path);
         }
-        // Playwright resolves browsers under the launching user's profile.
-        // The packaged app runs as SYSTEM; the interactive user's cache is
-        // invisible to it. Point at the SYSTEM cache holding the provisioned
-        // headless shell (verified on the Windows 11 VM).
-        #[cfg(windows)]
-        cmd.env(
-            "PLAYWRIGHT_BROWSERS_PATH",
-            "C:\\Windows\\System32\\config\\systemprofile\\AppData\\Local\\ms-playwright",
-        );
         cmd.args(args)
             .stdin(SyncStdio::null())
             .stdout(std::process::Stdio::piped())
