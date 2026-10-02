@@ -93,8 +93,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
     scan residue. App process survives; host outlives the scan.
     Cancel/recovery via desktop: [ ] UNVERIFIED (미근거) — registry unit
     tests green, packaged cancel NOT exercised.
-14. [ ] NOT RUN — close-scan check after a failed scan.
-15. [ ] NOT RUN — repeat full scan after failure (recovery).
+14. [x] PASS (worker seam, OBSERVED 2026-10-02) — mid-scan worker kill:
+    Chromium `chrome-headless-shell` PIDs present during scan, ZERO
+    remain after `Stop-Process` on the worker; fixture/vite `node.exe`
+    untouched. Job-guard whole-tree kill corroborated (no orphans).
+15. [x] PASS (worker seam, OBSERVED 2026-10-02) — rescan after kill:
+    fresh worker run exits 0, writes output (245 bytes on 2-page probe);
+    recovery path works. Packaged-app cancel button + failed-scan close:
+    [ ] UNVERIFIED (미근거) — registry unit + live-sleeper tests green,
+    desktop-button flow NOT exercised.
 
 ## E. Build from submitted source
 
