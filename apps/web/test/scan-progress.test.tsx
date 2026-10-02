@@ -16,6 +16,7 @@ function setup(cancelScan = vi.fn(async () => {})) {
       };
     },
     cancelScan,
+    getSession: vi.fn(async () => ({ status: "cancelled" })),
   } as unknown as HostBridge;
   const onDone = vi.fn();
   const onCancel = vi.fn();
@@ -157,10 +158,14 @@ describe("ScanProgress live region", () => {
     const { onCancel } = setup(cancelScan);
     await act(async () => {
       screen.getByRole("button", { name: "탐지 취소" }).click();
+      await new Promise((resolve) => setTimeout(resolve, 2600));
     });
     expect(cancelScan).toHaveBeenCalledWith("s1");
     expect(page().getAttribute("aria-busy")).toBe("true");
-    expect(onCancel).toHaveBeenCalledTimes(1);
+    // The 2.5 s settle lets the cancelled poll tick fire onCancel; the
+    // finally-driven onCancel then fires once more. Both paths must converge
+    // on onCancel (never strand on progress).
+    expect(onCancel).toHaveBeenCalledTimes(2);
   });
 });
 describe("ScanProgress per-page counters", () => {

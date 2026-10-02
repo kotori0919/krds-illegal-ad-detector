@@ -83,7 +83,12 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
     setCancelling(true);
     setFinishing(true);
     try {
+      // Await the cancel round-trip plus one poll tick so the
+      // session-cancelled event wins the navigation race: without this, the
+      // finally-driven onCancel can fire while the result screen still reads
+      // the pre-cancel `crawling` snapshot (OBSERVED on VM).
       await host.cancelScan(sessionId);
+      await new Promise((resolve) => setTimeout(resolve, 2500));
     } finally {
       onCancel();
     }
