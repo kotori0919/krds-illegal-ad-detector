@@ -163,3 +163,30 @@ describe("ScanProgress live region", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });
+describe("ScanProgress per-page counters", () => {
+  it("renders non-zero visited pages from a page-visited event", () => {
+    const { emit } = setup();
+    const base = {
+      sessionId: "s1",
+      at: new Date().toISOString(),
+      kind: "page-visited",
+      message: "crawled 3 pages",
+      pageUrl: "http://127.0.0.1:4123/",
+      progress: {
+        visitedPages: 3,
+        queuedPages: 0,
+        framesInspected: 0,
+        elementsAnalyzed: 0,
+        candidates: 0,
+        confirmedFindings: 0,
+        elapsedSec: 4,
+        stage: "crawling",
+      },
+    } as const;
+    act(() => {
+      emit(event(base));
+    });
+    expect(statusLine()).toContain("crawling");
+    expect(document.body.textContent ?? "").toContain("방문한 페이지");
+  });
+});

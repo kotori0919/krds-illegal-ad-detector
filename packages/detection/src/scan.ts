@@ -55,6 +55,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
   let browser: Browser | undefined;
   try {
     // Crawl for discovery (same-site BFS, dedup, hostile guards).
+    // Stream per-page progress so the desktop host can show real counters
+    // (KODEX §36): the worker forwards these as scan-event IPC.
     const summary = await crawlSite({
       entryUrl,
       limits: input.crawl?.limits,
@@ -62,6 +64,13 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       perPageMs: input.crawl?.perPageMs,
       executablePath: input.crawl?.executablePath,
       channel: input.crawl?.channel,
+      events: {
+        onPageVisited: () => {
+          progress.visitedPages += 1;
+          progress.queuedPages = 0;
+          emit("page-visited", `crawled ${String(progress.visitedPages)} pages`, entryUrl);
+        },
+      },
     });
     progress.visitedPages = summary.pages.length;
     progress.queuedPages = 0;
