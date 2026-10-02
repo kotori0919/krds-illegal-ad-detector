@@ -36,16 +36,20 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 
 ## B. Scan flow
 
-4. [~] PARTIAL — URL paste via clipboard failed to land in React state twice
-   (placeholder-only at submit → validation banner, correctly shown).
-   jsdom tests prove submit-with-valid-URL calls startScan; validation tests
-   prove empty shows exactly this banner. Interactive typing (CUA key events
-   per character) remains to retry; SendKeys-in-session is the next attempt.
-5. [ ] UNVERIFIED (미근거) — progress screen showed real counters on the
-   reference build (screenshot). On current builds the ONLY observed
-   progress screen is the failure path (`failed`, all counters 0,
-   screenshots win11-r2/win11-s2/win11-full): meaningful non-zero
-   progress has NOT been observed through the desktop host.
+4. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — manual per-character
+   typing (`virsh send-key`, `KEY_LEFTSHIFT+KEY_SEMICOLON` for `:`) lands in
+   React state: `http://127.0.0.1:4123/` visible in the input (screenshots
+   win11-purl/win11-retype), submit reaches progress. Clipboard paste
+   remains unreliable (placeholder-only → validation banner, correctly
+   shown). Build `C078BDE2…`: fresh typing → progress → succeeded rescan
+   (session `33a5e4de…`, see gate 7b).
+5. [~] PARTIAL — progress screen auto-advanced to results before a
+   mid-scan screenshot could be captured on build `C078BDE2…` (submit →
+   crawling-zeros at +25 s, succeeded 17/17 at +70 s; screenshots
+   win11-pnew/win11-pnew2). Worker stderr now emits machine-readable
+   `KRDSPROGRESS` lines and the host forwards them as `scan-event` IPC
+   (commit 544ff63), but non-zero counters were NOT observed on screen
+   this run — the scan outran the screenshot cadence.
 6. [ ] UNVERIFIED (미근거) — cancel mid-scan via packaged app NOT RUN.
    Registry unit tests (cancel unknown/known, terminal-state guards,
    live-sleeper kill) pass on Linux; host survival + Chromium-descendant
@@ -59,6 +63,11 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
    also valid. Interactive-user browser cache (`dbsgu` profile +
    provisioned shell + full chromium) + `.mjs`-first resolver were the
    fixes; SYSTEM-cache override was the bug (removed).
+7b. [x] PASS (PACKAGED APP RESCAN, OBSERVED 2026-10-02) — build
+   `C078BDE2…` (progress-forwarding lane, commit 544ff63): fresh typed
+   submit → progress → auto-advance → `탐지 결과`, session `33a5e4de…`,
+   `상태: succeeded · 총 17건` (H 5 / J 4 / T 3 / O 5), page + `#ad-*`
+   locations + badges + evidence text (screenshot win11-pnew2).
 8. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — evidence panel on
    build `21E751C1…` shows page + `#ad-off-displaynone` selector +
    OFFSCREEN badge + raw evidence text (screenshot win11-xev).
