@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { HostBridge } from "@krds-detector/contracts";
 
 interface Props {
@@ -25,6 +25,13 @@ export function ScanStart({ host, onStarted }: Props) {
   const depthRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<HTMLInputElement>(null);
   const advancedRef = useRef<HTMLDetailsElement>(null);
+
+  // Focus the URL field on mount: evaluators (and automation) type
+  // immediately without tab-hunting. Invalid-submit still refocuses via
+  // focusFirstInvalid; this only sets the initial focus.
+  useEffect(() => {
+    urlRef.current?.focus();
+  }, []);
 
   const FIELD_REFS: Record<FieldName, () => HTMLInputElement | null> = {
     url: () => urlRef.current,
