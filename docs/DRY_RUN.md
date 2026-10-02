@@ -101,9 +101,10 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
     Chromium `chrome-headless-shell` PIDs present during scan, ZERO
     remain after `Stop-Process` on the worker; fixture/vite `node.exe`
     untouched. Job-guard whole-tree kill corroborated (no orphans).
-15. [x] PASS (worker seam, OBSERVED 2026-10-02) — rescan after kill:
-    fresh worker run exits 0, writes output (245 bytes on 2-page probe);
-    recovery path works. Packaged-app cancel button + failed-scan close:
+15. [x] PASS (worker seam, OBSERVED 2026-10-02) — mid-scan kill +
+    rescan: 4 Chromium PIDs during 200-page scan → ZERO after worker
+    `Stop-Process`; fresh rescan exits 0 with output (245 bytes).
+    Packaged-app cancel button + failed-scan close:
     [ ] UNVERIFIED (미근거) — registry unit + live-sleeper tests green,
     desktop-button flow NOT exercised.
 
