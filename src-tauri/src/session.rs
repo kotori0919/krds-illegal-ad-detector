@@ -714,6 +714,7 @@ pub mod test_support {
     pub struct SleeperGuard;
 }
 
+
 #[cfg(test)]
 mod progress_pump_tests {
     use super::{new_session, ProgressSink, SessionRegistry};
@@ -725,7 +726,31 @@ mod progress_pump_tests {
         )
     }
 
-    async fn run_pump(script_lines: &[&str]) -> (Vec<serde_json::Value>, super::SessionOutcome) {
+    /// Stderr fragments for the pump child, rendered per platform.
+    enum PumpLines {
+        Sh(Vec<String>),
+        PowerShell(Vec<String>),
+    }
+
+    impl PumpLines {
+        /// Pick the variant matching the test target: `sh` fragments on
+        /// unix, `[Console]::Error` fragments on Windows (`sh` is absent
+        /// there — OBSERVED via `program not found`).
+        fn for_target(sh: Vec<String>, ps: Vec<String>) -> Self {
+            #[cfg(windows)]
+            {
+                let _ = sh;
+                PumpLines::PowerShell(ps)
+            }
+            #[cfg(not(windows))]
+            {
+                let _ = ps;
+                PumpLines::Sh(sh)
+            }
+        }
+    }
+
+    async fn run_pump(lines: PumpLines) -> (Vec<serde_json::Value>, super::SessionOutcome) {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
@@ -734,33 +759,64 @@ mod progress_pump_tests {
         );
         let id = record.id.clone();
         registry.insert(record).await;
-        let script = script_lines.join("; ");
+        #[cfg(not(windows))]
+        let argv: Vec<String> = match lines {
+            PumpLines::Sh(fragments) => vec!["sh".to_string(), "-c".to_string(), fragments.join("; ")],
+            PumpLines::PowerShell(_) => panic!("PowerShell lines on unix"),
+        };
+        #[cfg(windows)]
+        let argv: Vec<String> = match lines {
+            PumpLines::PowerShell(fragments) => vec![
+                "powershell".to_string(),
+                "-NoProfile".to_string(),
+                "-NonInteractive".to_string(),
+                "-Command".to_string(),
+                fragments.join("; "),
+            ],
+            PumpLines::Sh(_) => panic!("sh lines on Windows"),
+        };
+        let argv_refs: Vec<&str> = argv.iter().map(String::as_str).collect();
         registry
-            .spawn_sidecar_for_test(&id, &["sh", "-c", &script])
+            .spawn_sidecar_for_test(&id, &argv_refs)
             .await
             .expect("test child spawns");
-        let seen = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let capture = seen.clone();
         let sink: ProgressSink = Arc::new(move |event| {
-            let capture = capture.clone();
-            tokio::spawn(async move {
-                capture.lock().await.push(event);
-            });
+            capture.lock().expect("sink mutex").push(event);
         });
         let outcome = registry.wait_sidecar_with_progress(&id, sink).await;
-        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-        let events = seen.lock().await.clone();
+        let events = seen.lock().expect("sink mutex").clone();
         (events, outcome)
     }
 
     #[tokio::test]
     async fn terminal_worker_events_are_not_forwarded() {
-        let (events, _) = run_pump(&[
-            &format!("echo '{}' >&2", event_json("page-visited", 3, "https://example.kr/a")),
-            &format!("echo '{}' >&2", event_json("session-finished", 9, "https://example.kr/a")),
-            &format!("echo '{}' >&2", event_json("session-failed", 9, "https://example.kr/a")),
-            &format!("echo '{}' >&2", event_json("session-cancelled", 0, "https://example.kr/a")),
-        ])
+        let line = |kind: &str, pages: u64| {
+            let payload = event_json(kind, pages, "https://example.kr/a");
+            #[cfg(windows)]
+            {
+                format!("[Console]::Error.WriteLine('{payload}')")
+            }
+            #[cfg(not(windows))]
+            {
+                format!("echo '{payload}' >&2")
+            }
+        };
+        let (events, _) = run_pump(PumpLines::for_target(
+            vec![
+                format!("echo '{}' >&2", event_json("page-visited", 3, "https://example.kr/a")),
+                format!("echo '{}' >&2", event_json("session-finished", 9, "https://example.kr/a")),
+                format!("echo '{}' >&2", event_json("session-failed", 9, "https://example.kr/a")),
+                format!("echo '{}' >&2", event_json("session-cancelled", 0, "https://example.kr/a")),
+            ],
+            vec![
+                line("page-visited", 3),
+                line("session-finished", 9),
+                line("session-failed", 9),
+                line("session-cancelled", 0),
+            ],
+        ))
         .await;
         assert_eq!(events.len(), 1);
         assert_eq!(events[0]["kind"], "page-visited");
@@ -769,12 +825,21 @@ mod progress_pump_tests {
 
     #[tokio::test]
     async fn malformed_and_plain_lines_do_not_break_forwarding() {
-        let (events, _) = run_pump(&[
-            "echo 'worker starting' >&2",
-            "echo 'KRDSPROGRESS not-json' >&2",
-            &format!("echo '{}' >&2", event_json("page-visited", 2, "https://example.kr/b")),
-            "echo '' >&2",
-        ])
+        let (events, _) = run_pump(PumpLines::for_target(
+            vec![
+                "echo 'worker starting' >&2".to_string(),
+                "echo 'KRDSPROGRESS not-json' >&2".to_string(),
+                format!("echo '{}' >&2", event_json("page-visited", 2, "https://example.kr/b")),
+            ],
+            vec![
+                "[Console]::Error.WriteLine('worker starting')".to_string(),
+                "[Console]::Error.WriteLine('KRDSPROGRESS not-json')".to_string(),
+                format!(
+                    "[Console]::Error.WriteLine('{}')",
+                    event_json("page-visited", 2, "https://example.kr/b")
+                ),
+            ],
+        ))
         .await;
         assert_eq!(events.len(), 1);
         assert_eq!(events[0]["progress"]["visitedPages"], 2);
@@ -782,7 +847,11 @@ mod progress_pump_tests {
 
     #[tokio::test]
     async fn stderr_only_failure_carries_diagnostics() {
-        let (_, outcome) = run_pump(&["echo 'boom-detail' >&2", "exit 3"]).await;
+        let (_, outcome) = run_pump(PumpLines::for_target(
+            vec!["echo 'boom-detail' >&2".to_string(), "exit 3".to_string()],
+            vec!["[Console]::Error.WriteLine('boom-detail'); exit 3".to_string()],
+        ))
+        .await;
         match outcome {
             super::SessionOutcome::Failed { detail } => {
                 assert!(detail.contains("boom-detail"), "detail was: {detail}");
@@ -793,10 +862,16 @@ mod progress_pump_tests {
 
     #[tokio::test]
     async fn large_output_does_not_hang_or_flood() {
-        let (events, _) = run_pump(&[
-            "for i in $(seq 1 500); do echo \"KRDSPROGRESS-noise-$i\" >&2; done",
-            "echo 'done-marker' >&2",
-        ])
+        let (events, _) = run_pump(PumpLines::for_target(
+            vec![
+                "for i in $(seq 1 500); do echo \"KRDSPROGRESS-noise-$i\" >&2; done".to_string(),
+                "echo 'done-marker' >&2".to_string(),
+            ],
+            vec![
+                "for ($i = 1; $i -le 500; $i++) { [Console]::Error.WriteLine(\"KRDSPROGRESS-noise-$i\") }".to_string(),
+                "[Console]::Error.WriteLine('done-marker')".to_string(),
+            ],
+        ))
         .await;
         assert!(events.is_empty());
     }
@@ -811,8 +886,23 @@ mod progress_pump_tests {
         );
         let id = record.id.clone();
         registry.insert(record).await;
+        #[cfg(windows)]
+        let argv: Vec<String> = vec![
+            "powershell".to_string(),
+            "-NoProfile".to_string(),
+            "-NonInteractive".to_string(),
+            "-Command".to_string(),
+            "for ($i = 1; $i -le 100000; $i++) { [Console]::Error.WriteLine(\"line-$i\") }; Start-Sleep -Seconds 30".to_string(),
+        ];
+        #[cfg(not(windows))]
+        let argv: Vec<String> = vec![
+            "sh".to_string(),
+            "-c".to_string(),
+            "for i in $(seq 1 100000); do echo line-$i >&2; done; sleep 30".to_string(),
+        ];
+        let argv_refs: Vec<&str> = argv.iter().map(String::as_str).collect();
         registry
-            .spawn_sidecar_for_test(&id, &["sh", "-c", "for i in $(seq 1 100000); do echo line-$i >&2; done; sleep 30"])
+            .spawn_sidecar_for_test(&id, &argv_refs)
             .await
             .expect("load child spawns");
         let sink: ProgressSink = Arc::new(|_| {});
