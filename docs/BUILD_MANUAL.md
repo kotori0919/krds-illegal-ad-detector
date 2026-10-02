@@ -27,10 +27,12 @@ npm run dev
 ```bat
 npm run build -w @krds-detector/scanner
 npm run build -w @krds-detector/detection
-node packages/detection/dist/worker.js --session <id> --entry-url <URL> --max-pages 200 --max-depth 4 --timeout-sec 1500 --settle-ms 1500 > result.json
+node packages/detection/dist/worker.js --session <id> --entry-url <URL> --max-pages 200 --max-depth 4 --timeout-sec 1500 --settle-ms 1500 --out-file result.json
 ```
 
-stdout은 `result.json` 전용 (BOM 없음). 진단은 stderr.
+`--out-file`에 UTF-8 `result.json` 직접 기록 (BOM 없음). stdout 폴백도
+바이트 기록. PowerShell `>` 리다이렉션은 UTF-16으로 강제 변환하므로
+사용하지 마세요. 진단은 stderr. 한국어 원문은 엄격 UTF-8로 디코딩 검증.
 
 ## 4. 데스크톱 앱 빌드 (Tauri)
 

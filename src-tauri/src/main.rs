@@ -380,6 +380,24 @@ fn url_like_valid(raw: &str) -> Result<String, String> {
 }
 
 fn sidecar_path(app: &tauri::AppHandle) -> Option<String> {
+    // Tauri externalBin stages `binaries/scanner-worker-<triple>(.exe)`
+    // next to the application executable. Resolve there first so the
+    // installed location always matches the runtime lookup — no drift
+    // between `tauri.conf.json` staging and this resolver.
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            for name in [
+                "scanner-worker-x86_64-pc-windows-gnu.exe",
+                "scanner-worker-x86_64-pc-windows-gnu.mjs",
+                "scanner-worker.exe",
+            ] {
+                let candidate = dir.join(name);
+                if candidate.is_file() {
+                    return Some(candidate.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
     app.path()
         .resolve(
             "binaries/scanner-worker",

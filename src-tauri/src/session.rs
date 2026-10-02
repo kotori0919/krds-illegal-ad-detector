@@ -334,7 +334,13 @@ impl SessionRegistry {
                 return Err("unknown session".to_string());
             }
         }
-        let mut cmd = std::process::Command::new(sidecar_path);
+        let is_script = sidecar_path.ends_with(".mjs") || sidecar_path.ends_with(".js");
+        let mut cmd = std::process::Command::new(if is_script { "node" } else { sidecar_path });
+        if is_script {
+            // The bundle is JavaScript, not itself executable: fixed
+            // `node <sidecar>` invocation, still no caller shell string.
+            cmd.arg(sidecar_path);
+        }
         cmd.args(args)
             .stdin(SyncStdio::null())
             .stdout(std::process::Stdio::piped())
