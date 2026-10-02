@@ -189,12 +189,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   no error, no download (proof-save-cancel-noop; unit-tested);
   dialog-confirmed save writes
   `C:\Users\dbsgu\OneDrive\Documents\result-dialog.json`, 4650 bytes,
-  magic `7B 0A 20 20`, `valid=true`, 17 findings H5/J4/T3/O5,
-  ids+identity unique (contracts validator on VM; screenshots
-  proof-save-dialog2 + proof-save-disk). Worker-CLI byteproof
-  `C:\prov\byteproof.json` identical bytes.
 - 6-green export validation + evidence panel: PASS on final flow
-  (proof-6green-final, proof-evidence-offscreen).
+  (proof-6green-final, proof-evidence-offscreen; nested-iframe run
+  proof-6green-adv, proof-nested-iframe).
+- Overwrite save (OBSERVED 2026-10-03, build `3ED6C5F7…`): existing
+  `result.json` → confirm-replace dialog (proof-overwrite-confirm) →
+  saved path shown `저장됨: C:\Users\dbsgu\OneDrive\Documents\result.json`
+  (proof-saved-path); on-disk bytes re-verified 4650, `7B 0A 20 20`,
+  `valid=true`, 17 findings.
 - Clean-install acceptance: UNVERIFIED (미근거) — NOT RUN. ISO
   `CESE_X64FREE_EN-US_DV9` (5.06 GB, `~/index.html?linkid=…`) ready.
   Blocker (reproducible): `ls /var/lib/libvirt/images/` →
