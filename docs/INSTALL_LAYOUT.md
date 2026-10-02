@@ -1,7 +1,13 @@
 # Installation layout (portable Windows package — no dev-VM dependence)
 
-Status: SPEC (implemented in code `a788332`, UNVERIFIED on a clean account —
-clean VM creation pending privilege for the libvirt images dir).
+Status: PROVEN on dev VM 2026-10-03 (`C:\prov\portable`, build
+`3ED6C5F7…`): exe-adjacent `node.exe` (v22.19.0) +
+`scanner-worker-x86_64-pc-windows-gnu.mjs` + `node_modules/playwright-core/`
+(13.5 MB) + `ms-playwright/` (env override) → full scan exit 0,
+`C:\prov\portable-out.json` 4650 bytes, `7B 0A 20 20`, `valid=true`,
+17 findings H5/J4/T3/O5. No repo/PATH/user-cache dependence.
+Total tree ~407 MB (node 85 MB + shell 283 MB); trimmable to
+~110 MB (node + mjs + playwright-core + shell-only).
 
 ## Installed tree
 
@@ -13,16 +19,18 @@ install-dir/
   krds-detector.exe                        # Tauri host (this repo, src-tauri)
   node.exe                                 # portable Node runtime (shipped)
   scanner-worker-x86_64-pc-windows-gnu.mjs # esbuild bundle (this repo)
-  playwright-core/                         # npm package (shipped, external)
+  node_modules/playwright-core/            # npm package (Node ESM resolution)
   ms-playwright/
     chromium_headless_shell-1243/          # headless shell (shipped)
-      chrome-linux/…  (win32 build on Windows)
 ```
+
+Node ESM resolves `playwright-core` via `node_modules/` — a bare
+`playwright-core/` sibling does NOT resolve (OBSERVED on VM:
+`ERR_MODULE_NOT_FOUND`). The layout MUST use `node_modules/`.
 
 No other files are required. In particular the install does NOT need:
 
 - `C:\work\repo` or any repository checkout;
-- `node_modules` outside the shipped `playwright-core/`;
 - a separately installed Node/Bun on PATH;
 - a prefilled per-user `ms-playwright` cache;
 - knowledge of the evaluator's username.

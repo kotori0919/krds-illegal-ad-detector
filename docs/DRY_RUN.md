@@ -207,6 +207,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   saved path shown `저장됨: C:\Users\dbsgu\OneDrive\Documents\result.json`
   (proof-saved-path); on-disk bytes re-verified 4650, `7B 0A 20 20`,
   `valid=true`, 17 findings.
+- Portable layout (OBSERVED 2026-10-03, build `3ED6C5F7…`):
+  `C:\prov\portable` (exe + node.exe v22.19.0 + sidecar `.mjs` +
+  `node_modules/playwright-core/` 13.5 MB + `ms-playwright/` via env)
+  → full scan exit 0, `C:\prov\portable-out.json` 4650 bytes,
+  `7B 0A 20 20`, `valid=true`, 17 H5/J4/T3/O5. Bare
+  `playwright-core/` sibling does NOT resolve (`ERR_MODULE_NOT_FOUND`);
+  layout corrected to `node_modules/`.
 - Clean-install acceptance: UNVERIFIED (미근거) — NOT RUN. ISO
   `CESE_X64FREE_EN-US_DV9` (5.06 GB, `~/index.html?linkid=…`) ready.
   Blocker (reproducible): `ls /var/lib/libvirt/images/` →
