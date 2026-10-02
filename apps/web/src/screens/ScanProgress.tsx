@@ -68,6 +68,9 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
         setFinishing(true);
         clearInterval(timer);
         onDone();
+      } else if (event.kind === "session-cancelled") {
+        clearInterval(timer);
+        onCancel();
       }
     });
     return () => {

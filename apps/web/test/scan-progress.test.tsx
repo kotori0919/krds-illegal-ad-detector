@@ -190,3 +190,29 @@ describe("ScanProgress per-page counters", () => {
     expect(document.body.textContent ?? "").toContain("방문한 페이지");
   });
 });
+
+describe("ScanProgress cancel event", () => {
+  it("routes session-cancelled to onCancel instead of stranding on progress", () => {
+    const { emit, onCancel } = setup();
+    const base = {
+      sessionId: "s1",
+      at: new Date().toISOString(),
+      kind: "session-cancelled",
+      progress: {
+        visitedPages: 0,
+        queuedPages: 0,
+        framesInspected: 0,
+        elementsAnalyzed: 0,
+        candidates: 0,
+        confirmedFindings: 0,
+        elapsedSec: 3,
+        stage: "cancelled",
+      },
+    } as const;
+    act(() => {
+      emit(event(base));
+    });
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+});
+

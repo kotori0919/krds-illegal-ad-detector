@@ -35,6 +35,26 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart }:
     };
   }, [host, sessionId]);
 
+  // A cancelled session never produces a result: send the evaluator back to
+  // the start screen instead of stranding them on an empty result list
+  // (OBSERVED on VM: cancel landed on `상태: crawling` with zero rows).
+  if (session?.status === "cancelled") {
+    return (
+      <main className="page">
+        <p className="eyebrow">검사 결과</p>
+        <h1>탐지 결과</h1>
+        <p role="status" className="empty">
+          탐지가 취소되었습니다. 새 검사를 시작해 주세요.
+        </p>
+        <div className="actions">
+          <button type="button" onClick={onRestart} className="primary">
+            새로 검사하기
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   const findings = result?.findings ?? [];
   const counts = useMemo(() => {
     const map = new Map<OfficialTechnique, number>();
