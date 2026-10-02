@@ -78,12 +78,11 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
 
   async function cancel() {
     setCancelling(true);
-    setFinishing(true);
+    // Stay mounted during the settle (no finishing=true): unmounting
+    // before the host confirms cancellation orphaned the finally-driven
+    // onCancel when the component was already gone (OBSERVED: cancel
+    // landed on crawling/empty instead of the start screen).
     try {
-      // Await the cancel round-trip plus one poll tick so the
-      // session-cancelled event wins the navigation race: without this, the
-      // finally-driven onCancel can fire while the result screen still reads
-      // the pre-cancel `crawling` snapshot (OBSERVED on VM).
       await host.cancelScan(sessionId);
       await new Promise((resolve) => setTimeout(resolve, 2500));
     } finally {

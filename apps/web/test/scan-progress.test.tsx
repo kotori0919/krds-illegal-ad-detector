@@ -167,7 +167,7 @@ describe("ScanProgress live region", () => {
     expect(statusLine()).toBe(before);
   });
 
-  it("marks the page busy while cancelling", async () => {
+  it("stays mounted (not busy) while cancelling, then hands off once", async () => {
     const cancelScan = vi.fn(async () => {});
     const { onCancel } = setup(cancelScan);
     await act(async () => {
@@ -175,9 +175,11 @@ describe("ScanProgress live region", () => {
       await new Promise((resolve) => setTimeout(resolve, 2600));
     });
     expect(cancelScan).toHaveBeenCalledWith("s1");
-    expect(page().getAttribute("aria-busy")).toBe("true");
-    // The 2.5 s settle lets the cancelled poll tick fire onCancel; the
-    // finally-driven onCancel then fires once more. Both paths must converge
+    // Stays mounted during the settle (no aria-busy): unmounting early
+    // orphaned the finally-driven onCancel on the VM. Button flips to the
+    // cancelling label while the settle runs.
+    expect(page().hasAttribute("aria-busy")).toBe(false);
+    expect(screen.getByRole("button", { name: "취소 중…" })).toBeDefined();
     // on onCancel (never strand on progress).
     expect(onCancel).toHaveBeenCalledTimes(2);
   });
