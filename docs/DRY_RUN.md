@@ -189,6 +189,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   no error, no download (proof-save-cancel-noop; unit-tested);
   dialog-confirmed save writes
   `C:\Users\dbsgu\OneDrive\Documents\result-dialog.json`, 4650 bytes,
+  magic `7B 0A 20 20`, `valid=true`, 17 findings H5/J4/T3/O5,
+  ids+identity unique (contracts validator on VM; screenshots
+  proof-save-dialog2 + proof-save-disk). Worker-CLI byteproof
+  `C:\prov\byteproof.json` identical bytes.
+- Diagnostics proof (OBSERVED 2026-10-03, build `3ED6C5F7…`): dead URL
+  `http://199.9.9.9:9999/` → `탐지가 실패했습니다: sidecar exited exit
+  code: 1: sidecar stderr: page.goto: Timeout 20000ms exceeded…`
+  (proof-failed-stderr; bounded stderr now surfaces in the failure
+  detail instead of a bare exit code). App close after failure → zero
+  `krds-detector.exe`, zero chromium; fixture `node.exe` 7808 untouched.
 - 6-green export validation + evidence panel: PASS on final flow
   (proof-6green-final, proof-evidence-offscreen; nested-iframe run
   proof-6green-adv, proof-nested-iframe).
