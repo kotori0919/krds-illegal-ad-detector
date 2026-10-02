@@ -171,12 +171,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 - Code CI: PASS on `afc6136` (typecheck + lint + vite build + vitest
   18/110 + msvc check; GH runs green).
 - Windows execution (dev VM): PASS — live counters incl. mid-analysis
-  15-visited/17-confirmed + nested-iframe `>>>` location (proofs
-  analyzing-15, nested-iframe), full 17/17 scans ×6 (H5/J4/T3/O5),
-  cancel→start on the cancel-fix build (poll-only + stay-mounted,
-  proof-cancel-fix-start; zero chromium orphans, app pid 8852
-  survives), failed→close. Rust suite on VM: 20/20 PASS (gnu lane,
-  incl. 5 pump + 1 cancel-race test).
+  15-visited/17-confirmed + nested-iframe `>>>` location, full 17/17
+  scans ×7 (H5/J4/T3/O5; latest session f344bcd2 on the cancel-fix
+  build `3ED6C5F7…`, proof-rescan-fix-17; zero chromium orphans, app
+  survives), cancel→start on the cancel-fix build
+  (proof-cancel-fix-start), failed→close. Rust suite on VM: 20/20 PASS
+  (gnu lane, incl. 5 pump + 1 cancel-race test).
+- NSIS deps (OBSERVED 2026-10-03): VS BuildTools VC 14.44.35207
+  present BUT no `link.exe`/`cl.exe` (C++ workload absent); Windows
+  Kits 10 present BUT no `um\x64\kernel32.lib` found; no NSIS
+  `makensis.exe`; no `cargo tauri-cli`. NSIS stays BLOCKED on
+  toolchain install (needs approval for VS C++ workload + SDK +
+  NSIS on the VM).
 - Save dialog + save-to-disk: PASS (OBSERVED 2026-10-03, build
   `6576A7D1…`) — native dialog at Documents default with `result.json`
   prefilled (proof-save-dialog); Esc cancel is a silent no-op, no file,
