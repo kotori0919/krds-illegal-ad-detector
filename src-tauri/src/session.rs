@@ -451,19 +451,25 @@ impl SessionRegistry {
         if is_script {
             cmd.arg(sidecar_path);
         }
-        // Portable browser resolution: the installer provisions the
-        // headless shell exe-adjacent (ms-playwright/) or sets
-        // PLAYWRIGHT_BROWSERS_PATH. Never hard-code a user profile path —
-        // the evaluator's username is unknown at build time.
+        // Portable browser resolution: prefer the HOST executable's
+        // directory (installed layout: exe + node.exe + ms-playwright/),
+        // NOT the worker's node.exe parent — node may be a system install
+        // elsewhere. Env override wins when it points at a real dir.
+        // Never hard-code a user profile path.
         #[cfg(windows)]
         {
+            let host_dir = std::env::current_exe().ok().and_then(|exe| {
+                exe.parent().map(|d| d.to_path_buf())
+            });
             let shell_dir = std::env::var_os("PLAYWRIGHT_BROWSERS_PATH")
                 .map(std::path::PathBuf::from)
                 .filter(|p| p.is_dir())
                 .or_else(|| {
-                    std::env::current_exe().ok().and_then(|exe| {
-                        exe.parent().map(|d| d.join("ms-playwright")).filter(|p| p.is_dir())
-                    })
+                    host_dir.clone().map(|d| d.join("ms-playwright")).filter(|p| p.is_dir())
+                })
+                .or_else(|| {
+                    host_dir.map(|d| d.join("node.exe")).filter(|p| p.is_file())
+                        .and_then(|n| n.parent().map(|d| d.to_path_buf()))
                 });
             if let Some(dir) = shell_dir {
                 cmd.env("PLAYWRIGHT_BROWSERS_PATH", dir);
