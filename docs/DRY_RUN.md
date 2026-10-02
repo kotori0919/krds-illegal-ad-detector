@@ -170,10 +170,12 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   bundle `index-nm2rQJej.js` (poll-only + mounted cancel + autofocus).
 - Code CI: PASS on `d16beb3` (typecheck + lint + vite build + vitest
   18/110 + msvc check; GH runs green).
-- Windows execution (dev VM): PASS — live counters, full 17/17 scans ×4
-  (sessions 781e13a0, 3803bd9c, 58ba51a8, 69188be3; H5/J4/T3/O5),
-  cancel→start (poll-only + stay-mounted), failed→close, zero chromium
-  orphans. Rust suite on VM: 19/19 PASS (gnu lane, incl. 5 pump tests).
+- Windows execution (dev VM): PASS — live counters, full 17/17 scans ×5
+  (sessions 781e13a0, 3803bd9c, 58ba51a8, 69188be3, 1fdd82d5; H5/J4/T3/O5),
+  incl. a 100%-keyboard-only run (no mouse: type → Tab → Enter →
+  PgDn → Tab → Enter, proof-kbd-17), cancel→start (poll-only +
+  stay-mounted), failed→close, zero chromium orphans. Rust suite on VM:
+  19/19 PASS (gnu lane, incl. 5 pump tests).
 - Save dialog: PASS — native dialog opens at Documents default with
   `result.json` prefilled (proof-save-dialog). Cancel (Esc) is a silent
   no-op: dialog closes, no file, no error, no download
