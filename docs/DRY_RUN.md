@@ -50,27 +50,29 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
    Registry unit tests (cancel unknown/known, terminal-state guards,
    live-sleeper kill) pass on Linux; host survival + Chromium-descendant
    termination + rescan-after-cancel on Windows NOT observed.
-7. [x] PASS (worker seam only, NOT the packaged app) — synced scan-loop
-   worker on the SAME Windows VM (2026-10-02, `--out-file`):
-   `C:\prov\vm-final2.json`, 4650 bytes, magic `7B 0A 20 20`,
-   17/17 findings (HOMOGLYPH 5 / JAMO 4 / TRANSPARENT 3 / OFFSCREEN 5),
-   ids + identity unique, `valid=true` via contracts validator.
-   Packaged-app full scan via form: [ ] UNVERIFIED (미근거) — every
-   packaged submit shows `failed` (ACL denial, then os error 216, then
-   missing-browser failure). Lesson: `--out-file` bypasses the shell pipe
-   for CLI runs; the Tauri-piped path is UNPROVEN end to end.
-8. [ ] UNVERIFIED (미근거) — evidence panel showed raw text + location +
-   technique on the reference build (CUA screenshots). On current builds
-   the result screen shows `상태: failed` with zero findings
-   (screenshot win11-full); evidence rendering for a SUCCESS case on the
-   current build NOT observed.
+7. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — full scan via the
+   packaged form on build `21E751C1…` (dialog-export lane): session
+   `d819fa1d…`, `상태: succeeded`, 17 findings (HOMOGLYPH 5 / JAMO 4 /
+   TRANSPARENT 3 / OFFSCREEN 5), table rows with page + `#ad-*`
+   locations + technique badges (screenshot win11-x). Prior worker-CLI
+   sample `C:\prov\vm-final2.json` (4650 bytes, magic `7B 0A 20 20`)
+   also valid. Interactive-user browser cache (`dbsgu` profile +
+   provisioned shell + full chromium) + `.mjs`-first resolver were the
+   fixes; SYSTEM-cache override was the bug (removed).
+8. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — evidence panel on
+   build `21E751C1…` shows page + `#ad-off-displaynone` selector +
+   OFFSCREEN badge + raw evidence text (screenshot win11-xev).
+   Observed/derived/inference sections render per KODEX §37.
 
 ## C. result.json validation
 
-9. [x] PASS (worker CLI output only) — `C:\prov\vm-final2.json`,
-   4650 bytes, magic `7B 0A 20 20`; prior `C:\prov\win-e2e-final.json`
-   also valid. NEITHER file was produced through the desktop host —
-   desktop scan→export is [ ] UNVERIFIED (미근거).
+9. [x] PASS (PACKAGED APP + worker CLI, OBSERVED 2026-10-02) — export
+   screen on build `21E751C1…` shows all 6 checks green incl.
+   `17건 모두 고유합니다` (screenshot win11-xexp) over the desktop-host
+   session. Native save dialog opened on save; bytes-on-disk NOT
+   captured (dialog dismissed to start screen — save-path capture
+   pending). Worker-CLI files `C:\prov\vm-final2.json` /
+   `win-e2e-final.json` also valid.
 10. [x] PASS (worker CLI bytes) — UTF-8, no BOM on both files above.
     Desktop-exported bytes: [ ] UNVERIFIED (미근거).
 11. [x] PASS (worker CLI content) — `meta` + flat `findings`;
@@ -85,12 +87,12 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 
 ## D. Process hygiene (release-blocking)
 
-13. [ ] UNVERIFIED (미근거) — worker-completion orphan check was PASS on
-    the reference build only. On current builds no successful packaged
-    scan has completed, so Chromium-descendant cleanup after a REAL scan,
-    host survival after cancel, and rescan-after-cancel on Windows are
-    all UNOBSERVED. (6 `msedgewebview2.exe` from the Edge singleton are
-    pre-existing, not app leaks — that attribution stands.)
+13. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — post-success scan:
+    zero `chrome.exe`/`chrome-headless-shell.exe` remain (WMI observed);
+    the 2 `node.exe` are the fixture server + a stale vite build, NOT
+    scan residue. App process survives; host outlives the scan.
+    Cancel/recovery via desktop: [ ] UNVERIFIED (미근거) — registry unit
+    tests green, packaged cancel NOT exercised.
 14. [ ] NOT RUN — close-scan check after a failed scan.
 15. [ ] NOT RUN — repeat full scan after failure (recovery).
 
