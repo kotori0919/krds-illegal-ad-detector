@@ -148,7 +148,26 @@ impl SessionRegistry {
             }
             _ => {}
         }
-        record.kill_child().await;
+        // Cancel wins the race against a concurrently exiting child: the
+        // Child is taken out of the record HERE (under the lock) so the
+        // waiter's natural-exit path observes "no child" and can never
+        // complete the session as succeeded (OBSERVED on VM: the cancel
+        // keystroke landed but the scan still showed succeeded 17/17).
+        // kill_child takes the already-removed Child (no-op) and drops
+        // the Job guard for whole-tree kill.
+        let mut taken = record.child.take();
+        record.job.take();
+        // Drop the guard before awaiting kill (Child is owned locally now).
+        drop(guard);
+        if let Some(mut child) = taken.take() {
+            let _ = child.kill().await;
+            let _ = child.wait().await;
+        }
+        let mut guard = self.inner.lock().await;
+        let Some(record) = guard.get_mut(session_id) else {
+            return false;
+        };
+        record.child_pid = None;
         record.status = SessionStatus::Cancelled;
         record.finished_at = Some(finished_at);
         true
@@ -680,6 +699,44 @@ mod tests {
         assert_eq!(snapshot["status"], "cancelled");
         // Host survives the kill; registry still serves reads.
         assert!(registry.snapshot("no-such-session").await.is_none());
+    }
+
+    #[tokio::test]
+    async fn cancel_during_exit_never_completes_as_succeeded() {
+        // The waiter takes the Child on natural exit; cancel takes it on
+        // cancel. Whoever takes it first owns the terminal state: if cancel
+        // takes it, the waiter must report Cancelled and store_result must
+        // refuse the late success (OBSERVED on VM: cancel landed but the
+        // scan still showed succeeded 17/17).
+        let (child, _guard) = super::test_support::spawn_sleeper().await;
+        let registry = SessionRegistry::shared();
+        let mut record = new_session(
+            "https://example.kr/".to_string(),
+            "test".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let pid = child.id().unwrap_or(0);
+        record.child = Some(child);
+        record.child_pid = Some(pid);
+        let id = record.id.clone();
+        registry.insert(record).await;
+        let waiter = {
+            let registry = registry.inner_clone();
+            let id = id.clone();
+            tokio::spawn(async move { registry.wait_sidecar(&id).await })
+        };
+        // Cancel immediately: with the Child taken under the lock, the
+        // waiter cannot reap it as a natural exit.
+        assert!(registry.cancel(&id, "2026-10-01T00:01:00Z".to_string()).await);
+        let outcome = waiter.await.expect("waiter joins");
+        assert!(matches!(outcome, super::SessionOutcome::Cancelled));
+        // A late success arriving after cancel must not flip the session.
+        registry
+            .store_result(&id, "{\"meta\":{},\"findings\":[]}\n".to_string(), "2026-10-01T00:02:00Z".to_string())
+            .await;
+        let snapshot = registry.snapshot(&id).await.expect("session snapshot");
+        assert_eq!(snapshot["status"], "cancelled");
+        assert!(registry.result_value(&id).await.is_none());
     }
 
     #[test]
