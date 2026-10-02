@@ -165,17 +165,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 
 ## G. Current runnable + blockers (2026-10-03)
 
-- [x] Current runnable: build `6576A7D1…` (commit d16beb3, Win11 Pro
+- [x] Current runnable: build `3ED6C5F7…` (commit afc6136, Win11 Pro
   10.0.26200) + fresh sidecar (39287 bytes, staged exe-adjacent) +
   bundle `index-nm2rQJej.js` (poll-only + mounted cancel + autofocus).
-- Code CI: PASS on `d16beb3` (typecheck + lint + vite build + vitest
+- Code CI: PASS on `afc6136` (typecheck + lint + vite build + vitest
   18/110 + msvc check; GH runs green).
-- Windows execution (dev VM): PASS — live counters, full 17/17 scans ×5
-  (sessions 781e13a0, 3803bd9c, 58ba51a8, 69188be3, 1fdd82d5; H5/J4/T3/O5),
-  incl. a 100%-keyboard-only run (no mouse: type → Tab → Enter →
-  PgDn → Tab → Enter, proof-kbd-17), cancel→start (poll-only +
-  stay-mounted), failed→close, zero chromium orphans. Rust suite on VM:
-  19/19 PASS (gnu lane, incl. 5 pump tests).
+- Windows execution (dev VM): PASS — live counters incl. mid-analysis
+  15-visited/17-confirmed + nested-iframe `>>>` location (proofs
+  analyzing-15, nested-iframe), full 17/17 scans ×6 (H5/J4/T3/O5),
+  cancel→start on the cancel-fix build (poll-only + stay-mounted,
+  proof-cancel-fix-start; zero chromium orphans, app pid 8852
+  survives), failed→close. Rust suite on VM: 20/20 PASS (gnu lane,
+  incl. 5 pump + 1 cancel-race test).
 - Save dialog + save-to-disk: PASS (OBSERVED 2026-10-03, build
   `6576A7D1…`) — native dialog at Documents default with `result.json`
   prefilled (proof-save-dialog); Esc cancel is a silent no-op, no file,
