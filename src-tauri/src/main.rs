@@ -386,9 +386,11 @@ fn sidecar_path(app: &tauri::AppHandle) -> Option<String> {
     // between `tauri.conf.json` staging and this resolver.
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
+            // Prefer the .mjs bundle: the staged exe-named file is the
+            // esbuild JS bundle, not executable (os error 216 OBSERVED).
             for name in [
-                "scanner-worker-x86_64-pc-windows-gnu.exe",
                 "scanner-worker-x86_64-pc-windows-gnu.mjs",
+                "scanner-worker-x86_64-pc-windows-gnu.exe",
                 "scanner-worker.exe",
             ] {
                 let candidate = dir.join(name);
