@@ -182,48 +182,114 @@ async fn finish_session(
     );
 }
 
-/// stdout is result.json only: reject BOM, reject non-JSON, require the
-/// official contract shape, then re-serialize the canonical bytes.
+#[cfg(test)]
+mod validation_tests {
+    use super::validate_sidecar_stdout;
+
+    fn good_json() -> String {
+        "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[{\"id\":\"f1\",\"url\":\"https://example.kr/a\",\"is_violation\":true,\"location\":\"#a\",\"evidence_text\":\"x\",\"technique\":\"HOMOGLYPH\"}]}".to_string()
+    }
+
+    #[test]
+    fn accepts_valid_result() {
+        assert!(validate_sidecar_stdout("https://example.kr/", &good_json()).is_ok());
+    }
+
+    #[test]
+    fn rejects_missing_meta_field() {
+        let bad = good_json().replace("\"elapsed_sec\":60,", "");
+        assert!(validate_sidecar_stdout("https://example.kr/", &bad).is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_technique() {
+        let bad = good_json().replace("HOMOGLYPH", "ETC");
+        let err = validate_sidecar_stdout("https://example.kr/", &bad).unwrap_err();
+        assert!(err.contains("technique"), "{err}");
+    }
+
+    #[test]
+    fn rejects_entry_url_mismatch() {
+        let err = validate_sidecar_stdout("https://other.kr/", &good_json()).unwrap_err();
+        assert!(err.contains("mismatch"), "{err}");
+    }
+
+    #[test]
+    fn rejects_duplicate_identity() {
+        let v: serde_json::Value = serde_json::from_str(&good_json()).unwrap();
+        let mut dup = v.clone();
+        let second = v["findings"][0].clone();
+        let mut with_id = second.clone();
+        with_id["id"] = serde_json::Value::String("f2".to_string());
+        dup["findings"].as_array_mut().unwrap().push(with_id);
+        let text = serde_json::to_string(&dup).unwrap();
+        let err = validate_sidecar_stdout("https://example.kr/", &text).unwrap_err();
+        assert!(err.contains("duplicates"), "{err}");
+    }
+
+    #[test]
+    fn rejects_bom() {
+        let bad = format!("\u{FEFF}{}", good_json());
+        assert!(validate_sidecar_stdout("https://example.kr/", &bad).is_err());
+    }
+}
+
+/// BOM-free UTF-8, valid JSON, complete meta, required finding fields,
+/// official technique enum only, unique ids, no duplicate
+/// url+location+technique identities, and request/result entry_url match.
+/// Any violation fails the session and is never exportable (KODEX §38).
 fn validate_sidecar_stdout(entry_url: &str, stdout: &str) -> Result<String, String> {
     if stdout.starts_with('\u{FEFF}') {
         return Err("sidecar result contained a BOM".to_string());
     }
     let parsed: serde_json::Value =
         serde_json::from_str(stdout).map_err(|e| format!("sidecar result is not JSON: {e}"))?;
-    let meta_ok = parsed
-        .get("meta")
-        .and_then(|m| m.get("entry_url"))
-        .and_then(|u| u.as_str())
-        .is_some_and(|u| !u.is_empty());
-    let findings_ok = parsed.get("findings").is_some_and(|f| f.is_array());
-    if !meta_ok || !findings_ok {
-        return Err("sidecar result missing meta/findings".to_string());
+    let meta = parsed.get("meta").ok_or("sidecar result missing meta")?;
+    for field in ["topic", "entry_url", "started_at", "finished_at", "elapsed_sec", "tool_version"] {
+        if meta.get(field).is_none() {
+            return Err(format!("sidecar result meta.{field} is required"));
+        }
     }
-    let technical: Vec<String> = parsed
-        .get("findings")
-        .and_then(|f| f.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| item.get("technique"))
-                .filter_map(|t| t.as_str())
-                .filter(|t| !matches!(*t, "HOMOGLYPH" | "JAMO" | "TRANSPARENT" | "OFFSCREEN"))
-                .map(|t| t.to_string())
-                .collect()
-        })
-        .unwrap_or_default();
-    if !technical.is_empty() {
-        return Err(format!(
-            "sidecar result has non-official techniques: {}",
-            technical.join(",")
-        ));
+    let result_url = meta.get("entry_url").and_then(|u| u.as_str()).unwrap_or("");
+    if result_url.is_empty() {
+        return Err("sidecar result meta.entry_url must be a non-empty string".to_string());
+    }
+    if result_url != entry_url {
+        return Err(format!("sidecar result entry_url mismatch: request {entry_url} vs result {result_url}"));
+    }
+    let findings = parsed.get("findings").and_then(|f| f.as_array()).ok_or("sidecar result findings must be an array")?;
+    let mut ids = std::collections::HashSet::new();
+    let mut identities = std::collections::HashSet::new();
+    for (i, item) in findings.iter().enumerate() {
+        let at = format!("findings[{i}]");
+        for field in ["id", "url", "is_violation", "location", "evidence_text", "technique"] {
+            if item.get(field).is_none() {
+                return Err(format!("sidecar result {at}.{field} is required"));
+            }
+        }
+        let id = item.get("id").and_then(|v| v.as_str()).ok_or(format!("sidecar result {at}.id must be a string"))?;
+        if !ids.insert(id.to_string()) {
+            return Err(format!("sidecar result {at}.id is duplicated"));
+        }
+        let technique = item.get("technique").and_then(|v| v.as_str()).unwrap_or("");
+        if !matches!(technique, "HOMOGLYPH" | "JAMO" | "TRANSPARENT" | "OFFSCREEN") {
+            return Err(format!("sidecar result {at}.technique must be one of HOMOGLYPH, JAMO, TRANSPARENT, OFFSCREEN"));
+        }
+        let url = item.get("url").and_then(|v| v.as_str()).unwrap_or("");
+        let location = item.get("location").and_then(|v| v.as_str()).unwrap_or("");
+        if location.trim().is_empty() {
+            return Err(format!("sidecar result {at}.location must be non-empty"));
+        }
+        let key = format!("{url}\u{0}{location}\u{0}{technique}");
+        if !identities.insert(key) {
+            return Err(format!("sidecar result {at} duplicates url+location+technique"));
+        }
     }
     let canonical = serde_json::to_string_pretty(&parsed)
         .map_err(|e| format!("sidecar result not serializable: {e}"))?;
     if canonical.starts_with('\u{FEFF}') {
         return Err("canonical serializer emitted a BOM".to_string());
     }
-    let _ = entry_url;
     Ok(format!("{canonical}\n"))
 }
 
@@ -283,6 +349,14 @@ async fn scan_export(
 ) -> Result<serde_json::Value, String> {
     if directory.trim().is_empty() {
         return Err("directory is required".to_string());
+    }
+    // Only succeeded sessions export: failed/cancelled/running results
+    // must never become a submittable file.
+    let Some(snapshot) = state.registry.snapshot(&session_id).await else {
+        return Err("unknown session".to_string());
+    };
+    if snapshot.get("status").and_then(|s| s.as_str()) != Some("succeeded") {
+        return Err("no succeeded result stored for session yet".to_string());
     }
     let Some(text) = state.registry.result_text(&session_id).await else {
         return Err("no result stored for session yet".to_string());

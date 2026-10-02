@@ -1,9 +1,13 @@
 //! Windows Job Object guard: the scanner worker spawns a browser, which
-//! spawns renderer processes. Attaching the worker to a Job Object with
-//! JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE guarantees the whole tree dies when
-//! the guard drops — cancel, crash, timeout, and app-exit paths all funnel
-//! through Drop. This is the KODEX §15 mechanism; POSIX builds use
+//! spawns renderer processes. Attaching the worker CHILD to a Job Object
+//! with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE guarantees the whole tree dies
+//! when the session guard drops — cancel, crash, timeout, and app-exit paths
+//! all funnel through Drop. This is the KODEX §15 mechanism; POSIX builds use
 //! kill_on_drop as the equivalent.
+//!
+//! The guard NEVER targets the Tauri host process: `assign_pid` opens only
+//! the sidecar child by pid. Attaching the host would kill the application
+//! itself on session cleanup — the exact failure this design prevents.
 
 #[cfg(windows)]
 mod imp {
@@ -18,6 +22,8 @@ mod imp {
 
     const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: DWORD = 0x2000;
     const JOBOBJECTEXTENDEDLIMITINFORMATION_CLASS: i32 = 9;
+    const PROCESS_SET_QUOTA: DWORD = 0x0100;
+    const PROCESS_TERMINATE: DWORD = 0x0001;
 
     #[repr(C)]
     struct JobObjectBasicLimitInformation {
@@ -52,8 +58,8 @@ mod imp {
             len: DWORD,
         ) -> BOOL;
         fn AssignProcessToJobObject(job: HANDLE, process: HANDLE) -> BOOL;
+        fn OpenProcess(desired: DWORD, inherit: BOOL, pid: DWORD) -> HANDLE;
         fn CloseHandle(handle: HANDLE) -> BOOL;
-        fn GetCurrentProcess() -> HANDLE;
     }
 
     pub struct JobGuard {
@@ -67,9 +73,7 @@ mod imp {
     unsafe impl Sync for JobGuard {}
 
     impl JobGuard {
-        /// Create a kill-on-close job and attach the current process; the
-        /// sidecar child inherits membership, covering browser descendants.
-        pub fn attach_current() -> Result<Self, String> {
+        fn create_kill_on_close() -> Result<HANDLE, String> {
             unsafe {
                 let handle = CreateJobObjectW(null_mut(), null());
                 if handle.is_null() {
@@ -103,10 +107,28 @@ mod imp {
                     CloseHandle(handle);
                     return Err("SetInformationJobObject failed".to_string());
                 }
-                let ok = AssignProcessToJobObject(handle, GetCurrentProcess());
+                Ok(handle)
+            }
+        }
+
+        /// Assign the CHILD sidecar pid (never the host) to a new
+        /// kill-on-close Job. The worker→browser→renderer tree dies with
+        /// the session guard on cancel/crash/timeout/app-exit.
+        pub fn assign_pid(pid: u32) -> Result<Self, String> {
+            unsafe {
+                let handle = Self::create_kill_on_close()?;
+                let child =
+                    OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, 0, pid);
+                if child.is_null() {
+                    CloseHandle(handle);
+                    return Err(format!("OpenProcess({pid}) failed"));
+                }
+                let ok = AssignProcessToJobObject(handle, child);
+                // The Job holds its own reference; close our temp handle.
+                CloseHandle(child);
                 if ok == 0 {
                     CloseHandle(handle);
-                    return Err("AssignProcessToJobObject failed".to_string());
+                    return Err(format!("AssignProcessToJobObject({pid}) failed"));
                 }
                 Ok(Self { handle })
             }

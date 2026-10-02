@@ -14,6 +14,8 @@ interface Props {
 
 const INITIAL = initialProgress("crawling");
 
+type IntervalHandle = ReturnType<typeof globalThis.setInterval>;
+
 export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
   const [progress, setProgress] = useState<ScanProgress>(INITIAL);
   const [notice, setNotice] = useState<string>(
@@ -21,13 +23,38 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
   );
   const [cancelling, setCancelling] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  const [degraded, setDegraded] = useState(false);
   // The host emits one event per page. Only stage / confirmed-count / message
   // transitions are worth speaking aloud; the per-page counters stay in the
   // <dl> below, which is not a live region.
   const lastSpoken = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    return host.onScanEvent((event) => {
+    let polls = 0;
+    const onTick = (): void => {
+      polls += 1;
+      if (polls > 450) {
+        clearInterval(timer);
+        return;
+      }
+      void host.getSession(sessionId).then((s) => {
+        if (!s) return;
+        if (s.status === "succeeded") {
+          setFinishing(true);
+          clearInterval(timer);
+          onDone();
+        } else if (s.status === "failed") {
+          setDegraded(true);
+          setNotice(`탐지가 실패했습니다: ${s.error ?? "알 수 없는 오류"}`);
+          clearInterval(timer);
+        } else if (s.status === "cancelled") {
+          clearInterval(timer);
+          onCancel();
+        }
+      }).catch(() => undefined);
+    };
+    const timer: IntervalHandle = setInterval(onTick, 2000);
+    const stop = host.onScanEvent((event) => {
       if (event.sessionId !== sessionId) return;
       setProgress(event.progress);
       const line = event.message
@@ -39,10 +66,15 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       }
       if (event.kind === "session-finished") {
         setFinishing(true);
+        clearInterval(timer);
         onDone();
       }
     });
-  }, [host, sessionId, onDone]);
+    return () => {
+      stop();
+      clearInterval(timer);
+    };
+  }, [host, sessionId, onDone, onCancel]);
 
   async function cancel() {
     setCancelling(true);
@@ -65,6 +97,11 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       <p role="status" aria-live="polite">
         {notice}
       </p>
+      {degraded ? (
+        <p role="alert" className="error">
+          실시간 진행 표시 없이 상태를 확인하고 있습니다.
+        </p>
+      ) : null}
       <section aria-label="탐지 현황" aria-describedby="progress-hint">
         <p id="progress-hint" className="hint">
           전체 작업량을 미리 알 수 없어 백분율 대신 실제 개수를 표시합니다.

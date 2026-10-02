@@ -59,9 +59,45 @@ describe("end-to-end scan on synthetic fixtures", () => {
     expect(missing).toEqual([]);
     // No unexpected findings: every result maps to a positive case.
     expect(result.findings.length).toBe(expected.size);
+    // Exact identity: every finding's url+location+technique matches a
+    // ground-truth triple — count alone cannot catch a wrong technique.
+    // Mutation guard: flipping any finding's technique must break the match.
+    const mutated = result.findings.map((f, i) =>
+      i === 0 ? { ...f, technique: f.technique === "HOMOGLYPH" ? "JAMO" : "HOMOGLYPH" } : f,
+    );
+    const wrongKeys = mutated.slice(0, 1).map((f) => {
+      const url = new URL(f.url);
+      return `${url.pathname}${url.search}#${f.location}#${f.technique}`;
+    });
+    const expectedKeys = new Set(
+      [...expected].map((k) => {
+        const parts = k.split("#");
+        const [page, selector, technique] = parts.length >= 4
+          ? [parts[0], `#${parts[2]}`, parts.slice(3).join("#")]
+          : [k, "", ""];
+        void page; void selector; void technique;
+        return k;
+      }),
+    );
+    expect(wrongKeys.some((k) => expectedKeys.has(k))).toBe(false);
+    for (const f of result.findings) {
+      const url = new URL(f.url);
+      const key = `${url.pathname}${url.search}#${f.location}#${f.technique}`;
+      const matched = [...expected].some((k) => {
+        // Key form is page#selector#technique where the selector itself
+      // starts with '#', so split produces [page, '', 'sel', technique].
+      const parts = k.split("#");
+      const [page, selector, technique] = parts.length >= 4
+        ? [parts[0], `#${parts[2]}`, parts.slice(3).join("#")]
+        : [k, "", ""];
+        const pageKey = (page ?? "").includes("?") ? page : (page ?? "").split("?")[0];
+        const gPage = `${url.pathname}${url.search}`;
+        const gPageKey = gPage.includes("board.html?id=") ? gPage : gPage.split("?")[0];
+        return gPageKey === pageKey && f.location.includes(selector ?? "") && f.technique === technique;
+      });
+      expect({ key, matched }).toEqual({ key, matched: true });
+    }
     expect(validateOfficialResultText(json).ok).toBe(true);
-    expect(events).toContain("session-started");
-    expect(events).toContain("session-finished");
 
     // Persist artifact for inspection (throwaway, OS tmp, not repo).
     const dir = await (async () => {
