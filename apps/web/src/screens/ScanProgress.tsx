@@ -64,14 +64,11 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
         lastSpoken.current = line;
         setNotice(line);
       }
-      if (event.kind === "session-finished") {
-        setFinishing(true);
-        clearInterval(timer);
-        onDone();
-      } else if (event.kind === "session-cancelled") {
-        clearInterval(timer);
-        onCancel();
-      }
+      // Navigation is poll-driven ONLY: the poll reads the terminal
+      // session status and routes (succeeded→result, cancelled→start,
+      // failed→stays with error). Reacting to worker events here caused
+      // empty-result races (OBSERVED: cancel landed on crawling/empty).
+      void event;
     });
     return () => {
       stop();

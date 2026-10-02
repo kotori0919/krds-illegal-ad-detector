@@ -6,7 +6,10 @@ import type { HostBridge, ScanEvent } from "@krds-detector/contracts";
 
 afterEach(cleanup);
 
-function setup(cancelScan = vi.fn(async () => {})) {
+function setup(
+  cancelScan = vi.fn(async () => {}),
+  getSession = vi.fn(async () => ({ status: "cancelled" as const })),
+) {
   let handler: ((event: ScanEvent) => void) | undefined;
   const host = {
     onScanEvent: (h: (event: ScanEvent) => void) => {
@@ -16,7 +19,7 @@ function setup(cancelScan = vi.fn(async () => {})) {
       };
     },
     cancelScan,
-    getSession: vi.fn(async () => ({ status: "cancelled" })),
+    getSession,
   } as unknown as HostBridge;
   const onDone = vi.fn();
   const onCancel = vi.fn();
@@ -70,7 +73,17 @@ describe("ScanProgress live region", () => {
     expect(status.getAttribute("aria-live")).toBe("polite");
   });
 
-  it("marks the page busy on session-finished and hands off to onDone", () => {
+  it("hands off to onDone on succeeded poll (events never navigate)", async () => {
+    const getSession = vi.fn(async () => ({ status: "succeeded" }));
+    const { onDone } = setup(vi.fn(async () => {}), getSession);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2100));
+    });
+    expect(page().getAttribute("aria-busy")).toBe("true");
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores session-finished events for navigation (host emits completion)", () => {
     const { emit, onDone } = setup();
     emit(
       event({
@@ -87,8 +100,9 @@ describe("ScanProgress live region", () => {
         },
       }),
     );
-    expect(page().getAttribute("aria-busy")).toBe("true");
-    expect(onDone).toHaveBeenCalledTimes(1);
+    // Event updates counters/notice only; no navigation without a poll.
+    expect(onDone).not.toHaveBeenCalled();
+    expect(document.querySelector("dl.stats")?.textContent).toContain("12");
   });
 
   it("announces stage and confirmed-count changes", () => {
@@ -199,26 +213,12 @@ describe("ScanProgress per-page counters", () => {
   });
 });
 
-describe("ScanProgress cancel event", () => {
-  it("routes session-cancelled to onCancel instead of stranding on progress", () => {
-    const { emit, onCancel } = setup();
-    const base = {
-      sessionId: "s1",
-      at: new Date().toISOString(),
-      kind: "session-cancelled",
-      progress: {
-        visitedPages: 0,
-        queuedPages: 0,
-        framesInspected: 0,
-        elementsAnalyzed: 0,
-        candidates: 0,
-        confirmedFindings: 0,
-        elapsedSec: 3,
-        stage: "cancelled",
-      },
-    } as const;
-    act(() => {
-      emit(event(base));
+describe("ScanProgress cancel poll", () => {
+  it("routes cancelled poll to onCancel (events never navigate)", async () => {
+    const getSession = vi.fn(async () => ({ status: "cancelled" as const }));
+    const { onCancel } = setup(vi.fn(async () => {}), getSession);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2100));
     });
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
