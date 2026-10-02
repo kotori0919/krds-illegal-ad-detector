@@ -74,9 +74,15 @@ async fn scan_start(
     let record = session::new_session(parsed.clone(), topic.clone(), started_at.clone());
     let session_id = record.id.clone();
     state.registry.insert(record).await;
-    // Bundled sidecar (resources/binaries/scanner-worker*); dev has no
-    // sidecar and keeps the no-op heartbeat so the UI flow still exercises.
-    if let Some(path) = sidecar_path(&app) {
+    // Bundled sidecar (resources/binaries/scanner-worker*). No silent
+    // heartbeat: if the sidecar is absent the session must fail loudly
+    // instead of freezing the UI on zero counters.
+    let Some(path) = sidecar_path(&app) else {
+        let detail = "scanner sidecar not found (binaries/scanner-worker missing from bundle)".to_string();
+        state.registry.fail(&session_id, detail.clone(), chrono::Utc::now().to_rfc3339()).await;
+        return Err(detail);
+    };
+    {
         let args: Vec<String> = vec![
             "--session".to_string(),
             session_id.clone(),
@@ -361,11 +367,15 @@ async fn scan_export(
     let Some(text) = state.registry.result_text(&session_id).await else {
         return Err("no result stored for session yet".to_string());
     };
-    if text.starts_with('\u{FEFF}') {
-        return Err("stored result contained a BOM".to_string());
-    }
+    // Re-validate the stored bytes: a stale or tampered store must fail
+    // here, never produce a submittable file.
+    let canonical = validate_sidecar_stdout(
+        snapshot.get("entryUrl").and_then(|u| u.as_str()).unwrap_or(""),
+        &text,
+    )
+    .map_err(|e| format!("stored result invalid, export blocked: {e}"))?;
     let path = std::path::Path::new(directory.trim()).join("result.json");
-    std::fs::write(&path, text.as_bytes()).map_err(|e| format!("export failed: {e}"))?;
+    std::fs::write(&path, canonical.as_bytes()).map_err(|e| format!("export failed: {e}"))?;
     Ok(serde_json::json!({
         "resultJson": path.to_string_lossy(),
     }))
