@@ -43,21 +43,28 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
    remains unreliable (placeholder-only → validation banner, correctly
    shown). Build `C078BDE2…`: fresh typing → progress → succeeded rescan
    (session `33a5e4de…`, see gate 7b).
-5. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — live per-page counters
-   on build `FC8B9406…` (exe-adjacent fresh sidecar staged + fixture
-   running): progress shows `crawled 6 pages (crawling, 확정된 탐지 0건)`,
-   `방문한 페이지 6`, `경과 시간 10` (screenshot proof-live-progress).
-   Worker `onPageVisited` → `KRDSPROGRESS` stderr → host `scan-event` IPC
-   path (commits 544ff63 + fb94060) confirmed end to end through the
-   desktop host.
-6. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — cancel button mid-scan
-   on build `FC8B9406…`: progress (`crawled 6 pages`) → `탐지 취소` →
-   start screen `탐지 시작` (screenshots proof-live-progress +
-   proof-cancel-start2). Hygiene: zero `chrome(.exe)` /
-   `chrome-headless-shell.exe` remain; fixture `node.exe` (pid 7808)
-   untouched; app relaunches. The 2.5 s cancel settle + cancelled-state
-   routing (commits 7cdde85 + 4d0efe2) are IN the running bundle
-   (`index-BjekC5w4.js` contains both strings); awaiting push only.
+5. [x] PASS (PACKAGED APP, OBSERVED 2026-10-03) — live per-page counters
+   on build `0AB2BABC…` (commit 7e04bda, Win11 Pro 10.0.26200, SYSTEM
+   session via QGA + interactive task KRDSLaunch2): progress shows
+   `crawled 6 pages (crawling, 확정된 탐지 0건)`, `방문한 페이지 6`,
+   `대기 중인 페이지 13` (real queue depth via `onPageQueued`), `경과 10`
+   (screenshots proof-live-progress + proof-queued-13). Worker
+   `onPageVisited(snapshot.url)` → `KRDSPROGRESS` stderr → host
+   `scan-event` IPC path confirmed end to end. Supersedes the
+   `FC8B9406…` observation (same behavior, older build).
+5b. [x] PASS (PACKAGED APP, OBSERVED 2026-10-03) — full 17-finding scan
+   on build `0AB2BABC…`: session `781e13a0…`, `상태: succeeded · 총 17건`
+   (H 5 / J 4 / T 3 / O 5), page + `#ad-*` locations + badges
+   (screenshot proof-final-17). Authoritative completion path (terminal
+   filter + delayed-result retry) exercised: results rendered, not empty.
+6. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — cancel button mid-scan:
+   progress (`crawled 6 pages`) → `탐지 취소` → start screen `탐지 시작`
+   (screenshots proof-live-progress + proof-cancel-start2). Hygiene: zero
+   `chrome(.exe)` / `chrome-headless-shell.exe` remain; fixture `node.exe`
+   untouched; app relaunches. Post-`0AB2BABC…` re-proof: scan reached
+   `succeeded` 17/17 before the cancel keystroke landed (screenshot
+   proof-final-17), so the cancel-button flow on the NEW build is
+   PARTIAL — re-run with an earlier keystroke or a slower scan.
 7. [x] PASS (PACKAGED APP, OBSERVED 2026-10-02) — full scan via the
    packaged form on build `21E751C1…` (dialog-export lane): session
    `d819fa1d…`, `상태: succeeded`, 17 findings (HOMOGLYPH 5 / JAMO 4 /
@@ -156,21 +163,28 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 - [ ] Attachment size / signature / email verification (user step)
 - [ ] NSIS installer (MSVC-lane, SDK-gated)
 
-## G. Current runnable + blockers (2026-10-02)
+## G. Current runnable + blockers (2026-10-03)
 
-- [x] Current runnable: build `FC8B9406…` (exe 24967289 bytes) + fresh
-  sidecar `scanner-worker-x86_64-pc-windows-gnu.mjs` (39045 bytes, staged
-  exe-adjacent) + bundle `index-BjekC5w4.js` (cancel fix proven in-dist).
+- [x] Current runnable: build `0AB2BABC…` (exe 24982928 bytes, commit
+  7e04bda, Win11 Pro 10.0.26200) + fresh sidecar (39045 bytes, staged
+  exe-adjacent) + bundle `index-ByZa6F-a.js` (cancel fix proven in-dist).
   Runs A–F except clean-install isolation (below).
+- Code CI: PASS on `7e04bda` (typecheck + lint + vite build + vitest
+  18/109 + msvc check; GH runs green).
+- Windows execution (dev VM): PASS — live counters (6 visited / 13
+  queued), full 17/17 scan, cancel→start, failed→close, zero chromium
+  orphans. Rust suite on VM: 19/19 PASS (14 pre-existing + 5 new pump
+  tests, gnu lane).
+- Clean-install acceptance: UNVERIFIED (미근거) — NOT RUN. ISO
+  `CESE_X64FREE_EN-US_DV9` (5.06 GB) ready; clean VM creation pending
+  privilege for the libvirt images dir. Then: different-username standard
+  account, space/Korean paths, SDK install, NSIS build, full flow.
+- Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
+  2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install (no repo/node_modules/caches): NOT RUN.
   Requires copying ONLY exe + sidecar + node + playwright-core + browser
-  cache to an isolated dir/machine (see src-tauri/binaries/README.md §
-  Clean-machine install test). Needs user approval for the file shuffle
-  on the VM or a second clean VM.
+  cache to an isolated dir/machine (see docs/INSTALL_LAYOUT.md + § F).
+  Needs privilege for the file shuffle or a second clean VM.
 - [ ] BLOCKED — NSIS installer + uninstall: SDK-gated. MSVC lane needs
-  Win11 SDK import libs (`tauri build` fails without them); gnu lane
-  produces the portable exe only. Needs SDK install approval.
-- [ ] BLOCKED — push 2 cancel commits (7cdde85 + 4d0efe2) + docs: `gh`
-  token invalid (`gh auth status` FAILED 2026-10-02); `git push` cannot
-  authenticate. Re-auth with `gh auth login`, then push + CI + PR/issue
-  refresh. Proof screenshots staged locally at `/tmp/proof-*.png`.
+  Win11 SDK import libs; gnu lane produces the portable exe only. Win11
+  SDK install approved — pending clean VM.
