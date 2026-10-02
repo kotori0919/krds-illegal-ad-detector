@@ -222,12 +222,25 @@ impl SessionRegistry {
         ProgressSnapshot { pages: 0, findings }
     }
     /// Wait with live progress forwarding: `on_progress` receives one
-    /// `scan-event`-shaped JSON value per KRDSPROGRESS stderr line.
+    /// `scan-event`-shaped JSON value per non-terminal KRDSPROGRESS stderr line.
+    ///
+    /// Authoritative completion: worker terminal events (`session-finished`,
+    /// `session-failed`, `session-cancelled`) are NEVER forwarded. Only the
+    /// host emits final completion after validation, persistence, and final
+    /// status are consistent (finish_session) — otherwise the UI navigates
+    /// on the worker's word and fetches the result before it is stored.
+    ///
+    /// Diagnostics: non-progress stderr lines are kept in a bounded buffer
+    /// (64 lines, 500 chars each) and appended to failure details, so a
+    /// stderr-only failure still explains itself. Cancellation keeps
+    /// ownership: the Child stays registered, the pump is aborted, and no
+    /// reader outlives the wait.
     pub async fn wait_sidecar_with_progress(
         &self,
         session_id: &str,
         on_progress: ProgressSink,
     ) -> SessionOutcome {
+        use std::collections::VecDeque;
         use tokio::io::{AsyncBufReadExt, BufReader};
         let stderr = {
             let mut guard = self.inner.lock().await;
@@ -242,34 +255,67 @@ impl SessionRegistry {
             return self.wait_sidecar(session_id).await;
         };
         let session_owned = session_id.to_string();
+        let diagnostics = std::sync::Arc::new(tokio::sync::Mutex::new(VecDeque::<String>::new()));
+        let pump_diagnostics = diagnostics.clone();
         let pump = tokio::spawn(async move {
             let mut lines = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                let Some(payload) = line.split_once("KRDSPROGRESS ") else {
-                    continue;
-                };
-                let Ok(value) = serde_json::from_str::<serde_json::Value>(payload.1) else {
-                    continue;
-                };
-                let kind = value.get("kind").and_then(|k| k.as_str()).unwrap_or("stage-changed");
-                let progress = value.get("progress").cloned().unwrap_or(serde_json::json!({
-                    "visitedPages": 0, "queuedPages": 0, "framesInspected": 0,
-                    "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0,
-                    "elapsedSec": 0, "stage": "crawling",
-                }));
-                on_progress(serde_json::json!({
-                    "kind": kind,
-                    "sessionId": session_owned,
-                    "at": chrono::Utc::now().to_rfc3339(),
-                    "progress": progress,
-                    "message": value.get("message"),
-                    "pageUrl": value.get("pageUrl"),
-                }));
+                if let Some(payload) = line.split_once("KRDSPROGRESS ") {
+                    let Ok(value) = serde_json::from_str::<serde_json::Value>(payload.1) else {
+                        continue;
+                    };
+                    let kind = value.get("kind").and_then(|k| k.as_str()).unwrap_or("stage-changed");
+                    // Terminal events are the worker's opinion, not the
+                    // host's verdict: drop them here, finish_session emits.
+                    if matches!(kind, "session-finished" | "session-failed" | "session-cancelled") {
+                        continue;
+                    }
+                    let progress = value.get("progress").cloned().unwrap_or(serde_json::json!({
+                        "visitedPages": 0, "queuedPages": 0, "framesInspected": 0,
+                        "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0,
+                        "elapsedSec": 0, "stage": "crawling",
+                    }));
+                    on_progress(serde_json::json!({
+                        "kind": kind,
+                        "sessionId": session_owned,
+                        "at": chrono::Utc::now().to_rfc3339(),
+                        "progress": progress,
+                        "message": value.get("message"),
+                        "pageUrl": value.get("pageUrl"),
+                    }));
+                } else if !line.trim().is_empty() {
+                    let mut buffer = pump_diagnostics.lock().await;
+                    if buffer.len() >= 64 {
+                        buffer.pop_front();
+                    }
+                    let mut text = line;
+                    if text.len() > 500 {
+                        text.truncate(500);
+                    }
+                    buffer.push_back(text);
+                }
             }
         });
         let outcome = self.wait_sidecar(session_id).await;
-        pump.abort();
-        outcome
+        // The child has exited (or was cancelled): the pipe is at EOF, so
+        // awaiting the pump cannot block. Abort is only a backstop.
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(5), pump).await;
+        match outcome {
+            SessionOutcome::Failed { detail } => {
+                let buffer = diagnostics.lock().await;
+                if buffer.is_empty() {
+                    SessionOutcome::Failed { detail }
+                } else {
+                    let tail = buffer.iter().cloned().collect::<Vec<_>>().join("\n");
+                    let mut combined = format!("{detail}\nsidecar stderr:\n{tail}");
+                    if combined.len() > 2048 {
+                        combined.truncate(2048);
+                    }
+                    SessionOutcome::Failed { detail: combined }
+                }
+            }
+            other => other,
+        }
     }
 
 
@@ -391,22 +437,38 @@ impl SessionRegistry {
             }
         }
         let is_script = sidecar_path.ends_with(".mjs") || sidecar_path.ends_with(".js");
-        let mut cmd = std::process::Command::new(if is_script { "node" } else { sidecar_path });
+        // Portable runtime resolution (install layout, docs/INSTALL_LAYOUT):
+        // exe-adjacent node.exe first, PATH node second. The worker bundle
+        // is JavaScript, not itself executable: fixed invocation, still no
+        // caller shell string.
+        let node_bin = std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|d| d.join("node.exe")))
+            .filter(|p| p.is_file())
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "node".to_string());
+        let mut cmd = std::process::Command::new(if is_script { &node_bin } else { sidecar_path });
         if is_script {
-            // The bundle is JavaScript, not itself executable: fixed
-            // `node <sidecar>` invocation, still no caller shell string.
             cmd.arg(sidecar_path);
         }
-        // Playwright resolves browsers under the launching user's profile.
-        // The packaged app runs as the INTERACTIVE user (scheduled task
-        // `windows-VM`, interactive-only — OBSERVED via task query), so
-        // point at that user's cache. Hard-coding SYSTEM broke resolution
-        // by demanding a wrong-suffixed shell path.
+        // Portable browser resolution: the installer provisions the
+        // headless shell exe-adjacent (ms-playwright/) or sets
+        // PLAYWRIGHT_BROWSERS_PATH. Never hard-code a user profile path —
+        // the evaluator's username is unknown at build time.
         #[cfg(windows)]
-        cmd.env(
-            "PLAYWRIGHT_BROWSERS_PATH",
-            "C:\\Users\\dbsgu\\AppData\\Local\\ms-playwright",
-        );
+        {
+            let shell_dir = std::env::var_os("PLAYWRIGHT_BROWSERS_PATH")
+                .map(std::path::PathBuf::from)
+                .filter(|p| p.is_dir())
+                .or_else(|| {
+                    std::env::current_exe().ok().and_then(|exe| {
+                        exe.parent().map(|d| d.join("ms-playwright")).filter(|p| p.is_dir())
+                    })
+                });
+            if let Some(dir) = shell_dir {
+                cmd.env("PLAYWRIGHT_BROWSERS_PATH", dir);
+            }
+        }
         cmd.args(args)
             .stdin(SyncStdio::null())
             .stdout(std::process::Stdio::piped())
@@ -448,6 +510,32 @@ impl SessionRegistry {
         }
         Ok(pid)
     }
+    /// Test-only: spawn an arbitrary shell child into the session record
+    /// (pump tests need stderr writers, not the real sidecar).
+    #[cfg(test)]
+    pub async fn spawn_sidecar_for_test(&self, session_id: &str, argv: &[&str]) -> Result<u32, String> {
+        use std::process::Stdio as SyncStdio;
+        {
+            let guard = self.inner.lock().await;
+            if !guard.contains_key(session_id) {
+                return Err("unknown session".to_string());
+            }
+        }
+        let mut cmd = tokio::process::Command::new(argv[0]);
+        cmd.args(&argv[1..])
+            .stdin(SyncStdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true);
+        let child = cmd.spawn().map_err(|e| format!("test spawn failed: {e}"))?;
+        let pid = child.id().unwrap_or(0);
+        let mut guard = self.inner.lock().await;
+        let record = guard.get_mut(session_id).ok_or_else(|| "unknown session".to_string())?;
+        record.child = Some(child);
+        record.child_pid = Some(pid);
+        Ok(pid)
+    }
+
 }
 
 pub fn new_session(entry_url: String, topic: String, started_at: String) -> SessionRecord {
@@ -624,4 +712,120 @@ pub mod test_support {
     }
 
     pub struct SleeperGuard;
+}
+
+#[cfg(test)]
+mod progress_pump_tests {
+    use super::{new_session, ProgressSink, SessionRegistry};
+    use std::sync::Arc;
+
+    fn event_json(kind: &str, pages: u64, url: &str) -> String {
+        format!(
+            "KRDSPROGRESS {{\"kind\":\"{kind}\",\"message\":null,\"pageUrl\":\"{url}\",\"progress\":{{\"visitedPages\":{pages},\"queuedPages\":0,\"framesInspected\":0,\"elementsAnalyzed\":0,\"candidates\":0,\"confirmedFindings\":0,\"elapsedSec\":0,\"stage\":\"crawling\"}}}}"
+        )
+    }
+
+    async fn run_pump(script_lines: &[&str]) -> (Vec<serde_json::Value>, super::SessionOutcome) {
+        let registry = SessionRegistry::shared();
+        let record = new_session(
+            "https://example.kr/".to_string(),
+            "test".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let id = record.id.clone();
+        registry.insert(record).await;
+        let script = script_lines.join("; ");
+        registry
+            .spawn_sidecar_for_test(&id, &["sh", "-c", &script])
+            .await
+            .expect("test child spawns");
+        let seen = Arc::new(tokio::sync::Mutex::new(Vec::new()));
+        let capture = seen.clone();
+        let sink: ProgressSink = Arc::new(move |event| {
+            let capture = capture.clone();
+            tokio::spawn(async move {
+                capture.lock().await.push(event);
+            });
+        });
+        let outcome = registry.wait_sidecar_with_progress(&id, sink).await;
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        let events = seen.lock().await.clone();
+        (events, outcome)
+    }
+
+    #[tokio::test]
+    async fn terminal_worker_events_are_not_forwarded() {
+        let (events, _) = run_pump(&[
+            &format!("echo '{}' >&2", event_json("page-visited", 3, "https://example.kr/a")),
+            &format!("echo '{}' >&2", event_json("session-finished", 9, "https://example.kr/a")),
+            &format!("echo '{}' >&2", event_json("session-failed", 9, "https://example.kr/a")),
+            &format!("echo '{}' >&2", event_json("session-cancelled", 0, "https://example.kr/a")),
+        ])
+        .await;
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0]["kind"], "page-visited");
+        assert_eq!(events[0]["progress"]["visitedPages"], 3);
+    }
+
+    #[tokio::test]
+    async fn malformed_and_plain_lines_do_not_break_forwarding() {
+        let (events, _) = run_pump(&[
+            "echo 'worker starting' >&2",
+            "echo 'KRDSPROGRESS not-json' >&2",
+            &format!("echo '{}' >&2", event_json("page-visited", 2, "https://example.kr/b")),
+            "echo '' >&2",
+        ])
+        .await;
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0]["progress"]["visitedPages"], 2);
+    }
+
+    #[tokio::test]
+    async fn stderr_only_failure_carries_diagnostics() {
+        let (_, outcome) = run_pump(&["echo 'boom-detail' >&2", "exit 3"]).await;
+        match outcome {
+            super::SessionOutcome::Failed { detail } => {
+                assert!(detail.contains("boom-detail"), "detail was: {detail}");
+            }
+            _ => panic!("expected failed outcome"),
+        }
+    }
+
+    #[tokio::test]
+    async fn large_output_does_not_hang_or_flood() {
+        let (events, _) = run_pump(&[
+            "for i in $(seq 1 500); do echo \"KRDSPROGRESS-noise-$i\" >&2; done",
+            "echo 'done-marker' >&2",
+        ])
+        .await;
+        assert!(events.is_empty());
+    }
+
+    #[tokio::test]
+    async fn cancel_under_output_load_keeps_ownership() {
+        let registry = SessionRegistry::shared();
+        let record = new_session(
+            "https://example.kr/".to_string(),
+            "test".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let id = record.id.clone();
+        registry.insert(record).await;
+        registry
+            .spawn_sidecar_for_test(&id, &["sh", "-c", "for i in $(seq 1 100000); do echo line-$i >&2; done; sleep 30"])
+            .await
+            .expect("load child spawns");
+        let sink: ProgressSink = Arc::new(|_| {});
+        let waiter = {
+            let registry = registry.inner_clone();
+            let id = id.clone();
+            tokio::spawn(async move { registry.wait_sidecar_with_progress(&id, sink).await })
+        };
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        assert!(registry.cancel(&id, "2026-10-01T00:01:00Z".to_string()).await);
+        let outcome = waiter.await.expect("waiter joins");
+        assert!(matches!(outcome, super::SessionOutcome::Cancelled));
+        let snapshot = registry.snapshot(&id).await.expect("snapshot");
+        assert_eq!(snapshot["status"], "cancelled");
+    }
 }

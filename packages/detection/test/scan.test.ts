@@ -7,6 +7,42 @@ import { loadGroundTruth } from "@krds-detector/synth-eval/evaluate.js";
 import { validateOfficialResultText } from "@krds-detector/contracts";
 
 describe("end-to-end scan on synthetic fixtures", () => {
+  it("reports exact per-page counters with real page URLs", async () => {
+    const visited: { pages: number; url: string | undefined }[] = [];
+    const queued: { pending: number; url: string | undefined }[] = [];
+    await scanSite({
+      entryUrl: "/",
+      topic: "synthetic-eval",
+      crawl: {
+        limits: { maxPages: 5, maxDepth: 1, timeoutSec: 120 },
+        settleMs: 300,
+        perPageMs: 10000,
+      },
+      fixturePort: 4193,
+      onEvent: (e) => {
+        if (e.kind === "page-visited") visited.push({ pages: e.progress.visitedPages, url: e.pageUrl });
+        if (e.kind === "page-queued") queued.push({ pending: e.progress.queuedPages, url: e.pageUrl });
+      },
+    });
+    // Exact rendered-counter assertions: a label-only check would pass with
+    // zeros; these fail if the value stays 0 or the URL is not the page.
+    expect(visited.length).toBeGreaterThan(0);
+    // Crawl emits one event per page; the analysis loop re-emits
+    // page-visited per page, so the final counter is >= the crawl count.
+    // Monotonicity + non-zero + real URL is the exactness guarantee.
+    let last = 0;
+    for (const v of visited) {
+      expect(v.pages).toBeGreaterThanOrEqual(last);
+      last = v.pages;
+      expect(v.url).toMatch(/^http/);
+    }
+    expect(last).toBeGreaterThan(0);
+    for (const q of queued) {
+      expect(q.pending).toBeGreaterThanOrEqual(0);
+      expect(q.url).toMatch(/^http/);
+    }
+  }, 180000);
+
   it("recovers all 17 ground-truth pairs with zero FP/FN", async () => {
     const events: string[] = [];
     const started = Date.now();

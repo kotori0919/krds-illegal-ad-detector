@@ -43,7 +43,8 @@ export type ScanEventHandler = (event: ScanEvent) => void;
 export type Unsubscribe = () => void;
 
 export interface ExportPaths {
-  resultJson: string;
+  /** Null when the evaluator cancelled the native dialog: no file, no error. */
+  resultJson: string | null;
   resultExtraJson?: string;
 }
 

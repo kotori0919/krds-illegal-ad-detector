@@ -169,7 +169,7 @@ describe("ScanProgress live region", () => {
   });
 });
 describe("ScanProgress per-page counters", () => {
-  it("renders non-zero visited pages from a page-visited event", () => {
+  it("renders the exact visited-pages value from a page-visited event", () => {
     const { emit } = setup();
     const base = {
       sessionId: "s1",
@@ -191,8 +191,11 @@ describe("ScanProgress per-page counters", () => {
     act(() => {
       emit(event(base));
     });
+    // Exact value assertion: stays-0 passes a label check but fails here.
     expect(statusLine()).toContain("crawling");
-    expect(document.body.textContent ?? "").toContain("방문한 페이지");
+    const dds = [...document.querySelectorAll("dl.stats dd")].map((d) => d.textContent);
+    expect(dds).toContain("3");
+    expect(dds).not.toContain("0건");
   });
 });
 

@@ -46,6 +46,7 @@ export interface PageSnapshot {
 
 export interface CrawlEvents {
   onPageVisited?: (snapshot: PageSnapshot) => void;
+  onPageQueued?: (queued: { url: string; depth: number; pending: number }) => void;
   onExternal?: (external: ObservedExternal) => void;
 }
 
@@ -296,7 +297,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           .filter((h): h is string => h !== undefined && isNavigable(h));
         const added = queue.discover(next.url, next.depth, absoluteLinks);
         for (const a of added) {
-          void a;
+          options.events?.onPageQueued?.({ url: a.url, depth: a.depth, pending: queue.pendingCount });
         }
         for (const fr of described.frames) {
           if (!fr.src) continue;

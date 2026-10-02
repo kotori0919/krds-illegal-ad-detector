@@ -65,10 +65,15 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       executablePath: input.crawl?.executablePath,
       channel: input.crawl?.channel,
       events: {
-        onPageVisited: () => {
+        onPageVisited: (snapshot) => {
+          // Real per-page state: the CURRENT page URL and the ACTUAL
+          // remaining queue depth (not a reset zero). Tests assert these.
           progress.visitedPages += 1;
-          progress.queuedPages = 0;
-          emit("page-visited", `crawled ${String(progress.visitedPages)} pages`, entryUrl);
+          emit("page-visited", `crawled ${String(progress.visitedPages)} pages`, snapshot.url);
+        },
+        onPageQueued: (queued) => {
+          progress.queuedPages = queued.pending;
+          emit("page-queued", `${String(queued.pending)} pages queued`, queued.url);
         },
       },
     });

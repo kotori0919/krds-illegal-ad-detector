@@ -410,9 +410,14 @@ async fn scan_export(
         }
         let picked = dlg.blocking_save_file();
         let Some(FilePath::Path(path)) = picked else {
-            return Err("cancelled".to_string());
+            // Dialog cancellation is a normal no-op: no file, no error, no
+            // browser-download fallback. The UI keeps the validated result.
+            return Ok(serde_json::json!({ "resultJson": null, "cancelled": true }));
         };
         let path = path.into_os_string();
+        // Surface write failures (permission denied, missing dir) as errors
+        // with no automatic fallback: a false "saved" message is worse than
+        // an explicit failure the evaluator can act on.
         std::fs::write(&path, canonical.as_bytes()).map_err(|e| format!("export failed: {e}"))?;
         return Ok(serde_json::json!({
             "resultJson": path.to_string_lossy(),

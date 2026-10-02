@@ -90,25 +90,35 @@ export function ExportView({ host, sessionId, onBack, onRestart }: Props) {
 
   async function download() {
     setExportError(undefined);
+    setExported(undefined);
+    // Browser-only fallback: the Tauri host has a real filesystem, so only
+    // the browser preview (filesystem: false) downloads client-side.
+    const caps = await host.getCapabilities().catch(() => undefined);
+    if (caps && !caps.filesystem) {
+      const blob = new Blob([jsonText], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "result.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setExported("result.json (브라우저 다운로드)");
+      return;
+    }
     try {
-      const path = await host.exportResult(sessionId, ".");
-      setExported(path.resultJson);
-    } catch {
-      // Browser preview has no filesystem: fall back to client download.
-      try {
-        const blob = new Blob([jsonText], { type: "application/json;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "result.json";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        setExported("result.json (브라우저 다운로드)");
-      } catch (err) {
-        setExportError(err instanceof Error ? err.message : "내보내기에 실패했습니다.");
+      const out = await host.exportResult(sessionId, ".");
+      if (out.resultJson == null) {
+        // Native dialog cancellation is a no-op: stay on the screen with
+        // the validated result intact, no file, no error, no download.
+        return;
       }
+      setExported(out.resultJson);
+    } catch (err) {
+      // Validation and write failures surface as-is: no automatic
+      // fallback, so a false "saved" message can never follow a failure.
+      setExportError(err instanceof Error ? err.message : "내보내기에 실패했습니다.");
     }
   }
 

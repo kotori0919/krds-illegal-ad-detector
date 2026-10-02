@@ -24,20 +24,50 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart }:
 
   useEffect(() => {
     let alive = true;
+    // Set the fetched session synchronously into state (microtask, not the
+    // 500 ms poll): cancelled sessions must render the fresh-scan branch
+    // before the delayed-availability retry loop matters.
     host.getSession(sessionId).then((s) => {
       if (alive) setSession(s);
-    });
-    host.getOfficialResult(sessionId).then((r) => {
-      if (alive) setResult(r);
-    });
+    }).catch(() => undefined);
+    // first fetch can precede the store. Retry briefly so a stored result
+    // is never rendered as an empty list.
+    let attempts = 0;
+    const timer = globalThis.setInterval(() => {
+      attempts += 1;
+      void host.getSession(sessionId).then((s) => {
+        if (alive) setSession(s);
+      }).catch(() => undefined);
+      void host.getOfficialResult(sessionId).then((r) => {
+        if (!alive) return;
+        if (r) {
+          setResult(r);
+          globalThis.clearInterval(timer);
+        } else if (attempts >= 10) {
+          globalThis.clearInterval(timer);
+        }
+      }).catch(() => undefined);
+    }, 500);
     return () => {
       alive = false;
+      globalThis.clearInterval(timer);
     };
   }, [host, sessionId]);
 
-  // A cancelled session never produces a result: send the evaluator back to
-  // the start screen instead of stranding them on an empty result list
-  // (OBSERVED on VM: cancel landed on `상태: crawling` with zero rows).
+  // Hooks stay above the conditional return: the cancelled branch must not
+  // change the hook count between renders (React "fewer hooks" crash).
+  const findings = result?.findings ?? [];
+  const counts = useMemo(() => {
+    const map = new Map<OfficialTechnique, number>();
+    for (const t of OFFICIAL_TECHNIQUES) map.set(t, 0);
+    for (const f of findings) map.set(f.technique, (map.get(f.technique) ?? 0) + 1);
+    return map;
+  }, [findings]);
+  const visible = filter === "ALL" ? findings : findings.filter((f) => f.technique === filter);
+
+  // A cancelled session never produces a result: offer a fresh scan instead
+  // of stranding the evaluator on an empty result list (OBSERVED on VM:
+  // cancel landed on `상태: crawling` with zero rows).
   if (session?.status === "cancelled") {
     return (
       <main className="page">
@@ -55,14 +85,6 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart }:
     );
   }
 
-  const findings = result?.findings ?? [];
-  const counts = useMemo(() => {
-    const map = new Map<OfficialTechnique, number>();
-    for (const t of OFFICIAL_TECHNIQUES) map.set(t, 0);
-    for (const f of findings) map.set(f.technique, (map.get(f.technique) ?? 0) + 1);
-    return map;
-  }, [findings]);
-  const visible = filter === "ALL" ? findings : findings.filter((f) => f.technique === filter);
 
   return (
     <main className="page">
