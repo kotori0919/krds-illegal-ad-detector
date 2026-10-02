@@ -165,26 +165,35 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 
 ## G. Current runnable + blockers (2026-10-03)
 
-- [x] Current runnable: build `0AB2BABC…` (exe 24982928 bytes, commit
-  7e04bda, Win11 Pro 10.0.26200) + fresh sidecar (39045 bytes, staged
-  exe-adjacent) + bundle `index-ByZa6F-a.js` (cancel fix proven in-dist).
-  Runs A–F except clean-install isolation (below).
-- Code CI: PASS on `7e04bda` (typecheck + lint + vite build + vitest
-  18/109 + msvc check; GH runs green).
-- Windows execution (dev VM): PASS — live counters (6 visited / 13
-  queued), full 17/17 scan, cancel→start, failed→close, zero chromium
-  orphans. Rust suite on VM: 19/19 PASS (14 pre-existing + 5 new pump
-  tests, gnu lane).
+- [x] Current runnable: build `6576A7D1…` (commit d16beb3, Win11 Pro
+  10.0.26200) + fresh sidecar (39287 bytes, staged exe-adjacent) +
+  bundle `index-nm2rQJej.js` (poll-only + mounted cancel + autofocus).
+- Code CI: PASS on `d16beb3` (typecheck + lint + vite build + vitest
+  18/110 + msvc check; GH runs green).
+- Windows execution (dev VM): PASS — live counters, full 17/17 scans ×4
+  (sessions 781e13a0, 3803bd9c, 58ba51a8, 69188be3; H5/J4/T3/O5),
+  cancel→start (poll-only + stay-mounted), failed→close, zero chromium
+  orphans. Rust suite on VM: 19/19 PASS (gnu lane, incl. 5 pump tests).
+- Save dialog: PASS — native dialog opens at Documents default with
+  `result.json` prefilled (proof-save-dialog). Cancel (Esc) is a silent
+  no-op: dialog closes, no file, no error, no download
+  (proof-save-cancel-noop; unit-tested). Save-bytes via current worker
+  CLI: `C:\prov\byteproof.json`, 4650 bytes, magic `7B 0A 20 20`,
+  `valid=true`, 17 findings H5/J4/T3/O5, ids+identity unique
+  (contracts validator on VM). Dialog-confirmed desktop save-to-disk:
+  NOT RUN (dialog confirmed open; explicit-filename save pending).
+- 6-green export validation + evidence panel: PASS on final flow
+  (proof-6green-final, proof-evidence-offscreen).
 - Clean-install acceptance: UNVERIFIED (미근거) — NOT RUN. ISO
-  `CESE_X64FREE_EN-US_DV9` (5.06 GB) ready; clean VM creation pending
-  privilege for the libvirt images dir. Then: different-username standard
-  account, space/Korean paths, SDK install, NSIS build, full flow.
+  `CESE_X64FREE_EN-US_DV9` (5.06 GB, `~/index.html?linkid=…`) ready.
+  Blocker (reproducible): `ls /var/lib/libvirt/images/` →
+  `Permission denied`; `sudo -n true` → `a password is required`.
+  Dev Win11 XML uses EFI + secure-boot (`OVMF_CODE_4M.ms.fd`,
+  `Win11_VARS.fd`); same firmware needed for the clean VM. Then:
+  different-username standard account, space/Korean paths, SDK
+  install, NSIS build, full flow.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
-- [ ] BLOCKED — clean install (no repo/node_modules/caches): NOT RUN.
-  Requires copying ONLY exe + sidecar + node + playwright-core + browser
-  cache to an isolated dir/machine (see docs/INSTALL_LAYOUT.md + § F).
-  Needs privilege for the file shuffle or a second clean VM.
-- [ ] BLOCKED — NSIS installer + uninstall: SDK-gated. MSVC lane needs
-  Win11 SDK import libs; gnu lane produces the portable exe only. Win11
-  SDK install approved — pending clean VM.
+- [ ] BLOCKED — clean install: NOT RUN (privilege blocker above).
+- [ ] BLOCKED — NSIS installer + uninstall: SDK-gated (MSVC lane needs
+  Win11 SDK import libs; approved — pending clean VM).
