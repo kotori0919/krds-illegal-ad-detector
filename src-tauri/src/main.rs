@@ -376,12 +376,18 @@ async fn scan_export(
     // string means "ask". A cancelled dialog is a clean no-op, not an error.
     if directory.trim().is_empty() || directory.trim() == "." {
         use tauri_plugin_dialog::{DialogExt, FilePath};
-        let picked = app
+        let mut dlg = app
             .dialog()
             .file()
             .set_file_name("result.json")
-            .add_filter("JSON", &["json"])
-            .blocking_save_file();
+            .add_filter("JSON", &["json"]);
+        // Default to the user's Documents folder: the dialog otherwise
+        // opens in System32 (the service CWD), which rejects writes and
+        // forces the permission-redirect dance observed on the VM.
+        if let Ok(docs) = app.path().document_dir() {
+            dlg = dlg.set_directory(&docs);
+        }
+        let picked = dlg.blocking_save_file();
         let Some(FilePath::Path(path)) = picked else {
             return Err("cancelled".to_string());
         };
