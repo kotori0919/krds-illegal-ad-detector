@@ -148,9 +148,6 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       <div className="actions">
         <button type="button" onClick={cancel} disabled={cancelling} className="secondary">
           {cancelling ? "취소 중…" : "탐지 취소"}
-        </button>{" "}
-        <button type="button" onClick={onDone} className="primary">
-          결과 보기
         </button>
       </div>
     </main>
