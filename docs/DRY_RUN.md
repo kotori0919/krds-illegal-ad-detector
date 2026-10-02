@@ -176,14 +176,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   PgDn → Tab → Enter, proof-kbd-17), cancel→start (poll-only +
   stay-mounted), failed→close, zero chromium orphans. Rust suite on VM:
   19/19 PASS (gnu lane, incl. 5 pump tests).
-- Save dialog: PASS — native dialog opens at Documents default with
-  `result.json` prefilled (proof-save-dialog). Cancel (Esc) is a silent
-  no-op: dialog closes, no file, no error, no download
-  (proof-save-cancel-noop; unit-tested). Save-bytes via current worker
-  CLI: `C:\prov\byteproof.json`, 4650 bytes, magic `7B 0A 20 20`,
-  `valid=true`, 17 findings H5/J4/T3/O5, ids+identity unique
-  (contracts validator on VM). Dialog-confirmed desktop save-to-disk:
-  NOT RUN (dialog confirmed open; explicit-filename save pending).
+- Save dialog + save-to-disk: PASS (OBSERVED 2026-10-03, build
+  `6576A7D1…`) — native dialog at Documents default with `result.json`
+  prefilled (proof-save-dialog); Esc cancel is a silent no-op, no file,
+  no error, no download (proof-save-cancel-noop; unit-tested);
+  dialog-confirmed save writes
+  `C:\Users\dbsgu\OneDrive\Documents\result-dialog.json`, 4650 bytes,
+  magic `7B 0A 20 20`, `valid=true`, 17 findings H5/J4/T3/O5,
+  ids+identity unique (contracts validator on VM; screenshots
+  proof-save-dialog2 + proof-save-disk). Worker-CLI byteproof
+  `C:\prov\byteproof.json` identical bytes.
 - 6-green export validation + evidence panel: PASS on final flow
   (proof-6green-final, proof-evidence-offscreen).
 - Clean-install acceptance: UNVERIFIED (미근거) — NOT RUN. ISO
