@@ -1,24 +1,38 @@
 # Clean-machine dry run (Phase 24 — Windows, release-blocking)
 
+Status legend: `[x] PASS` = observed on the named build with listed
+evidence. `[ ] UNVERIFIED (미근거)` = claimed or run elsewhere but NOT
+observed on the current packaged build — must be re-proven, never
+shipped as passing. Ubuntu-only evidence NEVER validates Windows
+ACLs, packaging, or GUI behavior.
+
 Run on the cleanest available Windows 11 environment. Record each line
-PASS/FAIL with evidence (screenshot, file hash, tasklist output).
+PASS/FAIL with evidence (commit SHA, exe hash, OS/toolchain versions,
+command, input, expected/actual, original log or artifact path).
 
 ## A. Release unpack (no dev tooling)
 
-Status 2026-10-02 (Windows 11 VM, gnu-lane `--no-bundle` exe — NSIS PENDING):
-the distributable validated so far is the portable
-`krds-detector.exe` (23.5 MB, SHA-256
-`07FC769A743501ADC43373A55BF6EDB00FEC27C636B0252E1285AE2BBFD2C8BD`).
-NSIS installer requires the MSVC lane (SDK-gated); the exe runs standalone
-with WebView2 (Win11 inbox) + the app's own Chromium worker path.
+Status 2026-10-02 (Windows 11 VM, gnu-lane exe — NSIS PENDING):
+reference portable `krds-detector.exe` (23.5 MB, SHA-256
+`07FC769A743501ADC43373A55BF6EDB00FEC27C636B0252E1285AE2BBFD2C8BD`)
+was the last INDEPENDENTLY VERIFIED distributable. Rebuilds since
+(`AF3AED21…`, `DF065B7D…`, `00C96323…`, `07770A7B…`) were produced by
+`cargo +stable-x86_64-pc-windows-gnu build --release --target
+x86_64-pc-windows-gnu` on the SAME VM but have NOT completed the
+A–F gates below — their hashes are build records, not release
+evidence. NSIS installer requires the MSVC lane (SDK-gated).
 
-1. [x] PASS — portable exe launches from `C:\work\repo\src-tauri\target\…\release`
-   (interactive session via scheduled task; session-0 QGA launch stays headless
-   by Windows design — evaluator double-clicks, always interactive).
-   Evidence: screenshots win11-app13 (window renders, KRDS start screen).
-2. [x] PASS — install size N/A (portable); exe 23.5 MB.
-3. [x] PASS — cold start to first paint < 30 s (screenshot latency-bounded);
-   keyboard focus ring visible; Tab order reaches URL field.
+1. [ ] UNVERIFIED (미근거) — portable exe launches from `C:\work\repo\src-tauri\target\…\release`.
+   Prior PASS applied ONLY to hash `07FC769A…` (screenshot win11-app13).
+   Current build `00C96323…` renders the KRDS start screen (screenshots
+   win11-m2, win11-acl, win11-eventfix series) but launch-from-clean-install
+   was NOT performed — repo files, node_modules, and caches were present.
+2. [ ] UNVERIFIED (미근거) — install size N/A (portable); reference build
+   23.5 MB. Current builds report 24.9–25.0 MB (`deps` exe 24950749,
+   24901597 bytes); no clean-install size recorded.
+3. [ ] UNVERIFIED (미근거) — cold start to first paint, focus ring, Tab
+   order were observed on hash `07FC769A…` only. Current builds render
+   (screenshots) but timed first-paint + keyboard audit NOT re-run.
 
 ## B. Scan flow
 
@@ -27,65 +41,83 @@ with WebView2 (Win11 inbox) + the app's own Chromium worker path.
    jsdom tests prove submit-with-valid-URL calls startScan; validation tests
    prove empty shows exactly this banner. Interactive typing (CUA key events
    per character) remains to retry; SendKeys-in-session is the next attempt.
-5. [x] PASS — progress screen shows real counters (visited/queued/frames/
-   elements/candidates/confirmed/elapsed), no fabricated percent (screenshot).
-6. [ ] NOT RUN — cancel mid-scan via packaged app (worker e2e covers cancel
-   at the supervisor level: `cancel_unknown`/`cancel_known` unit tests PASS).
-7. [x] PASS — synced scan-loop worker on the SAME Windows VM (2026-10-02,
-   `--out-file` fix): 17/17 findings (HOMOGLYPH 5 / JAMO 4 / TRANSPARENT 3 /
-   OFFSCREEN 5), ids + identity unique, contract-valid, UTF-8 no BOM
-   (magic `7B 0A 20 20`). File `C:\prov\vm-final2.json`, 4650 bytes.
-   Packaged-app full scan via form: NOT RUN (blocked on input above).
-   Lesson: PowerShell `>` forces UTF-16 even for raw fd-1 bytes — the
-   worker's `--out-file` bypasses the shell pipe; Tauri captures piped
-   stdout directly so it is unaffected.
-8. [x] PASS — evidence panel shows raw text + location + technique
-   (verified in interactive screenshots during CUA lane).
+5. [ ] UNVERIFIED (미근거) — progress screen showed real counters on the
+   reference build (screenshot). On current builds the ONLY observed
+   progress screen is the failure path (`failed`, all counters 0,
+   screenshots win11-r2/win11-s2/win11-full): meaningful non-zero
+   progress has NOT been observed through the desktop host.
+6. [ ] UNVERIFIED (미근거) — cancel mid-scan via packaged app NOT RUN.
+   Registry unit tests (cancel unknown/known, terminal-state guards,
+   live-sleeper kill) pass on Linux; host survival + Chromium-descendant
+   termination + rescan-after-cancel on Windows NOT observed.
+7. [x] PASS (worker seam only, NOT the packaged app) — synced scan-loop
+   worker on the SAME Windows VM (2026-10-02, `--out-file`):
+   `C:\prov\vm-final2.json`, 4650 bytes, magic `7B 0A 20 20`,
+   17/17 findings (HOMOGLYPH 5 / JAMO 4 / TRANSPARENT 3 / OFFSCREEN 5),
+   ids + identity unique, `valid=true` via contracts validator.
+   Packaged-app full scan via form: [ ] UNVERIFIED (미근거) — every
+   packaged submit shows `failed` (ACL denial, then os error 216, then
+   missing-browser failure). Lesson: `--out-file` bypasses the shell pipe
+   for CLI runs; the Tauri-piped path is UNPROVEN end to end.
+8. [ ] UNVERIFIED (미근거) — evidence panel showed raw text + location +
+   technique on the reference build (CUA screenshots). On current builds
+   the result screen shows `상태: failed` with zero findings
+   (screenshot win11-full); evidence rendering for a SUCCESS case on the
+   current build NOT observed.
 
 ## C. result.json validation
 
-9. [x] PASS (synced scan-loop worker on Windows VM, `--out-file`):
-   file `C:\prov\vm-final2.json`, 4650 bytes, magic `7B 0A 20 20`.
-   Prior sample `C:\prov\win-e2e-final.json` (4650 bytes) also valid.
-10. [x] PASS — UTF-8, no BOM (byte check on both files).
-11. [x] PASS — `meta` (topic/entry_url/tool_version) + flat `findings`;
-    technique ∈ 4 official; ids unique; no duplicate
-    `url+location+technique`.
-12. [x] PASS — full validation on VM: `valid=true`, 17 findings
-    (H 5 / J 4 / T 3 / O 5) via contracts validator; contract round-trip
-    tests green as part of the suite.
+9. [x] PASS (worker CLI output only) — `C:\prov\vm-final2.json`,
+   4650 bytes, magic `7B 0A 20 20`; prior `C:\prov\win-e2e-final.json`
+   also valid. NEITHER file was produced through the desktop host —
+   desktop scan→export is [ ] UNVERIFIED (미근거).
+10. [x] PASS (worker CLI bytes) — UTF-8, no BOM on both files above.
+    Desktop-exported bytes: [ ] UNVERIFIED (미근거).
+11. [x] PASS (worker CLI content) — `meta` + flat `findings`;
+    technique ∈ 4 official; ids unique; no duplicate identity.
+    Desktop-produced content: [ ] UNVERIFIED (미근거) — the only
+    desktop-host result observed is a `failed` session with zero
+    findings, which MUST NOT export (export gate now enforces this).
+12. [x] PASS (worker CLI) — `valid=true`, 17 findings (H 5 / J 4 /
+    T 3 / O 5) via contracts validator; 21 web/contract tests green on
+    VM (tsc + result + tauri-host suites). Desktop scan→terminal→export:
+    [ ] UNVERIFIED (미근거).
 
 ## D. Process hygiene (release-blocking)
 
-13. [x] PASS — worker completion leaves no node/Chromium orphans
-    (tasklist: fixture `serve.js` node killed → zero node.exe remain;
-    app close → zero krds-detector.exe).
-    Caveat: 6 `msedgewebview2.exe` processes persist after app close —
-    they are owned by the MS Edge singleton (pre-existing on the VM, Edge
-    was launched during provisioning), NOT by the app (verified: no
-    krds-detector.exe parent remains). Release gate: PASS for app-owned
-    processes; Edge-singleton attribution documented.
+13. [ ] UNVERIFIED (미근거) — worker-completion orphan check was PASS on
+    the reference build only. On current builds no successful packaged
+    scan has completed, so Chromium-descendant cleanup after a REAL scan,
+    host survival after cancel, and rescan-after-cancel on Windows are
+    all UNOBSERVED. (6 `msedgewebview2.exe` from the Edge singleton are
+    pre-existing, not app leaks — that attribution stands.)
 14. [ ] NOT RUN — close-scan check after a failed scan.
 15. [ ] NOT RUN — repeat full scan after failure (recovery).
 
 ## E. Build from submitted source
 
-16. [x] PASS with deviations — `npm ci` + `typecheck` + `lint` + `vite build`
-    + full `vitest` 12 files / 73 tests PASS on the Windows VM (Node 22.19,
-    after `playwright-core install chromium --only-shell`).
-17. [x] PASS (gnu lane) — `cargo test`: 3 passed / 0 failed via MinGW-w64
-    GCC 16.2 gnu host toolchain. MSVC lane BLOCKED (Win11 SDK import libs
-    absent; all install channels silent). Cross-check
-    `x86_64-pc-windows-msvc` green from Linux.
+16. [x] PASS — `tsc -b` + `vitest` contract/host suites green on the VM
+    (Node v22.19.0; 17 contract + 4 tauri-host tests OBSERVED this
+    session). Full-suite counts on VM NOT re-run for this slice.
+17. [ ] UNVERIFIED (미근거) — `cargo test` on Windows: prior PASS (3 tests,
+    MinGW GCC 16.2) applied to the OLD registry code. Current registry
+    (poll waiter, terminal guards, sleeper test) compiles via
+    `cargo check --target x86_64-pc-windows-msvc --tests` on Linux
+    ONLY; `cargo test` on the VM currently FAILS on environment
+    (`dlltool.exe: program not found` — MinGW bin dir missing from that
+    shell's PATH), NOT on code. Re-run with MinGW on PATH required.
 18. [ ] NOT RUN — rebuilt NSIS hash match (needs MSVC-lane `tauri build`).
 
 ## F. Submission packet (before 2026-10-23 18:00 KST, freeze 10-22)
 
-- [x] Windows 11 executable (portable gnu-lane exe, hashed above)
+- [ ] UNVERIFIED (미근거) — Windows 11 executable: reference hash
+  `07FC769A…` only; current builds (`07770A7B…`, `00C96323…`,
+  `D7C8AEEC…`) launch and render but have NOT passed A–F.
 - [x] Complete source code (dev/bootstrap, tree clean)
 - [x] `docs/BUILD_MANUAL.md` + `docs/USER_MANUAL.md`
 - [x] `docs/PLANNING_DOC.md` (+ application forms: user to attach)
-- [x] `result.json` sample (`C:\prov\vm-final2.json`, 17 findings, valid)
-      + `result_extra.json` engine (validated separately)
+- [x] `result.json` worker-CLI sample (`C:\prov\vm-final2.json`,
+  17 findings, valid) + `result_extra.json` engine (validated
+  separately). Desktop-produced `result.json`: [ ] UNVERIFIED (미근거).
 - [ ] Attachment size / signature / email verification (user step)
 - [ ] NSIS installer (MSVC-lane, SDK-gated)
