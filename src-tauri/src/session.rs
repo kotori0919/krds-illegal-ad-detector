@@ -341,6 +341,16 @@ impl SessionRegistry {
             // `node <sidecar>` invocation, still no caller shell string.
             cmd.arg(sidecar_path);
         }
+        // Playwright resolves browsers under the launching user's profile.
+        // The packaged app runs as the INTERACTIVE user (scheduled task
+        // `windows-VM`, interactive-only — OBSERVED via task query), so
+        // point at that user's cache. Hard-coding SYSTEM broke resolution
+        // by demanding a wrong-suffixed shell path.
+        #[cfg(windows)]
+        cmd.env(
+            "PLAYWRIGHT_BROWSERS_PATH",
+            "C:\\Users\\dbsgu\\AppData\\Local\\ms-playwright",
+        );
         cmd.args(args)
             .stdin(SyncStdio::null())
             .stdout(std::process::Stdio::piped())
