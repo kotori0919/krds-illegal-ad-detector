@@ -99,13 +99,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 16. [x] PASS — `tsc -b` + `vitest` contract/host suites green on the VM
     (Node v22.19.0; 17 contract + 4 tauri-host tests OBSERVED this
     session). Full-suite counts on VM NOT re-run for this slice.
-17. [ ] UNVERIFIED (미근거) — `cargo test` on Windows: prior PASS (3 tests,
-    MinGW GCC 16.2) applied to the OLD registry code. Current registry
-    (poll waiter, terminal guards, sleeper test) compiles via
-    `cargo check --target x86_64-pc-windows-msvc --tests` on Linux
-    ONLY; `cargo test` on the VM currently FAILS on environment
-    (`dlltool.exe: program not found` — MinGW bin dir missing from that
-    shell's PATH), NOT on code. Re-run with MinGW on PATH required.
+17. [x] PASS (gnu lane, OBSERVED 2026-10-02) — `cargo
+    +stable-x86_64-pc-windows-gnu test` in `C:\work\repo\src-tauri`:
+    14 passed / 0 failed (session lifecycle incl. live-sleeper cancel
+    + 6 strict-validation tests). Toolchain: cargo/rustc 1.98.1,
+    MinGW GCC 16.2, Win11 Pro 10.0.26200 x64. Env fix was MinGW
+    `C:\mingw64\bin` on PATH (`dlltool.exe` previously not found).
+    Log: `C:\prov\cargo-test2.log` on the VM.
 18. [ ] NOT RUN — rebuilt NSIS hash match (needs MSVC-lane `tauri build`).
 
 ## F. Submission packet (before 2026-10-23 18:00 KST, freeze 10-22)
