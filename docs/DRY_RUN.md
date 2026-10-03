@@ -462,7 +462,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (focus rect + bing status-URL, screenshot) — but Enter did
   NOT advance (next capture: Translate popup over unchanged
   welcome, screenshot). Button focused but Enter misfires.
-  Next: SPACE on the focused button, then address bar.
+  SPACE ALSO STUCK (OBSERVED 2026-10-03): clean retry (ESC →
+  TAB×14, no context menu this time) + SPACE on the focused
+  button leaves the welcome page UNCHANGED (screenshot
+  identical incl. status URL). The welcome-page buttons do
+  not activate by keyboard OR mouse in this session. PIVOT:
+  skip Edge first-run — verify net via `Ctrl+Esc` → type
+  `cmd` → `ping`/`ipconfig` (keyboard path proven), then
+  download toolchains with `curl`/Edge-headless. Edge
+  first-run can wait for a real evaluator click.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
