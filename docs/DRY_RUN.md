@@ -552,6 +552,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   FIX: shutdown + cold-attach the provision ISO as a second
   SATA cdrom (`sdc`, needs offline define — SATA cannot
   hotplug), reboot, `E:` + `dir` should show `worker/`.
+  SATA FIX WORKS (OBSERVED 2026-10-03): destroyed, removed
+  `vde`, defined `sdc`/unit-2 SATA cdrom with provision ISO,
+  rebooted to desktop (build stamp, screenshot). Fresh
+  `mountvol` (colonless, typed clean) now lists **`E:\` =
+  `{986ea472-bf43-11f1-a6c3-806e6f6e6963}`** (screenshot) —
+  FIVE volumes (D: install ISO `{3602a8c6…}`, E: provision).
+  Next: `E:` (hold-time colon proven) + `dir` → `worker/`
+  payload copy → Node portable → acceptance.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
