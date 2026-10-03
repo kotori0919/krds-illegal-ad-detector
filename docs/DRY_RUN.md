@@ -866,7 +866,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   unreliable mid-line: it replays at 10 ms without
   per-glyph settle. Next: abort, then type the FULL
   path via typefile on a FRESH line only (no per-glyph
-  prefix), or short `cd` + bare exe name.
+  prefix), or short `cd` + bare exe name. QUOTES MANGLE
+  (OBSERVED 2026-10-03): fresh-line typefile ALSO
+  duplicates the quote — `'c;\prov\shell\...exe'`
+  THREE times (3:25 PM), and a `typefile 'E:'` probe
+  lands `E:;_` (semicolon for colon, 3:30 PM) while a
+  quoted `"E:\node.exe" --version` lands `E';\node.exe'`
+  (3:31 PM). Root cause: typefile sends `:`/`"` via raw
+  VNC keysyms WITHOUT the hold-time Shift chord, so the
+  guest sees `;`/`'` instead. Per-glyph send-key (holdtime
+  colon, fresh lines) is the ONLY reliable channel.
+  Next: abort, `cd c:\prov\shell` + bare
+  `chrome-headless-shell --version` per-glyph.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
