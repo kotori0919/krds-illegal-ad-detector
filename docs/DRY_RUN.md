@@ -303,9 +303,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `net user eval eval123 /add` → `The command completed
   successfully.` then `net localgroup administrators eval /add`
   → `The command completed successfully.` (VNC screenshots).
-  Different-username account `eval` now exists as administrator.
-  Next: close console → continue OOBE → sign in as `eval` (or
-  reboot and pick `eval`).
+  reboot and pick `eval`). Reboot attempts (OBSERVED 2026-10-03):
+  `wpeutil reboot` → NOT RECOGNIZED (full Win11 console, not
+  WinPE — expected miss). Plain `shutdown r t0` typed WITHOUT
+  slashes (send-key `KEY_SLASH` omits the `/` glyph when typed
+  mid-command — screenshot shows `shutdown r t0`) → NOT YET
+  EXECUTED (pending: retype with verified `/` glyph per slash,
+  or `shutdown /s /t 0` + host-side `virsh start`).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
