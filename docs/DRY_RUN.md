@@ -458,9 +458,11 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   no-data — it opened a Copilot page CONTEXT MENU
   (`Summarize page / Chat / Talk to Copilot + Share tab`,
   screenshot). Focus went to the page canvas, not the
-  buttons. Next: more Tabs to reach `Start without your
-  data`, or `Alt+N`/`Alt+S` button accelerators, then address
-  bar → intranet net verify.
+  buttons. TAB×12 lands ON `Start without your data`
+  (focus rect + bing status-URL, screenshot) — but Enter did
+  NOT advance (next capture: Translate popup over unchanged
+  welcome, screenshot). Button focused but Enter misfires.
+  Next: SPACE on the focused button, then address bar.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
