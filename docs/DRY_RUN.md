@@ -992,7 +992,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `xorriso -as mkisofs` → **`provision4.iso` 14 MB,
   `ISOIMAGE4`**, flat layout verified. Next:
   cold-swap `sdc`→v4, `F:` verify, guest
-  `e:\node.exe f:\run-accept.mjs`.
+  `e:\node.exe f:\run-accept.mjs`. V4 SWAPPED
+  (OBSERVED 2026-10-03): VM was shut off; dumpxml
+  `sdc` source `provision3.iso` → patched to
+  `provision4.iso` (defined OK, dumpxml confirms);
+  `start` → running. Next: desktop verify, `F:` +
+  `dir` for `fixtures/` + `run-accept.mjs`, then
+  guest `e:\node.exe f:\run-accept.mjs`.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
