@@ -246,17 +246,24 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   autostart marked. Windows 11 Setup REACHED via `virsh send-key`
   boot-key spam (OBSERVED VNC screenshot: `Windows 11 Setup` →
   `Select language settings`, en-US defaults).
-- [ ] OS install interaction BLOCKED on input delivery (OBSERVED
-  2026-10-03): Setup renders but neither `virsh send-key`
-  (TAB/ENTER/Alt-N) nor VNC mouse click (`vncdotool` 880,640 in
-  1280×800 framebuffer) advances past the language page
-  (before/after screenshots byte-identical). PS/2 kbd+mouse in
-  XML; no guest agent in Setup (expected). Candidates: QXL at
-  Setup resolution, VNC pointer sync, focus. Next: USB-tablet
-  input, or unattended `autounattend.xml` (staged at
-  `/tmp/autounattend.xml`; ISO is UDF — needs UDF write or
-  second ISO attach; `xorriso`+`7z` present, mount needs
-  privilege).
+- [x] Input delivery UNBLOCKED via USB-tablet (OBSERVED 2026-10-03):
+  PS/2 → USB tablet+keyboard in XML fixed VNC clicks (first click
+  advanced language → keyboard page, screenshots differ).
+  Click-through: language → keyboard → product-key → license terms
+  accepted (checkbox 335,370 + Next) → `Select setup option`
+  (`Install Windows 11` selected) → `Ready to install` recap
+  (`Windows 11 IoT Enterprise LTSC Evaluation`, `Keep nothing`).
+- [x] Virtio-disk invisibility DIAGNOSED + FIXED (OBSERVED
+  2026-10-03): Setup disk page showed an EMPTY list on the
+  virtio (`vda`) disk — WinPE has no virtio driver. Fix: disk →
+  SATA (`sdb`), NIC virtio → `e1000e` (same WinPE reason),
+  redefined + rebooted + clicked through; disk page now shows
+  `Disk 0 Unallocated Space 80.0 GB` selected → Next →
+  `Ready to install` recap. Install STARTED 12:18:02 KST
+  (clicked Install); progress screenshot at +90 s pending
+  (screen still on recap at last capture — re-check next).
+- [ ] OS install: monitor install → OOBE (create
+  different-username standard account `eval`/admin), record build.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
