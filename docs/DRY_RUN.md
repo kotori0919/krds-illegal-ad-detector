@@ -792,6 +792,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `destroy` → **`shut off`** (host confirms). Next: cold
   XML fix — `sdc` back to `device='cdrom'` + `readonly`
   (SATA cdrom mounts ISO9660 natively), `start`, `F:` hunt.
+  CDROM FIX WORKS (OBSERVED 2026-10-03): reboot to desktop
+  (build stamp, 2:16 PM), Start → `terminal` → Command
+  Prompt open at `C:\Users\cleanval>`, `f:` + Enter →
+  **`F:\>`** (2:17 PM screenshot), `dir` → **`Volume in
+  drive F is ISOIMAGE`, `contracts/` + `detection/` +
+  `ground-truth.json` 5620 B + `scanner/` + `synth-eval/`,
+  1 File(s) 5620 bytes, 4 Dir(s)** (screenshot).
+  Host→guest channel RESTORED. Next: copy worker +
+  fixtures to `C:\prov\`, then node + shell acceptance.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
