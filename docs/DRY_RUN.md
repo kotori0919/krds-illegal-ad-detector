@@ -965,8 +965,21 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   v3 payload is FULLY READABLE in place on `F:`
   (ISOIMAGE3 `dir` above) — `run-accept.mjs` needs NO
   copy: run it from `F:` with node + shell. Next:
-  `e:\node.exe f:\run-accept.mjs` — but the `:` needs
-  holdtime and the path needs no `xcopy`.
+  holdtime and the path needs no `xcopy`. RUNNER GAPS
+  (OBSERVED 2026-10-03): guest line shows
+  `e:\node.exe` EXACT (4:37 PM screenshot — the `e:`
+  holdtime colon + `\node.exe` all single glyphs, NO
+  doubling on this non-`xcopy` line). Host review of
+  `/tmp/v3/run-accept.mjs`: serves 4123 + `scanSite`
+  entry `/` + shell `c:\prov\shell\...exe` — but (a)
+  NO fixtures on v3 (`synthetic/` missing — v3 has
+  flat dists, not the fixture pages), (b) NO
+  `NODE_PATH`/cwd wiring for `@krds-detector/*` +
+  `playwright-core` from `F:` (symlinks are host
+  paths, dead on ISO9660), (c) shell path points at
+  `c:\prov\shell\` (staged, OK). Next: fix runner
+  (embed fixtures or copy them in) + `f:\run-accept`
+  arg, Enter, observe.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
