@@ -413,11 +413,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   internet` link (screenshot). Mouse click on the link only
   focuses (cursor visible, page identical); TAB×5+Enter opened
   a `Select Folder` driver dialog instead (screenshot: This
-  PC, C: 67.4/79.2 GB free, D: install ISO). The no-internet
-  link needs exact keyboard activation (Tab-count to the link
-  itself, not Install-driver). Next: Tab-navigate precisely to
-  `I don't have internet` + Enter → offline account creation
-  as a NEW name (or `eval` if offered).
+  itself, not Install-driver). TAB×10 lands Install-driver +
+  one more TAB lands ON the link (focus rect, screenshot);
+  Enter ACTIVATES it (OBSERVED 2026-10-03) → **`Who's going to
+  use this device?`** local-account page with focused `Name`
+  field (screenshot). OFFLINE OOBE BREAKTHROUGH: type a
+  different-username name (e.g. `cleanval`) + Next, empty
+  password, finish to desktop. (`eval` exists; OOBE wants a
+  fresh name here — record which wins.)
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
