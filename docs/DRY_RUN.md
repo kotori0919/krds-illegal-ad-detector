@@ -329,11 +329,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `KEY_SPACE` was silently dropped inside the long sequence
   (same drop class as `/` mid-command). Rule: VERIFY every space
   glyph in a screenshot before Enter; retype drops with
-  per-word captures. A shorter equivalent avoids the long path:
   `reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion
   \Winlogon" /v AutoAdminLogon /t REG_SZ /d 1 /f` still needs
-  the space — no shortcut. Alternative: `control
-  userpasswords2` GUI (shorter typing) or answer-file ISO.
+  the space — no shortcut.
+- [x] SHORTER PATH WORKED — `control userpasswords2` GUI
+  (OBSERVED 2026-10-03): short command typed clean (no drops —
+  screenshot shows exact `control userpasswords2`) → Enter
+  opens the **User Accounts** dialog listing `defaultuser0`
+  AND `eval`, both `Administrators; Users` (VNC screenshot).
+  GUI proof that `eval` is a real admin account on this
+  machine. Next: select `eval` → uncheck `Users must enter a
+  user name and password` (if present) → Apply → auto-sign-in
+  as `eval`, or set password-less logon via this dialog.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
