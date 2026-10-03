@@ -427,9 +427,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   Evaluation / valid for 90 days / Build 26100.6584`). Clean
   VM is a REAL isolated machine: different username
   (`cleanval`, not `windows-VM`), no dev tools, OOBE-built.
-  Next: NIC re-attach (or user-net stays off — evaluator
-  installs need net), SDK + NSIS toolchain, copy source,
-  clean build + install + acceptance A–F.
+  Next: SDK + NSIS toolchain (net back — see below), copy
+  source, clean build + install + acceptance A–F.
+- [x] NIC RE-ATTACHED live (OBSERVED 2026-10-03):
+  `attach-device` with user/e1000e XML → `Device attached
+  successfully`, interface count 0→1. Display was ASLEEP at
+  first capture (black frame); a `KEY_SPACE` wake restored the
+  desktop (screenshot: Start menu open from earlier session,
+  taskbar clock 11:53 PM, build stamp intact). Guest IP +
+  outbound net NOT yet verified — next: Edge to an intranet
+  address or `ping` via Run dialog, then toolchain downloads.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
