@@ -263,7 +263,8 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   click 12:19:11 missed — recap screenshot identical; reclick
   12:23:08) → `Installing Windows 11` **28% complete** (OBSERVED
   VNC screenshot ~12:24 KST, `Your PC will restart several
-  times`).
+  times`) → `Installing 94%` on black screen + `Your device may
+  restart a few times` (OBSERVED VNC screenshot ~12:27 KST).
 - [ ] OS install: monitor install → OOBE (create
   different-username standard account `eval`/admin), record build.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
