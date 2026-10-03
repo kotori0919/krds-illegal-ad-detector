@@ -518,11 +518,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (`getcaption`), fix retype appended a SECOND ` get caption`
   while the bad `getcaption` REMAINS (line now has both —
   screenshot). Spaces drop ~50% mid-command even at 2.5 s.
-  Next: Ctrl+C abort the line (no Enter yet) and use a
   SPACELESS drive check — `fsutil fsinfo drives` has ONE
-  space; or `powershell -c` ... also spaced. Best: `cmd /c`
-  ... spaced. Minimal-space: `vol d:` / `vol e:` (ONE space,
-  retry until glyph verified) or `dir d:` / `dir e:`.
+  space; or `powershell -c` ... also spaced. `vol` RETRY
+  (OBSERVED 2026-10-03): aborted wmic via Ctrl+C, `vol`
+  typed, space verified MISSING again (bare `vol`), retry
+  space landed (`vol d.` — screenshot) but the DRIVE COLON
+  will not type: `KEY_DOT` sends `.` (period), NOT `:` —
+  there is NO colon glyph yet. `KEY_COLON`/`KEY_SEMICOLON`
+  untested. Next: `KEY_COLON`, else `Shift+;`, else
+  `dir d` without colon (cmd accepts `dir d` = drive D?),
+  or skip letter — `mountvol` lists volumes colonless.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
