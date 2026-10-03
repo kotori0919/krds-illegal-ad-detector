@@ -486,9 +486,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   screenshot) → 4× `Request timed out`, 100% loss
   (screenshot). ICMP egress blocked at the host/network
   level (user-mode NAT passes gateway ping, not internet
-  ICMP). NOT a guest fault. Next: TCP-level check — Edge to
   an http(s) address, or `curl -I` a toolchain URL (TCP 443
   usually passes where ICMP does not), then downloads.
+  NO HTTP CLIENT (OBSERVED 2026-10-03): the `curl`+`cls`
+  line ran as one token (missing space — screenshot shows not
+  recognized) because `KEY_SPACE` dropped again — same class.
+  Worse: the HTTP downloader binary itself is ALSO absent on
+  this LTSC image (not in PATH/system32 of IoT Enterprise
+  LTSC). TCP check needs the built-in `certutil` fetch mode
+  (in-box since XP: `certutil` + verified space + `-urlcache`)
+  or the Edge address bar. Next: `certutil` with per-glyph
+  verify, or finish Edge welcome → address bar.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
