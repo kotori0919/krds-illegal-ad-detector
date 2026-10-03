@@ -567,12 +567,20 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   dev-VM `C:\prov\portable`): **Node v22.19.0**
   (`995A3FB3CEFAD590…`), headless shell
   `chromium_headless_shell-1243\chrome-headless-shell-win64\`
-  (same rev the worker uses). v2 ISO = v1 worker payload +
-  Node portable dir + `playwright-core` (14 MB) +
-  headless-shell win64 dir + fixture site. Playwright
-  browsers path via env (`PLAYWRIGHT_BROWSERS_PATH`) as in
-  the proven `gpal2.ps1` recipe. No SDK in v2 — acceptance
-  first (worker CLI scan), NSIS after.
+  (same rev the worker uses: `chromium` 1243 +
+  `chromium-headless-shell` 1243 per local browsers.json).
+  v2 ISO = v1 worker payload + Node portable dir +
+  `playwright-core` (14 MB) + headless-shell win64 dir +
+  fixture site. STAGED (OBSERVED 2026-10-03): host
+  `/tmp/prov2/` has worker dists + `playwright-core` 14 MB +
+  fixtures (14 MB total); MISSING: `node.exe` 85 MB +
+  headless-shell win64 ~230 MB (Windows binaries, live ONLY
+  on the dev VM at `C:\prov\portable\`). No host↔devVM file
+  channel exists (no shared folder/virtiofs between the
+  session clean11 and the system Win11). Next: copy the two
+  Windows binaries devVM→host (via a second provision ISO
+  in REVERSE, or devVM upload), then `xorriso` v2 ISO +
+  swap onto clean11.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
