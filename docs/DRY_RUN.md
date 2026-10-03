@@ -417,10 +417,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   one more TAB lands ON the link (focus rect, screenshot);
   Enter ACTIVATES it (OBSERVED 2026-10-03) → **`Who's going to
   use this device?`** local-account page with focused `Name`
-  field (screenshot). OFFLINE OOBE BREAKTHROUGH: type a
-  different-username name (e.g. `cleanval`) + Next, empty
-  password, finish to desktop. (`eval` exists; OOBE wants a
-  fresh name here — record which wins.)
+  field (screenshot).
+- [x] OFFLINE ACCOUNT `cleanval` (OBSERVED 2026-10-03):
+  typed `cleanval` (2.5 s/key, screenshot) → Enter → password
+  page → Enter (empty) → privacy page → TAB×6 hit the
+  accessibility flyout (screenshot), ESC closed it, VNC click
+  on `Next` (1055,640) LANDS post-console-close era
+  (cursor on Next, screenshot) — but the page did NOT advance
+  (before/after identical): click focused, did not activate.
+  Next: Enter on the focused Next (keyboard activates), or
+  Tab-to-Next + Enter.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
