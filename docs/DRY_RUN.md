@@ -475,10 +475,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   2026-10-03): typed `ping 8.8..2` (screenshot) — a `KEY_DOT`
   silently DROPPED mid-command (same class as space/slash/
   quote), ping ran against literal `8.8..2` → `could not find
-  host`. Rule: `.`+` `+`/`+`"` ALL drop in sequences, only
-  alphanumerics reliable. Next: retype `ping 10.0.2.2` with
-  per-dot glyph verify before Enter, then toolchain downloads
-  (VS Build Tools, SDK, NSIS).
+  alphanumerics reliable. PING GATEWAY SUCCESS (OBSERVED
+  2026-10-03): retyped per-segment with screenshot verify
+  after EACH dot (`ping 10.` then `10.0.2.` then `10.0.2.2`,
+  all glyphs exact) → Enter → **4 replies from 10.0.2.2,
+  0% loss, 1 ms, TTL 255** (screenshot). Dots land when typed
+  ONE per `send-key` call + verified — batching drops them.
+  Guest↔host NAT path proven. Next: outbound internet check
+  (`ping` a public IP needs dots too — same method), then
+  toolchain downloads (VS Build Tools, SDK, NSIS).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
