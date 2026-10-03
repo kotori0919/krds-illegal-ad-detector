@@ -1079,7 +1079,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `-accept.mjs` all single glyphs, NO doubling on
   this non-`xcopy` line, v5 `dir` above as
   context). Next: Enter, ~2 min scan, wake +
-  validate `c:\prov\result.json` on disk.
+  validate `c:\prov\result.json` on disk. V5 RERUN
+  TAIL (OBSERVED 2026-10-03): Enter → `serving
+  127.0.0.1:4123` (5:53 PM); ~2.5 min scan sleeps
+  the display (blank ×1); Start key wakes to the
+  SAME `F13`–`F15` tail (6:00 PM screenshot —
+  identical HOMOGLYPH/OFFSCREEN findings, back at
+  `F:\>`). Reproducible. The `wrote
+  c:\prov\result.json` stderr line scrolled off —
+  file validation still open. Next: `dir
+  c:\prov\result.json` + hash, then A–F.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
