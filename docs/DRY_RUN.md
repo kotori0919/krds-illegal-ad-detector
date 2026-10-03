@@ -235,22 +235,33 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (`C:\prov\한국 광고\scan test\result.json`) copies 4650 bytes
   clean. Full different-username + clean-machine isolation now runs
   on the session clean VM `clean11` (see below).
-- Clean-install acceptance: UNVERIFIED (미근거) — clean VM UNBLOCKED
+- Clean-install acceptance: UNVERIFIED (미근거) — clean VM RUNNING
   2026-10-03 via user-space session URI (no privilege needed):
   `qemu:///session` + pool `clean` at `/home/monad/clean-vm` +
   disk `clean11.qcow2` 80G qcow2 + ISO copy `win11-install.iso`
   (5.06 GB, `CESE_X64FREE_EN-US_DV9`). Domain `clean11`: q35 +
   EFI secure-boot (`OVMF_CODE_4M.ms.fd`), 8 GB RAM, 4 vCPU
   host-passthrough, virtio disk/net, TPM emulator, user-mode
-  networking; STARTED and running (session id 1). System
-  `sudo`/images-dir blocker bypassed entirely (record stands as
-  reproduced, no longer blocking).
-- [ ] OS install: complete Windows Setup from mounted ISO + OOBE,
-  create different-username standard account, record build.
-- [ ] SDK + NSIS toolchain install on the clean VM.
+  networking, VNC on 127.0.0.1:5902 (RFB 003.008 confirmed),
+  autostart marked. Windows 11 Setup REACHED via `virsh send-key`
+  boot-key spam (OBSERVED VNC screenshot: `Windows 11 Setup` →
+  `Select language settings`, en-US defaults).
+- [ ] OS install interaction BLOCKED on input delivery (OBSERVED
+  2026-10-03): Setup renders but neither `virsh send-key`
+  (TAB/ENTER/Alt-N) nor VNC mouse click (`vncdotool` 880,640 in
+  1280×800 framebuffer) advances past the language page
+  (before/after screenshots byte-identical). PS/2 kbd+mouse in
+  XML; no guest agent in Setup (expected). Candidates: QXL at
+  Setup resolution, VNC pointer sync, focus. Next: USB-tablet
+  input, or unattended `autounattend.xml` (staged at
+  `/tmp/autounattend.xml`; ISO is UDF — needs UDF write or
+  second ISO attach; `xorriso`+`7z` present, mount needs
+  privilege).
+- [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
-- [ ] BLOCKED — clean install: NOT RUN (privilege blocker above).
+- [ ] BLOCKED — clean install: input-delivery blocker above (system
+  privilege blocker bypassed via session URI).
 - [ ] BLOCKED — NSIS installer + uninstall: SDK-gated (MSVC lane needs
   Win11 SDK import libs; approved — pending clean VM).
