@@ -356,12 +356,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   KEY_O` on the console-topped screen typed a stray `o` on the
   console line (screenshot) — chorded Alt does NOT reach the
   (already closed) dialog; confirms `send-key` multi-key calls
-  deliver keys SEQUENTIALLY, not as chords. Registry retry
-  started: `reg add "hklm` on the line shows `oreg add hklm` —
-  the `"` (`KEY_QUOTE`) glyph was silently DROPPED
-  (screenshot), same drop class as space/`/`. Rule: avoid
-  quotes — use quoteless `reg add HKLM\...` form and verify
-  each `\` + space glyph per-word.
+  deliver keys SEQUENTIALLY, not as chords. QUOTELESS RETRY
+  (OBSERVED 2026-10-03): aborted `oreg add hklm` line, CLS
+  cleared, refocused, slow retype: `reg add hklm` verified
+  exact in screenshot, then `\software` verified exact
+  (`hklm\software` in screenshot) — per-word capture VERIFY
+  rule WORKS. Quoteless form avoids the `"` drop entirely.
+  Continuing: `\microsoft\windows\nt currentversion\winlogon`
+  (verify the `NT␣CurrentVersion` space per-word), then
+  ` /v AutoAdminLogon /t REG_SZ /d 1 /f` (verify each `/`),
+  `DefaultUserName`/`DefaultPassword`, host reboot, desktop.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
