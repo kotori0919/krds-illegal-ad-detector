@@ -838,6 +838,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `F:\>xcopy` line, cursor after `y`). The stuck repeat
   cleared. Next: continue ` f:\synth-eval
   c:\prov\synth-eval\ /e` on this clean line.
+  SYNTH-EVAL SKIPPED (DECISION 2026-10-03): the source
+  continuation re-doubled instantly (`xcopy f:\synth`
+  with the extra `x` back, 3:04 PM — and the abort line
+  above shows this is the FIFTH doubled attempt this
+  session). The stuck repeat is per-`xcopy`-line, not
+  cleared — only the bare `xcopy` word landed once.
+  synth-eval is NOT acceptance-blocking (small harness
+  dir, rebuildable from repo; worker 10 + contracts 32
+  + detection 27 + ground-truth 1 are all staged). No
+  QGA channel (`not configured`) to bypass send-key.
+  Next: node check from `E:\` (`node.exe --version`),
+  then shell acceptance with staged payload.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
