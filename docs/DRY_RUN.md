@@ -362,10 +362,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   exact in screenshot, then `\software` verified exact
   (`hklm\software` in screenshot) — per-word capture VERIFY
   rule WORKS. Quoteless form avoids the `"` drop entirely.
-  Continuing: `\microsoft\windows\nt currentversion\winlogon`
-  (verify the `NT␣CurrentVersion` space per-word), then
-  ` /v AutoAdminLogon /t REG_SZ /d 1 /f` (verify each `/`),
-  `DefaultUserName`/`DefaultPassword`, host reboot, desktop.
+  `\microsoft` + `\windows` + `\nt` all verified exact per-word
+  (screenshots: `...\microsoft`, `...\windows\nt`). SPACE-DROP
+  CONFIRMED (OBSERVED 2026-10-03): the very next `KEY_SPACE`
+  after `\nt` produced NO glyph (screenshot shows `...\nt`
+  with no trailing space) — spaces drop even in isolation at
+  2.5 s settle. `send-key KEY_SPACE` is unreliable on this
+  console. Workarounds: (a) `KEY_KP_SPACE` / numpad space code,
+  (b) avoid the space — short 8.3 path has no `NT␣CurrentVersion`
+  issue if quoted... but quotes drop too; (c) abandon reg —
+  drive `userpasswords2` dialog by keyboard (Tab/arrows), or
+  `net user` passwordless + reboot-to-logon click `eval`.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
