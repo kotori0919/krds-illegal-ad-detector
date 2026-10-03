@@ -831,7 +831,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   recognized` (dropped `s`, 2:55 PM). Fresh prompt at
   `F:\>`. Next: pause typing (let repeat settle), or
   reboot, then single `xcopy f:\synth-eval
-  c:\prov\synth-eval\ /e`.
+  c:\prov\synth-eval\ /e`. SETTLE FIXES IT (OBSERVED
+  2026-10-03): after the 2-min pause + reboot-screen
+  settle, a single `xcopy` attempt lands **`xcopy`
+  EXACT, no doubling** (3:03 PM screenshot — fresh
+  `F:\>xcopy` line, cursor after `y`). The stuck repeat
+  cleared. Next: continue ` f:\synth-eval
+  c:\prov\synth-eval\ /e` on this clean line.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
