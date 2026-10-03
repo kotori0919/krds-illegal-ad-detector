@@ -279,14 +279,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   offers `Sign-in options` link but no visible offline-account
   path. `Shift+F10` OPENS an Administrator `cmd.exe` console
   (OBSERVED screenshot: `Microsoft Windows [Version
-  10.0.26100.1742]`), so `oobe\bypassnro` is reachable — but
-  typing is BLOCKED: `send-key` delivers lowercase letters
-  (focus moved, no glyphs) yet multi-key sends show NO text;
-  `vncdotool type` sends nothing visible (before/after
-  identical). Chords (`Shift+O`) untested via VNC `key`
-  sequences. Next: per-character `vncdo key` with settle waits,
-  `send-key` one-key-at-a-time with captures, or answer-file
-  ISO (UDF write path).
+  10.0.26100.1742]`). Typing PARTIALLY UNBLOCKED (OBSERVED
+  2026-10-03): console needs a VNC click (400,170) for focus
+  FIRST — without it both `send-key` and `vncdotool type/key`
+  are no-ops. After focus, `send-key KEY_<UPPER>` one at a time
+  (1.2 s apart) DOES deliver glyphs (OBSERVED: `n` after
+  focus-click, then `n/bnrooobe/bypassnro` accumulating).
+  Rules found: lowercase `KEY_o` is an INVALID keycode (use
+  `KEY_O`); >~5 keys per `send-key` call fails (`too many
+  keycodes`); `KEY_SLASH` works for `/`. No `oobe\bypassnro`
+  yet — first burst mistyped (leading `n` + `bnrooobe`), then
+  `CUL`+`S` appended fine (proves delivery). Next: clear line
+  (batched Backspace) and retype `oobe\BypassNRO` slowly, or
+  paste via answer-file ISO.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
