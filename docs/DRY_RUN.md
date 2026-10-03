@@ -878,6 +878,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   colon, fresh lines) is the ONLY reliable channel.
   Next: abort, `cd c:\prov\shell` + bare
   `chrome-headless-shell --version` per-glyph.
+  SHELL RUNS (OBSERVED 2026-10-03): `cd c:\prov\shell`
+  typed exact per-glyph (3:37 PM), Enter →
+  `c:\prov\shell>`; bare `chrome-headless-shell.exe
+  --version` typed exact (3:39 PM), Enter →
+  **`Google Chrome for Testing 153.0.8010.12`**
+  (screenshot). The copied shell binary executes on
+  the clean VM. Next: worker acceptance run from
+  `c:\prov\` with node + shell.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
