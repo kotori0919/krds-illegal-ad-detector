@@ -633,13 +633,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (screenshot: desktop + taskbar only, no menu — the
   `Ctrl+Esc` chord itself was swallowed this time, 10:48 AM
   clock). Start via keyboard is now flaky (worked 5×
-  before). Next: `Win+E` holdtime chord for Explorer
-  directly, or taskbar pin click at File Explorer icon
-  (first pin, ~660,705), or `shell:startup`... needs Run.
-  Copy needs Explorer OR a spaceless `xcopy`... `copy`
-  also needs a space. Hmm: `Ctrl+C` needs a SELECTION
-  first — select via `Ctrl+A` in E: console? `dir` text
-  is not selectable. Realistic: fix the SPACE (USB kbd?).
+  before). WIN+E WORKS (OBSERVED 2026-10-03): `send-key
+  --holdtime 500 KEY_LEFTMETA KEY_E` opens File Explorer at
+  Home (Quick access + This PC + `CD Drive (D:) CE...` in
+  nav, taskbar Explorer icon live, screenshot). Meta chords
+  WORK with `--holdtime` (like Shift+; colon did). Start menu
+  no longer needed. Next: navigate to `This PC` → open the
+  PULL volume → select `node.exe`+`shell` → copy → new
+  `C:\prov` folder → paste (all mouse, zero spaces).
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
