@@ -944,7 +944,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `provision3.iso` (defined OK, dumpxml confirms);
   `start` → running. Next: desktop verify, `F:` +
   `dir` for `run-accept.mjs` + flat layout, then
-  `xcopy` v3 payload + `run-accept`.
+  `xcopy` v3 payload + `run-accept`. V3 LIVE (OBSERVED
+  2026-10-03): desktop back via Win+R `cmd` (Start
+  search ignored the keystrokes, 4:26 PM); `f:` →
+  `F:\>` (4:27 PM), `dir` → **`Volume ISOIMAGE3`,
+  `contracts/` + `detection/` + `evidence/` +
+  `ground-truth.json` 5620 B + `node_modules/` +
+  `package.json` 73 B + `playwright-core/` +
+  `run-accept.mjs` 554 B + `scanner/` +
+  `synth-eval/`, 3 files 6247 bytes, 7 dirs**
+  (4:29 PM screenshot). The v3 flat payload + runner
+  are on the guest. Next: `xcopy` v3 to `c:\prov\v3\`
+  + `run-accept` with node + shell.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
