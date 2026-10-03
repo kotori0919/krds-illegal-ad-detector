@@ -530,9 +530,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   screenshot shows **`C:\Users\cleanval>:`** on the fresh
   prompt (the `d..` line above is stale scrollback). Chords
   WORK with `--holdtime` (sequential delivery holds Shift
-  through `;`). Next: type `d:` + Enter (letter + proven
   colon) to switch to the provision drive, `dir` it, copy
-  payload with per-glyph verify.
+  payload with per-glyph verify. D-SWITCH GARBLE (OBSERVED
+  2026-10-03): typed `d` + hold-time `:` → line shows `d:`
+  BUT prompt ALSO echoes — Enter executes `d:` against the
+  STALE `mountvol` context and the shell prints a second
+  prompt line, ending with bare `C:\Users\cleanval>` (no
+  `D:\>` — screenshot). The `d:` never took effect (maybe
+  the hold-time Shift bled into Enter, or the line had a
+  hidden char). Next: fresh prompt, type `d` + holdtime-`:`
+  + screenshot-verify `d:` THEN Enter in a separate step.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
