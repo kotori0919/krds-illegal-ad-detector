@@ -434,9 +434,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   successfully`, interface count 0→1. Display was ASLEEP at
   first capture (black frame); a `KEY_SPACE` wake restored the
   desktop (screenshot: Start menu open from earlier session,
-  taskbar clock 11:53 PM, build stamp intact). Guest IP +
-  outbound net NOT yet verified — next: Edge to an intranet
-  address or `ping` via Run dialog, then toolchain downloads.
+  taskbar clock 11:53 PM, build stamp intact). EDGE LAUNCH
+  (OBSERVED 2026-10-03): single VNC click only SELECTS the
+  Edge icon (tooltip `Browse the web`, screenshot), 2nd click
+  selects the label text (screenshot), Enter does NOT launch
+  (desktop unchanged, screenshot) — needs double-click timing
+  the VNC round-trip cannot deliver, or Win+R +
+  `msedge`+Enter. Next: `Win+R` Run dialog → `msedge` →
+  intranet address, or `cmd` → `ping`/`ipconfig`.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
