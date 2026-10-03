@@ -446,9 +446,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   KEY_LEFTCTRL KEY_ESC` in one call works (OS sees the chord):
   Start opens search-focused, Pinned Edge/Settings/Explorer,
   footer `cleanval` (screenshot). Pinned-Edge clicks
-  (335,155 + 335,152) both no-op (menu unchanged, 2
-  captures) — Start tiles ignore VNC clicks. Next: type
-  `edge` in focused search + Enter (no clicks).
+  (335,155 + 335,152) both no-op — Start tiles ignore VNC
+  clicks. BUT SEARCH+ENTER WORKS (OBSERVED 2026-10-03):
+  typed `edge` (Best-match Microsoft Edge, screenshot) →
+  Enter LAUNCHES **Edge** (welcome page, taskbar icon live,
+  screenshot). Keyboard-only path proven — tiles unneeded.
+  Next: `Start without your data` → address bar → net verify,
+  then toolchain downloads (VS Build Tools, SDK, NSIS).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
