@@ -613,10 +613,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   2026-10-03): desktop back (build stamp, screenshot), fresh
   `mountvol` shows a NEW **`81bcc58c-0000-0000-…` → `E:\`**
   (screenshot) — FIVE volumes again but E: CHANGED HANDS:
-  before it was provision `{986ea472…}`, now it is the PULL
-  disk (SATA `sdd` enumerated first). So: provision moved
-  (F:? check) AND pull is E:. Next: `E:` + `dir` should show
-  `node.exe` + `shell\`; copy to `C:\prov` → acceptance run.
+  disk (SATA `sdd` enumerated first). PULL PAYLOAD VISIBLE
+  (OBSERVED 2026-10-03): `E:` + Enter → `E:\>`; `dir` shows
+  **`Volume in drive E is PULL`, `node.exe` 85268464 bytes
+  + `shell\` `<DIR>`** (screenshot) — the reverse-pulled
+  Windows binaries are on the clean VM. Next: copy
+  `E:\node.exe` + `E:\shell\` to `C:\prov` (robocopy needs
+  spaces — per-glyph verify), add worker + fixtures from the
+  provision volume (find its new letter), acceptance run.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
