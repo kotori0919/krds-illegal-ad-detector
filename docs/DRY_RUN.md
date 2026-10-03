@@ -1104,8 +1104,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `1 File(s) 4,133 bytes`** (6:12 PM screenshot).
   The v5 runner's `writeFileSync` landed the file —
   UTF-8 via node, no PowerShell redirect. Next:
-  content validate (findings count + `valid=true`
-  via contracts), then A–F gates.
+  via contracts), then A–F gates. HASH RECORDED
+  (OBSERVED 2026-10-03): full `certutil -hashfile
+  c:\prov\result.json sha256` typed exact (6:13–
+  6:19 PM), Enter →
+  **`6aa74d80ca6871a001f571e647a825be60de4ffd2d27e86de791c1a2fbd2c062`**,
+  `CertUtil: -hashfile command completed
+  successfully` (6:20 PM screenshot). Content
+  still shows the `F13`–`F15` tail (same scan).
+  Next: pull the file to host for contracts
+  validation (reverse `PULL` channel or retype),
+  then A–F.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
