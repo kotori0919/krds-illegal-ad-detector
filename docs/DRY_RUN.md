@@ -1072,7 +1072,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   7 dirs** (5:46 PM screenshot). Runner is the v5
   file-output variant (785 B vs v4 553 B). Next:
   guest `e:\node.exe f:\run-accept.mjs` file-output
-  re-run, validate `c:\prov\result.json`.
+  re-run, validate `c:\prov\result.json`. V5 STAGED
+  (OBSERVED 2026-10-03): full `e:\node.exe
+  f:\run-accept.mjs` typed EXACT per-glyph on
+  `::5900` (5:47–5:52 PM — space + `f:\run` +
+  `-accept.mjs` all single glyphs, NO doubling on
+  this non-`xcopy` line, v5 `dir` above as
+  context). Next: Enter, ~2 min scan, wake +
+  validate `c:\prov\result.json` on disk.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
