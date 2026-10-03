@@ -1061,7 +1061,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `provision5.iso` (defined OK, dumpxml confirms);
   `start` → running. Next: desktop verify on VNC,
   `F:` + `dir` for `ISOIMAGE5`, then guest
-  file-output re-run.
+  file-output re-run. V5 LIVE (OBSERVED 2026-10-03):
+  desktop direct on `::5900` (build stamp, 5:45
+  PM); Win+R `cmd` → console; `f:` → `F:\>`;
+  `dir` → **`Volume ISOIMAGE5`, `contracts/` +
+  `detection/` + `evidence/` + `fixtures/` +
+  `ground-truth.json` 5620 B + `node_modules/` +
+  `package.json` 73 B + `run-accept.mjs` 785 B +
+  `scanner/` + `synth-eval/`, 3 files 6478 bytes,
+  7 dirs** (5:46 PM screenshot). Runner is the v5
+  file-output variant (785 B vs v4 553 B). Next:
+  guest `e:\node.exe f:\run-accept.mjs` file-output
+  re-run, validate `c:\prov\result.json`.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
