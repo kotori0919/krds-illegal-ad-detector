@@ -779,7 +779,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   cdrom→disk) has NO letter. The 2 unmounted mountvol
   volumes include it (needs mount or online). Next:
   colonless `mountvol` to re-list volumes + GUIDs, then
-  mount/assign or `diskpart` letter hunt.
+  mount/assign or `diskpart` letter hunt. MOUNTVOL PROOF
+  (OBSERVED 2026-10-03): bare `mountvol` printed its own
+  usage + **`Possible values for VolumeName`**: `d0f3d79c`
+  → `C:\`, `81bcc58c` → `E:\` (PULL), `3602a8c6` → `D:\`
+  (install ISO), plus TWO `*** NO MOUNT POINTS ***` —
+  `9c547e4d` and **`26581c6c`** (2:02 PM screenshot). The
+  `sdc` provision ISO (raw ISO9660 as SATA `disk`, no
+  partition table the guest mounts) is one of the two
+  unmounted volumes. POWERED OFF (OBSERVED 2026-10-03):
+  graceful `shutdown` ignored (still running 75 s),
+  `destroy` → **`shut off`** (host confirms). Next: cold
+  XML fix — `sdc` back to `device='cdrom'` + `readonly`
+  (SATA cdrom mounts ISO9660 natively), `start`, `F:` hunt.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
