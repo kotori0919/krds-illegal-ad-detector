@@ -689,8 +689,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   screenshot 12:06 PM shows **`xcopy e:` WITH trailing
   space**. Old line was poisoned (11 stuck); new line takes
   spaces. Lesson: ABORT stuck lines early, retype fresh —
-  do not grind one line past ~3 misses. Next: `\node.exe`
-  + space + `C:\prov\` on this FRESH line, Enter, verify.
+  do not grind one line past ~3 misses. FULL SOURCE LINE
+  (OBSERVED 2026-10-03): `\node.exe` (backslash + letters +
+  dot + exe, each verified) on the fresh line gives
+  **`xcopy e:\node.exe`** complete and exact (12:07 PM
+  screenshot — the earlier garbled `xcopy e:\node.exe`
+  scrollback above is the OLD poisoned line). Next:
+  destination space + `C:\prov\` + Enter + `dir` hash-check.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
