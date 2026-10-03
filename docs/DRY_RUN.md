@@ -233,19 +233,22 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `7B-0A-20-20`, `valid=true errors=0`, 17 findings
   (H5/J4/T3/O5), zero chromium post-scan. Space+Korean path
   (`C:\prov\한국 광고\scan test\result.json`) copies 4650 bytes
-  clean. Full different-username + clean-machine isolation still
-  needs the clean VM (privilege blocker below stands).
-- Clean-install acceptance: UNVERIFIED (미근거) — NOT RUN. ISO
-  `CESE_X64FREE_EN-US_DV9` (5.06 GB, `~/index.html?linkid=…`,
-  user-owned, ISO 9660 verified) ready. Blocker (reproducible):
-  `ls /var/lib/libvirt/images/` → `Permission denied`;
-  `sudo -n true` → `a password is required`. User-owned pool
-  `monad` (`/home/monad`, 164 GB free) exists but the system Win11
-  disk cannot be cloned there without privilege; session URI has no
-  VMs. Dev Win11 XML uses EFI + secure-boot
-  (`OVMF_CODE_4M.ms.fd`, `Win11_VARS.fd`); same firmware needed for
-  the clean VM. Then: different-username standard account, SDK
-  install, NSIS build, full flow.
+  clean. Full different-username + clean-machine isolation now runs
+  on the session clean VM `clean11` (see below).
+- Clean-install acceptance: UNVERIFIED (미근거) — clean VM UNBLOCKED
+  2026-10-03 via user-space session URI (no privilege needed):
+  `qemu:///session` + pool `clean` at `/home/monad/clean-vm` +
+  disk `clean11.qcow2` 80G qcow2 + ISO copy `win11-install.iso`
+  (5.06 GB, `CESE_X64FREE_EN-US_DV9`). Domain `clean11`: q35 +
+  EFI secure-boot (`OVMF_CODE_4M.ms.fd`), 8 GB RAM, 4 vCPU
+  host-passthrough, virtio disk/net, TPM emulator, user-mode
+  networking; STARTED and running (session id 1). System
+  `sudo`/images-dir blocker bypassed entirely (record stands as
+  reproduced, no longer blocking).
+- [ ] OS install: complete Windows Setup from mounted ISO + OOBE,
+  create different-username standard account, record build.
+- [ ] SDK + NSIS toolchain install on the clean VM.
+- [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: NOT RUN (privilege blocker above).
