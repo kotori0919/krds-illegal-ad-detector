@@ -712,8 +712,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (12:40→12:46 PM screenshots — NOTE the scrollback: the
   `1 File(s) copied` line is the OLD node copy, this line is
   still sourceless). Same poisoned-line pattern as the node
-  copy had at 11 stuck. Next: Ctrl+C abort + FRESH `xcopy`
-  retype (fresh lines take spaces), then dest path.
+  retype (fresh lines take spaces), then dest path. FRESH
+  ABORT PROOF (OBSERVED 2026-10-03): Ctrl+C aborted the
+  3-stuck line; fresh `xcopy` + ONE space → **`xcopy ` with
+  trailing space** again (12:53 PM screenshot — and the OLD
+  `xcopy e:\shell` bare line is visible just above, proving
+  the abort worked). Fresh-line rule holds twice. Next:
+  `E:\shell` + space + `C:\prov\shell\` + space + `/E`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
