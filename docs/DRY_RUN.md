@@ -563,8 +563,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   shows **`Volume in drive E is ISOIMAGE`, `contracts/` +
   `detection/` + `ground-truth.json` (5620 B) + `scanner/` +
   `synth-eval/`** (screenshot). Host→guest channel PROVEN.
-  Next: copy `E:\` payload to `C:\prov`, add Node portable +
-  fixtures + acceptance run.
+  fixtures + acceptance run. V2 PINS (OBSERVED 2026-10-03,
+  dev-VM `C:\prov\portable`): **Node v22.19.0**
+  (`995A3FB3CEFAD590…`), headless shell
+  `chromium_headless_shell-1243\chrome-headless-shell-win64\`
+  (same rev the worker uses). v2 ISO = v1 worker payload +
+  Node portable dir + `playwright-core` (14 MB) +
+  headless-shell win64 dir + fixture site. Playwright
+  browsers path via env (`PLAYWRIGHT_BROWSERS_PATH`) as in
+  the proven `gpal2.ps1` recipe. No SDK in v2 — acceptance
+  first (worker CLI scan), NSIS after.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
