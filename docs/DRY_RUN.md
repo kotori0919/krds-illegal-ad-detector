@@ -297,10 +297,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   region loop) but did not add a local-account path. Image is
   `Windows 11 IoT Enterprise LTSC Evaluation` (recap screen) —
   may ignore BypassNRO or need `BypassNRO` + network-off.
-  Next: retry with virtual NIC detached (user-net off) at the
-  sign-in page, or `Shift+F10` → `net user eval <pw> /add` +
-  `net localgroup administrators eval /add` direct local-account
-  creation (console typing now works with focus-click rules).
+  sign-in page, or `Shift+F10` → direct local-account creation:
+- [x] Local account CREATED via console (OBSERVED 2026-10-03):
+  slow-typing (2.5 s/key, focus-clicked console) produced exact
+  `net user eval eval123 /add` → `The command completed
+  successfully.` then `net localgroup administrators eval /add`
+  → `The command completed successfully.` (VNC screenshots).
+  Different-username account `eval` now exists as administrator.
+  Next: close console → continue OOBE → sign in as `eval` (or
+  reboot and pick `eval`).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
