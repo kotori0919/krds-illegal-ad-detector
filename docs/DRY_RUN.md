@@ -338,9 +338,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   opens the **User Accounts** dialog listing `defaultuser0`
   AND `eval`, both `Administrators; Users` (VNC screenshot).
   GUI proof that `eval` is a real admin account on this
-  machine. Next: select `eval` → uncheck `Users must enter a
-  user name and password` (if present) → Apply → auto-sign-in
-  as `eval`, or set password-less logon via this dialog.
+  machine. DIALOG LIMIT (OBSERVED 2026-10-03): this OOBE-phase
+  User Accounts dialog shows NO `Users must enter a user name
+  and password` checkbox — only user list + Add/Remove/
+  Properties + password-reset hint. So no auto-logon toggle
+  here. Row selection also resists: VNC clicks on `eval`
+  (150,220 / 140,230) + `KEY_DOWN` all leave `defaultuser0`
+  highlighted (screenshots) — dialog may need double-click or
+  has no focus. Next: double-click `eval`, or close dialog and
+  drive OOBE completion via console (`oobe\msoobe` / reboot to
+  logon listing `eval`), or registry AutoLogon with per-word
+  verify.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
