@@ -848,8 +848,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   dir, rebuildable from repo; worker 10 + contracts 32
   + detection 27 + ground-truth 1 are all staged). No
   QGA channel (`not configured`) to bypass send-key.
-  Next: node check from `E:\` (`node.exe --version`),
   then shell acceptance with staged payload.
+  NODE RUNS (OBSERVED 2026-10-03): `e:` switched to
+  `E:\>` cleanly despite the stray `e:` glyph line above
+  (3:10 PM); `node.exe --version` typed exact (3:16 PM),
+  Enter → **`v22.19.0`** (3:17 PM screenshot). The
+  reverse-pulled PULL `node.exe` executes on the clean
+  VM. Next: shell acceptance — headless-shell smoke
+  from `C:\prov\shell\`, then worker run.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
