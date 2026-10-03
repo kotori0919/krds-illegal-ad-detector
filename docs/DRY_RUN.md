@@ -621,11 +621,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (OBSERVED 2026-10-03): aborted the stray `mkdir` line
   (Ctrl+C), `c` + hold-time `:` + Enter → back at
   `C:\Users\cleanval>` (screenshot — no garble this time,
-  verify-then-Enter split works). Next: `mkdir` replacement
-  WITHOUT spaces — `md` is spaceless for `md C:\prov`? No,
-  still needs a space. Per-glyph single space verify, then
-  `xcopy E:\node.exe C:\prov\` + `xcopy E:\shell
-  C:\prov\shell\ /E` with per-space verify each.
+  verify-then-Enter split works). MD-SPACE STUCK (OBSERVED
+  2026-10-03): `md` typed, TWO `KEY_SPACE` retries 5 min apart
+  both produce NO glyph (screenshots: bare `md`, bare `md` —
+  scrolled but identical). Space is now 0-for-3 on this
+  console. Workaround that needs NO space: copy via Explorer
+  GUI (Ctrl+C/Ctrl+V need no spaces), or `robocopy` via a
+  BATCH FILE written with `echo` redirects... also spaced.
+  Best: Explorer — open E:, select all, copy, paste to a new
+  `C:\prov` folder (all mouse/keyboard, zero spaces).
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
