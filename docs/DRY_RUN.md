@@ -342,13 +342,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   User Accounts dialog shows NO `Users must enter a user name
   and password` checkbox — only user list + Add/Remove/
   Properties + password-reset hint. So no auto-logon toggle
-  here. Row selection also resists: VNC clicks on `eval`
-  (150,220 / 140,230) + `KEY_DOWN` all leave `defaultuser0`
-  highlighted (screenshots) — dialog may need double-click or
-  has no focus. Next: double-click `eval`, or close dialog and
-  drive OOBE completion via console (`oobe\msoobe` / reboot to
-  logon listing `eval`), or registry AutoLogon with per-word
-  verify.
+  here. VNC-CLICK LIMIT (OBSERVED 2026-10-03): clicks PASS
+  THROUGH the User Accounts dialog to the console behind it —
+  `eval`-row double-click syntax unsupported (`unknown cmd
+  "doubleclick"`), two rapid clicks leave `defaultuser0`
+  highlighted, and an OK-button click at (260,485) closed the
+  DIALOG but left the console window (screenshot: dialog gone,
+  `control userpasswords2` console on top). The USB-tablet
+  pointer reaches the console, not the dialog list — dialog
+  needs keyboard nav (Tab/arrows) or `send-key` focus. Next:
+  Tab-to-list + arrows + Enter in the dialog, or `Alt+O` OK
+  accelerator, then registry AutoLogon with per-word verify.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
