@@ -855,7 +855,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   Enter → **`v22.19.0`** (3:17 PM screenshot). The
   reverse-pulled PULL `node.exe` executes on the clean
   VM. Next: shell acceptance — headless-shell smoke
-  from `C:\prov\shell\`, then worker run.
+  from `C:\prov\shell\`, then worker run. TYPEFILE
+  CHANNEL (OBSERVED 2026-10-03): back on `C:` clean
+  (3:17 PM); per-glyph `chrome-headless` prefix typed
+  exact, but `vncdotool typefile` of the FULL 49-char
+  path lands **`chrome-headless` + `c;\prov\shell\...`**
+  (3:24 PM) — the bulk channel concatenates onto the
+  existing line and mangles BOTH quotes (`'c;\prov...exe'
+  --version`, second attempt). typefile is fast but
+  unreliable mid-line: it replays at 10 ms without
+  per-glyph settle. Next: abort, then type the FULL
+  path via typefile on a FRESH line only (no per-glyph
+  prefix), or short `cd` + bare exe name.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
