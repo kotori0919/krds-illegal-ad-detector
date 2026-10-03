@@ -261,12 +261,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `Disk 0 Unallocated Space 80.0 GB` selected → Next →
   `Ready to install` recap. Install CONFIRMED started (first
   click 12:19:11 missed — recap screenshot identical; reclick
-  12:23:08) → `Installing Windows 11` **28% complete** (OBSERVED
   VNC screenshot ~12:24 KST, `Your PC will restart several
   times`) → `Installing 94%` on black screen + `Your device may
-  restart a few times` (OBSERVED VNC screenshot ~12:27 KST).
-- [ ] OS install: monitor install → OOBE (create
-  different-username standard account `eval`/admin), record build.
+  restart a few times` (OBSERVED VNC screenshot ~12:27 KST) →
+  OOBE `Is this the right country or region?` (`United States`
+  selected, OBSERVED VNC screenshot ~12:31 KST).
+- [ ] OOBE region page RESISTS input (OBSERVED 2026-10-03):
+  Yes-button VNC clicks (1050,635 then 1055,625 — cursor visible
+  on button in capture) + `send-key KEY_ENTER` all leave the
+  page unchanged (before/after screenshots compared). Setup
+  pages accepted the same click path; OOBE may need focus,
+  double-click, keyboard-first (Tab+Enter), or a wait for the
+  list to settle. Next: Tab-navigate + Enter, double-click Yes,
+  longer settle waits.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
