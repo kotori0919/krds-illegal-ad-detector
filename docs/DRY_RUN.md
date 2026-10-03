@@ -558,8 +558,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `mountvol` (colonless, typed clean) now lists **`E:\` =
   `{986ea472-bf43-11f1-a6c3-806e6f6e6963}`** (screenshot) —
   FIVE volumes (D: install ISO `{3602a8c6…}`, E: provision).
-  Next: `E:` (hold-time colon proven) + `dir` → `worker/`
-  payload copy → Node portable → acceptance.
+  E: SWITCH + PAYLOAD VISIBLE (OBSERVED 2026-10-03): `e:`
+  (hold-time colon) + Enter → **`E:\>`** (screenshot); `dir`
+  shows **`Volume in drive E is ISOIMAGE`, `contracts/` +
+  `detection/` + `ground-truth.json` (5620 B) + `scanner/` +
+  `synth-eval/`** (screenshot). Host→guest channel PROVEN.
+  Next: copy `E:\` payload to `C:\prov`, add Node portable +
+  fixtures + acceptance run.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
