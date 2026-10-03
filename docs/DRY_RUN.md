@@ -955,7 +955,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `synth-eval/`, 3 files 6247 bytes, 7 dirs**
   (4:29 PM screenshot). The v3 flat payload + runner
   are on the guest. Next: `xcopy` v3 to `c:\prov\v3\`
-  + `run-accept` with node + shell.
+  + `run-accept` with node + shell. XCOPY BLOCKED x6
+  (OBSERVED 2026-10-03): the `xcopy f:` prefix lands
+  COLONLESS (`xcopy f:`, aborted, 4:30 PM), then the
+  minimal `xcopy f:\synth` re-DOUBLES
+  (`xxcopy f:\synth`, 4:36 PM — SIXTH doubled line
+  this session). The per-`xcopy` repeat is session-
+  persistent (settle helped once, never twice). The
+  v3 payload is FULLY READABLE in place on `F:`
+  (ISOIMAGE3 `dir` above) — `run-accept.mjs` needs NO
+  copy: run it from `F:` with node + shell. Next:
+  `e:\node.exe f:\run-accept.mjs` — but the `:` needs
+  holdtime and the path needs no `xcopy`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
