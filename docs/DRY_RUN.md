@@ -608,10 +608,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   detached `vdf`, shutdown, defined `pull.img` as SATA disk
   `sdd`/unit-3 (plus converted provision `sdc` cdrom→disk —
   `readonly` SATA unsupported, dropped the flag), rebooted.
-  Guest is now in WINDOWS UPDATE (`30% complete. Please keep
   your device on.`, screenshot) — first boot after the disk
-  change triggered update finalization. WAIT for desktop,
-  then `mountvol` → new letter (F:?) → copy binaries.
+  change triggered update finalization. UPDATE DONE (OBSERVED
+  2026-10-03): desktop back (build stamp, screenshot), fresh
+  `mountvol` shows a NEW **`81bcc58c-0000-0000-…` → `E:\`**
+  (screenshot) — FIVE volumes again but E: CHANGED HANDS:
+  before it was provision `{986ea472…}`, now it is the PULL
+  disk (SATA `sdd` enumerated first). So: provision moved
+  (F:? check) AND pull is E:. Next: `E:` + `dir` should show
+  `node.exe` + `shell\`; copy to `C:\prov` → acceptance run.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
