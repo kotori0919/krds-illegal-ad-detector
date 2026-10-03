@@ -885,7 +885,20 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   **`Google Chrome for Testing 153.0.8010.12`**
   (screenshot). The copied shell binary executes on
   the clean VM. Next: worker acceptance run from
-  `c:\prov\` with node + shell.
+  `c:\prov\` with node + shell. WORKER CLI SCOPED
+  (OBSERVED 2026-10-03): guest sits at `c:\prov\shell>`
+  after a bare `c:\prov` typo (`'c:\prov' is not
+  recognized`, 3:40 PM — expected, `cd` needs the
+  verb). Host payload check: `/tmp/prov2/worker/` =
+  `dist/` (full scan/detect/validate bundle) +
+  `sidecar.mjs` CLI (`--session/--entry-url/--topic/
+  --max-pages/--max-depth/--timeout-sec/--settle-ms/
+  --executable-path/--channel/--out-file`, stdout =
+  result.json only, progress on stderr). Fixtures at
+  `/tmp/prov2/fixtures/synthetic/` (adversarial/
+  negatives/positives/posts/structural + ground-truth).
+  Next: `cd c:\prov` then node worker acceptance
+  against a local fixture page.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
