@@ -465,12 +465,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   SPACE ALSO STUCK (OBSERVED 2026-10-03): clean retry (ESC →
   TAB×14, no context menu this time) + SPACE on the focused
   button leaves the welcome page UNCHANGED (screenshot
-  identical incl. status URL). The welcome-page buttons do
-  not activate by keyboard OR mouse in this session. PIVOT:
-  skip Edge first-run — verify net via `Ctrl+Esc` → type
-  `cmd` → `ping`/`ipconfig` (keyboard path proven), then
-  download toolchains with `curl`/Edge-headless. Edge
-  first-run can wait for a real evaluator click.
+  identical incl. status URL). Welcome buttons dead by all
+  inputs in this session — PIVOTED to cmd (done, see below).
+- [x] GUEST NET PROVEN (OBSERVED 2026-10-03): `Ctrl+Esc` →
+  type `cmd` (Best-match Command Prompt, screenshot) → Enter
+  opens `cmd.exe` as `C:\Users\cleanval>` (10.0.26100.1742);
+  `ipconfig` shows **Ethernet: IPv4 10.0.2.15/24, gateway
+  10.0.2.2** (user-mode NAT, screenshot). The re-attached
+  NIC works. Next: outbound `ping`/Edge check, then
+  toolchain downloads (VS Build Tools, SDK, NSIS).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
