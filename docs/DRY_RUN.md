@@ -644,12 +644,22 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   nav-pane row ignores VNC clicks like Start tiles did.
   the drive tree in place), or double-click `CD Drive (D:)`
   row, or address-bar `E:` typed + Enter (colon proven).
-  ALT+D NO-OP (OBSERVED 2026-10-03): `send-key KEY_LEFTALT
-  KEY_D` (sequential, no holdtime) leaves the address bar
-  UNFOCUSED (screenshot: breadcrumb `Home` still, 11:04 AM)
-  — chords without `--holdtime` do not form. Next: retry
-  `Alt+D` WITH `--holdtime 500` (as Meta+E and Shift+;
-  did), then type `E:` + Enter.
+  ALT+D HOLDTIME ALSO NO-OP (OBSERVED 2026-10-03):
+  `--holdtime 500 KEY_LEFTALT KEY_D` leaves the address bar
+  UNFOCUSED too (screenshot: breadcrumb `Home` still, 11:05
+  AM) — unlike Meta+E and Shift+;, Alt+D does not form even
+  with holdtime (Alt may need LEFTALT-as-Meta mapping this
+  console lacks). Explorer keyboard path is EXHAUSTED for
+  addressing. PIVOT: drive the CONSOLE (proven: `E:`+Enter
+  works there, PULL dir listed) — copy needs spaces, so use
+  `Ctrl+C`... needs selection. REALISTIC: `xcopy` with
+  Tab-completion (type `x`, Tab to `xcopy`? still needs
+  spaces) — OR PowerShell `Copy-Item` via ISE GUI? OR
+  accept: provision v2 ISO REBUILD on host with the binaries
+  ALREADY KNOWN (node+shell sizes known) — no. BEST: ask
+  the console `cmd` for `doskey` macros? All spaced. FINAL:
+  Explorer DRAG-DROP with mouse (no keyboard at all):
+  open E: via console, drag files to C: window.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
