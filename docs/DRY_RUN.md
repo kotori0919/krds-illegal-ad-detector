@@ -642,9 +642,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   double-click on `This PC` row (215,620 ×2) leaves Explorer
   on Home (screenshot: same Home + nav, 10:58 AM) — the
   nav-pane row ignores VNC clicks like Start tiles did.
-  Next: click the `>` expander glyph LEFT of This PC (opens
   the drive tree in place), or double-click `CD Drive (D:)`
   row, or address-bar `E:` typed + Enter (colon proven).
+  ALT+D NO-OP (OBSERVED 2026-10-03): `send-key KEY_LEFTALT
+  KEY_D` (sequential, no holdtime) leaves the address bar
+  UNFOCUSED (screenshot: breadcrumb `Home` still, 11:04 AM)
+  — chords without `--holdtime` do not form. Next: retry
+  `Alt+D` WITH `--holdtime 500` (as Meta+E and Shift+;
+  did), then type `E:` + Enter.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
