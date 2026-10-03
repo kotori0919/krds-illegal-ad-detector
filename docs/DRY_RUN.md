@@ -897,8 +897,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   result.json only, progress on stderr). Fixtures at
   `/tmp/prov2/fixtures/synthetic/` (adversarial/
   negatives/positives/posts/structural + ground-truth).
-  Next: `cd c:\prov` then node worker acceptance
-  against a local fixture page.
+  against a local fixture page. PROV STAGED (OBSERVED
+  2026-10-03): guest at `c:\prov>` (3:53 PM — the `cd`
+  landed), `dir` → **`contracts/` + `detection/` +
+  `ground-truth.json` 5620 B + `node.exe` 85268464 +
+  `scanner/` + `shell/`, 2 files 85274084 bytes, 5
+  dirs** (screenshot). Full acceptance payload is on
+  the clean VM. Next: launch the fixture page +
+  worker run with node + shell.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
