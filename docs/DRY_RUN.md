@@ -288,8 +288,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   screenshot) — the BypassNRO path is accepted. Console typing
   rules: VNC focus-click (400,170) first; `KEY_<UPPER>` only
   (`KEY_o` invalid); ≤5 keys per `send-key` call.
-- [ ] Post-bypass OOBE: wait for reboot → offline-account option
-  → create local account (different username), finish OOBE.
+- [ ] Post-bypass: BYPASS INEFFECTIVE on this image (OBSERVED
+  2026-10-03): after reboot + region/keyboard/Skip (same
+  Tab-navigate path), the work-or-school MS-sign-in page
+  RETURNS unchanged — no offline-account option appears, and
+  `Sign-in options` click only focuses the link (cursor visible,
+  page identical). The `oobe\BypassNRO` reboot ran (spinner +
+  region loop) but did not add a local-account path. Image is
+  `Windows 11 IoT Enterprise LTSC Evaluation` (recap screen) —
+  may ignore BypassNRO or need `BypassNRO` + network-off.
+  Next: retry with virtual NIC detached (user-net off) at the
+  sign-in page, or `Shift+F10` → `net user eval <pw> /add` +
+  `net localgroup administrators eval /add` direct local-account
+  creation (console typing now works with focus-click rules).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
