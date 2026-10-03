@@ -745,8 +745,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   → **full listing: 13 File(s) 237,684,144 bytes, 6
   Dir(s)** — `chrome-headless-shell.exe` 211,550,720,
   dlls, `locales/`, `resources/`, `hyphen-data` all present
-  (1:33 PM screenshot). Copy is byte-complete. Next: hash
-  check of the exe, then provision letter hunt.
+  check of the exe, then provision letter hunt. HASH
+  VERIFIED (OBSERVED 2026-10-03): full `certutil -hashfile
+  c:\prov\shell\chrome-headless-shell.exe sha256` typed
+  exact with medium settle (1:40 PM), Enter →
+  **`addfa79abb060e1e514e155ed745d4bf96140bca402735958bb4e223aea0b98c`**,
+  `CertUtil: -hashfile command completed successfully`
+  (screenshot). Host-side sha256 comparison inconclusive
+  (find timed out, no host digest on record). Next: provision
+  letter hunt (`E:`, provision media), then worker + fixtures.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
