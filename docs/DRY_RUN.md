@@ -303,13 +303,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `net user eval eval123 /add` → `The command completed
   successfully.` then `net localgroup administrators eval /add`
   → `The command completed successfully.` (VNC screenshots).
-  reboot and pick `eval`). Reboot attempts (OBSERVED 2026-10-03):
-  `wpeutil reboot` → NOT RECOGNIZED (full Win11 console, not
-  WinPE — expected miss). Plain `shutdown r t0` typed WITHOUT
-  slashes (send-key `KEY_SLASH` omits the `/` glyph when typed
-  mid-command — screenshot shows `shutdown r t0`) → NOT YET
-  EXECUTED (pending: retype with verified `/` glyph per slash,
-  or `shutdown /s /t 0` + host-side `virsh start`).
+  reboot and pick `eval`). Host-side reboot WORKS (OBSERVED
+  2026-10-03): guest `shutdown` kept dropping `/` glyphs and
+  `wpeutil` is absent (full-OS console), so `virsh destroy` +
+  `virsh start` rebooted cleanly (disk persists). Post-reboot:
+  OOBE region page again, `Shift+F10` console again, and — key
+  proof — `net user` on machine `DESKTOP-PNG4I6R` lists `eval`
+  alongside Administrator/Guest/DefaultAccount/defaultuser0/
+  WDAGUtilityAccount (VNC screenshot). The account SURVIVES
+  reboot: disk writes persist, install state persists.
+  Next: finish OOBE AS `eval` — close console, Tab-navigate
+  region/keyboard/Skip, then at sign-in the local account
+  should be selectable (or reboot-to-logon shows `eval`).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
