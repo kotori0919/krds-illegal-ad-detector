@@ -312,9 +312,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   alongside Administrator/Guest/DefaultAccount/defaultuser0/
   WDAGUtilityAccount (VNC screenshot). The account SURVIVES
   reboot: disk writes persist, install state persists.
-  Next: finish OOBE AS `eval` — close console, Tab-navigate
   region/keyboard/Skip, then at sign-in the local account
   should be selectable (or reboot-to-logon shows `eval`).
+  OOBE LOOPS (OBSERVED 2026-10-03): closing the console reveals
+  the region page; Tab-navigate region → keyboard → Skip →
+  spinner (~90 s) returns to the SAME work-or-school MS-sign-in
+  page (screenshot) — the pre-created `eval` account does NOT
+  surface in OOBE. OOBE offers no path to the existing local
+  account. Next: at the sign-in page, `Shift+F10` → `regedit` /
+  `control userpasswords2` path, or reboot-to-logon (OOBE may
+  complete to a logon screen listing `eval`), or `LogonUI`
+  bypass via `HKLM\SOFTWARE\Microsoft\Windows
+  NT\CurrentVersion\Winlogon` `AutoAdminLogon` for `eval`.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
