@@ -683,22 +683,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   → **`xcopy e:\node.exe`** all glyphs exact (11:54 AM
   screenshot — backslash + dot both landed this time).
   Next: space + `C:\prov\` destination with per-glyph verify,
-  Enter, `dir C:\prov` + hash-check. DEST-SPACE STUCK
-  (OBSERVED 2026-10-03): THREE more space retries (4 s
-  apart) ALL produce NO glyph — line still ends bare
-  `...node.exe` (12:00 PM screenshot). Spaces now 1-for-6+
-  on this console and trending worse. PIVOT: `copy` needs
-  spaces too. SPOACELESS copy: `xcopy` with NO destination
-  copies to CURRENT dir — but current is `C:\Users\cleanval`,
-  not `C:\prov`. Alternative: `cd` (spaceless!) into E:?
-  `cd` alone is spaceless — `E:` (proven) + `cd` ... hmm
-  `cd C:\prov` needs a space. BEST: change to E: (spaceless
-  `E:`), then `copy node.exe C:` ... spaced. OR: drag-drop
-  in Explorer (E: proven there? No — console only). OR:
-  `Tab`-complete: type `xcopy e:\n` + Tab? Tab completes
-  FILENAMES spacelessly — `xcopy E:\n<Tab>` → `node.exe`?
-  Still needs dest space. FINAL: `mklink`? spaced. Accept:
-  grind spaces (they DO land ~1-in-6) — keep retrying.
+  Enter, `dir C:\prov` + hash-check. FRESH-LINE SPACES LAND
+  (OBSERVED 2026-10-03): aborted the stuck line (Ctrl+C),
+  retyped `xcopy` + space + `E:` (holdtime colon) FRESH —
+  screenshot 12:06 PM shows **`xcopy e:` WITH trailing
+  space**. Old line was poisoned (11 stuck); new line takes
+  spaces. Lesson: ABORT stuck lines early, retype fresh —
+  do not grind one line past ~3 misses. Next: `\node.exe`
+  + space + `C:\prov\` on this FRESH line, Enter, verify.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
