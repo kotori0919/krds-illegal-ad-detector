@@ -938,8 +938,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `node_modules/@krds-detector/*` symlinks +
   `node_modules/playwright-core` copy →
   **`node import scan.js`: `imports-ok`** (host).
-  27 MB total. Next: `xorriso -as mkisofs` v3 ISO,
-  cold-swap `sdc`, `F:` verify + run.
+  cold-swap `sdc`, `F:` verify + run. V3 SWAPPED
+  (OBSERVED 2026-10-03): `destroy` → shut off;
+  dumpxml `sdc` source `provision.iso` → patched to
+  `provision3.iso` (defined OK, dumpxml confirms);
+  `start` → running. Next: desktop verify, `F:` +
+  `dir` for `run-accept.mjs` + flat layout, then
+  `xcopy` v3 payload + `run-accept`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
