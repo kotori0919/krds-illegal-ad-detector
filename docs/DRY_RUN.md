@@ -1022,6 +1022,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   path (`f:\`), NOT the `F:\>` cwd, so in-place
   execution is correct. Next: Enter, observe
   `serving 127.0.0.1:4123` + scan + result.json.
+  ACCEPTANCE SCAN DONE (OBSERVED 2026-10-03): Enter
+  → `serving http://127.0.0.1:4123`
+  (5:14 PM); after ~2 min the display slept (blank
+  captures ×2) — Start key woke it to a COMPLETED
+  scan: **`F13` HOMOGLYPH
+  `board.html?id=101` `#ad-query-hg`**,
+  **`F14` HOMOGLYPH `comments.html`
+  `#comment-2`**, **`F15` OFFSCREEN same page**
+  (5:21 PM screenshot, result.json tail on screen,
+  back at `F:\>`). The v4 flat payload (serve +
+  scan + shell) runs end-to-end on the clean VM.
+  Next: scroll up for full finding count + export
+  `result.json` to `C:\prov\`, then A–F gates.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
