@@ -604,10 +604,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   volumes (C:, D: install `{3602a8c6…}`, E: provision
   `{986ea472…}`, 2 unmounted) — NO new volume appeared
   (screenshot). Same root cause: no virtio block driver on
-  the SATA install. FIX (proven pattern): shutdown clean11,
-  offline-define pull.img as SATA disk (`sd?` next unit),
-  reboot, `mountvol` → new letter → copy `node.exe` +
-  `shell\` to `C:\prov`.
+  the SATA install. SATA RE-ATTACH DONE (OBSERVED 2026-10-03):
+  detached `vdf`, shutdown, defined `pull.img` as SATA disk
+  `sdd`/unit-3 (plus converted provision `sdc` cdrom→disk —
+  `readonly` SATA unsupported, dropped the flag), rebooted.
+  Guest is now in WINDOWS UPDATE (`30% complete. Please keep
+  your device on.`, screenshot) — first boot after the disk
+  change triggered update finalization. WAIT for desktop,
+  then `mountvol` → new letter (F:?) → copy binaries.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
