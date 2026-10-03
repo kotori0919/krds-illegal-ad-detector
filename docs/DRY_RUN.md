@@ -740,8 +740,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `\prov\shell\` + space + `/e` all exact → **`290 File(s)
   copied`** (1:28 PM screenshot, locales/resources tail).
   Medium settle is the rule: 1 s drops, 2.5 s doubles.
-  Next: `dir` verify of `C:\prov\shell\`, hash check, then
-  provision letter hunt.
+  DIR VERIFIED (OBSERVED 2026-10-03): `dir c:\prov\shell`
+  typed exact first-try with medium settle (1:29 PM), Enter
+  → **full listing: 13 File(s) 237,684,144 bytes, 6
+  Dir(s)** — `chrome-headless-shell.exe` 211,550,720,
+  dlls, `locales/`, `resources/`, `hyphen-data` all present
+  (1:33 PM screenshot). Copy is byte-complete. Next: hash
+  check of the exe, then provision letter hunt.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
