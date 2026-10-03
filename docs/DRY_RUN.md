@@ -531,15 +531,20 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   prompt (the `d..` line above is stale scrollback). Chords
   WORK with `--holdtime` (sequential delivery holds Shift
   colon) to switch to the provision drive, `dir` it, copy
-  payload with per-glyph verify. D-SWITCH GARBLE (OBSERVED
   2026-10-03): typed `d` + hold-time `:` → line shows `d:`
   BUT prompt ALSO echoes — Enter executes `d:` against the
   STALE `mountvol` context and the shell prints a second
   prompt line, ending with bare `C:\Users\cleanval>` (no
-  `D:\>` — screenshot). The `d:` never took effect (maybe
-  the hold-time Shift bled into Enter, or the line had a
-  hidden char). Next: fresh prompt, type `d` + holdtime-`:`
-  + screenshot-verify `d:` THEN Enter in a separate step.
+  `D:\>` — screenshot). RETRY WORKED (OBSERVED 2026-10-03):
+  fresh `d:` + Enter → **`D:\>`** (screenshot). BUT the
+  drive is NOT the provision ISO: `dir` shows
+  `CESE_X64FREE_EN-US_DV9` (the INSTALL ISO:
+  `autorun.inf`/`boot`/`bootmgr`/`efi`/`setup.exe`,
+  screenshot) — the live `vde` attach did NOT reassign D:;
+  the install ISO (sda) still owns D:, provision is
+  unmounted or took another letter. Next: `mountvol` again
+  (fresh map), then the letter that is NOT C:/D: (E:?),
+  `E:` + `dir` to find `worker/`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
