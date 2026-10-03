@@ -47,9 +47,14 @@ requires the dry-run measurement on real hardware before any tuning.
 - [x] PARTIAL (dev VM 2026-10-03, build `3ED6C5F7…` sidecar): full
   synthetic scan (30 pages/depth 4) exit 0 in 48.6 s wall
   (`C:\prov\perf1.json`, 4649 bytes); fixture node peak RSS 46.1 MB;
-  zero `chrome-headless-shell.exe` remain post-scan. Linux numbers
-  stand as architecture bounds; clean-machine + peak-app-RSS +
-  cold-start still pending (see DRY_RUN §G blockers).
+  zero `chrome-headless-shell.exe` remain post-scan. App idle peak
+  RSS 27 MB (PID 8512, `PeakWorkingSet64`, QGA session-0 — low
+  because no window painted there), exe 23.8 MB
+  (`24984413` bytes, `3ED6C5F7…`). Clean-machine + interactive
+  cold-start-to-paint still pending (see DRY_RUN §G blockers;
+  session-0 `MainWindowHandle` stays 0 — window only paints in an
+  interactive session, e.g. KRDSLaunch2/KRDSVis task as
+  `windows-VM`).
 - [ ] Re-measure full-scan wall + peak RSS + process count on clean Windows 11.
 - [ ] Confirm no orphan Chromium after close/cancel (Job Objects).
 - [ ] Record NSIS install size + cold-start to first paint.
