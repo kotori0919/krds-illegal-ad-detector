@@ -395,10 +395,22 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   click+Down, second click — the dialog LIST does not take
   selection by mouse or arrows in this OOBE session (3
   screenshots). The dialog PROVES `eval` exists as admin but
-  cannot drive logon from here. DECISION: close this dialog
-  (OK/Cancel) and finish via reboot-to-logon — OOBE completed
   the install; the logon screen should list `eval` (or accept
   `.\eval` + `eval123`). Host-side reboot is proven safe.
+  ESC-CLOSE + REBOOT (OBSERVED 2026-10-03): `KEY_ESCAPE`
+  rejected (use `KEY_ESC`); `KEY_ESC` CLOSED the accounts
+  dialog (screenshot: dialog gone, MS-sign-in only).
+  Host `destroy`+`start` reboot → back at OOBE REGION page
+  (`United States`, screenshot 15:16+45s), NOT a logon screen
+  — OOBE never completed, so there is no logon yet. The loop
+  is structural: OOBE gates on MS-sign-in, `eval` exists but
+  OOBE will not hand off. Next: break the gate — NIC-detach
+  + reboot (offline OOBE shows local-account creation), or
+  `Shift+F10` registry AutoLogon WITHOUT spaces (short
+  values need no `NT␣CurrentVersion`... the KEY path does —
+  alternative: `HKLM\SOFTWARE\Microsoft\Windows` only? No.
+  Better: OOBE `Domain join instead` / offline link hunt, or
+  answer-file ISO).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
