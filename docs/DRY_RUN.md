@@ -384,14 +384,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (Cancel), NOT the user list. Letter-jump `KEY_E` no-op
   (list unchanged, screenshot); Tab×6 cycle returns to Cancel
   (screenshot) — Tab order is dialog-chrome-only, the LIST is
-  never in the Tab order while the console owns focus. The
-  dialog is a child of the OOBE console session: keyboard goes
-  to buttons, mouse passes through. Next: close the CONSOLE
-  window first (X at 1105,120 needs a working click — or
-  `exit`+Enter), THEN dialog keyboard nav with no console
-  behind it; or NIC-detach (`domif-setlink` exists but
-  interface name lookup differs on session URI) + reboot to
-  force local-account OOBE.
+  never in the Tab order while the console owns focus.
+  CONSOLE-CLOSE BREAKTHROUGH (OBSERVED 2026-10-03): `exit`+Enter
+  in the focused console CLOSED it (screenshot: console gone,
+  dialog + MS-sign-in only). Post-close: Tab walks the DIALOG
+  (OK dotted-focus, screenshot); VNC click on `eval` (140,230)
+  LANDS with NO console behind (cursor ON the `eval` row,
+  screenshot — vs pass-through before). Highlight still shows
+  `defaultuser0` — needs a second click/double or Down to
+  confirm, but mouse now reaches the list.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
