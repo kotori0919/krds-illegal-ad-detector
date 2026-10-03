@@ -820,8 +820,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   scan/semantic/visibility/worker (2:40 PM screenshot).
   node check. GROUND-TRUTH COPIED (OBSERVED 2026-10-03):
   `copy f:\ground-truth.json c:\prov\` typed exact →
-  **1 file(s) copied** (2:47 PM screenshot). Next:
-  `synth-eval/` xcopy, then node check.
+  `synth-eval/` xcopy, then node check. SYNTH STUCK-KEY
+  (OBSERVED 2026-10-03): the `xcopy f:\synth` prefix
+  retype DOUBLED again (`xxcopy`, 2:48–2:54 PM —
+  medium-settle `xcopy` doubled TWICE, then a shorter
+  retype doubled again). Ctrl+C aborts clean each time
+  but every `xcopy` attempt now doubles the `x`
+  (guest key-repeat stuck after ~20 commands this
+  session). Even a mangled `cls` errors `'cl' is not
+  recognized` (dropped `s`, 2:55 PM). Fresh prompt at
+  `F:\>`. Next: pause typing (let repeat settle), or
+  reboot, then single `xcopy f:\synth-eval
+  c:\prov\synth-eval\ /e`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
