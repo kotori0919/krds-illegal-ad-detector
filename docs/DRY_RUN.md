@@ -266,14 +266,27 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   restart a few times` (OBSERVED VNC screenshot ~12:27 KST) →
   OOBE `Is this the right country or region?` (`United States`
   selected, OBSERVED VNC screenshot ~12:31 KST).
-- [ ] OOBE region page RESISTS input (OBSERVED 2026-10-03):
-  Yes-button VNC clicks (1050,635 then 1055,625 — cursor visible
-  on button in capture) + `send-key KEY_ENTER` all leave the
-  page unchanged (before/after screenshots compared). Setup
-  pages accepted the same click path; OOBE may need focus,
-  double-click, keyboard-first (Tab+Enter), or a wait for the
-  list to settle. Next: Tab-navigate + Enter, double-click Yes,
-  longer settle waits.
+- [x] OOBE region page PASSED via keyboard Tab-navigate (OBSERVED
+  2026-10-03): `send-key KEY_TAB×3 KEY_ENTER` advanced region →
+  keyboard-layout page (screenshot differs) → confirmed with
+  Tab×3+Enter → `Want to add a second keyboard layout?` → Skip
+  via Enter → `Let's check for any updates` spinner (waited
+  60+90 s) → `Let's set things up for your work or school`
+  Microsoft-sign-in page (OBSERVED screenshot ~12:37 KST).
+  Lesson: OOBE needs keyboard focus navigation, not mouse clicks
+  (clicks landed, cursor visible, but page ignored them).
+- [ ] Microsoft-account gate (OBSERVED 2026-10-03): sign-in page
+  offers `Sign-in options` link but no visible offline-account
+  path. `Shift+F10` OPENS an Administrator `cmd.exe` console
+  (OBSERVED screenshot: `Microsoft Windows [Version
+  10.0.26100.1742]`), so `oobe\bypassnro` is reachable — but
+  typing is BLOCKED: `send-key` delivers lowercase letters
+  (focus moved, no glyphs) yet multi-key sends show NO text;
+  `vncdotool type` sends nothing visible (before/after
+  identical). Chords (`Shift+O`) untested via VNC `key`
+  sequences. Next: per-character `vncdo key` with settle waits,
+  `send-key` one-key-at-a-time with captures, or answer-file
+  ISO (UDF write path).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
