@@ -1134,7 +1134,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   copied` + 4133 B `dir` + SHA `6aa74d80…`).
   Next: passwordless loop mount (askpass/polkit)
   or reattach `sdd` + guest `type` the file, then
-  contracts validation.
+  contracts validation. TYPE PREFIX (OBSERVED
+  2026-10-03): post-reboot black screen → Start key
+  → desktop (6:40 PM); Win+R `cmd` → console at
+  `C:\Users\cleanval>`; `type c:\` typed EXACT
+  per-glyph (6:41 PM screenshot). Console focused
+  and taking input. Next: finish
+  `prov\result.json`, Enter, capture head.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
