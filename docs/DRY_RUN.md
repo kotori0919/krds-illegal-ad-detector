@@ -762,8 +762,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `sdd`=PULL. So the provision ISO media must own another
   letter (`D:` still install ISO? `F:`?). Back on
   `C:\Users\cleanval>` clean (1:48 PM). Next: hunt the
-  provision ISO letter (`D:`, `F:`...) + `dir` for
-  `contracts/` + `ground-truth.json`.
+  `contracts/` + `ground-truth.json`. D IS INSTALL ISO
+  (OBSERVED 2026-10-03): `d:` switched to `D:\>` (1:49
+  PM), `dir` → **`Volume CESE_X64FREE_EN-US_DV9`**,
+  `autorun.inf`/`boot`/`bootmgr`/`efi`/`setup.exe`/`sources`/
+  `support`, 0 bytes free (1:55 PM screenshot). D: is the
+  install ISO (`sda`), NOT provision. So provision ISO
+  (`sdc`, `ISOIMAGE`) owns another letter — `F:` most
+  likely (2 unmounted volumes in the mountvol list). Next:
+  `c:` back, `f:` + `dir` for `contracts/` + fixtures.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
