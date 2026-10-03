@@ -1153,7 +1153,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   evidence_text/technique`) renders from the
   ON-DISK file — not console stdout. Next:
   head capture (meta + F1) + contracts
-  validation, then A–F.
+  validation, then A–F. HEAD PATH (OBSERVED
+  2026-10-03): Up-recall reprints the TAIL
+  (F7 history shows ONLY `0: type
+  c:\prov\result.json` — one entry). `more ` was
+  typed onto the recalled line by mistake
+  (`...result.jsonmore`, 6:54 PM) — abort before
+  Enter. Correct path: FRESH `more
+  c:\prov\result.json` (paged head: meta + F1–F3
+  first), NOT Up-recall. Next: Ctrl+C, fresh
+  `more` + path, Space-paged captures.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
