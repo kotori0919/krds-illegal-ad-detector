@@ -1120,7 +1120,21 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (screenshot). The guest file is on the
   host-readable PULL disk (`sdd`). Next: detach
   `sdd`, host-mount/read `e:\result.json`,
-  contracts-validate + hash-compare.
+  contracts-validate + hash-compare. DETACHED
+  (OBSERVED 2026-10-03): VM was shut off; dumpxml
+  `sdd` pull.img block removed via regex (1 block),
+  defined OK — `grep pull.img` = 0, `domblklist`
+  = sda/sdb/sdc only. MOUNT BLOCKED (OBSERVED
+  2026-10-03): `pull.img` is FAT32 (`mkfs.fat`,
+  MBR boot sector) but `sudo mount -o loop,ro`
+  needs a terminal password (no askpass) and no
+  unprivileged FAT reader is staged (`fattools`
+  pipx has no importable module path, no `mtools`).
+  File bytes are ON the image (guest `1 file(s)
+  copied` + 4133 B `dir` + SHA `6aa74d80…`).
+  Next: passwordless loop mount (askpass/polkit)
+  or reattach `sdd` + guest `type` the file, then
+  contracts validation.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
