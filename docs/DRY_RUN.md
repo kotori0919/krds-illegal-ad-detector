@@ -575,12 +575,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `/tmp/prov2/` has worker dists + `playwright-core` 14 MB +
   fixtures (14 MB total); MISSING: `node.exe` 85 MB +
   headless-shell win64 ~230 MB (Windows binaries, live ONLY
-  on the dev VM at `C:\prov\portable\`). No host↔devVM file
-  channel exists (no shared folder/virtiofs between the
-  session clean11 and the system Win11). Next: copy the two
-  Windows binaries devVM→host (via a second provision ISO
-  in REVERSE, or devVM upload), then `xorriso` v2 ISO +
-  swap onto clean11.
+  on the dev VM at `C:\prov\portable\`). DEVVM ISOLATED
+  (OBSERVED 2026-10-03): guest IP is `192.168.122.13`
+  (system `default` NAT, DHCP lease confirmed); a PowerShell
+  TCP listener on 8413/8414 + firewall ALLOW still gives
+  host-side `Connection refused` — the system libvirt network
+  does not route inbound to guests, and the transient
+  `Start-Job` listener dies with its QGA session (no jobs
+  listed after). `node.exe` staged to `C:\prov\share\` on the
+  dev VM (85 MB copy OK) but unreachable from host. Next:
+  REVERSE ISO — host writes a BLANK fat/iso, attaches to the
+  DEV Win11 (system URI attach IS permitted there), guest
+  copies the two binaries onto it, detach, host reads the
+  image file directly. No guest download needed anywhere.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
