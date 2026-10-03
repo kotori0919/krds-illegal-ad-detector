@@ -657,9 +657,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   spaces) — OR PowerShell `Copy-Item` via ISE GUI? OR
   accept: provision v2 ISO REBUILD on host with the binaries
   ALREADY KNOWN (node+shell sizes known) — no. BEST: ask
-  the console `cmd` for `doskey` macros? All spaced. FINAL:
-  Explorer DRAG-DROP with mouse (no keyboard at all):
-  open E: via console, drag files to C: window.
+  the console `cmd` for `doskey` macros? All spaced. FOCUS
+  STEAL (OBSERVED 2026-10-03): clicking the CONSOLE window
+  (650,400) does NOT focus it — the click LANDS IN EXPLORER
+  instead (screenshot: Music folder selected, 11:17 AM),
+  because Explorer sits ON TOP and covers the console.
+  The `e` typed went... nowhere visible (console shows old
+  `md` prompt). Next: minimize/close Explorer (X at
+  1030,110) to uncover the console, THEN drive `E:` copy
+  commands there (proven path).
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
