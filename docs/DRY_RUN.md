@@ -728,9 +728,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   TWICE — `c::`, `\\`, `prov` doubled, `shell\\` (`xcopy
   e:\shell  c::\\prov\shell\\`, 1:14 PM). A stuck Shift or
   repeat delivered each key twice (the `c::` + `\\` pattern).
-  Line is garbage — DO NOT Enter. Next: Ctrl+C abort, fresh
-  retype with SHORTER settle (1.5 s held too long?) or single
-  keys without holdtime where possible.
+  keys without holdtime where possible. SHORTER SETTLE
+  (OBSERVED 2026-10-03): Ctrl+C aborted the doubled line OK
+  (fresh prompt, 1:15 PM); `xcopy` + space + `e:\shell`
+  retyped with 1 s settles → **`xcopy e:\shell` MISSING the
+  `x`** (1:21 PM screenshot). Shorter settle trades doubling
+  for drop. Next: retype with MEDIUM settle (~1.5 s), or type
+  `x` alone until it lands, then continue.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
