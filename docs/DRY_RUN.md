@@ -390,9 +390,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   dialog + MS-sign-in only). Post-close: Tab walks the DIALOG
   (OK dotted-focus, screenshot); VNC click on `eval` (140,230)
   LANDS with NO console behind (cursor ON the `eval` row,
-  screenshot — vs pass-through before). Highlight still shows
-  `defaultuser0` — needs a second click/double or Down to
-  confirm, but mouse now reaches the list.
+  screenshot — vs pass-through before). STUCK (OBSERVED
+  2026-10-03): highlight stays on `defaultuser0` through Down,
+  click+Down, second click — the dialog LIST does not take
+  selection by mouse or arrows in this OOBE session (3
+  screenshots). The dialog PROVES `eval` exists as admin but
+  cannot drive logon from here. DECISION: close this dialog
+  (OK/Cancel) and finish via reboot-to-logon — OOBE completed
+  the install; the logon screen should list `eval` (or accept
+  `.\eval` + `eval123`). Host-side reboot is proven safe.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
