@@ -818,8 +818,10 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   c:\prov\detection\ /e` typed exact → **27 File(s)
   copied** — homoglyph/index/jamo/pipeline/result-engine/
   scan/semantic/visibility/worker (2:40 PM screenshot).
-  Next: `ground-truth.json` copy + `synth-eval/`, then
-  node check.
+  node check. GROUND-TRUTH COPIED (OBSERVED 2026-10-03):
+  `copy f:\ground-truth.json c:\prov\` typed exact →
+  **1 file(s) copied** (2:47 PM screenshot). Next:
+  `synth-eval/` xcopy, then node check.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
