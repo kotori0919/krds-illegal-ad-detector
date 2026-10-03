@@ -540,11 +540,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   drive is NOT the provision ISO: `dir` shows
   `CESE_X64FREE_EN-US_DV9` (the INSTALL ISO:
   `autorun.inf`/`boot`/`bootmgr`/`efi`/`setup.exe`,
-  screenshot) — the live `vde` attach did NOT reassign D:;
   the install ISO (sda) still owns D:, provision is
-  unmounted or took another letter. Next: `mountvol` again
-  (fresh map), then the letter that is NOT C:/D: (E:?),
-  `E:` + `dir` to find `worker/`.
+  unmounted or took another letter. E: MISSING (OBSERVED
+  2026-10-03): `e:` + Enter → `The system cannot find the
+  drive specified` (screenshot) — only C: and D: exist.
+  ROOT CAUSE: the provision ISO is attached as `virtio`
+  (`vde`) but this SATA-installed Windows has NO virtio
+  block driver (disk was switched vda→sdb/sata to satisfy
+  Setup) — the device is invisible to the guest. ISO itself
+  is VALID (host `xorriso` reads 83 nodes, PVD `ISOIMAGE`).
+  FIX: shutdown + cold-attach the provision ISO as a second
+  SATA cdrom (`sdc`, needs offline define — SATA cannot
+  hotplug), reboot, `E:` + `dir` should show `worker/`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
