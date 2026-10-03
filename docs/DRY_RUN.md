@@ -1114,7 +1114,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   still shows the `F13`–`F15` tail (same scan).
   Next: pull the file to host for contracts
   validation (reverse `PULL` channel or retype),
-  then A–F.
+  then A–F. PULLED (OBSERVED 2026-10-03): full
+  `copy c:\prov\result.json e:\` typed exact
+  (6:26 PM), Enter → **`1 file(s) copied`**
+  (screenshot). The guest file is on the
+  host-readable PULL disk (`sdd`). Next: detach
+  `sdd`, host-mount/read `e:\result.json`,
+  contracts-validate + hash-compare.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
