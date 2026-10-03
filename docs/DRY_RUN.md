@@ -673,9 +673,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   per-space retries each. C:PROV CREATED (OBSERVED
   2026-10-03): Enter on `md c\prov` produced NO error and a
   fresh prompt (screenshot 11:39 AM) — `C:\prov` EXISTS
-  (silent success, the md-into-nothing pattern). Next:
-  `xcopy` node.exe + shell dir with per-space retries, then
-  provision-vol letter hunt + worker copy + acceptance.
+  (silent success, the md-into-nothing pattern). XCOPY SPACE
+  (OBSERVED 2026-10-03): `xcopy` verb typed clean (11:40
+  AM), ONE space retry → **`xcopy ` WITH trailing space**
+  (11:46 AM screenshot) — spaces land ~1-in-2 on retry.
+  Next: `E:\node.exe` + space + `C:\prov\` with per-glyph
+  verify (colons via holdtime, dots one-per-call), Enter,
+  hash-check the copy.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
