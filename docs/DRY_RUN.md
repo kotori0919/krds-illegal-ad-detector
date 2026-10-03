@@ -373,12 +373,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `KEY_KP0` accepted but types `0` (screenshot shows
   `...\nt0`, removed via Backspace — line restored exact);
   `KEY_NUMERIC_SPACE` INVALID. So (a) is DEAD — reg path
-  needs a real space this console cannot receive. DECISION:
-  abandon `reg add` (the `NT␣CurrentVersion` space is
   unreachable); drive the `userpasswords2` dialog by keyboard
   (Tab/arrows+Enter — no spaces needed), or set `eval`
   passwordless via `net user eval ""` (quotes drop — use
   `net user eval *` interactive?) + reboot-to-logon.
+  DIALOG KEYBOARD (OBSERVED 2026-10-03): relaunched dialog via
+  console (typed clean, no drops); `KEY_TAB×5` moved focus to
+  the Cancel button (screenshot: Cancel dotted-focus, list
+  still on `defaultuser0`); `KEY_DOWN` reached the BUTTON ROW
+  (Cancel), NOT the user list — focus never entered the list.
+  List needs click-focus first (but clicks pass through) or
+  more Tabs to cycle into the list. Next: Tab-cycle count to
+  list, arrows to `eval`, Enter/Properties, or `Alt+A/D/R/P`
+  accelerators for Add/Remove/Properties.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
