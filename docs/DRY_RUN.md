@@ -929,7 +929,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   bare-import resolution (`@krds-detector/*` in
   scan.js) before `xorriso -as mkisofs`. Next: resolve
   flat vs wrapper + imports, build v3 ISO, cold-swap
-  `sdc`, `F:` + `xcopy synth-eval`.
+  `sdc`, `F:` + `xcopy synth-eval`. IMPORTS RESOLVED
+  (OBSERVED 2026-10-03): flat `/tmp/v3/` =
+  `contracts/8` + `detection/9` + `scanner/5` +
+  `synth-eval/3` + `evidence/5` js + `ground-truth.json`
+  + `run-accept.mjs` (serve 4123 + `scanSite` + shell
+  exe path) + `playwright-core@1.63.0` 14 MB +
+  `node_modules/@krds-detector/*` symlinks +
+  `node_modules/playwright-core` copy →
+  **`node import scan.js`: `imports-ok`** (host).
+  27 MB total. Next: `xorriso -as mkisofs` v3 ISO,
+  cold-swap `sdc`, `F:` verify + run.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
