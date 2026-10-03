@@ -801,6 +801,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   1 File(s) 5620 bytes, 4 Dir(s)** (screenshot).
   Host→guest channel RESTORED. Next: copy worker +
   fixtures to `C:\prov\`, then node + shell acceptance.
+  WORKER COPIED (OBSERVED 2026-10-03): full
+  `xcopy f:\scanner c:\prov\scanner\ /e` typed exact
+  first-try with medium settle (2:25 PM), Enter →
+  **`10 File(s) copied`** — `crawl.d.ts`/`crawl.js`/
+  `index.d.ts`/`index.js`/`queue.d.ts`/`queue.js`/
+  `selectors.d.ts`/`selectors.js`/`urls.d.ts`/`urls.js`
+  (2:25 PM screenshot). Next: `contracts/` + `detection/`
+  + `ground-truth.json` + `synth-eval/`, then node check.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
