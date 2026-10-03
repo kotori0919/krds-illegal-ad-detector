@@ -497,8 +497,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (in-box since XP: `certutil` + verified space + `-urlcache`)
   or the Edge address bar. Next: `certutil` with per-glyph
   verify, or finish Edge welcome → address bar.
-- [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
-- [ ] Clean-install acceptance A–F on the clean VM.
+- [ ] HOST PROVISIONING (DECISION 2026-10-03): guest downloads
+  are blocked on all fronts (ICMP egress timeout, no HTTP
+  downloader on LTSC, Edge welcome stuck, `send-key` drops
+  space/slash/dot/quote). Instead: host builds a FAT32
+  `provision.fat` (256 MB, `mkdosfs` OK) with the portable
+  worker (dists staged at `/tmp/prov-mnt/worker/`) + Node
+  portable + fixtures, attaches it as a second `virtio` disk
+  (XML pattern staged at `/tmp/prov2.xml`), guest mounts it
+  read-only and runs acceptance WITHOUT any guest download.
+  Needs: FAT writer on host (`mtools` absent, `fattools` pip
+  blocked by PEP 668 — try `pipx` venv or `mtools` static
+  binary), then attach + guest Drive-letter check.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
