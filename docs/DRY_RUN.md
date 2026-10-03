@@ -440,14 +440,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   selects the label text (screenshot), Enter does NOT launch
   the VNC round-trip cannot deliver, or `Win+R` → `msedge`.
   WIN-KEY CODES (OBSERVED 2026-10-03): `KEY_LEFTMETA` sends
-  clean (exit 0) but does NOT open Start (screenshot:
-  desktop unchanged); `KEY_SUPER_L` / `KEY_META_L` are INVALID
-  keycodes. Chords (`Win+R`) impossible (sequential delivery).
-  Taskbar Search click (450,705) is a no-op (screenshot:
-  search box unfocused, no flyout). So no keyboard path to
-  Run/Search yet. Next: `Ctrl+Esc` (classic Start equivalent)
-  + type `msedge`, or Tab-to-taskbar + Enter on Edge pin,
-  or Edge desktop-icon double-time via `click 1` twice fast.
+  clean but does NOT open Start; `KEY_SUPER_L`/`KEY_META_L`
+  INVALID. Taskbar Search click (450,705) no-op. BUT
+  `Ctrl+Esc` OPENS START (OBSERVED 2026-10-03): `send-key
+  KEY_LEFTCTRL KEY_ESC` in one call works (OS sees the chord):
+  Start opens search-focused, Pinned Edge/Settings/Explorer,
+  footer `cleanval` (screenshot). Pinned-Edge clicks
+  (335,155 + 335,152) both no-op (menu unchanged, 2
+  captures) — Start tiles ignore VNC clicks. Next: type
+  `edge` in focused search + Enter (no clicks).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
