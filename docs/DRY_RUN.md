@@ -418,15 +418,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   Enter ACTIVATES it (OBSERVED 2026-10-03) → **`Who's going to
   use this device?`** local-account page with focused `Name`
   field (screenshot).
-- [x] OFFLINE ACCOUNT `cleanval` (OBSERVED 2026-10-03):
-  typed `cleanval` (2.5 s/key, screenshot) → Enter → password
-  page → Enter (empty) → privacy page → TAB×6 hit the
-  accessibility flyout (screenshot), ESC closed it, VNC click
-  on `Next` (1055,640) LANDS post-console-close era
-  (cursor on Next, screenshot) — but the page did NOT advance
-  (before/after identical): click focused, did not activate.
-  Next: Enter on the focused Next (keyboard activates), or
-  Tab-to-Next + Enter.
+- [x] DESKTOP AS `cleanval` (OBSERVED 2026-10-03): Enter on the
+  focused Next advanced privacy (keyboard activates where
+  clicks only focus) through pages to Accept → `This might
+  take a few minutes` finalize → **Windows 11 desktop as
+  `cleanval`** (VNC screenshot: taskbar + Start menu open,
+  `cleanval` account footer, `Windows 11 IoT Enterprise LTSC
+  Evaluation / valid for 90 days / Build 26100.6584`). Clean
+  VM is a REAL isolated machine: different username
+  (`cleanval`, not `windows-VM`), no dev tools, OOBE-built.
+  Next: NIC re-attach (or user-net stays off — evaluator
+  installs need net), SDK + NSIS toolchain, copy source,
+  clean build + install + acceptance A–F.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
