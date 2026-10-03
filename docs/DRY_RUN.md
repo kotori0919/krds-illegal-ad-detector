@@ -597,10 +597,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `guestfish`? absent. Fallback: `qemu-img convert` the NTFS
   to a host dir? No — simplest: `xorriso` v2 ISO built from
   `P:` via a SECOND pass... host cannot read NTFS without
-  mount. Alternative: detach pull.img, attach to clean11 as
-  `sdd`, guest `robocopy P:\ E:\staging` (both visible in
-  ONE guest? No — different VMs). Real path: detach from
   DEV, attach SAME image to clean11, copy there directly.
+  VIRTIO INVISIBLE ON CLEAN11 TOO (OBSERVED 2026-10-03):
+  `pull.img` detached from DEV, live-attached to clean11 as
+  `vdf` virtio — but fresh `mountvol` shows the SAME 5
+  volumes (C:, D: install `{3602a8c6…}`, E: provision
+  `{986ea472…}`, 2 unmounted) — NO new volume appeared
+  (screenshot). Same root cause: no virtio block driver on
+  the SATA install. FIX (proven pattern): shutdown clean11,
+  offline-define pull.img as SATA disk (`sd?` next unit),
+  reboot, `mountvol` → new letter → copy `node.exe` +
+  `shell\` to `C:\prov`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
