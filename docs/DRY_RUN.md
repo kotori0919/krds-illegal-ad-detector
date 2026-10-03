@@ -627,16 +627,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   scrolled but identical). Space is now 0-for-3 on this
   GUI (Ctrl+C/Ctrl+V need no spaces), or `robocopy` via a
   BATCH FILE written with `echo` redirects... also spaced.
-  EXPLORER FOCUS LOST (OBSERVED 2026-10-03): Start search
-  shows Best-match File Explorer (search box `file explorer`,
-  screenshot) but Enter DISMISSED Start back to desktop —
-  Explorer did NOT open (screenshot: console only). The
-  search result lost focus between typing and Enter (the
-  earlier `cmd` launch worked; `file explorer` did not —
-  maybe the multi-word query broke Best-match focus). Next:
-  retype `explorer` (single word) + Enter, or `Win+E`
-  chord attempt with `--holdtime`, or taskbar Explorer pin
-  click.
+  EXPLORER VIA START DEAD (OBSERVED 2026-10-03): multi-word
+  `file explorer` + Enter dismissed Start (no Explorer);
+  single-word `explorer` + wait: Start NEVER OPENED at all
+  (screenshot: desktop + taskbar only, no menu — the
+  `Ctrl+Esc` chord itself was swallowed this time, 10:48 AM
+  clock). Start via keyboard is now flaky (worked 5×
+  before). Next: `Win+E` holdtime chord for Explorer
+  directly, or taskbar pin click at File Explorer icon
+  (first pin, ~660,705), or `shell:startup`... needs Run.
+  Copy needs Explorer OR a spaceless `xcopy`... `copy`
+  also needs a space. Hmm: `Ctrl+C` needs a SELECTION
+  first — select via `Ctrl+A` in E: console? `dir` text
+  is not selectable. Realistic: fix the SPACE (USB kbd?).
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
