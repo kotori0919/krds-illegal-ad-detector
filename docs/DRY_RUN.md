@@ -657,15 +657,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   spaces) — OR PowerShell `Copy-Item` via ISE GUI? OR
   accept: provision v2 ISO REBUILD on host with the binaries
   ALREADY KNOWN (node+shell sizes known) — no. BEST: ask
-  the console `cmd` for `doskey` macros? All spaced. FOCUS
-  STEAL (OBSERVED 2026-10-03): clicking the CONSOLE window
-  (650,400) does NOT focus it — the click LANDS IN EXPLORER
-  instead (screenshot: Music folder selected, 11:17 AM),
-  because Explorer sits ON TOP and covers the console.
-  The `e` typed went... nowhere visible (console shows old
-  `md` prompt). Next: minimize/close Explorer (X at
-  1030,110) to uncover the console, THEN drive `E:` copy
-  commands there (proven path).
+  the console `cmd` for `doskey` macros? All spaced.
+  CONSOLE BODY-CLICK FOCUSES (OBSERVED 2026-10-03): with
+  Explorer CLOSED, clicking the console BODY (400,500)
+  focuses it — `send-key KEY_C` lands as `c` appended to the
+  stale `md` line (`md c_`, screenshot 11:24 AM). Taskbar
+  click (450,735) did NOT focus (screenshot unchanged).
+  Letters deliver to the focused console; only SPACE (and
+  `/`/`"`/`.` mid-sequence) drops. Next: clear the `md c`
+  line (Ctrl+C), then `md` + SPACE-RETRY loop for `C:\prov`
+  (space sometimes lands — 0-for-3 is not 0-forever), else
+  Explorer New-Folder (right-click, zero spaces) for `prov`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
