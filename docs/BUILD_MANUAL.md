@@ -25,6 +25,8 @@ npm run dev
 ## 3. 스캐너 워커 직접 실행 (Node)
 
 ```bat
+npm run build -w @krds-detector/contracts
+npm run build -w @krds-detector/synth-eval
 npm run build -w @krds-detector/scanner
 npm run build -w @krds-detector/detection
 node packages/detection/dist/worker.js --session <id> --entry-url <URL> --max-pages 200 --max-depth 4 --timeout-sec 1500 --settle-ms 1500 --out-file result.json
