@@ -1055,7 +1055,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `ISOIMAGE5`**, flat layout verified. Guest is
   mid-session on v4 (scan completed) — swap needs
   power off. Next: `destroy` + define `sdc`→v5 +
-  `start` + `F:` verify + guest re-run.
+  `start` + `F:` verify + guest re-run. V5 SWAPPED
+  (OBSERVED 2026-10-03): VM was shut off; dumpxml
+  `sdc` source `provision4.iso` → patched to
+  `provision5.iso` (defined OK, dumpxml confirms);
+  `start` → running. Next: desktop verify on VNC,
+  `F:` + `dir` for `ISOIMAGE5`, then guest
+  file-output re-run.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
