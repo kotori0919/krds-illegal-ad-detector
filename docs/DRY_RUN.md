@@ -733,8 +733,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (fresh prompt, 1:15 PM); `xcopy` + space + `e:\shell`
   retyped with 1 s settles → **`xcopy e:\shell` MISSING the
   `x`** (1:21 PM screenshot). Shorter settle trades doubling
-  for drop. Next: retype with MEDIUM settle (~1.5 s), or type
-  `x` alone until it lands, then continue.
+  `x` alone until it lands, then continue. SHELL COPY DONE
+  (OBSERVED 2026-10-03): medium settle (~1.5 s) works both
+  ways — missing `x` backspaced OK (1:27 PM), ` c:\` + holdtime
+  colon + `\` all single glyphs (no double), then
+  `\prov\shell\` + space + `/e` all exact → **`290 File(s)
+  copied`** (1:28 PM screenshot, locales/resources tail).
+  Medium settle is the rule: 1 s drops, 2.5 s doubles.
+  Next: `dir` verify of `C:\prov\shell\`, hash check, then
+  provision letter hunt.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
