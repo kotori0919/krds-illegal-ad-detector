@@ -1088,7 +1088,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `F:\>`). Reproducible. The `wrote
   c:\prov\result.json` stderr line scrolled off —
   file validation still open. Next: `dir
-  c:\prov\result.json` + hash, then A–F.
+  `c:\prov\result.json` + hash, then A–F. FOCUS FIX
+  (OBSERVED 2026-10-03): the `dir c:\prov\...`
+  line never echoed — keystrokes went nowhere
+  (stale tail only, 6:01–6:07 PM). A VNC
+  `move 500 500 + click 1` refocused the console:
+  fresh `dir` typed → **`F:\>dir`** visible with
+  cursor (6:07 PM screenshot). Window focus is a
+  real input gate after display sleep. Next:
+  finish the `c:\prov\result.json` path + Enter.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
