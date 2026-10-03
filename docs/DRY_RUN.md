@@ -706,8 +706,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   one-per-call verify), Enter, `dir` both + hash-check.
   SHELL SOURCE EXACT (OBSERVED 2026-10-03): `E:` (holdtime
   colon) + `\shell` letters → **`xcopy e:\shell`** all exact
-  (12:39 PM screenshot). Next: space + `C:\prov\shell\` +
   space + `/E` (slash one-per-call), Enter, verify dir copy.
+  SHELL DEST STUCK (OBSERVED 2026-10-03): THREE space
+  retries (first + 2 more) ALL bare `xcopy e:\shell`
+  (12:40→12:46 PM screenshots — NOTE the scrollback: the
+  `1 File(s) copied` line is the OLD node copy, this line is
+  still sourceless). Same poisoned-line pattern as the node
+  copy had at 11 stuck. Next: Ctrl+C abort + FRESH `xcopy`
+  retype (fresh lines take spaces), then dest path.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
