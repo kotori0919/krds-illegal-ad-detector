@@ -1035,6 +1035,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   scan + shell) runs end-to-end on the clean VM.
   Next: scroll up for full finding count + export
   `result.json` to `C:\prov\`, then A–F gates.
+  SCROLL LOCKED (OBSERVED 2026-10-03): PageUp AND
+  Shift+PageUp both leave the console on the SAME
+  `F13`–`F15` tail (5:27 PM screenshots) — the
+  window shows the result.json TAIL only (closing
+  `]` + `}` + `F:\>` prompt, scan COMPLETED).
+  `run-accept.mjs` prints json to STDOUT (console
+  only, no `--out-file`): full count needs either a
+  re-run with `> c:\prov\result.json` (UTF-16 risk —
+  use `--out-file` variant) or ground-truth
+  comparison on host. Next: re-run with file
+  output, or validate the tail count (≥15) as the
+  acceptance floor.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
