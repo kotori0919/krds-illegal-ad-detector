@@ -50,11 +50,17 @@ requires the dry-run measurement on real hardware before any tuning.
   zero `chrome-headless-shell.exe` remain post-scan. App idle peak
   RSS 27 MB (PID 8512, `PeakWorkingSet64`, QGA session-0 — low
   because no window painted there), exe 23.8 MB
-  (`24984413` bytes, `3ED6C5F7…`). Clean-machine + interactive
-  cold-start-to-paint still pending (see DRY_RUN §G blockers;
-  session-0 `MainWindowHandle` stays 0 — window only paints in an
-  interactive session, e.g. KRDSLaunch2/KRDSVis task as
-  `windows-VM`).
+  (`24984413` bytes, `3ED6C5F7…`). Cold-start-to-first-paint
+  (OBSERVED 2026-10-03, dev VM, build `3ED6C5F7…` via interactive
+  task KRDSVis as `windows-VM`, 1920×1440 `virsh screenshot`
+  series): kill → start-command at guest `11:19:09.388` → first
+  observed painted window ≤ ~40 s later (`virsh screenshot` + QGA
+  rendezvous latency dominates; true paint is earlier — window
+  fully painted with URL autofocus in the first post-start
+  frame). Bound: ≤ 60 s conservative on this VM; clean-machine +
+  slower hardware still pending (DRY_RUN §G).
+  Interactive idle peak RSS re-confirmed 27 MB (PID 4640), zero
+  chromium, fixture LISTEN.
 - [ ] Re-measure full-scan wall + peak RSS + process count on clean Windows 11.
 - [ ] Confirm no orphan Chromium after close/cancel (Job Objects).
 - [ ] Record NSIS install size + cold-start to first paint.
