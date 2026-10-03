@@ -916,8 +916,20 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   but NO serve module and NO playwright-core on
   `NODE_PATH`. Next: EITHER stage synth-eval dist +
   playwright-core (needs ISO rebuild on host — no
-  guest download), OR run the worker against a
-  `file://` fixture URL directly.
+  `file://` fixture URL directly. V3 LAYOUT (OBSERVED
+  2026-10-03): v1 ISO top level = `contracts/` +
+  `detection/` + `ground-truth.json` + `scanner/` +
+  `synth-eval/` (FLAT dist layout, no `worker/` or
+  `fixtures/` wrapper — `scanner/*.js` at root of
+  `scanner/`, `sidecar.mjs` where?). Host `/tmp/prov2/`
+  uses `worker/dist/` + `fixtures/synthetic/` WRAPPERS
+  that do NOT match the ISO. v3 staging at `/tmp/prov3/`
+  (worker 61 files + playwright-core 14 MB + serve.js
+  44 KB + fixtures 92 KB) needs the FLAT layout +
+  bare-import resolution (`@krds-detector/*` in
+  scan.js) before `xorriso -as mkisofs`. Next: resolve
+  flat vs wrapper + imports, build v3 ISO, cold-swap
+  `sdc`, `F:` + `xcopy synth-eval`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
