@@ -1169,6 +1169,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   as abort proof). Fresh `more c:\` typed EXACT
   (7:01 PM screenshot). Next: finish
   `prov\result.json`, Enter, Space-paged head.
+  HEAD PROVEN (OBSERVED 2026-10-03): fresh
+  `more c:\prov\result.json` typed exact (7:02
+  PM), Enter → **`meta` (`entry_url
+  127.0.0.1:4123/`, `started 00:52:41`,
+  `finished 00:53:10`, `elapsed 28.876 s`,
+  `tool 0.1.0`) + `F1` HOMOGLYPH
+  `positives/homoglyph.html` `#ad-hg-casino` +
+  `F2` HOMOGLYPH `#ad-hg-baccarat` + `F3`
+  head** at `-- More (20%) --` (7:06 PM
+  screenshot). Official head from disk. Next:
+  Space-page F3–F15 + contracts validation.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
