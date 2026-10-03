@@ -279,21 +279,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   offers `Sign-in options` link but no visible offline-account
   path. `Shift+F10` OPENS an Administrator `cmd.exe` console
   (OBSERVED screenshot: `Microsoft Windows [Version
-  10.0.26100.1742]`). Typing DELIVERS but `\` keycode is WRONG
-  (OBSERVED 2026-10-03): console needs a VNC click (400,170) for
-  focus FIRST. After focus, `send-key KEY_<UPPER>` one at a time
-  (1.5 s apart) delivers glyphs. Clean retype on a CLS-cleared
-  line produced `oobe/bypassnro` (forward slash — `KEY_SLASH`
-  worked) but execution failed: `'oobe' is not recognized` —
-  the command needs a BACKSLASH (`oobe\BypassNRO`), and
-  `KEY_SLASH` sends `/`. Follow-up `c /d` test: line shows
-  `c /d`, execution says `'c' is not recognized` — the `/`
-  SPLITS the token, proving forward-slash arrives but is the
-  wrong glyph. Correct code for `\` is likely `KEY_BACKSLASH`
-  (untested) — NOT `KEY_SLASH`. Next: `send-key KEY_BACKSLASH`
-  on a fresh line, verify `\` glyph in screenshot, then run
-  `oobe\BypassNRO` (or `C:\Windows\System32\oobe\BypassNRO.cmd`
-  absolute path).
+  10.0.26100.1742]`). BYPASS EXECUTED (OBSERVED 2026-10-03):
+  `KEY_SLASH` sends `/` (wrong — `oobe/bypassnro` → `'oobe' is
+  not recognized`; `c /d` → `'c' is not recognized`, proving `/`
+  splits tokens). `KEY_BACKSLASH` sends `\` (screenshot shows
+  `oobe\bypassnro` on the line). Enter on the backslash form →
+  VM REBOOTED into `Just a moment...` spinner (OBSERVED VNC
+  screenshot) — the BypassNRO path is accepted. Console typing
+  rules: VNC focus-click (400,170) first; `KEY_<UPPER>` only
+  (`KEY_o` invalid); ≤5 keys per `send-key` call.
+- [ ] Post-bypass OOBE: wait for reboot → offline-account option
+  → create local account (different username), finish OOBE.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
