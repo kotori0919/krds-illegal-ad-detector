@@ -404,13 +404,20 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (`United States`, screenshot 15:16+45s), NOT a logon screen
   — OOBE never completed, so there is no logon yet. The loop
   is structural: OOBE gates on MS-sign-in, `eval` exists but
-  OOBE will not hand off. Next: break the gate — NIC-detach
-  + reboot (offline OOBE shows local-account creation), or
-  `Shift+F10` registry AutoLogon WITHOUT spaces (short
-  values need no `NT␣CurrentVersion`... the KEY path does —
-  alternative: `HKLM\SOFTWARE\Microsoft\Windows` only? No.
-  Better: OOBE `Domain join instead` / offline link hunt, or
-  answer-file ISO).
+  OOBE will not hand off.
+  NIC-DETACH OFFLINE OOBE (OBSERVED 2026-10-03): live
+  `detach-device` with `<link state='down'/>` SUCCEEDED
+  (`Device detached successfully`, interface count 1→0).
+  Region → keyboard → Skip navigated clean, then OOBE shows
+  `Let's connect you to a network` with `I don't have
+  internet` link (screenshot). Mouse click on the link only
+  focuses (cursor visible, page identical); TAB×5+Enter opened
+  a `Select Folder` driver dialog instead (screenshot: This
+  PC, C: 67.4/79.2 GB free, D: install ISO). The no-internet
+  link needs exact keyboard activation (Tab-count to the link
+  itself, not Install-driver). Next: Tab-navigate precisely to
+  `I don't have internet` + Enter → offline account creation
+  as a NEW name (or `eval` if offered).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
