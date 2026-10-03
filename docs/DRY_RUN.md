@@ -1141,6 +1141,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   per-glyph (6:41 PM screenshot). Console focused
   and taking input. Next: finish
   `prov\result.json`, Enter, capture head.
+  CONTENT PROVEN (OBSERVED 2026-10-03): full
+  `type c:\prov\result.json` typed exact (6:42
+  PM), Enter → **`F13` HOMOGLYPH
+  `board.html?id=101` `#ad-query-hg`
+  `is_violation true`**, **`F14` HOMOGLYPH
+  `comments.html` `#comment-2`**, **`F15`
+  `OFFSCREEN` same page/location** (6:48 PM
+  screenshot, file TAIL on screen). Official
+  schema (`id/url/is_violation/location/
+  evidence_text/technique`) renders from the
+  ON-DISK file — not console stdout. Next:
+  head capture (meta + F1) + contracts
+  validation, then A–F.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
