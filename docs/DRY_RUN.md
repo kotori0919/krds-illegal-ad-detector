@@ -617,10 +617,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (OBSERVED 2026-10-03): `E:` + Enter → `E:\>`; `dir` shows
   **`Volume in drive E is PULL`, `node.exe` 85268464 bytes
   + `shell\` `<DIR>`** (screenshot) — the reverse-pulled
-  Windows binaries are on the clean VM. Next: copy
-  `E:\node.exe` + `E:\shell\` to `C:\prov` (robocopy needs
-  spaces — per-glyph verify), add worker + fixtures from the
-  provision volume (find its new letter), acceptance run.
+  Windows binaries are on the clean VM. C-SWITCH CLEAN
+  (OBSERVED 2026-10-03): aborted the stray `mkdir` line
+  (Ctrl+C), `c` + hold-time `:` + Enter → back at
+  `C:\Users\cleanval>` (screenshot — no garble this time,
+  verify-then-Enter split works). Next: `mkdir` replacement
+  WITHOUT spaces — `md` is spaceless for `md C:\prov`? No,
+  still needs a space. Per-glyph single space verify, then
+  `xcopy E:\node.exe C:\prov\` + `xcopy E:\shell
+  C:\prov\shell\ /E` with per-space verify each.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
