@@ -1162,7 +1162,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   Enter. Correct path: FRESH `more
   c:\prov\result.json` (paged head: meta + F1–F3
   first), NOT Up-recall. Next: Ctrl+C, fresh
-  `more` + path, Space-paged captures.
+  `more` + path, Space-paged captures. ABORT CLEAN
+  (OBSERVED 2026-10-03): Ctrl+C killed the mangled
+  `...result.jsonmore` line → fresh `C:\Users\`
+  prompt (6:55 PM screenshot — mangled line ABOVE
+  as abort proof). Fresh `more c:\` typed EXACT
+  (7:01 PM screenshot). Next: finish
+  `prov\result.json`, Enter, Space-paged head.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
