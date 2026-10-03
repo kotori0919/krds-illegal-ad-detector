@@ -321,9 +321,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   surface in OOBE. OOBE offers no path to the existing local
   account. Next: at the sign-in page, `Shift+F10` → `regedit` /
   `control userpasswords2` path, or reboot-to-logon (OOBE may
-  complete to a logon screen listing `eval`), or `LogonUI`
   bypass via `HKLM\SOFTWARE\Microsoft\Windows
   NT\CurrentVersion\Winlogon` `AutoAdminLogon` for `eval`.
+  REG-PATH TYPING (OBSERVED 2026-10-03): the full key path is on
+  the line but `NT CurrentVersion` lost its inner space
+  (`...windows\nt currentversion\winlogon` — screenshot): a
+  `KEY_SPACE` was silently dropped inside the long sequence
+  (same drop class as `/` mid-command). Rule: VERIFY every space
+  glyph in a screenshot before Enter; retype drops with
+  per-word captures. A shorter equivalent avoids the long path:
+  `reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion
+  \Winlogon" /v AutoAdminLogon /t REG_SZ /d 1 /f` still needs
+  the space — no shortcut. Alternative: `control
+  userpasswords2` GUI (shorter typing) or answer-file ISO.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
