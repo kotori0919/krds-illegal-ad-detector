@@ -638,9 +638,13 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   Home (Quick access + This PC + `CD Drive (D:) CE...` in
   nav, taskbar Explorer icon live, screenshot). Meta chords
   WORK with `--holdtime` (like Shift+; colon did). Start menu
-  no longer needed. Next: navigate to `This PC` → open the
-  PULL volume → select `node.exe`+`shell` → copy → new
-  `C:\prov` folder → paste (all mouse, zero spaces).
+  no longer needed. THIS-PC CLICK NO-OP (OBSERVED 2026-10-03):
+  double-click on `This PC` row (215,620 ×2) leaves Explorer
+  on Home (screenshot: same Home + nav, 10:58 AM) — the
+  nav-pane row ignores VNC clicks like Start tiles did.
+  Next: click the `>` expander glyph LEFT of This PC (opens
+  the drive tree in place), or double-click `CD Drive (D:)`
+  row, or address-bar `E:` typed + Enter (colon proven).
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
