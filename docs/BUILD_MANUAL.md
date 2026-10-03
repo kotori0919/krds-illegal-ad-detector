@@ -30,6 +30,10 @@ npm run build -w @krds-detector/detection
 node packages/detection/dist/worker.js --session <id> --entry-url <URL> --max-pages 200 --max-depth 4 --timeout-sec 1500 --settle-ms 1500 --out-file result.json
 ```
 
+전제: `dist/`는 커밋되지 않으므로(`.gitignore`), 클린 체크아웃에서는
+먼저 루트에서 `tsc -b`(또는 `npm run typecheck`)를 실행해 패키지 참조를
+빌드해야 합니다. `tsc -b`는 `tsconfig.json`의 references를 순서대로 처리합니다.
+
 `--out-file`에 UTF-8 `result.json` 직접 기록 (BOM 없음). stdout 폴백도
 바이트 기록. PowerShell `>` 리다이렉션은 UTF-16으로 강제 변환하므로
 사용하지 마세요. 진단은 stderr. 한국어 원문은 엄격 UTF-8로 디코딩 검증.
