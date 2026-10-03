@@ -771,6 +771,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   (`sdc`, `ISOIMAGE`) owns another letter — `F:` most
   likely (2 unmounted volumes in the mountvol list). Next:
   `c:` back, `f:` + `dir` for `contracts/` + fixtures.
+  F MISSING (OBSERVED 2026-10-03): back on
+  `C:\Users\cleanval>` clean (1:56 PM); `f:` + Enter →
+  **`The system cannot find the drive specified`**
+  (2:01 PM screenshot). Only C:/D:/E: exist — the provision
+  ISO (`sdc`, defined SATA cdrom unit-2, converted
+  cdrom→disk) has NO letter. The 2 unmounted mountvol
+  volumes include it (needs mount or online). Next:
+  colonless `mountvol` to re-list volumes + GUIDs, then
+  mount/assign or `diskpart` letter hunt.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
