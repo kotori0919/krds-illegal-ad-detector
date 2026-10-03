@@ -663,11 +663,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   focuses it — `send-key KEY_C` lands as `c` appended to the
   stale `md` line (`md c_`, screenshot 11:24 AM). Taskbar
   click (450,735) did NOT focus (screenshot unchanged).
-  Letters deliver to the focused console; only SPACE (and
-  `/`/`"`/`.` mid-sequence) drops. Next: clear the `md c`
-  line (Ctrl+C), then `md` + SPACE-RETRY loop for `C:\prov`
-  (space sometimes lands — 0-for-3 is not 0-forever), else
-  Explorer New-Folder (right-click, zero spaces) for `prov`.
+  `/`/`"`/`.` mid-sequence) drops. SPACE BREAKTHROUGH
+  (OBSERVED 2026-10-03): cleared stale line, fresh `md` +
+  THREE space retries → **`md c ` with trailing space**
+  (screenshot 11:31 AM: `md` line shows `md c ` — second
+  token is `c`, the SPACE after it LANDED). Retry loops
+  WORK: spaces are intermittent (~1-in-3), not impossible.
+  Next: continue `C:\prov` — backslash (proven) +
+  `prov` letters + Enter; then `xcopy` E payload with
+  per-space retries each.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
