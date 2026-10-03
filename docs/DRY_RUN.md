@@ -1046,7 +1046,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   use `--out-file` variant) or ground-truth
   comparison on host. Next: re-run with file
   output, or validate the tail count (≥15) as the
-  acceptance floor.
+  acceptance floor. V5 BUILT (OBSERVED 2026-10-03):
+  `/tmp/v5/` = v4 + `run-accept.mjs` writes
+  `c:\prov\result.json` via `writeFileSync` (UTF-8,
+  bypasses PowerShell `>` UTF-16) + stderr byte log
+  + stdout json → **`v5-imports-ok`** (host).
+  `xorriso -as mkisofs` → **`provision5.iso` 14 MB,
+  `ISOIMAGE5`**, flat layout verified. Guest is
+  mid-session on v4 (scan completed) — swap needs
+  power off. Next: `destroy` + define `sdc`→v5 +
+  `start` + `F:` verify + guest re-run.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
