@@ -471,9 +471,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   type `cmd` (Best-match Command Prompt, screenshot) → Enter
   opens `cmd.exe` as `C:\Users\cleanval>` (10.0.26100.1742);
   `ipconfig` shows **Ethernet: IPv4 10.0.2.15/24, gateway
-  10.0.2.2** (user-mode NAT, screenshot). The re-attached
-  NIC works. Next: outbound `ping`/Edge check, then
-  toolchain downloads (VS Build Tools, SDK, NSIS).
+  10.0.2.2** (user-mode NAT, screenshot). PING TYPO (OBSERVED
+  2026-10-03): typed `ping 8.8..2` (screenshot) — a `KEY_DOT`
+  silently DROPPED mid-command (same class as space/slash/
+  quote), ping ran against literal `8.8..2` → `could not find
+  host`. Rule: `.`+` `+`/`+`"` ALL drop in sequences, only
+  alphanumerics reliable. Next: retype `ping 10.0.2.2` with
+  per-dot glyph verify before Enter, then toolchain downloads
+  (VS Build Tools, SDK, NSIS).
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
