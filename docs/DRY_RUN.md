@@ -368,11 +368,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   after `\nt` produced NO glyph (screenshot shows `...\nt`
   with no trailing space) — spaces drop even in isolation at
   2.5 s settle. `send-key KEY_SPACE` is unreliable on this
-  console. Workarounds: (a) `KEY_KP_SPACE` / numpad space code,
-  (b) avoid the space — short 8.3 path has no `NT␣CurrentVersion`
-  issue if quoted... but quotes drop too; (c) abandon reg —
-  drive `userpasswords2` dialog by keyboard (Tab/arrows), or
-  `net user` passwordless + reboot-to-logon click `eval`.
+  console. Workarounds: (a) `KEY_KP_SPACE` INVALID keycode
+  (OBSERVED 2026-10-03 — qemu `send-key` rejects it);
+  `KEY_KP0` accepted but types `0` (screenshot shows
+  `...\nt0`, removed via Backspace — line restored exact);
+  `KEY_NUMERIC_SPACE` INVALID. So (a) is DEAD — reg path
+  needs a real space this console cannot receive. DECISION:
+  abandon `reg add` (the `NT␣CurrentVersion` space is
+  unreachable); drive the `userpasswords2` dialog by keyboard
+  (Tab/arrows+Enter — no spaces needed), or set `eval`
+  passwordless via `net user eval ""` (quotes drop — use
+  `net user eval *` interactive?) + reboot-to-logon.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
