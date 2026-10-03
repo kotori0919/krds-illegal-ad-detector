@@ -214,6 +214,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `7B 0A 20 20`, `valid=true`, 17 H5/J4/T3/O5. Bare
   `playwright-core/` sibling does NOT resolve (`ERR_MODULE_NOT_FOUND`);
   layout corrected to `node_modules/`.
+- Clean-clone build (OBSERVED 2026-10-03): `C:\work\clean-test`
+  (robocopy excl. target/node_modules/.git/dist) + `npm ci` +
+  `tsc -b --force` + web build + sidecar bundle + gnu exe
+  `43098FEB…` (24984761 bytes) all succeed from the submitted source
+  alone. Fixed en route: undeclared `@krds-detector/synth-eval` dep
+  (committed) + `BUILD_MANUAL` order (contracts → synth-eval →
+  scanner → detection; `tsc -b` prerequisite). Clean portable scan:
+  `C:\prov\cleanport` → exit 0, `cleanport-out.json` 4650 bytes,
+  `7B 0A 20 20`, `valid=true`, 17 H5/J4/T3/O5.
 - Clean-install acceptance: UNVERIFIED (미근거) — NOT RUN. ISO
   `CESE_X64FREE_EN-US_DV9` (5.06 GB, `~/index.html?linkid=…`) ready.
   Blocker (reproducible): `ls /var/lib/libvirt/images/` →
