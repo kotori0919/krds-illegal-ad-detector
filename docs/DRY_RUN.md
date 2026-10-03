@@ -904,7 +904,20 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `scanner/` + `shell/`, 2 files 85274084 bytes, 5
   dirs** (screenshot). Full acceptance payload is on
   the clean VM. Next: launch the fixture page +
-  worker run with node + shell.
+  worker run with node + shell. SERVE GAP (OBSERVED
+  2026-10-03): the e2e harness serves fixtures via
+  `@krds-detector/synth-eval/serve.js`
+  (`startFixtureServer(PORT)` → `base` URL, readiness
+  poll + `crawlSite({entryUrl: base...})`), but
+  `synth-eval/dist/` was NEVER staged — provision ISO
+  has `synthetic/` fixtures only (the synth-eval
+  xcopy was skipped after 5 stuck-key doubles). The
+  guest `c:\prov\` has worker + node + shell + fixtures
+  but NO serve module and NO playwright-core on
+  `NODE_PATH`. Next: EITHER stage synth-eval dist +
+  playwright-core (needs ISO rebuild on host — no
+  guest download), OR run the worker against a
+  `file://` fixture URL directly.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
