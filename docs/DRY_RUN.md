@@ -522,16 +522,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   space; or `powershell -c` ... also spaced. `vol` RETRY
   (OBSERVED 2026-10-03): aborted wmic via Ctrl+C, `vol`
   typed, space verified MISSING again (bare `vol`), retry
-  space landed (`vol d.` — screenshot) but colon will not
-  type (`KEY_DOT`=period, `KEY_COLON` INVALID, `Shift+;`
-  lands 2nd period → `vol d..`). COLONLESS `mountvol` WINS
-  (OBSERVED 2026-10-03): bare `mountvol` (ZERO spaces, typed
-  clean) lists **`D:\` = `{3602a8c6-bf1d-11f1-a6ba-
-  806e6f6e6963}`** (screenshot) — the provision ISO is
-  MOUNTED as D:. Next: copy payload — `xcopy` needs spaces…
-  use `robocopy D:\ C:\prov /E`? also spaced. Minimize:
-  `xcopy D:` + space + destination with per-glyph verify,
-  or Tab-complete the path.
+  space landed (`vol d.` — screenshot) but colon resisted:
+  `KEY_DOT`=period, `KEY_COLON` INVALID, plain `Shift+;`
+  lands 2nd period (`vol d..`). COLON VIA HOLD-TIME (OBSERVED
+  2026-10-03): `send-key --holdtime 500 KEY_LEFTSHIFT
+  KEY_SEMICOLON` in ONE call delivers a REAL `:` —
+  screenshot shows **`C:\Users\cleanval>:`** on the fresh
+  prompt (the `d..` line above is stale scrollback). Chords
+  WORK with `--holdtime` (sequential delivery holds Shift
+  through `;`). Next: type `d:` + Enter (letter + proven
+  colon) to switch to the provision drive, `dir` it, copy
+  payload with per-glyph verify.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
