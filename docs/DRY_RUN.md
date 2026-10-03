@@ -625,11 +625,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   2026-10-03): `md` typed, TWO `KEY_SPACE` retries 5 min apart
   both produce NO glyph (screenshots: bare `md`, bare `md` —
   scrolled but identical). Space is now 0-for-3 on this
-  console. Workaround that needs NO space: copy via Explorer
   GUI (Ctrl+C/Ctrl+V need no spaces), or `robocopy` via a
   BATCH FILE written with `echo` redirects... also spaced.
-  Best: Explorer — open E:, select all, copy, paste to a new
-  `C:\prov` folder (all mouse/keyboard, zero spaces).
+  EXPLORER FOCUS LOST (OBSERVED 2026-10-03): Start search
+  shows Best-match File Explorer (search box `file explorer`,
+  screenshot) but Enter DISMISSED Start back to desktop —
+  Explorer did NOT open (screenshot: console only). The
+  search result lost focus between typing and Enter (the
+  earlier `cmd` launch worked; `file explorer` did not —
+  maybe the multi-word query broke Best-match focus). Next:
+  retype `explorer` (single word) + Enter, or `Win+E`
+  chord attempt with `--holdtime`, or taskbar Explorer pin
+  click.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
