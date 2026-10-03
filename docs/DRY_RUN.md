@@ -807,8 +807,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   **`10 File(s) copied`** — `crawl.d.ts`/`crawl.js`/
   `index.d.ts`/`index.js`/`queue.d.ts`/`queue.js`/
   `selectors.d.ts`/`selectors.js`/`urls.d.ts`/`urls.js`
-  (2:25 PM screenshot). Next: `contracts/` + `detection/`
-  + `ground-truth.json` + `synth-eval/`, then node check.
+  (2:25 PM screenshot). CONTRACTS COPIED (OBSERVED
+  2026-10-03): first fixtures attempt dropped the colon
+  (`xcopy fcontracts`, aborted clean via Ctrl+C, 2:27-2:30
+  PM); careful retype `xcopy f:\contracts
+  c:\prov\contracts\ /e` exact → **32 File(s) copied**
+  (evidence/host/result/scan/selector/technique, 2:32 PM
+  screenshot). Next: `detection/` + `ground-truth.json` +
+  `synth-eval/`, then node check.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
