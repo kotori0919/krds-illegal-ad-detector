@@ -1097,6 +1097,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   cursor (6:07 PM screenshot). Window focus is a
   real input gate after display sleep. Next:
   finish the `c:\prov\result.json` path + Enter.
+  FILE ON DISK (OBSERVED 2026-10-03): full
+  `dir c:\prov\result.json` typed exact on the
+  refocused console (6:08 PM), Enter →
+  **`Directory of c:\prov`, `4,133 result.json`,
+  `1 File(s) 4,133 bytes`** (6:12 PM screenshot).
+  The v5 runner's `writeFileSync` landed the file —
+  UTF-8 via node, no PowerShell redirect. Next:
+  content validate (findings count + `valid=true`
+  via contracts), then A–F gates.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
