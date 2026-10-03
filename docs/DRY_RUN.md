@@ -481,9 +481,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   all glyphs exact) → Enter → **4 replies from 10.0.2.2,
   0% loss, 1 ms, TTL 255** (screenshot). Dots land when typed
   ONE per `send-key` call + verified — batching drops them.
-  Guest↔host NAT path proven. Next: outbound internet check
-  (`ping` a public IP needs dots too — same method), then
-  toolchain downloads (VS Build Tools, SDK, NSIS).
+  Guest↔host NAT path proven. OUTBOUND TIMEOUT (OBSERVED
+  2026-10-03): exact `ping 8.8.8.8` (per-dot verified,
+  screenshot) → 4× `Request timed out`, 100% loss
+  (screenshot). ICMP egress blocked at the host/network
+  level (user-mode NAT passes gateway ping, not internet
+  ICMP). NOT a guest fault. Next: TCP-level check — Edge to
+  an http(s) address, or `curl -I` a toolchain URL (TCP 443
+  usually passes where ICMP does not), then downloads.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
