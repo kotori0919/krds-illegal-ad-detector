@@ -522,12 +522,16 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   space; or `powershell -c` ... also spaced. `vol` RETRY
   (OBSERVED 2026-10-03): aborted wmic via Ctrl+C, `vol`
   typed, space verified MISSING again (bare `vol`), retry
-  space landed (`vol d.` — screenshot) but the DRIVE COLON
-  will not type: `KEY_DOT` sends `.` (period), NOT `:` —
-  there is NO colon glyph yet. `KEY_COLON`/`KEY_SEMICOLON`
-  untested. Next: `KEY_COLON`, else `Shift+;`, else
-  `dir d` without colon (cmd accepts `dir d` = drive D?),
-  or skip letter — `mountvol` lists volumes colonless.
+  space landed (`vol d.` — screenshot) but colon will not
+  type (`KEY_DOT`=period, `KEY_COLON` INVALID, `Shift+;`
+  lands 2nd period → `vol d..`). COLONLESS `mountvol` WINS
+  (OBSERVED 2026-10-03): bare `mountvol` (ZERO spaces, typed
+  clean) lists **`D:\` = `{3602a8c6-bf1d-11f1-a6ba-
+  806e6f6e6963}`** (screenshot) — the provision ISO is
+  MOUNTED as D:. Next: copy payload — `xcopy` needs spaces…
+  use `robocopy D:\ C:\prov /E`? also spaced. Minimize:
+  `xcopy D:` + space + destination with per-glyph verify,
+  or Tab-complete the path.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
