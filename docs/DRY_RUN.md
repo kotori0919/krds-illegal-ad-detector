@@ -512,9 +512,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   -R worker` → `provision.iso` 610304 bytes (298 sectors);
   SATA hotplug REJECTED (`disk bus 'sata' cannot be
   hotplugged`) but `virtio` attach SUCCEEDED (`Device
-  attached successfully`, `vde`). Guest sees cmd console on
-  top; Start search for Explorer next → drive-letter check
-  (`D:`/`E:`) → copy payload → Node portable + acceptance.
+  attached successfully`, `vde`). WMIC LOOP (OBSERVED
+  2026-10-03): `wmic logicaldisk get caption` needs TWO
+  spaces; first landed (`wmic logicaldisk`), second dropped
+  (`getcaption`), fix retype appended a SECOND ` get caption`
+  while the bad `getcaption` REMAINS (line now has both —
+  screenshot). Spaces drop ~50% mid-command even at 2.5 s.
+  Next: Ctrl+C abort the line (no Enter yet) and use a
+  SPACELESS drive check — `fsutil fsinfo drives` has ONE
+  space; or `powershell -c` ... also spaced. Best: `cmd /c`
+  ... spaced. Minimal-space: `vol d:` / `vol e:` (ONE space,
+  retry until glyph verified) or `dir d:` / `dir e:`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
