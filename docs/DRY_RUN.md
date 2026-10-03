@@ -350,9 +350,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   DIALOG but left the console window (screenshot: dialog gone,
   `control userpasswords2` console on top). The USB-tablet
   pointer reaches the console, not the dialog list — dialog
-  needs keyboard nav (Tab/arrows) or `send-key` focus. Next:
   Tab-to-list + arrows + Enter in the dialog, or `Alt+O` OK
   accelerator, then registry AutoLogon with per-word verify.
+  `Alt+O` NO-OP (OBSERVED 2026-10-03): `send-key KEY_LEFTALT
+  KEY_O` on the console-topped screen typed a stray `o` on the
+  console line (screenshot) — chorded Alt does NOT reach the
+  (already closed) dialog; confirms `send-key` multi-key calls
+  deliver keys SEQUENTIALLY, not as chords. Registry retry
+  started: `reg add "hklm` on the line shows `oreg add hklm` —
+  the `"` (`KEY_QUOTE`) glyph was silently DROPPED
+  (screenshot), same drop class as space/`/`. Rule: avoid
+  quotes — use quoteless `reg add HKLM\...` form and verify
+  each `\` + space glyph per-word.
 - [ ] SDK + NSIS toolchain install on the clean VM (after OOBE).
 - [ ] Clean-install acceptance A–F on the clean VM.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
