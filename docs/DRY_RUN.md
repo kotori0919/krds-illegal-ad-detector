@@ -752,8 +752,18 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   **`addfa79abb060e1e514e155ed745d4bf96140bca402735958bb4e223aea0b98c`**,
   `CertUtil: -hashfile command completed successfully`
   (screenshot). Host-side sha256 comparison inconclusive
-  (find timed out, no host digest on record). Next: provision
   letter hunt (`E:`, provision media), then worker + fixtures.
+  LETTER MAP SOLVED (OBSERVED 2026-10-03): the `e:` probe
+  SWITCHED cleanly to `E:\>` (1:42 PM screenshot — medium
+  settle colons keep working), `dir` → **`Volume PULL`,
+  `node.exe` 85268464 + `shell\`** (1:48 PM). E: is the
+  PULL disk (`sdd`), NOT the provision ISO. Disk map:
+  `sda`=install ISO, `sdb`=system, `sdc`=provision ISO,
+  `sdd`=PULL. So the provision ISO media must own another
+  letter (`D:` still install ISO? `F:`?). Back on
+  `C:\Users\cleanval>` clean (1:48 PM). Next: hunt the
+  provision ISO letter (`D:`, `F:`...) + `dir` for
+  `contracts/` + `ground-truth.json`.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
