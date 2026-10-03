@@ -998,7 +998,19 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   `provision4.iso` (defined OK, dumpxml confirms);
   `start` → running. Next: desktop verify, `F:` +
   `dir` for `fixtures/` + `run-accept.mjs`, then
-  guest `e:\node.exe f:\run-accept.mjs`.
+  guest `e:\node.exe f:\run-accept.mjs`. V4 LIVE
+  (OBSERVED 2026-10-03): VNC on `::5900` after the
+  swap (5902 refused ×2 — new display `:0`); black
+  screen → Start key → desktop (build stamp, 5:04
+  PM); Win+R `cmd` → console; `f:` → `F:\>`;
+  `dir` → **`Volume ISOIMAGE4`, `contracts/` +
+  `detection/` + `evidence/` + `fixtures/` +
+  `ground-truth.json` 5620 B + `node_modules/` +
+  `package.json` 73 B + `run-accept.mjs` 553 B +
+  `scanner/` + `synth-eval/`, 3 files 6246 bytes, 7
+  dirs** (5:05 PM screenshot). `fixtures/` present
+  this time. Next: guest `e:\node.exe
+  f:\run-accept.mjs`, observe serve + scan.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
