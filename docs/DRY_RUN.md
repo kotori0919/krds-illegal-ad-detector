@@ -506,16 +506,15 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   portable + fixtures, attaches it as a second `virtio` disk
   (XML pattern staged at `/tmp/prov2.xml`), guest mounts it
   read-only and runs acceptance WITHOUT any guest download.
-  Needs: FAT writer — `pipx install fattools` SUCCEEDED
-  (venv python 3.12, `ls` on the image works: 0 files, 268 MB
-  free) BUT `cp` crashes with `IndexError` on empty short
-  name (`if name[0] == '\xE5'` — long-name entries hit
-  zero-length names). `.fat` extension is NOT recognized as a
-  disk (copied to `provision.img`: recognized, same crash).
-  Next: single-file `cp` to image root still crashes — try
-  `mkfat`/`mkvdisk`-created image, or pre-create dir entries,
-  or raw `dd`-write a tar + guest-side `tar.exe` extract, or
-  ISO9660 (`xorriso -as mkisofs`, guest mounts ISO natively).
+  Needs: FAT writer — `pipx install fattools` SUCCEEDED for
+  `ls` but `cp` crashes (`IndexError` on empty short name).
+  ISO9660 WON (OBSERVED 2026-10-03): `xorriso -as mkisofs -J
+  -R worker` → `provision.iso` 610304 bytes (298 sectors);
+  SATA hotplug REJECTED (`disk bus 'sata' cannot be
+  hotplugged`) but `virtio` attach SUCCEEDED (`Device
+  attached successfully`, `vde`). Guest sees cmd console on
+  top; Start search for Explorer next → drive-letter check
+  (`D:`/`E:`) → copy payload → Node portable + acceptance.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
