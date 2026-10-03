@@ -223,13 +223,28 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   scanner → detection; `tsc -b` prerequisite). Clean portable scan:
   `C:\prov\cleanport` → exit 0, `cleanport-out.json` 4650 bytes,
   `7B 0A 20 20`, `valid=true`, 17 H5/J4/T3/O5.
+- Standard-user proxy (OBSERVED 2026-10-03, build `3ED6C5F7…`):
+  guest has a single enabled local user (`windows-VM`; Administrator /
+  Guest / DefaultAccount disabled) so no second account exists to test
+  with; instead ran the portable sidecar from a user-writable path with
+  the correct CLI (`--session stduser1 --entry-url … --max-pages 30
+  --max-depth 4 --timeout-sec 1500 --settle-ms 1500 --out-file`):
+  48.6 s wall, `C:\prov\std-user-scan.json` 4650 bytes, magic
+  `7B-0A-20-20`, `valid=true errors=0`, 17 findings
+  (H5/J4/T3/O5), zero chromium post-scan. Space+Korean path
+  (`C:\prov\한국 광고\scan test\result.json`) copies 4650 bytes
+  clean. Full different-username + clean-machine isolation still
+  needs the clean VM (privilege blocker below stands).
 - Clean-install acceptance: UNVERIFIED (미근거) — NOT RUN. ISO
-  `CESE_X64FREE_EN-US_DV9` (5.06 GB, `~/index.html?linkid=…`) ready.
-  Blocker (reproducible): `ls /var/lib/libvirt/images/` →
-  `Permission denied`; `sudo -n true` → `a password is required`.
-  Dev Win11 XML uses EFI + secure-boot (`OVMF_CODE_4M.ms.fd`,
-  `Win11_VARS.fd`); same firmware needed for the clean VM. Then:
-  different-username standard account, space/Korean paths, SDK
+  `CESE_X64FREE_EN-US_DV9` (5.06 GB, `~/index.html?linkid=…`,
+  user-owned, ISO 9660 verified) ready. Blocker (reproducible):
+  `ls /var/lib/libvirt/images/` → `Permission denied`;
+  `sudo -n true` → `a password is required`. User-owned pool
+  `monad` (`/home/monad`, 164 GB free) exists but the system Win11
+  disk cannot be cloned there without privilege; session URI has no
+  VMs. Dev Win11 XML uses EFI + secure-boot
+  (`OVMF_CODE_4M.ms.fd`, `Win11_VARS.fd`); same firmware needed for
+  the clean VM. Then: different-username standard account, SDK
   install, NSIS build, full flow.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
