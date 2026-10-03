@@ -700,10 +700,12 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   screenshot). NODE COPIED (OBSERVED 2026-10-03): full line
   `xcopy e:\node.exe c:\prov\` verified exact (12:20 PM) →
   Enter → **`E:\node.exe`, `1 File(s) copied`** (screenshot
-  12:25 PM). node.exe 85 MB now on `C:\prov`. Next:
-  `xcopy E:\shell C:\prov\shell\ /E` (needs `/`+`E` flags —
-  slash drops; per-glyph verify), hash-check node, then
-  provision-vol letter hunt + worker copy + acceptance.
+  12:25 PM). node.exe 85 MB now on `C:\prov`. SHELL XCOPY
+  SPACE (OBSERVED 2026-10-03): fresh `xcopy` + ONE space →
+  **`xcopy ` with trailing space** (12:32 PM screenshot).
+  Fresh lines keep taking first-try spaces. Next: `E:\shell`
+  + space + `C:\prov\shell\` + space + `/E` (slash
+  one-per-call verify), Enter, `dir` both + hash-check.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
