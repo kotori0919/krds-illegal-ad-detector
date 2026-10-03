@@ -1011,6 +1011,17 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   dirs** (5:05 PM screenshot). `fixtures/` present
   this time. Next: guest `e:\node.exe
   f:\run-accept.mjs`, observe serve + scan.
+  RUN STAGED (OBSERVED 2026-10-03): full
+  `e:\node.exe f:\run-accept.mjs` typed EXACT
+  per-glyph on `::5900` (5:06–5:13 PM — space +
+  `f:\run` + `-accept.mjs` all single glyphs, NO
+  doubling on this non-`xcopy` line). Runner CWD
+  risk: `run-accept.mjs` uses RELATIVE
+  `./synth-eval/serve.js` + `./detection/scan.js`
+  imports — node resolves them against the SCRIPT
+  path (`f:\`), NOT the `F:\>` cwd, so in-place
+  execution is correct. Next: Enter, observe
+  `serving 127.0.0.1:4123` + scan + result.json.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
