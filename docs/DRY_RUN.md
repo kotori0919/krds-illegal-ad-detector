@@ -979,8 +979,20 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   paths, dead on ISO9660), (c) shell path points at
   `c:\prov\shell\` (staged, OK). Next: fix runner
   (embed fixtures or copy them in) + `f:\run-accept`
-  arg, Enter, observe.
-- Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
+  arg, Enter, observe. V4 BUILT (OBSERVED 2026-10-03):
+  `/tmp/v4/` = flat dists (copies, NO symlinks) +
+  `fixtures/synthetic/` 92 KB embedded +
+  `node_modules/@krds-detector/*` real dirs +
+  `node_modules/playwright-core` copy →
+  **`v4-imports-ok`** (host). `fixtureRoot()` was
+  `../../../fixtures` (repo-relative) → patched to
+  `../fixtures` for the flat ISO → root resolves +
+  `index.html` exists (host). `run-accept.mjs`
+  rewritten (serve 4123 + `scanSite` + shell path).
+  `xorriso -as mkisofs` → **`provision4.iso` 14 MB,
+  `ISOIMAGE4`**, flat layout verified. Next:
+  cold-swap `sdc`→v4, `F:` verify, guest
+  `e:\node.exe f:\run-accept.mjs`.
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
   privilege blocker bypassed via session URI).
