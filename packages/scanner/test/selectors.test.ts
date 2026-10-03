@@ -89,7 +89,9 @@ describe("selector engine", () => {
       const summary = await crawlSite({
         entryUrl: `${started.url}/structural/outer.html`,
         limits: { maxPages: 3, maxDepth: 2, timeoutSec: 60 },
-        settleMs: 300,
+        // Production default (1500 ms): 300 ms misses subframe attach
+        // on loaded CI runners (frames array empty, not wrong chain).
+        settleMs: 1500,
         perPageMs: 15000,
       });
       const outer = summary.pages[0];
