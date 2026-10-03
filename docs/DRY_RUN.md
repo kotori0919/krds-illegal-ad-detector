@@ -583,11 +583,24 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   does not route inbound to guests, and the transient
   `Start-Job` listener dies with its QGA session (no jobs
   listed after). `node.exe` staged to `C:\prov\share\` on the
-  dev VM (85 MB copy OK) but unreachable from host. Next:
-  REVERSE ISO — host writes a BLANK fat/iso, attaches to the
-  DEV Win11 (system URI attach IS permitted there), guest
-  copies the two binaries onto it, detach, host reads the
-  image file directly. No guest download needed anywhere.
+  dev VM (85 MB copy OK) but unreachable from host.
+  REVERSE PULL WORKS (OBSERVED 2026-10-03): blank `pull.img`
+  1 GB live-attached to DEV Win11 as `Red Hat VirtIO` 1 GB
+  (disk 1, was MBR-unpartitioned — `New-Partition P:` +
+  NTFS `PULL` OK, 770 MB free listed); `Copy-Item node.exe`
+  → `P:\node.exe` 85268464 bytes OK; `robocopy` shell dir →
+  `P:\shell\chrome-headless-shell.exe` 211550720 bytes, exit
+  0. Both Windows binaries now sit on host-readable
+  `pull.img` (ownership flipped to libvirt-qemu while
+  attached). Next: detach from DEV, host-mount read
+  (`fattools ls` NTFS? or loop — needs privilege... try
+  `guestfish`? absent. Fallback: `qemu-img convert` the NTFS
+  to a host dir? No — simplest: `xorriso` v2 ISO built from
+  `P:` via a SECOND pass... host cannot read NTFS without
+  mount. Alternative: detach pull.img, attach to clean11 as
+  `sdd`, guest `robocopy P:\ E:\staging` (both visible in
+  ONE guest? No — different VMs). Real path: detach from
+  DEV, attach SAME image to clean11, copy there directly.
 - Competition submission: NOT SUBMITTED (freeze 2026-10-22, deadline
   2026-10-23 18:00 KST; no merge/release/deploy without authorization).
 - [ ] BLOCKED — clean install: input-delivery blocker above (system
