@@ -1,6 +1,34 @@
 # KRDS conformance evidence matrix
 
+## Product Architecture V2 design mapping (2026-10-05)
+
+This section is a **design mapping, not verified conformance**. The matrix below
+records checks on the existing five-step UI and must be re-run after the V2
+implementation. Official KRDS guidance reviewed for this redesign:
+
+| Product area | Official KRDS guidance | V2 behavior to implement | Acceptance evidence still needed |
+| --- | --- | --- | --- |
+| Shell and three-stage flow | [단계 표시기](https://www.krds.go.kr/html/site/component/component_07_01.html) | Ordered three-stage sequence, brief task labels, visible and programmatic current/completed states; evidence/export are result actions. | Keyboard/screen-reader stage announcements and 360px reflow. |
+| Setup | [입력폼](https://www.krds.go.kr/html/site/global/global_08.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | URL first, labelled input, scope summary, advanced controls, inline error at the field, focus on first invalid input, values retained. | Real browser invalid/valid submit, focus, 200% zoom. |
+| Scan progress | [단계 표시기](https://www.krds.go.kr/html/site/component/component_07_01.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Human-readable stage, real counts/time/current page, polite meaningful updates, partial failure and cancel text; no false percentage. | Real scanner event observation and screen-reader cadence. |
+| Official finding list | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Consistent rows by type/content/page, visible Korean filter/search and applied count, empty/reset state; CSS selector in technical detail. | 20-finding keyboard/pointer review with retained filter and scroll. |
+| Inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | One context-preserving detail surface with plain-language explanation, actual visual evidence when available, progressive technical disclosure. | Desktop split view, mobile return focus/context, evidence provenance. |
+| Page/coverage/extra areas | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Page groups, failed-page reasons, separate additional analysis with restrained claims. | Group counts match filtered findings; failure recovery understandable. |
+| Save confirmation | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html) | Concise six-check confirmation, exact file/count, partial warning, explicit save/cancel; raw JSON optional. | Dialog focus trap/return, save and cancel in packaged app. |
+| Errors and recovery | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Say what failed, where, and a useful next action; keep successful findings if only some pages failed. | Inject URL/page/asset/export errors and observe responses. |
+
+Responsive rule for all screens: no horizontal page overflow at 360px or 200%
+zoom; list/detail become a list followed by a full-screen detail view with a
+clear return path. States must use text and structure in addition to color.
+`SCREEN_SPEC.md` and `UX_FLOW.md` define the content and focus transitions.
+
+## Historical five-step UI evidence (not V2 acceptance)
+
 Status date: 2026-10-01 · Code freeze 2026-10-22 · Submission 2026-10-23 18:00 KST
+
+The rows below are a dated audit snapshot. Later packaged Windows observations
+are recorded in `DRY_RUN.md`; the historical OPEN rows here are not a current
+inventory of every gate. None of these rows verifies Product V2 screens.
 
 **This document records what was verified and how. It does not claim full KRDS
 conformance, and it does not claim contest readiness.** Several functional

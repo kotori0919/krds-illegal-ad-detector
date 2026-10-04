@@ -1,63 +1,31 @@
-# Architecture (Contract v0 frozen 2026-10-01)
+# Architecture — current engine and Product V2 target
 
-Status: frozen. Change requires an ADR + main-agent approval (KODEX §48);
-sub-agents must not redefine shared contracts or duplicate DTOs.
+Status: 2026-10-05. ADR-0010 supersedes the product-facing portion of Contract v0's freeze. `packages/contracts/src` remains v0 until Phase B implementation. The four official techniques, official output schema/validator, selector identity, and React/host separation remain stable.
 
-## Canonical stack
+## Current implementation (observed in source)
 
-React + TypeScript + Vite (canonical UI) → Application Services →
-`HostBridge` → `BrowserHost` | `TauriHost` → Tauri Rust Core → Scanner
-Supervisor → Playwright Worker → Detection Pipeline (official detectors +
-Evidence Graph → OCR/decision → optional VLM → Result Engine).
+React + TypeScript + Vite (`apps/web`) → `HostBridge` (`packages/contracts/src/host.ts`) → BrowserHost replay or TauriHost → Rust Tauri supervisor → Playwright worker → crawler/detection/result engine. Evidence Graph and creative fingerprint modules exist but the UI's `EvidenceView` reads only `OfficialFinding`. `ScanResult` shows session ID, raw status, selector, and raw enum. Five top-level steps are hard-coded in `steps.ts`. `ExportView` validates and saves the official JSON in its own step.
 
-Module map (planned; only `apps/web` + `packages/contracts` exist at freeze):
+The scanner runs cheap semantic/technique checks on live pages and outputs validated official findings. It currently extracts ID-bearing text elements, so realistic non-ID content needs verification. `ScanOutput` contains result, JSON, and page count, but no persisted page-failure list or finding details. The `ScanProgress` elements-analyzed counter currently counts found candidates, not all elements. Visual screenshots/crops are not yet captured for findings. BrowserHost replays demo data; it is not a real scan. Existing Windows evidence in `DRY_RUN.md` verifies several packaged paths on a synthetic fixture, but clean-install acceptance and Product V2 UI remain open.
+
+## V2 target data flow
 
 ```text
-apps/web                 canonical React UI (platform-independent)
-packages/contracts       frozen shared types + result validator/serializer
-packages/scanner         (Phase 3) crawl queue, frames, network observation
-packages/detection       (Phase 5-9) semantic gate + 4 official detectors
-packages/evidence        (Phase 12) graph, creative fingerprint
-packages/models          (Phase 14-16) gated OCR / decision / VLM adapters
-src-tauri                (Phase 18) thin host: lifecycle, fs, supervision
-fixtures/synthetic       (Phase 2) deterministic evaluator site + ground truth
+URL + meaningful preset
+  → ScanSession / real progress + bounded activity
+  → crawl snapshots + typed page/frame failures
+  → cheap semantic and concealment gates
+  → OfficialFinding + stored CandidateEvidence by finding ID
+  → selective visual capture + Evidence Graph references
+  → persisted session manifest: OfficialResult, ScanCoverage, FindingDetail index
+  → HostBridge reads for Results workspace
+  → existing official validator/serializer → result.json
 ```
 
-## Frozen contracts (`packages/contracts/src`, v0.1.0)
+The persisted result, coverage, and detail index become readable before the host reports a terminal success. React does not import Tauri APIs; the native host provides session-scoped read commands and safe asset retrieval. Browser replay returns typed fixture data with a visible demo label. The operator's three stages are UI state; worker lifecycle statuses are separate domain state. `succeeded` plus failures yields a partial-completion presentation, not a new official output type.
 
-| Module | Exports | Frozen meaning |
-|---|---|---|
-| `technique.ts` | `OfficialTechnique` (`HOMOGLYPH\|JAMO\|TRANSPARENT\|OFFSCREEN`), `isOfficialTechnique`, `EXTRA_TECHNIQUE="ETC"` | No new official values without competition evidence + ADR |
-| `result.ts` | `OfficialMeta/Finding/Result`, `ExtraFinding/Result`, `findingIdentityKey`, `validateOfficialResult(Text)`, `serializeOfficialResult`, `validateExtraResult`, `TOOL_VERSION="0.1.0"` | result.json shape locked: UTF-8 no BOM, flat findings, identity `url+location+technique` |
-| `scan.ts` | `ScanLimits` + `DEFAULT_SCAN_LIMITS` (200 pages / depth 4 / 1500 s / frame-depth 4), `ScanRequest/Session/Event/Progress`, `initialProgress` | UI↔host↔worker vocabulary; timeout budget stays under official 1800 s |
-| `host.ts` | `HostCapabilities`, `BROWSER/TAURI_HOST_CAPABILITIES`, `HostBridge`, `ExportPaths` | React touches native only via bridge; browser host never fakes scanning |
-| `detection.ts` | `TechniqueEvidence + IllegalAdEvidence → CandidateEvidence`, `DecisionEvidence` | Both axes required for an official finding; raw vs derived text separated |
-| `evidence.ts` | `EvidenceNode/Edge` (8 kinds / 7 relations), `GeometryEvidence`, `CssEvidence`, `Evidence` | Observed / derived / inference layers stay separate in UI |
-| `selector.ts` | `FramePathSegment`, `LocatedElement`, `FRAME_SEPARATOR`, `serializeFramePath`, `normalizeFrameSrc` | `iframe[src="ABS"] >>> sel` convention; selectors must round-trip |
+## Contract ownership and invariants
 
-## Invariants (from KODEX)
+`result.ts` remains the contest boundary: `OfficialResult` with the four required `OfficialTechnique` values, exact `url`/`location`, original evidence text, identity `(url, location, technique)`, and `result_extra.json` separation. `scan.ts`, `host.ts`, and `evidence.ts` evolve to v0.2 as specified in `DOMAIN_MODEL.md`, `SCAN_STATE_MACHINE.md`, and `EVIDENCE_MODEL.md`. ADR-0003 remains the history of why v0 was frozen; ADR-0010 records why the internal freeze is broken.
 
-- React stays platform-independent: no direct Tauri imports in views.
-- Tauri is a thin native host: lifecycle, filesystem, packaging, process
-  supervision. No detection semantics in Tauri commands.
-- `result.json` carries only the four official techniques; extras are
-  `ETC + extra_finding` in `result_extra.json`.
-- Finding identity is `url + location + technique`; selectors unique and
-  round-trip validated; iframe locations serialize per convention.
-- Cheap deterministic evidence precedes expensive inference; OCR/VLM run
-  on gated candidates only. Official path works offline, no GPU.
-
-## Data-flow contract (frozen sequence)
-
-`ScanRequest → ScanSession → ScanEvent[] → CandidateEvidence[] →
-OfficialFinding[] → OfficialResult → validate → serialize → export`.
-`EvidenceNode/Edge` accumulate alongside; `ExtraFinding[]` accumulate on a
-separate channel and never enter `OfficialResult`.
-
-## Roadmap
-
-- Phase 2: synthetic evaluator site + ground truth before detector tuning.
-- Phase 3–10: Playwright crawler, selector engine, semantic gate, four
-  detectors, result engine + validator gate.
-- Phase 11+: KRDS vertical product, evidence graph, OCR, decision/VLM,
-  extra results, Tauri + Windows, adversarial + perf, release closure.
+The scanner stays within the 30-minute official timeout and retains its cheap-first order. No screenshot/OCR/VLM per element and no graph analysis in the crawl hot path. Follow-up scenario and Windows acceptance are in `TEST_STRATEGY_V2.md`.

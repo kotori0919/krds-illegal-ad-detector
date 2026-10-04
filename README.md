@@ -3,10 +3,15 @@
 Real Windows-capable public-website illegal-advertisement inspection tool for the
 2026 행정안전부 / 한국지능정보사회진흥원 "공공 웹사이트 불법광고 탐지 도구 개발 공모전".
 
+The scan engine and synthetic Windows runs have evidence; Product Architecture
+V2 is a design freeze in progress. The current app still uses a five-step UI.
+The three-stage operator workflow, real visual evidence, realistic site
+scenarios, and current-build clean-install acceptance are pending.
+
 - Submission deadline: 2026-10-23 18:00 KST
 - Constitution: [`KODEX.md`](./KODEX.md) (wins over temporary tasks)
 - Delivery objective: [`GOAL.md`](./GOAL.md)
-- Architecture: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (Contract v0 frozen)
+- Architecture: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (current engine and Product V2 target)
 - Decisions: [`docs/ADR/`](./docs/ADR/)
 
 ## Quickstart
@@ -27,7 +32,7 @@ npm run dev         # web dev server (browser preview host)
 
 ```text
 apps/web               React + TypeScript + Vite (canonical UI; platform-independent)
-packages/contracts     Shared Contract v0 frozen (HostBridge, scan, findings, result.json)
+packages/contracts     Shared Contract v0 in code; v0.2 product design in docs (HostBridge, scan, findings, result.json)
 packages/scanner       Playwright crawler (queue, selectors, live snapshots)
 packages/detection     Semantic gate, 4 detectors, result engine, worker sidecar
 packages/evidence      Graph, fingerprint, result_extra engine, OCR/VLM seams
@@ -47,6 +52,7 @@ platform adapters — all native capability goes through `HostBridge`.
 - Detection: [`docs/DETECTION.md`](./docs/DETECTION.md) · [`docs/DETECTORS.md`](./docs/DETECTORS.md) · [`docs/ADVERSARIAL.md`](./docs/ADVERSARIAL.md)
 - Pipeline: [`docs/CRAWLER.md`](./docs/CRAWLER.md) · [`docs/SELECTORS.md`](./docs/SELECTORS.md) · [`docs/SYNTHETIC_EVAL.md`](./docs/SYNTHETIC_EVAL.md)
 - Product: [`docs/KRDS_COMPLIANCE.md`](./docs/KRDS_COMPLIANCE.md) · Desktop: [`docs/DESKTOP.md`](./docs/DESKTOP.md)
+- Product V2 freeze: [`docs/PRODUCT_SPEC.md`](./docs/PRODUCT_SPEC.md) · [`docs/UX_FLOW.md`](./docs/UX_FLOW.md) · [`docs/SCREEN_SPEC.md`](./docs/SCREEN_SPEC.md) · [`docs/TEST_STRATEGY_V2.md`](./docs/TEST_STRATEGY_V2.md)
 - Evidence: [`docs/EVIDENCE_INTEL.md`](./docs/EVIDENCE_INTEL.md) · Perf: [`docs/PERF.md`](./docs/PERF.md)
 
 ## Scoring (qualification)

@@ -14,6 +14,13 @@ Build, verify, package and document a complete Windows 11 submission for the
 
 This goal is complete only when the actual submission artifact is ready.
 
+Product steering (2026-10-05): the Phase 11 five-screen layout below records
+the original implementation milestone, not the final information architecture.
+`KODEX.md` PRODUCT / OPERATOR UX CONSTITUTION and ADR-0010 set the current
+three-stage product target. The official competition and output requirements
+in this file remain unchanged. Product V2, realistic scenario validation, and
+current-build Windows acceptance are still pending.
+
 
 # 1. Success definition
 

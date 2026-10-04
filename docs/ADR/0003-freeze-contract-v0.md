@@ -2,6 +2,10 @@
 
 Status: accepted.
 
+Product-facing `scan.ts`, `host.ts`, and `evidence.ts` portions were superseded
+by ADR-0010 on 2026-10-05. The official result schema, technique values,
+finding identity, and selector conventions remain in force.
+
 ## Context
 
 Phase 0 shipped a Contract v0 draft across seven modules. Phase 2+ work
