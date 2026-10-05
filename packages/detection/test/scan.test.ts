@@ -10,6 +10,7 @@ describe("end-to-end scan on synthetic fixtures", () => {
   it("reports exact per-page counters with real page URLs", async () => {
     const visited: { pages: number; url: string | undefined }[] = [];
     const queued: { pending: number; url: string | undefined }[] = [];
+    const stages: string[] = [];
     await scanSite({
       entryUrl: "/",
       topic: "synthetic-eval",
@@ -20,6 +21,7 @@ describe("end-to-end scan on synthetic fixtures", () => {
       },
       fixturePort: 4193,
       onEvent: (e) => {
+        if (["session-started", "stage-changed", "session-finished"].includes(e.kind)) stages.push(e.progress.stage);
         if (e.kind === "page-visited") visited.push({ pages: e.progress.visitedPages, url: e.pageUrl });
         if (e.kind === "page-queued") queued.push({ pending: e.progress.queuedPages, url: e.pageUrl });
       },
@@ -39,6 +41,7 @@ describe("end-to-end scan on synthetic fixtures", () => {
       expect(q.pending).toBeGreaterThanOrEqual(0);
       expect(q.url).toMatch(/^http/);
     }
+    expect(stages).toEqual(["running", "finalizing", "succeeded"]);
   }, 180000);
 
   it("recovers all 17 ground-truth pairs with zero FP/FN", async () => {

@@ -107,7 +107,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
 
   // A cancelled session never produces a result: offer a fresh scan instead
   // of stranding the evaluator on an empty result list (OBSERVED on VM:
-  // cancel landed on `상태: crawling` with zero rows).
+  // cancel landed on `상태: running` with zero rows).
   if (session?.status === "cancelled") {
     return (
       <main className="page">

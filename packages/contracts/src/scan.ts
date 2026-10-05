@@ -1,5 +1,5 @@
 /**
- * Contract v0 (frozen 2026-10-01): scan lifecycle.
+ * Contract v0.2: one running state for concurrent discovery and analysis.
  *
  * The UI drives scans only through HostBridge; these types are the shared
  * vocabulary between the React app, the Tauri host, and the scanner worker.
@@ -31,8 +31,7 @@ export interface ScanRequest {
 
 export type ScanStatus =
   | "queued"
-  | "crawling"
-  | "analyzing"
+  | "running"
   | "finalizing"
   | "succeeded"
   | "cancelled"
@@ -69,7 +68,7 @@ export interface ScanProgress {
   candidates: number;
   confirmedFindings: number;
   elapsedSec: number;
-  stage: string;
+  stage: ScanStatus;
 }
 
 export interface ScanEvent {
@@ -81,7 +80,7 @@ export interface ScanEvent {
   pageUrl?: string;
 }
 
-export function initialProgress(stage = "queued"): ScanProgress {
+export function initialProgress(stage: ScanStatus = "queued"): ScanProgress {
   return {
     visitedPages: 0,
     queuedPages: 0,

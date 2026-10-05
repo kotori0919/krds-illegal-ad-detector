@@ -16,7 +16,7 @@ function session(): ScanSession {
     id: "s1",
     entryUrl: "https://example.kr/",
     topic: "",
-    status: "crawling",
+    status: "running",
     startedAt: "2026-10-02T00:00:00.000Z",
   };
 }

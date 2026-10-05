@@ -41,7 +41,7 @@ export class BrowserHost implements HostBridge {
       id: `browser-demo-${counter}`,
       entryUrl: request.entryUrl,
       topic: request.topic ?? "",
-      status: "crawling",
+      status: "running",
       startedAt: new Date().toISOString(),
     };
     this.sessions.set(session.id, session);
@@ -69,7 +69,7 @@ export class BrowserHost implements HostBridge {
     });
     const at = new Date().toISOString();
     const progress: ScanProgress = {
-      ...initialProgress("analyzing"),
+      ...initialProgress("running"),
       visitedPages: 14,
       queuedPages: 0,
       framesInspected: 3,
@@ -85,6 +85,7 @@ export class BrowserHost implements HostBridge {
     };
     emit("session-started", "미리보기 데모 데이터를 불러왔습니다. 실제 스캔은 데스크톱 앱에서 실행됩니다.");
     emit("stage-changed", "데모: 분석 완료");
+    progress.stage = "succeeded";
     emit("session-finished", "데모 결과 준비됨");
     return session;
   }
@@ -116,7 +117,7 @@ export class BrowserHost implements HostBridge {
 
   async getSession(sessionId: string): Promise<ScanSession | undefined> {
     const session = this.sessions.get(sessionId);
-    if (session && session.status === "crawling") {
+    if (session && session.status === "running") {
       return { ...session, status: "succeeded", finishedAt: new Date().toISOString() };
     }
     return session;

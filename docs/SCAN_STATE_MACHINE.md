@@ -1,6 +1,6 @@
 # Scan state machine V2
 
-Status: target behavior for Contract v0.2, 2026-10-05. Current v0 `ScanStatus` has queued/crawling/analyzing/finalizing/succeeded/cancelled/failed; partial coverage is not currently persisted. V2 replaces the separate crawl/analyze lifecycle states with `running` because each page is discovered and analyzed in one live pass.
+Status: Contract v0.2 running-state cutover implemented 2026-10-06; other target behavior below remains open. `ScanStatus` uses queued/running/finalizing/succeeded/cancelled/failed because each page is discovered and analyzed in one live pass. Partial cancellation coverage is not yet persisted.
 
 ## Lifecycle and operator state
 

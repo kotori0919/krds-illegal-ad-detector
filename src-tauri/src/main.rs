@@ -154,7 +154,7 @@ async fn scan_start(
             "kind": "session-started",
             "sessionId": session_id,
             "at": started_at,
-            "progress": {"visitedPages": 0, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "crawling"},
+            "progress": {"visitedPages": 0, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "running"},
             "pageUrl": parsed,
         }),
     )
@@ -163,7 +163,7 @@ async fn scan_start(
         "id": session_id,
         "entryUrl": parsed,
         "topic": topic,
-        "status": SessionStatus::Crawling.as_str(),
+        "status": SessionStatus::Running.as_str(),
         "startedAt": started_at,
     }))
 }

@@ -22,8 +22,7 @@ use crate::job_fallback::JobGuard;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SessionStatus {
-    Crawling,
-    Analyzing,
+    Running,
     Finalizing,
     Succeeded,
     Cancelled,
@@ -34,8 +33,7 @@ impl SessionStatus {
     #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::Crawling => "crawling",
-            Self::Analyzing => "analyzing",
+            Self::Running => "running",
             Self::Finalizing => "finalizing",
             Self::Succeeded => "succeeded",
             Self::Cancelled => "cancelled",
@@ -71,7 +69,7 @@ impl SessionRecord {
             id,
             entry_url,
             topic,
-            status: SessionStatus::Crawling,
+            status: SessionStatus::Running,
             started_at,
             finished_at: None,
             error: None,
@@ -326,7 +324,7 @@ impl SessionRegistry {
                     let progress = value.get("progress").cloned().unwrap_or(serde_json::json!({
                         "visitedPages": 0, "queuedPages": 0, "framesInspected": 0,
                         "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0,
-                        "elapsedSec": 0, "stage": "crawling",
+                        "elapsedSec": 0, "stage": "running",
                     }));
                     on_progress(serde_json::json!({
                         "kind": kind,
@@ -775,7 +773,7 @@ mod tests {
 
     #[test]
     fn status_strings_match_contract() {
-        assert_eq!(SessionStatus::Crawling.as_str(), "crawling");
+        assert_eq!(SessionStatus::Running.as_str(), "running");
         assert_eq!(SessionStatus::Cancelled.as_str(), "cancelled");
         assert_eq!(SessionStatus::Failed.as_str(), "failed");
     }

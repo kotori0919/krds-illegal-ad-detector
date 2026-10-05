@@ -46,7 +46,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
   const t0 = performance.now();
   const sessionId = `scan-${String(Date.now())}`;
   const deadline = new ScanDeadline(input.crawl?.limits?.timeoutSec ?? DEFAULT_SCAN_LIMITS.timeoutSec);
-  const progress: ScanProgress = initialProgress("crawling");
+  const progress: ScanProgress = initialProgress("running");
   const emit = (kind: ScanEvent["kind"], message?: string, pageUrl?: string): void => {
     progress.elapsedSec = (performance.now() - t0) / 1000;
     input.onEvent?.({ kind, sessionId, at: new Date().toISOString(), progress: { ...progress }, message, pageUrl });
@@ -181,7 +181,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     };
     const detailVerdict = validateScanDetailBundle(detailBundle, result);
     if (!detailVerdict.ok) throw new Error(`detail validation failed: ${detailVerdict.errors.join("; ")}`);
-    progress.stage = "done";
+    progress.stage = "succeeded";
     emit("session-finished", `done: ${String(result.findings.length)} findings`);
     return {
       result,

@@ -96,7 +96,7 @@ describe("ScanProgress live region", () => {
           candidates: 2,
           confirmedFindings: 1,
           elapsedSec: 42,
-          stage: "done",
+          stage: "succeeded",
         },
       }),
     );
@@ -118,11 +118,11 @@ describe("ScanProgress live region", () => {
           candidates: 0,
           confirmedFindings: 2,
           elapsedSec: 1,
-          stage: "analyzing",
+          stage: "running",
         },
       }),
     );
-    expect(statusLine()).toContain("콘텐츠를 분석하는 중");
+    expect(statusLine()).toContain("페이지를 찾고 콘텐츠를 분석하는 중");
     expect(statusLine()).toContain("탐지 후보 2건");
   });
 
@@ -136,7 +136,7 @@ describe("ScanProgress live region", () => {
       candidates: 0,
       confirmedFindings: 0,
       elapsedSec: 1,
-      stage: "crawling",
+      stage: "running",
     };
     emit(event({ progress: { ...base } }));
     const first = statusLine();
@@ -161,7 +161,7 @@ describe("ScanProgress live region", () => {
           candidates: 0,
           confirmedFindings: 9,
           elapsedSec: 9,
-          stage: "finished",
+          stage: "succeeded",
         },
       }),
     );
@@ -206,7 +206,7 @@ describe("ScanProgress per-page counters", () => {
         candidates: 0,
         confirmedFindings: 0,
         elapsedSec: 4,
-        stage: "crawling",
+        stage: "running",
       },
     } as const;
     act(() => {

@@ -3,6 +3,7 @@ import {
   initialProgress,
   type HostBridge,
   type ScanProgress,
+  type ScanStatus,
 } from "@krds-detector/contracts";
 
 interface Props {
@@ -12,14 +13,15 @@ interface Props {
   onCancel: () => void;
 }
 
-const INITIAL = initialProgress("crawling");
-const stageLabel = (stage: string): string => ({
-  crawling: "페이지를 찾고 콘텐츠를 분석하는 중",
-  analyzing: "콘텐츠를 분석하는 중",
+const INITIAL = initialProgress("running");
+const stageLabel = (stage: ScanStatus): string => ({
+  queued: "점검 준비 중",
+  running: "페이지를 찾고 콘텐츠를 분석하는 중",
   finalizing: "결과를 정리하는 중",
-  done: "점검 완료",
+  succeeded: "점검 완료",
   cancelled: "점검 중지됨",
-}[stage] ?? "점검 중");
+  failed: "점검 실패",
+}[stage]);
 
 type IntervalHandle = ReturnType<typeof globalThis.setInterval>;
 
@@ -76,7 +78,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       // Navigation is poll-driven ONLY: the poll reads the terminal
       // session status and routes (succeeded→result, cancelled→start,
       // failed→stays with error). Reacting to worker events here caused
-      // empty-result races (OBSERVED: cancel landed on crawling/empty).
+      // empty-result races (OBSERVED: cancel landed on running/empty).
       void event;
     });
     return () => {
