@@ -24,6 +24,9 @@ whose 17 IDs joined; 13 entries had JPEG data with the expected magic bytes.
 under a six-second global budget: a slow page becomes a typed coverage failure,
 the next queued page is not requested inside the finalization reserve, and a
 finding from a completed page remains in valid official and detail output.
+The same test checks that an all-404 scan and a scan whose deadline admits no
+pages fail instead of exporting an empty success result; a valid zero-finding
+site with successfully checked pages still succeeds.
 It proves that settlement path for a short local fixture, not the long-running
 Windows watchdog or app cancellation behavior.
 The Tauri session store, native export and Windows packaged app have not run,
@@ -59,6 +62,10 @@ Instrument a local fixture's request log to prove each admitted top-level URL is
 ## Concurrency correctness benchmark
 
 Run the **same** realistic L2 public-site scenario at concurrency 1, 2, 3, and 4 with identical settle rules, page limits, data, and machine. Record for each run: total wall time, pages/sec, peak RSS/working set, CPU utilization where available, checked pages, failed pages, TP/FP/FN, canonical official finding set `(url, location, technique, evidence_text)`, assigned IDs/order, and official output validator result. Require `FindingSet(C1) == FindingSet(C2) == FindingSet(C3) == FindingSet(C4)` and identical coverage/issue identities; `meta.started_at`, `finished_at`, and `elapsed_sec` may differ. Compare reruns at a frontier-limited `maxPages` and with mixed fast/slow responses to expose completion-order races. Any speedup that changes detection semantics or omits a page is a failure. The initially adaptive policy (2/3/4 by logical CPUs) is retained only after the Windows memory and accuracy data supports it.
+
+Use `npm run benchmark:concurrency -- --realistic` so all scanner packages are
+rebuilt before measurement. Direct `node benchmarks/concurrency.mjs` invocation
+rejects stale emitted JavaScript; a typecheck alone does not rebuild it.
 
 ## L4 operator walk
 

@@ -55,17 +55,21 @@ these numbers do not justify raising the 4-vCPU Windows default above 2.
 L3 persistence/detail/export and Windows memory/performance still need proof.
 
 After ADR-0014 moved the settle interval to DOM readiness, the same Linux L2
-benchmark was rerun with `node benchmarks/concurrency.mjs --realistic` after a
-fresh TypeScript build. The fixture has no late navigation load, so this run
-does not estimate the new worst-case settle overhead. Peak memory and CPU are
-still Node-driver-only; Chromium and Windows acceptance remain unmeasured.
+benchmark was rerun with `npm run benchmark:concurrency -- --realistic`. This
+command rebuilds the contracts, fixture server, scanner and detection packages;
+the benchmark rejects stale emitted files. An earlier rerun was withdrawn
+because `npm run typecheck` left scanner/detection `dist` older than their
+source, so it did not measure ADR-0014. The fixture has no late navigation
+load, so this fresh run does not estimate worst-case settle overhead. Peak
+memory and CPU are still Node-driver-only; Chromium and Windows acceptance
+remain unmeasured.
 
 | Workers | Wall s | Pages/s | Peak Node RSS MiB | Node CPU % | Checked | Failed | TP/FP/FN | Validator |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | 8.594 | 0.698 | 145.7 | 1.8 | 6 | 1 | 5/0/0 | PASS |
-| 2 | 5.726 | 1.048 | 149.0 | 1.1 | 6 | 1 | 5/0/0 | PASS |
-| 3 | 4.316 | 1.390 | 149.9 | 1.4 | 6 | 1 | 5/0/0 | PASS |
-| 4 | 4.315 | 1.390 | 150.1 | 1.1 | 6 | 1 | 5/0/0 | PASS |
+| 1 | 8.626 | 0.696 | 147.2 | 1.8 | 6 | 1 | 5/0/0 | PASS |
+| 2 | 5.766 | 1.041 | 150.2 | 1.2 | 6 | 1 | 5/0/0 | PASS |
+| 3 | 4.349 | 1.380 | 150.3 | 1.4 | 6 | 1 | 5/0/0 | PASS |
+| 4 | 4.350 | 1.379 | 150.7 | 1.3 | 6 | 1 | 5/0/0 | PASS |
 
 All four runs had the same official finding IDs and set, 5 TP / 0 FP / 0 FN,
 and valid official output.

@@ -1,12 +1,32 @@
-/** Repeatable L1/L2 fixture benchmark for worker counts 1–4. Build packages first. */
+/** Repeatable L1/L2 fixture benchmark for worker counts 1–4. */
 import { performance } from "node:perf_hooks";
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scanSite } from "../packages/detection/dist/scan.js";
 import { loadGroundTruth } from "../packages/synth-eval/dist/evaluate.js";
 import { validateOfficialResultText } from "../packages/contracts/dist/result.js";
+
+const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+async function requireFreshBuild(packageName) {
+  const sourceRoot = resolve(repoRoot, "packages", packageName, "src");
+  const builtRoot = resolve(repoRoot, "packages", packageName, "dist");
+  async function visit(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const sourcePath = resolve(directory, entry.name);
+      if (entry.isDirectory()) { await visit(sourcePath); continue; }
+      if (!entry.name.endsWith(".ts") || entry.name.endsWith(".d.ts")) continue;
+      const builtPath = resolve(builtRoot, relative(sourceRoot, sourcePath).replace(/\.ts$/, ".js"));
+      const [sourceInfo, builtInfo] = await Promise.all([stat(sourcePath), stat(builtPath).catch(() => undefined)]);
+      if (!builtInfo || builtInfo.mtimeMs + 5 < sourceInfo.mtimeMs) {
+        throw new Error(`stale ${packageName} benchmark artifact: run npm run build:scanner`);
+      }
+    }
+  }
+  await visit(sourceRoot);
+}
+for (const name of ["contracts", "synth-eval", "scanner", "detection"]) await requireFreshBuild(name);
 
 const realistic = process.argv.includes("--realistic");
 const fixtureRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../fixtures/realistic");
