@@ -12,11 +12,13 @@ Main heading “공공 웹사이트 점검”; one-sentence purpose. Label “�
 
 ## B. 사이트 점검
 
-Heading “{host}을 점검하고 있습니다”. Current action is a Korean sentence mapped from the internal stage. The three stage labels are 페이지 수집, 콘텐츠 분석, 결과 정리. Show elapsed mm:ss, checked pages, queue, analyzed elements only when actually counted, confirmed findings, current page, and up to five meaningful recent events with times. A count that cannot yet be measured is hidden or marked “집계 중”, never shown as a misleading zero. Recent activity is throttled to transitions, findings, and failures, not each element. Status has a polite live region without announcing every counter update. “점검 중지” opens a clear confirmation and remains disabled only while cancellation settles. Failure explains what failed and how to retry. If live event transport fails, poll persisted session state and say that real-time updates are delayed.
+Heading “{host}을 점검하고 있습니다”. Current action is a Korean sentence such as “페이지를 찾고 콘텐츠를 분석하고 있습니다”; discovery and analysis overlap across live workers, so no false sequential completion indicator. Show elapsed mm:ss, checked pages, queue, in-flight pages, analyzed elements only when actually counted, confirmed findings, current pages (up to four), and up to five meaningful recent events with times. A count that cannot yet be measured is hidden or marked “집계 중”, never shown as a misleading zero. Recent activity is throttled to transitions, findings, and failures, not each element. Status has a polite live region without announcing every counter update. “점검 중지” opens a clear confirmation and remains disabled only while cancellation settles. Failure explains what failed and how to retry. If live event transport fails, poll persisted session state and say that real-time updates are delayed.
 
 ## C. 결과 검토 — summary and navigation
 
 Heading “{host} 점검 결과”, status text (완료 / 일부 페이지 확인 실패 / 중지됨), duration, checked pages. Summary cards give official finding count, affected pages, failed pages, extra count. Tabs/segmented navigation: 공식 탐지, 추가 분석, 점검 범위. Official area defaults to 탐지 항목별 with a paired 페이지별 choice. Technique filter uses Korean labels for all four official enums plus 전체. Search covers raw displayed content and page URL; applied filter and result count remain visible. Empty filter state offers 필터 초기화. Results and details are data driven; no raw session ID or CSS column in the primary list.
+
+This workspace follows KRDS search-result behavior: visible total and per-category counts, category navigation, one retained search field, filter controls, stable result list, loading state, zero-result and zero-filter-match messages, and a clear alternative action. Filter changes immediately update the visible count. One search field serves both finding and page views; do not duplicate it in the inspector or header. Search/filter and scroll state persist during inspection.
 
 ## C1. Finding list and inspector
 
@@ -33,3 +35,5 @@ Page groups show page path, count, and a breakdown by the four Korean technique 
 ## States to design explicitly
 
 Initial/loading, no findings, no filter matches, detail loading/unavailable, evidence unavailable, partial completion, scan failure, cancel settlement, export validation failure, export save failure, and browser replay are distinct states. Focus, status text, and next action must be specified in the implementation for each. The app does not claim that a successful scan proves the entire site safe.
+
+For each relevant component, verify initial, loading, running, partial, success, empty, no-filter-match, error, unavailable evidence, disabled, cancellation settlement, confirmation, save success, and save failure. A state must have text as well as any color/icon cue. `KRDS_COMPLIANCE.md` maps each interaction to an official pattern and records the release gate.

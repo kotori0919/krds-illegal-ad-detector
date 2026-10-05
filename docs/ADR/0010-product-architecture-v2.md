@@ -2,6 +2,11 @@
 
 Status: accepted for design; implementation pending. Supersedes ADR-0003 only where Contract v0 froze product-facing scan, host, and evidence types. Official output, technique values, finding identity, selector serialization, and platform separation remain in force.
 
+Scope expanded 2026-10-05: Product V2 acceptance also requires the single-pass,
+bounded concurrent scanner and stronger KRDS pattern/token conformance in
+ADR-0011 and ADR-0012. This ADR's three-stage IA is necessary but insufficient
+for V2 completion.
+
 ## Context
 
 The current React app has five top-level steps (`start`, `progress`, `result`, `evidence`, `export`). `ScanResult` makes the CSS selector a primary column, `EvidenceView` re-reads only `OfficialFinding`, and `ExportView` puts raw JSON on the main path. `HostBridge` can return results but no coverage, per-finding detail, or visual evidence. The scanner currently extracts text from ID-bearing elements and can abort analysis on a page exception. A deterministic fixture and a packaged Windows scan have exercised important engine paths; neither establishes day-to-day usability on noisy public sites.

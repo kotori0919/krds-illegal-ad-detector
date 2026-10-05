@@ -2,6 +2,11 @@
 
 Status: accepted.
 
+Execution topology superseded by ADR-0011 (2026-10-05): detection still needs
+live computed style/geometry, but Product V2 uses a single navigation per page
+and inspects available live frames directly instead of a second page/frame
+navigation pass.
+
 ## Context
 
 Crawler snapshots are static HTML strings — computed style and geometry are

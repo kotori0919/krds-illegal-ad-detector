@@ -114,6 +114,35 @@ responsive layout, and task completion, not merely for colours and tokens.
 Record the applied patterns and any unverified behaviour in
 `docs/KRDS_COMPLIANCE.md`.
 
+Product V2 includes scanner architecture and Windows acceptance, not only the
+three-stage interface. A single monotonic deadline governs discovery,
+detection, evidence, and finalization. Process each live page once where
+possible: discover links, inspect DOM/CSS/geometry and live frames, detect,
+capture selected evidence, then close it. Use a bounded page-worker pool,
+initially 2 workers on <=4 logical CPUs, 3 on 5-8, and 4 above 8, with a
+hard maximum of 4. Benchmark this policy on the 4-vCPU/8-GB/no-GPU Windows
+target. Never launch an unbounded `Promise.all` over discovered pages or
+re-navigate each crawled page solely to detect it.
+
+Concurrent completion order must not choose pages at a scope limit or assign
+finding IDs. Apply deterministic frontier admission, canonical deduplication
+and sorting, then assign IDs. The official finding set must agree at worker
+counts 1, 2, 3, and 4 on the same realistic scenario. A worker may spend
+remaining time on official detection only if safe finalization remains;
+optional visual evidence yields first. Desired acceptance time is 1200 s,
+normal configured budget 1500 s, internal hard stop 1650 s, and the official
+ceiling 1800 s. Do not show the internal guard to ordinary operators.
+
+KRDS Adaptive is the V2 style track. Stay close to the base KRDS appearance
+unless a service need justifies an extension. Implement primitive -> semantic
+-> component tokens; components must not use arbitrary raw style values where
+KRDS tokens exist. Map each interaction to an official component/basic/service
+pattern before implementing it. The Product V2 release gate covers keyboard
+operation, focus and restoration, 360px reflow, 200% zoom, non-colour states,
+loading/empty/error/partial/cancel/save states, dialog focus, live status,
+clear Korean wording, and targets suitable for mixed-age operators. An
+unexplained KRDS pattern deviation blocks release.
+
 
 # 3. Evaluation-driven engineering priorities
 

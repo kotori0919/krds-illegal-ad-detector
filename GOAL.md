@@ -21,6 +21,13 @@ three-stage product target. The official competition and output requirements
 in this file remain unchanged. Product V2, realistic scenario validation, and
 current-build Windows acceptance are still pending.
 
+V2 scope expansion (2026-10-05): ADR-0011 adds a global monotonic deadline,
+single-pass live-page scanning, a bounded adaptive page-worker pool, stable
+concurrent result ordering, and a Windows 1–4 worker benchmark. ADR-0012 adds
+KRDS Adaptive pattern and primitive/semantic/component-token release gates.
+The original Phase 11 screen milestone and Phase 20 serial baseline are not
+Product V2 acceptance evidence.
+
 
 # 1. Success definition
 

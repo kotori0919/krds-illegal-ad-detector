@@ -1,21 +1,83 @@
-# KRDS conformance evidence matrix
+# KRDS Product V2 pattern, token, and verification record
 
 ## Product Architecture V2 design mapping (2026-10-05)
 
-This section is a **design mapping, not verified conformance**. The matrix below
-records checks on the existing five-step UI and must be re-run after the V2
-implementation. Official KRDS guidance reviewed for this redesign:
+This section is a **design mapping, not verified conformance**. Product V2 uses
+KRDS **확장형 (Adaptive)**, intentionally close to the base KRDS visual language.
+The current flat CSS token block and five-step UI do not meet the V2 release
+gate. Official KRDS style, component, basic-pattern, and service-pattern pages
+are normative. Each interaction is mapped before implementation:
 
 | Product area | Official KRDS guidance | V2 behavior to implement | Acceptance evidence still needed |
 | --- | --- | --- | --- |
 | Shell and three-stage flow | [단계 표시기](https://www.krds.go.kr/html/site/component/component_07_01.html) | Ordered three-stage sequence, brief task labels, visible and programmatic current/completed states; evidence/export are result actions. | Keyboard/screen-reader stage announcements and 360px reflow. |
-| Setup | [입력폼](https://www.krds.go.kr/html/site/global/global_08.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | URL first, labelled input, scope summary, advanced controls, inline error at the field, focus on first invalid input, values retained. | Real browser invalid/valid submit, focus, 200% zoom. |
-| Scan progress | [단계 표시기](https://www.krds.go.kr/html/site/component/component_07_01.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Human-readable stage, real counts/time/current page, polite meaningful updates, partial failure and cancel text; no false percentage. | Real scanner event observation and screen-reader cadence. |
-| Official finding list | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Consistent rows by type/content/page, visible Korean filter/search and applied count, empty/reset state; CSS selector in technical detail. | 20-finding keyboard/pointer review with retained filter and scroll. |
+| Site URL entry | [입력폼](https://www.krds.go.kr/html/site/global/global_08.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | URL first, labelled input, inline error at field, first invalid focus, value retained. | Real browser invalid/valid submit, focus, 200% zoom. |
+| Scope selection | [라디오 버튼](https://www.krds.go.kr/html/site/component/component_06_01.html), [입력폼](https://www.krds.go.kr/html/site/global/global_08.html) | Automatic/quick/custom choice with documented limits; custom inputs disclosed only when selected. | Keyboard choice, labels, changed scope summary and actual request values. |
+| Scan feedback | [단계 표시기](https://www.krds.go.kr/html/site/component/component_07_01.html), [스피너](https://www.krds.go.kr/html/site/component/component_07_02.html) | Human-readable stage, real counts/time/current page, polite meaningful updates, partial/cancel text; indeterminate wait only where total is unknown. | Real scanner events and screen-reader cadence; no fake percentage. |
+| Result collection | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | Visible total/per-category counts, category navigation, structured finding list, loading/empty/alternative action. | 20-finding review and count/list agreement. |
+| Technique filters | [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Korean labelled filters, immediate visible count and applied condition, zero-match reset. | Keyboard filtering, instant count, no-match recovery. |
+| Result search | [검색어 입력](https://www.krds.go.kr/html/site/service/service_02_03.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | One search input above results, retained query while inspecting; search applies to content/page. | Search/count/list match, query retained, no redundant field. |
 | Inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | One context-preserving detail surface with plain-language explanation, actual visual evidence when available, progressive technical disclosure. | Desktop split view, mobile return focus/context, evidence provenance. |
 | Page/coverage/extra areas | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Page groups, failed-page reasons, separate additional analysis with restrained claims. | Group counts match filtered findings; failure recovery understandable. |
 | Save confirmation | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html) | Concise six-check confirmation, exact file/count, partial warning, explicit save/cancel; raw JSON optional. | Dialog focus trap/return, save and cancel in packaged app. |
-| Errors and recovery | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Say what failed, where, and a useful next action; keep successful findings if only some pages failed. | Inject URL/page/asset/export errors and observe responses. |
+| Scan/page failure | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Say what failed, where, and a useful next action; keep successful findings if only some pages failed. | Inject page/frame/deadline failure and observe recovery. |
+| Contextual assistance | [도움](https://www.krds.go.kr/html/site/global/global_02.html) | Short inline scope/help text; technical term explanations only when requested. | Keyboard access, readable at zoom, no icon-only critical instruction. |
+
+The KRDS [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html)
+pattern specifically motivates visible result counts, retained one-field search,
+loading feedback, and a clear zero-result alternative. `사용자 피드백` is for
+collecting opinions; scan status uses 단계 표시기/스피너 plus text and live status.
+
+## Adaptive token architecture (V2 target)
+
+The official [디자인 토큰](https://www.krds.go.kr/html/site/style/style_07.html)
+hierarchy is **primitive → semantic → component**. Primitive values are
+references, not direct component styles. Semantic tokens describe purpose;
+component tokens bind that purpose to a control. Adopt official token values
+where they serve the role. A local extension requires a recorded source KRDS
+role, semantic purpose, consumer, and reason; no raw hex/spacing/radius in
+components where a KRDS token exists.
+
+| Proposed token chain | Source KRDS role | Purpose / consumers | Extension reason |
+| --- | --- | --- | --- |
+| KRDS primary palette → `--app-color-action-primary` → `--app-button--primary-background` | primary palette → action background | Start scan, save result buttons | None; use the nearest official primary role. |
+| KRDS neutral palette → `--app-color-surface` / `--app-color-text` → `--app-result-row--background` / `--app-result-row--text` | neutral surface/content | Results list and inspector | None; base KRDS appearance preferred. |
+| KRDS spacing scale → `--app-space-content` → `--app-inspector--padding` | semantic gap/padding | List–inspector separation | Local component alias to keep dense evidence readable; value must reference KRDS spacing. |
+| KRDS danger palette → `--app-color-status-error` → `--app-coverage-issue--text` | error/danger | Failed-page list, export error | None; text/icon accompanies color. |
+| KRDS radius scale → `--app-radius-control` → `--app-filter--radius` | control radius | Filter and search inputs | None; no arbitrary one-off radius. |
+
+The current `apps/web/src/styles.css` flat `:root` block is historical
+implementation evidence, **not** a V2-compliant three-level token structure.
+For each new local token, add a row with its exact KRDS source token, purpose,
+consumers, and deviation reason before use. After implementation, inspect
+computed styles on representative controls and trace each value through the
+three levels; verify contrast and states in both default and focus/disabled
+variants. Adaptive permits institution-specific choices, but does not waive
+pattern, token, or accessibility review.
+
+## V2 state coverage
+
+| State | Required component behavior and evidence |
+| --- | --- |
+| initial / loading | URL focus and scope summary; result/detail loading text, not premature zero count. |
+| running | Real stage, elapsed time, current page and measured counts; polite live status. |
+| partial / success | Official result remains visible with checked/failed totals and clear completion wording. |
+| empty / no-filter-match | Distinguish zero findings from filter mismatch; show count 0 and reset/next action. |
+| error / unavailable evidence | Name failed page or asset and recovery; never substitute fake screenshot. |
+| disabled | Explain why save/scan control is unavailable in adjacent text; focus remains predictable. |
+| cancellation settlement | Explicit stopping status until host settles; retained/discarded result stated. |
+| confirmation / save success / save failure | Dialog has purpose, validation, focus trap/return; success names file, failure explains retry. |
+
+## V2 release gate — every UI PR
+
+Record the official pattern for each changed interaction and any deviation
+reason; token lineage and computed style; keyboard-only path; visible focus
+and restoration; 360px reflow and 200% zoom; non-color status cues;
+loading/empty/error states; dialog focus behavior; accessible live-status
+cadence; clear Korean wording; and target size suitable for mixed-age users.
+The packaged Windows operator walk verifies the same behavior on the actual
+host. An unexplained pattern deviation blocks release. Old five-step checks
+below do not satisfy this gate.
 
 Responsive rule for all screens: no horizontal page overflow at 360px or 200%
 zoom; list/detail become a list followed by a full-screen detail view with a
@@ -30,10 +92,10 @@ The rows below are a dated audit snapshot. Later packaged Windows observations
 are recorded in `DRY_RUN.md`; the historical OPEN rows here are not a current
 inventory of every gate. None of these rows verifies Product V2 screens.
 
-**This document records what was verified and how. It does not claim full KRDS
-conformance, and it does not claim contest readiness.** Several functional
-findings remain OPEN, one accessibility gap remains OPEN, and the packaged
-Windows flow has never been executed end to end. Read the OPEN rows as blockers.
+**The following section records what was verified as of 2026-10-01. It does not
+claim full KRDS conformance or contest readiness.** Some rows were later
+superseded by `DRY_RUN.md`; read their dates and build hashes. All V2 gates
+above remain open until the redesigned app is exercised.
 
 Architecture statements that remain in force: the UI is **React canonical** —
 all markup and interaction live in `apps/web`; **Tauri** is a wrapper only and
@@ -62,10 +124,10 @@ requires compliance with the colour, typography, shape, layout, icon and
 elevation *rules* while permitting institutional variation — which is what
 legitimises the local token set below.
 
-Custom CSS variables are **not** a deviation. S-TOKEN's purpose is consistency
-and verifiable contrast, and `apps/web/src/styles.css:1-15` does exactly that:
-tokens are declared once and consumed everywhere. What must accompany them is
-the role mapping (below) and the measured ratios (below).
+Historical note: local CSS variables concentrated values in one block and
+allowed contrast measurements. That did **not** implement KRDS's three-level
+token architecture. The flattening noted in old row 17 is a V2 release gap,
+not cosmetic conformance.
 
 ## Verification methods used
 

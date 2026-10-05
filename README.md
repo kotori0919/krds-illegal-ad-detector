@@ -7,6 +7,9 @@ The scan engine and synthetic Windows runs have evidence; Product Architecture
 V2 is a design freeze in progress. The current app still uses a five-step UI.
 The three-stage operator workflow, real visual evidence, realistic site
 scenarios, and current-build clean-install acceptance are pending.
+Product V2 also requires a shared scan deadline, single-pass live-page worker
+pool, deterministic results across concurrency 1–4, and stronger KRDS
+pattern/token conformance; see ADR-0011/0012. Those changes are not yet in code.
 
 - Submission deadline: 2026-10-23 18:00 KST
 - Constitution: [`KODEX.md`](./KODEX.md) (wins over temporary tasks)

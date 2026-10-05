@@ -8,6 +8,8 @@ The primary user is a NIA/public-sector employee who checks public websites and 
 
 The official contest target remains Windows 11 on a GPU-less PC, within the 30-minute evaluation timeout. The product's default scanner budget remains 1500 seconds. Detection and output invariants are defined in `KODEX.md`; this redesign does not add official technique values or alter `result.json`.
 
+Product V2 acceptance has **two inseparable tracks**. The operator track includes three-stage workflow, KRDS Adaptive patterns/tokens, real evidence, page/finding review, and export inside results. The scanner track includes one global monotonic deadline, single-pass live-page processing, bounded concurrency, deterministic aggregation, realistic L2/L3 equivalence, and Windows performance acceptance. A polished UI on the current serial double-pass engine is not V2 completion.
+
 ## Tasks and acceptance
 
 | Operator task | Target behavior | Acceptance observation |
@@ -19,12 +21,15 @@ The official contest target remains Windows 11 on a GPU-less PC, within the 30-m
 | Assess coverage | Successes and failures are separate, including page address and reason. A few failures do not erase successful findings. | Partial completion is explicit in summary and save dialog; failed pages can be opened as a list. |
 | Save | Results workspace opens a short validation dialog; official file uses existing serializer and native save dialog. | Six checks are visible as pass/fail text; save is disabled on invalid result; cancel leaves results intact. |
 | Repeat | New scan action returns to URL input. | Previous filters do not contaminate the next session. |
+| Finish within bounds | Shared deadline and adaptive bounded pool; optional evidence yields before official detection. | On 4-vCPU/8-GB Windows without GPU, default concurrency starts at 2; wall time, memory, CPU and semantic equivalence are recorded at 1–4 workers. |
 
 ## Information architecture
 
 One restrained application shell, with title, help, current site, and three-stage indicator. No permanent left sidebar. The result workspace has three peer areas: 공식 탐지 (default), 추가 분석 (separate, clearly non-official), 점검 범위. The official area has 탐지 항목별 and 페이지별 views. The inspector and save confirmation remain within results. Technical data is available only through 기술 정보.
 
 The operator sees Korean labels: 닮은꼴 글자 위장, 자모 분해, 투명 텍스트, 화면 밖 은닉. Enum strings and session IDs are secondary technical data. URL/path remains readable and copyable. The '주제' input has no demonstrated operational role; remove it from primary UI while passing the schema-required `meta.topic` as an empty string unless an official requirement later supplies a meaning.
+
+Results use one search input for content/page URL, a visible total and category count, official/extra/coverage navigation, instant filter count, loading and zero-match states, and a clear reset action. Search and filter values persist while the operator inspects findings. KRDS Adaptive is the declared style track; `KRDS_COMPLIANCE.md` owns the component/basic/service pattern map and primitive → semantic → component token migration. Unexplained deviations block release.
 
 ## Scope presets
 
@@ -35,6 +40,8 @@ The operator sees Korean labels: 닮은꼴 글자 위장, 자모 분해, 투명 
 | 직접 설정 | user values | user values | user values | Experienced operator; existing validation bounds apply. |
 
 `maxFrameDepth` stays 4 for all modes. Scope summary describes configured limits, not a promise that every linked page will be accessible. Before implementation, verify Tauri actually forwards each value to the worker and that timeout is enforced. No preset is purely cosmetic.
+
+The user-facing normal budget is 1500 s (about 25 minutes); internal hard stop 1650 s is not ordinary UI copy. V2 custom settings must not promise a duration beyond that guard: reduce the currently accepted 1750 s custom maximum to at most the supported configured limit, with explicit migration/validation in Contract v0.2. Desired Windows completion is <=1200 s for the acceptance scenario, not a fake per-scan progress percentage.
 
 ## Constraints and trust
 

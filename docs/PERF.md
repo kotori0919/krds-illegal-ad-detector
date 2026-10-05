@@ -1,5 +1,14 @@
 # Performance baseline (Phase 20 — MEASURED 2026-10-01, Linux dev machine)
 
+Product V2 steering (2026-10-05): the serial/double-pass projection below is
+historical. ADR-0011 now requires single-pass live-page processing, one global
+monotonic deadline, bounded concurrency (initial 2/3/4 by logical CPUs; hard
+max 4), deterministic output, and a 1–4 worker benchmark on 4-vCPU/8-GB
+Windows without GPU. Desired acceptance <=1200 s, normal budget 1500 s,
+internal guard 1650 s, official ceiling 1800 s. None of those V2 numbers has
+been measured yet. The earlier "parallel only if dry run demands it" stance is
+superseded.
+
 Environment: 16 cores, 30 GB RAM, Node 26, headless Chromium. This is NOT
 the conservative baseline (Win11, i6-class, 4–6 cores, 8 GB, no GPU) — it
 bounds the architecture, not the submission hardware. Windows numbers must
