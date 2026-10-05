@@ -39,8 +39,14 @@ pages fail instead of exporting an empty success result; a valid zero-finding
 site with successfully checked pages still succeeds.
 It proves that settlement path for a short local fixture, not the long-running
 Windows watchdog or app cancellation behavior.
-The Tauri session store, native export and Windows packaged app have not run,
+The Tauri session store and native export have not run inside a packaged app,
 so L3 persisted-detail/export acceptance remains open.
+The Rust session module was compiled independently on Linux with its existing
+unit tests (14 passed). A real child stderr pump reproduced a host terminal
+event reporting zero visited pages after a three-page progress event; the
+registry now retains the latest page, frame, element, candidate and elapsed
+counters and lets a validated result override the provisional finding count.
+Full Tauri compilation and packaged runtime verification are still open.
 `benchmarks/ui-20-smoke.mjs` exercises the real React results workspace with a
 20-finding synthetic IPC fixture in Chromium: all 20 are opened and marked
 reviewed, then search/filter and fallback focus are checked. It is a UI replay,

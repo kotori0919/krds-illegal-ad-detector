@@ -219,7 +219,7 @@ async fn finish_session(
             "kind": kind,
             "sessionId": session_id,
             "at": finished_at,
-            "progress": {"visitedPages": progress.pages, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": progress.findings, "elapsedSec": 0, "stage": status},
+            "progress": progress.terminal_value(&status),
             "message": message,
             "pageUrl": entry_url,
         }),

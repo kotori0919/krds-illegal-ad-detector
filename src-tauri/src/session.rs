@@ -61,6 +61,7 @@ pub struct SessionRecord {
     pub result_json: Option<String>,
     pub detail_json: Option<String>,
     pub extra_json: Option<String>,
+    pub progress: ProgressSnapshot,
 }
 
 impl SessionRecord {
@@ -79,6 +80,7 @@ impl SessionRecord {
             result_json: None,
             detail_json: None,
             extra_json: None,
+            progress: ProgressSnapshot::default(),
         }
     }
 
@@ -112,7 +114,26 @@ pub type ProgressSink = std::sync::Arc<dyn Fn(serde_json::Value) + Send + Sync>;
 #[derive(Default, Clone, Copy)]
 pub struct ProgressSnapshot {
     pub pages: u64,
+    pub frames_inspected: u64,
+    pub elements_analyzed: u64,
+    pub candidates: u64,
     pub findings: u64,
+    pub elapsed_sec: f64,
+}
+
+impl ProgressSnapshot {
+    pub fn terminal_value(self, stage: &str) -> serde_json::Value {
+        serde_json::json!({
+            "visitedPages": self.pages,
+            "queuedPages": 0,
+            "framesInspected": self.frames_inspected,
+            "elementsAnalyzed": self.elements_analyzed,
+            "candidates": self.candidates,
+            "confirmedFindings": self.findings,
+            "elapsedSec": self.elapsed_sec,
+            "stage": stage,
+        })
+    }
 }
 
 #[derive(Default)]
@@ -263,14 +284,39 @@ impl SessionRegistry {
         let Some(record) = guard.get(session_id) else {
             return ProgressSnapshot::default();
         };
-        let findings = record
+        let validated_findings = record
             .result_json
             .as_deref()
             .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok())
-            .and_then(|value| value.get("findings")?.as_array().cloned())
-            .map(|items| items.len() as u64)
-            .unwrap_or(0);
-        ProgressSnapshot { pages: 0, findings }
+            .and_then(|value| {
+                value.get("findings")
+                    .and_then(serde_json::Value::as_array)
+                    .map(|items| items.len() as u64)
+            });
+        let mut snapshot = record.progress;
+        if let Some(findings) = validated_findings {
+            snapshot.findings = findings;
+        }
+        snapshot
+    }
+
+    async fn record_progress(&self, session_id: &str, progress: &serde_json::Value) -> bool {
+        let mut guard = self.inner.lock().await;
+        let Some(record) = guard.get_mut(session_id) else { return false; };
+        if matches!(record.status, SessionStatus::Succeeded | SessionStatus::Cancelled | SessionStatus::Failed) {
+            return false;
+        }
+        let snapshot = &mut record.progress;
+        let count = |field: &str| progress.get(field).and_then(serde_json::Value::as_u64);
+        if let Some(value) = count("visitedPages") { snapshot.pages = snapshot.pages.max(value); }
+        if let Some(value) = count("framesInspected") { snapshot.frames_inspected = snapshot.frames_inspected.max(value); }
+        if let Some(value) = count("elementsAnalyzed") { snapshot.elements_analyzed = snapshot.elements_analyzed.max(value); }
+        if let Some(value) = count("candidates") { snapshot.candidates = snapshot.candidates.max(value); }
+        if let Some(value) = count("confirmedFindings") { snapshot.findings = snapshot.findings.max(value); }
+        if let Some(value) = progress.get("elapsedSec").and_then(serde_json::Value::as_f64) {
+            if value.is_finite() { snapshot.elapsed_sec = snapshot.elapsed_sec.max(value); }
+        }
+        true
     }
     /// Wait with live progress forwarding: `on_progress` receives one
     /// `scan-event`-shaped JSON value per non-terminal KRDSPROGRESS stderr line.
@@ -287,7 +333,7 @@ impl SessionRegistry {
     /// ownership: the Child stays registered, the pump is aborted, and no
     /// reader outlives the wait.
     pub async fn wait_sidecar_with_progress(
-        &self,
+        self: &Arc<Self>,
         session_id: &str,
         on_progress: ProgressSink,
     ) -> SessionOutcome {
@@ -306,6 +352,7 @@ impl SessionRegistry {
             return self.wait_sidecar(session_id).await;
         };
         let session_owned = session_id.to_string();
+        let registry = Arc::clone(self);
         let diagnostics = std::sync::Arc::new(tokio::sync::Mutex::new(VecDeque::<String>::new()));
         let pump_diagnostics = diagnostics.clone();
         let pump = tokio::spawn(async move {
@@ -326,14 +373,16 @@ impl SessionRegistry {
                         "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0,
                         "elapsedSec": 0, "stage": "running",
                     }));
-                    on_progress(serde_json::json!({
-                        "kind": kind,
-                        "sessionId": session_owned,
-                        "at": chrono::Utc::now().to_rfc3339(),
-                        "progress": progress,
-                        "message": value.get("message"),
-                        "pageUrl": value.get("pageUrl"),
-                    }));
+                    if registry.record_progress(&session_owned, &progress).await {
+                        on_progress(serde_json::json!({
+                            "kind": kind,
+                            "sessionId": session_owned,
+                            "at": chrono::Utc::now().to_rfc3339(),
+                            "progress": progress,
+                            "message": value.get("message"),
+                            "pageUrl": value.get("pageUrl"),
+                        }));
+                    }
                 } else if !line.trim().is_empty() {
                     let mut buffer = pump_diagnostics.lock().await;
                     if buffer.len() >= 64 {
@@ -675,6 +724,7 @@ mod tests {
         let id = record.id.clone();
         registry.insert(record).await;
         let canonical = "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[]}\n";
+        registry.record_progress(&id, &serde_json::json!({"visitedPages": 3, "confirmedFindings": 2})).await;
         registry
             .store_result(&id, canonical.to_string(), "{}".to_string(), "2026-10-01T00:01:00Z".to_string())
             .await;
@@ -684,6 +734,9 @@ mod tests {
         assert!(value["findings"].as_array().is_some_and(|f| f.is_empty()));
         let text = registry.result_text(&id).await.expect("result text");
         assert_eq!(text, canonical);
+        let progress = registry.progress_snapshot(&id).await;
+        assert_eq!(progress.pages, 3);
+        assert_eq!(progress.findings, 0, "validated result count overrides worker progress");
     }
 
     #[tokio::test]
@@ -817,7 +870,7 @@ mod progress_pump_tests {
 
     fn event_json(kind: &str, pages: u64, url: &str) -> String {
         format!(
-            "KRDSPROGRESS {{\"kind\":\"{kind}\",\"message\":null,\"pageUrl\":\"{url}\",\"progress\":{{\"visitedPages\":{pages},\"queuedPages\":0,\"framesInspected\":0,\"elementsAnalyzed\":0,\"candidates\":0,\"confirmedFindings\":0,\"elapsedSec\":0,\"stage\":\"crawling\"}}}}"
+            "KRDSPROGRESS {{\"kind\":\"{kind}\",\"message\":null,\"pageUrl\":\"{url}\",\"progress\":{{\"visitedPages\":{pages},\"queuedPages\":1,\"framesInspected\":2,\"elementsAnalyzed\":11,\"candidates\":4,\"confirmedFindings\":2,\"elapsedSec\":5,\"stage\":\"running\"}}}}"
         )
     }
 
@@ -845,7 +898,7 @@ mod progress_pump_tests {
         }
     }
 
-    async fn run_pump(lines: PumpLines) -> (Vec<serde_json::Value>, super::SessionOutcome) {
+    async fn run_pump(lines: PumpLines) -> (Vec<serde_json::Value>, super::SessionOutcome, super::ProgressSnapshot) {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
@@ -882,7 +935,8 @@ mod progress_pump_tests {
         });
         let outcome = registry.wait_sidecar_with_progress(&id, sink).await;
         let events = seen.lock().expect("sink mutex").clone();
-        (events, outcome)
+        let snapshot = registry.progress_snapshot(&id).await;
+        (events, outcome, snapshot)
     }
 
     #[tokio::test]
@@ -898,7 +952,7 @@ mod progress_pump_tests {
                 format!("echo '{payload}' >&2")
             }
         };
-        let (events, _) = run_pump(PumpLines::for_target(
+        let (events, _, snapshot) = run_pump(PumpLines::for_target(
             vec![
                 format!("echo '{}' >&2", event_json("page-visited", 3, "https://example.kr/a")),
                 format!("echo '{}' >&2", event_json("session-finished", 9, "https://example.kr/a")),
@@ -916,11 +970,21 @@ mod progress_pump_tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0]["kind"], "page-visited");
         assert_eq!(events[0]["progress"]["visitedPages"], 3);
+        assert_eq!(snapshot.pages, 3, "host terminal progress must retain the last real page count");
+        let terminal = snapshot.terminal_value("failed");
+        assert_eq!(terminal["visitedPages"], 3);
+        assert_eq!(terminal["queuedPages"], 0);
+        assert_eq!(terminal["framesInspected"], 2);
+        assert_eq!(terminal["elementsAnalyzed"], 11);
+        assert_eq!(terminal["candidates"], 4);
+        assert_eq!(terminal["confirmedFindings"], 2);
+        assert_eq!(terminal["elapsedSec"], 5.0);
+        assert_eq!(terminal["stage"], "failed");
     }
 
     #[tokio::test]
     async fn malformed_and_plain_lines_do_not_break_forwarding() {
-        let (events, _) = run_pump(PumpLines::for_target(
+        let (events, _, _) = run_pump(PumpLines::for_target(
             vec![
                 "echo 'worker starting' >&2".to_string(),
                 "echo 'KRDSPROGRESS not-json' >&2".to_string(),
@@ -942,7 +1006,7 @@ mod progress_pump_tests {
 
     #[tokio::test]
     async fn stderr_only_failure_carries_diagnostics() {
-        let (_, outcome) = run_pump(PumpLines::for_target(
+        let (_, outcome, _) = run_pump(PumpLines::for_target(
             vec!["echo 'boom-detail' >&2".to_string(), "exit 3".to_string()],
             vec!["[Console]::Error.WriteLine('boom-detail'); exit 3".to_string()],
         ))
@@ -957,7 +1021,7 @@ mod progress_pump_tests {
 
     #[tokio::test]
     async fn large_output_does_not_hang_or_flood() {
-        let (events, _) = run_pump(PumpLines::for_target(
+        let (events, _, _) = run_pump(PumpLines::for_target(
             vec![
                 "for i in $(seq 1 500); do echo \"KRDSPROGRESS-noise-$i\" >&2; done".to_string(),
                 "echo 'done-marker' >&2".to_string(),
