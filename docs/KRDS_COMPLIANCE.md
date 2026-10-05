@@ -44,8 +44,13 @@ Component Kit transformed token JSON](https://github.com/KRDS-uiux/krds-uiux/blo
 for the light mode; the CSS names are local mappings, not an imported package.
 Buttons, inputs, result navigation, badges, result cards and the dialog now
 consume component roles backed by semantic roles. The former flat color and
-radius aliases have been removed. Raw typography and some layout spacing
-remain, so **full token conformance is not yet proven**.
+radius aliases have been removed. The [KRDS typography guide](https://www.krds.go.kr/html/site/style/style_03.html)
+specifies Pretendard GOV; the app bundles the v1.3.9 variable font under its
+[OFL license](https://github.com/orioncactus/pretendard/blob/v1.3.9/packages/pretendard-gov/dist/LICENSE.txt)
+so packaged Windows use has no font CDN dependency. The source font SHA-256 is
+`a2f477842d55918053db560007dd615ab44eab848d3aa09dd61e96b4da76210e`.
+Some layout spacing and state-specific component styles still need audit, so
+**full token conformance is not yet proven**.
 
 | Local primitive → semantic → component | Source KRDS role | Purpose and consumers | Deviation reason |
 | --- | --- | --- | --- |
@@ -55,6 +60,8 @@ remain, so **full token conformance is not yet proven**.
 | `number-4` → `radius-control` → `input-radius`, `button-radius`, `filter-radius` | `semantic.radius.medium2` | Control and result group corners (`0.6rem`) | None. |
 | `number-5/6/7/8` → `padding-3/4/5/6` → button/input padding | `semantic.padding.3/4/5/6` | Control and result workspace spacing | None for controls; remaining layout numbers need audit. |
 | `alpha-black-75` → `overlay-scrim` → `dialog-scrim` | `mode-light.color.background.dim` | Export dialog backdrop (`#000000bf`) | None. |
+| 13/15/17/19/24/32px type values → `font-body-*` / `font-heading-*` → badge, step, card title, check detail and preview | `responsive-pc.font-size.body` / `heading` in the [transformed tokens](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json) | Body, hints, headings, result and dialog text | Numeric rem values are converted from KRDS's 10px base to this app's 16px root; rendered sizes preserve KRDS roles without changing the user's root font setting. |
+| `Pretendard GOV Variable` → `font-family` → body text | `primitive.typo.font` | All product text | Bundled font file replaces a network-dependent font source. |
 
 Before adding a custom token, record its exact KRDS source role, semantic
 purpose, consuming components, and reason for deviation. The local button,
@@ -62,7 +69,7 @@ input, badge and result-navigation roles map existing KRDS semantic colors
 without changing their values. The release audit
 must inspect computed styles for representative normal, focus, disabled and
 error controls and trace each value through the three levels. Residual raw
-layout spacing and typography remain migration work.
+layout spacing remains migration work.
 
 ## State coverage
 

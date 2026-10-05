@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Pretendard GOV Variable";
+  src: url("./assets/PretendardGOVVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   /* KRDS HTML Component Kit light-mode tokens; see KRDS_COMPLIANCE.md. */
@@ -13,6 +21,15 @@
   --krds-primitive-danger-60: #bd2c0f;
   --krds-primitive-success-60: #267337;
   --krds-primitive-alpha-black-75: #000000bf;
+  --krds-primitive-font-family: "Pretendard GOV Variable";
+  /* KRDS PC typography is specified on a 10px rem base; these preserve
+     its 13/15/17/19/24/32px roles on this app's 16px rem base. */
+  --krds-primitive-type-size-13: 0.8125rem;
+  --krds-primitive-type-size-15: 0.9375rem;
+  --krds-primitive-type-size-17: 1.0625rem;
+  --krds-primitive-type-size-19: 1.1875rem;
+  --krds-primitive-type-size-24: 1.5rem;
+  --krds-primitive-type-size-32: 2rem;
   --krds-primitive-number-2: 0.2rem;
   --krds-primitive-number-3: 0.4rem;
   --krds-primitive-number-4: 0.6rem;
@@ -26,6 +43,13 @@
   --krds-primitive-number-max: 100rem;
 
   --krds-semantic-surface: var(--krds-primitive-gray-0);
+  --krds-semantic-font-family: var(--krds-primitive-font-family);
+  --krds-semantic-font-body-medium: var(--krds-primitive-type-size-17);
+  --krds-semantic-font-body-small: var(--krds-primitive-type-size-15);
+  --krds-semantic-font-body-xsmall: var(--krds-primitive-type-size-13);
+  --krds-semantic-font-heading-small: var(--krds-primitive-type-size-19);
+  --krds-semantic-font-heading-medium: var(--krds-primitive-type-size-24);
+  --krds-semantic-font-heading-large: var(--krds-primitive-type-size-32);
   --krds-semantic-surface-subtle: var(--krds-primitive-gray-5);
   --krds-semantic-text: var(--krds-primitive-gray-90);
   --krds-semantic-text-secondary: var(--krds-primitive-gray-70);
@@ -83,6 +107,11 @@
   --krds-component-badge-radius: var(--krds-semantic-radius-pill);
   --krds-component-badge-border: var(--krds-semantic-action);
   --krds-component-badge-text: var(--krds-semantic-action);
+  --krds-component-badge-font-size: var(--krds-semantic-font-body-xsmall);
+  --krds-component-step-font-size: var(--krds-semantic-font-body-small);
+  --krds-component-result-card-title-font-size: var(--krds-semantic-font-heading-small);
+  --krds-component-check-detail-font-size: var(--krds-semantic-font-body-small);
+  --krds-component-preview-font-size: var(--krds-semantic-font-body-xsmall);
   --krds-component-result-navigation-border: var(--krds-semantic-border);
   --krds-component-result-navigation-surface: var(--krds-semantic-surface);
   --krds-component-result-navigation-text: var(--krds-semantic-text);
@@ -95,8 +124,8 @@
 
 body {
   margin: 0;
-  font-family:
-    "Pretendard", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  font-family: var(--krds-semantic-font-family), "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  font-size: var(--krds-semantic-font-body-medium);
   color: var(--krds-semantic-text);
   background: var(--krds-semantic-surface);
   line-height: 1.6;
@@ -110,19 +139,19 @@ body {
 
 .eyebrow {
   color: var(--krds-semantic-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--krds-semantic-font-body-small);
   font-weight: 700;
   margin: 0 0 0.25rem;
 }
 
 h1 {
-  font-size: 1.75rem;
+  font-size: var(--krds-semantic-font-heading-large);
   line-height: 1.5;
   margin: 0 0 0.75rem;
 }
 
 h2 {
-  font-size: 1.2rem;
+  font-size: var(--krds-semantic-font-heading-medium);
   margin: 1.75rem 0 0.5rem;
 }
 
@@ -133,7 +162,7 @@ h2 {
 
 .hint {
   color: var(--krds-semantic-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--krds-semantic-font-body-small);
 }
 
 .field {
@@ -263,7 +292,7 @@ h1:focus {
 
 .required {
   color: var(--krds-semantic-error);
-  font-size: 0.875rem;
+  font-size: var(--krds-semantic-font-body-small);
 }
 
 .advanced-grid {
@@ -323,7 +352,7 @@ h1:focus {
   color: var(--krds-component-badge-text);
   border-radius: var(--krds-component-badge-radius);
   padding: 0 var(--krds-semantic-padding-2);
-  font-size: 0.8125rem;
+  font-size: var(--krds-component-badge-font-size);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -416,7 +445,7 @@ h1:focus {
 
 .page-group h2 {
   margin-top: 0;
-  font-size: 1rem;
+  font-size: var(--krds-component-result-card-title-font-size);
 }
 
 .page-group li {
@@ -470,7 +499,7 @@ code {
 }
 
 .steps li {
-  font-size: 0.875rem;
+  font-size: var(--krds-component-step-font-size);
   color: var(--krds-semantic-text-secondary);
 }
 
@@ -529,7 +558,7 @@ code {
 
 .checks li span {
   color: var(--krds-semantic-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--krds-component-check-detail-font-size);
 }
 
 .preview {
@@ -539,7 +568,7 @@ code {
   padding: var(--krds-semantic-padding-4);
   max-height: 24rem;
   overflow: auto;
-  font-size: 0.8125rem;
+  font-size: var(--krds-component-preview-font-size);
 }
 
 .visual-evidence {
@@ -555,7 +584,7 @@ code {
 
 .visual-evidence figcaption {
   color: var(--krds-semantic-text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--krds-semantic-font-body-small);
 }
 
 .modal-backdrop {

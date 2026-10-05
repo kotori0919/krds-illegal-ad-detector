@@ -5,6 +5,16 @@ const browser = await chromium.launch({ args: ["--no-sandbox"] });
 const page = await browser.newPage({ viewport: { width: 360, height: 800 } });
 try {
   await page.goto("http://127.0.0.1:5173/", { waitUntil: "networkidle" });
+  await page.evaluate(() => document.fonts.ready);
+  const font = await page.evaluate(() => ({
+    family: getComputedStyle(document.body).fontFamily,
+    size: getComputedStyle(document.body).fontSize,
+    loaded: [...document.fonts].some((face) =>
+      face.family === "Pretendard GOV Variable" && face.status === "loaded"),
+  }));
+  if (!font.loaded || !font.family.startsWith('"Pretendard GOV Variable"') || font.size !== "17px") {
+    throw new Error(`KRDS body font unavailable: ${JSON.stringify(font)}`);
+  }
   if (await page.locator("ol.steps > li").count() !== 3) throw new Error("expected three stages");
   await page.getByLabel("점검할 웹사이트").fill("https://example.kr/");
   await page.getByRole("button", { name: "점검 시작" }).click();
@@ -98,7 +108,7 @@ try {
     throw new Error(`desktop inspector not beside list: ${JSON.stringify(desktopInspector)}`);
   }
   await page.getByRole("button", { name: "결과 목록으로" }).click();
-  console.log(JSON.stringify({ stages: 3, visibleFindings: 5, searchReset: true, mobileInspector, desktopInspector, restoredScrollY: resultScrollY, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, styles, cssZoom2x: doubled }, null, 2));
+  console.log(JSON.stringify({ stages: 3, font, visibleFindings: 5, searchReset: true, mobileInspector, desktopInspector, restoredScrollY: resultScrollY, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, styles, cssZoom2x: doubled }, null, 2));
 } finally {
   await browser.close();
 }
