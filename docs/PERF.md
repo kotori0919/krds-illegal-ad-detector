@@ -54,6 +54,22 @@ settings. Throughput plateaued at 3–4 workers on this six-page scenario;
 these numbers do not justify raising the 4-vCPU Windows default above 2.
 L3 persistence/detail/export and Windows memory/performance still need proof.
 
+After ADR-0014 moved the settle interval to DOM readiness, the same Linux L2
+benchmark was rerun with `node benchmarks/concurrency.mjs --realistic` after a
+fresh TypeScript build. The fixture has no late navigation load, so this run
+does not estimate the new worst-case settle overhead. Peak memory and CPU are
+still Node-driver-only; Chromium and Windows acceptance remain unmeasured.
+
+| Workers | Wall s | Pages/s | Peak Node RSS MiB | Node CPU % | Checked | Failed | TP/FP/FN | Validator |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 8.594 | 0.698 | 145.7 | 1.8 | 6 | 1 | 5/0/0 | PASS |
+| 2 | 5.726 | 1.048 | 149.0 | 1.1 | 6 | 1 | 5/0/0 | PASS |
+| 3 | 4.316 | 1.390 | 149.9 | 1.4 | 6 | 1 | 5/0/0 | PASS |
+| 4 | 4.315 | 1.390 | 150.1 | 1.1 | 6 | 1 | 5/0/0 | PASS |
+
+All four runs had the same official finding IDs and set, 5 TP / 0 FP / 0 FN,
+and valid official output.
+
 Environment: 16 cores, 30 GB RAM, Node 26, headless Chromium. This is NOT
 the conservative baseline (Win11, i6-class, 4–6 cores, 8 GB, no GPU) — it
 bounds the architecture, not the submission hardware. Windows numbers must

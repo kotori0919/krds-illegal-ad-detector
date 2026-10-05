@@ -1,6 +1,6 @@
 # ADR-0005: Settle clock from navigation start, live-DOM snapshots
 
-Status: accepted.
+Status: settle-clock decision superseded by ADR-0014; live-DOM snapshot decision remains accepted.
 
 ## Context
 

@@ -10,6 +10,7 @@
  *   delayed (setTimeout) ad injection is observed without unbounded waits.
  */
 import { chromium, type Browser, type BrowserContext, type Frame, type Page, type Request, type Response, type Route } from "playwright-core";
+import { performance } from "node:perf_hooks";
 import { DEFAULT_SCAN_LIMITS, type ScanLimits } from "@krds-detector/contracts";
 import { CrawlQueue, type ObservedExternal, type QueuedPage } from "./queue.js";
 import { ScanDeadline, pageConcurrency } from "./deadline.js";
@@ -150,7 +151,7 @@ async function describePage(page: Page, frameDepth: number): Promise<{ links: st
 }
 
 export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
-  const t0 = Date.now();
+  const t0 = performance.now();
   const limits: ScanLimits = { ...DEFAULT_SCAN_LIMITS, ...options.limits };
   const deadline = options.deadline ?? new ScanDeadline(limits.timeoutSec);
   const concurrency = options.concurrency ?? pageConcurrency();
@@ -198,7 +199,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
 
     const processPage = async (next: QueuedPage): Promise<PageSnapshot | undefined> => {
       if (!deadline.canStartPage()) return undefined;
-      const pageStarted = Date.now();
+      const pageStarted = performance.now();
       const page: Page = await activeContext.newPage();
       const pageExternals: ObservedExternal[] = [];
       const observeExternal = (external: ObservedExternal): void => {
@@ -254,19 +255,21 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         });
         page.on("response", onResponse);
         const settleBudget = Math.min(settleMs, Math.max(0, budget - 1000));
-        const navStart = Date.now();
         const response = await page.goto(next.url, {
           waitUntil: "commit",
           timeout: Math.min(budget, 20000),
         });
         const status = response?.status() ?? 0;
-        // Settle clock starts at navigation start: delayed injection is a
-        // wall-clock race, and domcontentloaded/networkidle already consume it.
-        const waited = Date.now() - navStart;
-        if (waited < settleBudget) {
-          const waitMs = Math.min(settleBudget - waited, deadline.operationTimeoutMs(settleBudget));
-          if (waitMs > 0) await page.waitForTimeout(waitMs);
+        // A commit can precede script execution by seconds under load. Start
+        // the injection settle window only after the document is parsed, while
+        // retaining time for analysis and whole-scan finalization.
+        const remainingPageMs = (): number => Math.max(0, budget - (performance.now() - pageStarted) - 1000);
+        const loadMs = Math.min(5000, remainingPageMs(), deadline.operationTimeoutMs(5000));
+        if (loadMs > 0) {
+          await page.waitForLoadState("domcontentloaded", { timeout: loadMs }).catch(() => undefined);
         }
+        const waitMs = Math.min(settleBudget, remainingPageMs(), deadline.operationTimeoutMs(settleBudget));
+        if (waitMs > 0) await page.waitForTimeout(waitMs);
         // Frame snapshot after settle: resolve absolute srcs, capture nested html.
         const described = await describePage(page, limits.maxFrameDepth);
         const finalUrl = page.url();
@@ -351,7 +354,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           frames: frameSnapshots,
           externals: [...pageExternals].sort(compareExternal),
           duplicateContent: false,
-          elapsedMs: Date.now() - pageStarted,
+          elapsedMs: performance.now() - pageStarted,
         };
         if (options.onLivePage) await options.onLivePage(page, snapshot, liveFrames);
         // Snapshot copies are optional evidence; official live detection has
@@ -375,7 +378,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           frames: [],
           externals: [...pageExternals].sort(compareExternal),
           duplicateContent: false,
-          elapsedMs: Date.now() - pageStarted,
+          elapsedMs: performance.now() - pageStarted,
         };
         void error;
       } finally {
@@ -417,7 +420,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       .filter(
       (e, i, all) => all.findIndex((x) => x.url === e.url && x.kind === e.kind) === i,
     ),
-    elapsedMs: Date.now() - t0,
+    elapsedMs: performance.now() - t0,
     timedOut,
   };
 }
