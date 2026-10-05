@@ -17,6 +17,15 @@ try {
   }
   const entryHeight = await page.getByLabel("점검할 웹사이트").evaluate((input) => input.getBoundingClientRect().height);
   if (entryHeight < 44) throw new Error(`URL entry target below 44px: ${entryHeight}`);
+  const scopeDisclosure = page.locator(".advanced > summary").first();
+  const disclosureHeight = await scopeDisclosure.evaluate((summary) => summary.getBoundingClientRect().height);
+  await scopeDisclosure.click();
+  const scopeHeights = await page.locator(".scope-options label").evaluateAll((labels) =>
+    labels.map((label) => label.getBoundingClientRect().height));
+  if (disclosureHeight < 44 || scopeHeights.some((height) => height < 44)) {
+    throw new Error(`scope targets below 44px: ${JSON.stringify({ disclosureHeight, scopeHeights })}`);
+  }
+  await scopeDisclosure.click();
   if (await page.locator("ol.steps > li").count() !== 3) throw new Error("expected three stages");
   await page.getByLabel("점검할 웹사이트").fill("https://example.kr/");
   await page.getByRole("button", { name: "점검 시작" }).click();
@@ -110,7 +119,7 @@ try {
     throw new Error(`desktop inspector not beside list: ${JSON.stringify(desktopInspector)}`);
   }
   await page.getByRole("button", { name: "결과 목록으로" }).click();
-  console.log(JSON.stringify({ stages: 3, font, entryHeight, visibleFindings: 5, searchReset: true, mobileInspector, desktopInspector, restoredScrollY: resultScrollY, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, styles, cssZoom2x: doubled }, null, 2));
+  console.log(JSON.stringify({ stages: 3, font, entryHeight, disclosureHeight, scopeHeights, visibleFindings: 5, searchReset: true, mobileInspector, desktopInspector, restoredScrollY: resultScrollY, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, styles, cssZoom2x: doubled }, null, 2));
 } finally {
   await browser.close();
 }

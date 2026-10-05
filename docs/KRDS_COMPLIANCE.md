@@ -85,7 +85,7 @@ and reflow still need packaged-app verification.
 | Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | L2 scanner fixture, result coverage view, and synthetic browser export dialog; packaged host open. |
 | Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React and browser demo checks. |
 | Error, unavailable evidence | Name the failure and next action; no fabricated image. | React start/cancel/save rejection paths show Korean recovery actions without raw host errors; native failure injection open. |
-| Disabled | Adjacent explanation and predictable focus. | Export disabled until validation; all controls need audit. |
+| Disabled | Adjacent explanation and predictable focus. | Export disabled until validation; native controls still need audit. |
 | Cancellation settlement | Confirm before stopping, then await host terminal state. | React test; packaged host open. |
 | Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | React and browser dialog checks; native save open. |
 
@@ -118,7 +118,8 @@ change and KRDS spacing conversion, mobile return restored the observed
 With official light color values, the
 same browser check measured
 body 16.18:1, primary button 4.55:1, secondary button 4.55:1 and hint 8.68:1
-contrast; primary button and URL input each measured 48 px tall. BrowserHost data is a
+contrast; primary button, URL input and scope disclosure each measured 48 px
+tall, while scope option targets measured at least 48 px. BrowserHost data is a
 labelled demo, not a live scan.
 The same Chromium smoke now checks that the bundled Pretendard GOV variable
 font reaches the loaded state and computes to a 17 px body size; the 360 px

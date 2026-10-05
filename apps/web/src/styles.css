@@ -272,6 +272,12 @@ h1:focus {
   padding: var(--krds-semantic-padding-3) var(--krds-semantic-padding-4);
 }
 
+.advanced summary {
+  min-height: var(--krds-semantic-size-control);
+  padding-block: var(--krds-semantic-padding-4);
+  cursor: pointer;
+}
+
 .scope-options {
   border: 0;
   padding: var(--krds-semantic-padding-3) 0 0;
@@ -285,6 +291,7 @@ h1:focus {
 .scope-options label {
   display: flex;
   align-items: start;
+  min-height: var(--krds-semantic-size-control);
   gap: var(--krds-semantic-gap-3);
   padding: var(--krds-semantic-padding-3) 0;
   font-weight: 400;
