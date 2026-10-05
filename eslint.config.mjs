@@ -13,4 +13,21 @@ export default defineConfig([
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ["benchmarks/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        URL: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        console: "readonly",
+        window: "readonly",
+        document: "readonly",
+        scrollY: "readonly",
+        innerWidth: "readonly",
+        getComputedStyle: "readonly",
+      },
+    },
+  },
 ]);
