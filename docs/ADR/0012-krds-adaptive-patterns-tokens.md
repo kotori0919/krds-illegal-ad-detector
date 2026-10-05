@@ -1,6 +1,6 @@
 # ADR-0012: KRDS Adaptive patterns and token hierarchy (2026-10-05)
 
-Status: initial pattern/token implementation in React 2026-10-06; full KRDS and packaged Windows verification pending. Expands ADR-0010's operator UI decision.
+Status: pattern mapping and official light-mode color/spacing/radius token values applied in React 2026-10-06; residual tokens and packaged Windows verification pending. Expands ADR-0010's operator UI decision.
 
 ## Context
 

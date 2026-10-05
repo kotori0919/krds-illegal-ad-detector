@@ -32,12 +32,41 @@ try {
   if (!restoredExportFocus) throw new Error("export trigger focus was not restored");
   const width = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
   if (width.document > width.viewport) throw new Error(`360px overflow: ${JSON.stringify(width)}`);
+  await page.mouse.move(0, 0);
+  const styles = await page.evaluate(() => {
+    const rgb = (value) => [...value.matchAll(/[\d.]+/g)].slice(0, 3).map(([number]) => Number(number) / 255);
+    const luminance = (value) => {
+      const [r, g, b] = rgb(value).map((c) => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const contrast = (fg, bg) => {
+      const [hi, lo] = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
+      return Number(((hi + 0.05) / (lo + 0.05)).toFixed(2));
+    };
+    const primary = document.querySelector("button.primary");
+    const secondary = document.querySelector("button.secondary");
+    const hint = document.querySelector(".hint");
+    const buttonStyle = getComputedStyle(primary);
+    const secondaryStyle = getComputedStyle(secondary);
+    return {
+      bodyContrast: contrast(getComputedStyle(document.body).color, getComputedStyle(document.body).backgroundColor),
+      primaryContrast: contrast(buttonStyle.color, buttonStyle.backgroundColor),
+      secondaryContrast: contrast(secondaryStyle.color, secondaryStyle.backgroundColor),
+      hintContrast: contrast(getComputedStyle(hint).color, getComputedStyle(document.body).backgroundColor),
+      primaryHeight: primary.getBoundingClientRect().height,
+      primaryFill: buttonStyle.backgroundColor,
+    };
+  });
+  if ([styles.bodyContrast, styles.primaryContrast, styles.secondaryContrast, styles.hintContrast].some((ratio) => ratio < 4.5)) {
+    throw new Error(`text contrast below 4.5: ${JSON.stringify(styles)}`);
+  }
+  if (styles.primaryHeight < 44) throw new Error(`primary target below 44px: ${styles.primaryHeight}`);
   await page.screenshot({ path: "/tmp/illegal-ad-v2-results-360.png", fullPage: true });
   await page.setViewportSize({ width: 720, height: 900 });
   await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
   const doubled = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
   if (doubled.document > doubled.viewport) throw new Error(`2x CSS zoom overflow: ${JSON.stringify(doubled)}`);
-  console.log(JSON.stringify({ stages: 3, visibleFindings: 5, searchReset: true, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, cssZoom2x: doubled }, null, 2));
+  console.log(JSON.stringify({ stages: 3, visibleFindings: 5, searchReset: true, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, styles, cssZoom2x: doubled }, null, 2));
 } finally {
   await browser.close();
 }

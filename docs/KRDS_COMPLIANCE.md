@@ -39,24 +39,27 @@ collecting a user's opinion and is not the scanner's status pattern.
 
 KRDS defines **primitive → semantic → component**. Primitive values are
 references, semantic values express roles, and component values are the styles
-consumed by controls. The current CSS implements the color and radius chain
-below. Existing legacy aliases and raw spacing remain, so **strong token
-conformance is not yet proven**. Token names here describe local roles; they
-do not claim an official KRDS token file was imported.
+consumed by controls. The local primitive values now match the [KRDS HTML
+Component Kit transformed token JSON](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json)
+for the light mode; the CSS names are local mappings, not an imported package.
+The button and input, result-card and dialog roles pass through all three
+levels. Legacy aliases, raw typography and some layout spacing remain, so
+**full token conformance is not yet proven**.
 
 | Local primitive → semantic → component | Source KRDS role | Purpose and consumers | Deviation reason |
 | --- | --- | --- | --- |
-| `primary-70` → `action` → `accent` | Primary action color | Start, save, step and badge | Transitional component alias; palette value needs official comparison. |
-| `gray-5` → `surface-subtle` → `result-card-surface` | Neutral surface | Page groups | None. |
-| `danger-60` → `error` → `error` | Error content | Form, export, status error | Transitional alias; text accompanies color. |
-| `radius-medium` → `radius-control` → `filter-radius` | Control shape | Page group and filter | None. |
-| `scrim` → `overlay-scrim` → `dialog-scrim` | Modal overlay | Export dialog | Local 55% black; compare official overlay and contrast. |
+| `primary-50` → `action` → `button-primary-fill` | `mode-light.color.button.primary-fill` | Start/save buttons (`#256ef4`); 60/70 supply hover/pressed | `accent` remains a transitional alias for link, badge and stage color. |
+| `gray-5` → `surface-subtle` → `result-card-surface` | `mode-light.color.surface.gray-subtler` | Page groups (`#f4f5f6`) | None. |
+| `danger-60` → `error` → `error` | `mode-light.color.text.danger` | Form, export and status errors (`#bd2c0f`) | Transitional alias; error text accompanies color. |
+| `number-4` → `radius-control` → `input-radius` / `filter-radius` | `semantic.radius.medium2` | Input and result group corners (`0.6rem`) | None. |
+| `number-5/6/7/8` → `padding-3/4/5/6` → button/input padding | `semantic.padding.3/4/5/6` | Control and result workspace spacing | None for controls; remaining layout numbers need audit. |
+| `alpha-black-75` → `overlay-scrim` → `dialog-scrim` | `mode-light.color.background.dim` | Export dialog backdrop (`#000000bf`) | None. |
 
 Before adding a custom token, record its exact KRDS source role, semantic
 purpose, consuming components, and reason for deviation. The release audit
 must inspect computed styles for representative normal, focus, disabled and
-error controls and trace each value through the three levels. Raw colors,
-spacing and radii in component declarations remain migration work.
+error controls and trace each value through the three levels. Residual raw
+layout spacing and typography remain migration work.
 
 ## State coverage
 
@@ -87,7 +90,10 @@ the BrowserHost demo in Chromium at 360 CSS px: three stages, five findings,
 search/reset, page review, inspector focus return, export focus/Escape/return,
 and document width 360 px. A CSS `zoom: 2` check at a 720 px viewport also
 found no document overflow. This approximates reflow; it is **not native 200%
-browser zoom**. BrowserHost data is a labelled demo, not a live scan.
+browser zoom**. With official light color values, the same browser check measured
+body 16.18:1, primary button 4.55:1, secondary button 4.55:1 and hint 8.68:1
+contrast; primary button height was at least 44 px. BrowserHost data is a
+labelled demo, not a live scan.
 
-**Open:** native zoom, assistive technology, full token migration, official
-value comparison, large-result review, and packaged Windows acceptance.
+**Open:** native zoom, assistive technology, residual token migration,
+large-result review, and packaged Windows acceptance.
