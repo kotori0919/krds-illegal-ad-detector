@@ -42,21 +42,24 @@ references, semantic values express roles, and component values are the styles
 consumed by controls. The local primitive values now match the [KRDS HTML
 Component Kit transformed token JSON](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json)
 for the light mode; the CSS names are local mappings, not an imported package.
-The button and input, result-card and dialog roles pass through all three
-levels. Legacy aliases, raw typography and some layout spacing remain, so
-**full token conformance is not yet proven**.
+Buttons, inputs, result navigation, badges, result cards and the dialog now
+consume component roles backed by semantic roles. The former flat color and
+radius aliases have been removed. Raw typography and some layout spacing
+remain, so **full token conformance is not yet proven**.
 
 | Local primitive → semantic → component | Source KRDS role | Purpose and consumers | Deviation reason |
 | --- | --- | --- | --- |
-| `primary-50` → `action` → `button-primary-fill` | `mode-light.color.button.primary-fill` | Start/save buttons (`#256ef4`); 60/70 supply hover/pressed | `accent` remains a transitional alias for link, badge and stage color. |
+| `primary-50` → `action` → `button-primary-fill`, `button-secondary-border`, `button-link-text`, `badge-border`, `result-navigation-active` | `mode-light.color.button.primary-fill` | Start/save, secondary and link buttons, badge, active result topic; 60/70 supply hover/pressed | Local component role names separate consumers; colors are unchanged. |
 | `gray-5` → `surface-subtle` → `result-card-surface` | `mode-light.color.surface.gray-subtler` | Page groups (`#f4f5f6`) | None. |
-| `danger-60` → `error` → `error` | `mode-light.color.text.danger` | Form, export and status errors (`#bd2c0f`) | Transitional alias; error text accompanies color. |
-| `number-4` → `radius-control` → `input-radius` / `filter-radius` | `semantic.radius.medium2` | Input and result group corners (`0.6rem`) | None. |
+| `danger-60` → `error` | `mode-light.color.text.danger` | Form, export and status errors (`#bd2c0f`) | Generic error text currently consumes the semantic role; error text accompanies color. |
+| `number-4` → `radius-control` → `input-radius`, `button-radius`, `filter-radius` | `semantic.radius.medium2` | Control and result group corners (`0.6rem`) | None. |
 | `number-5/6/7/8` → `padding-3/4/5/6` → button/input padding | `semantic.padding.3/4/5/6` | Control and result workspace spacing | None for controls; remaining layout numbers need audit. |
 | `alpha-black-75` → `overlay-scrim` → `dialog-scrim` | `mode-light.color.background.dim` | Export dialog backdrop (`#000000bf`) | None. |
 
 Before adding a custom token, record its exact KRDS source role, semantic
-purpose, consuming components, and reason for deviation. The release audit
+purpose, consuming components, and reason for deviation. The local button,
+input, badge and result-navigation roles map existing KRDS semantic colors
+without changing their values. The release audit
 must inspect computed styles for representative normal, focus, disabled and
 error controls and trace each value through the three levels. Residual raw
 layout spacing and typography remain migration work.

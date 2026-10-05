@@ -58,19 +58,6 @@
   --krds-semantic-gap-3: var(--krds-primitive-number-5);
   --krds-semantic-gap-4: var(--krds-primitive-number-7);
 
-  --surface: var(--krds-semantic-surface);
-  --surface-alt: var(--krds-semantic-surface-subtle);
-  --ink: var(--krds-semantic-text);
-  --ink-sub: var(--krds-semantic-text-secondary);
-  --accent: var(--krds-semantic-action);
-  --accent-ink: var(--krds-semantic-on-action);
-  --accent-focus: var(--krds-semantic-focus);
-  --error: var(--krds-semantic-error);
-  --success: var(--krds-semantic-success);
-  --border: var(--krds-semantic-border);
-  --border-soft: var(--krds-semantic-border-subtle);
-  --radius: var(--krds-semantic-radius-control);
-
   --krds-component-result-card-surface: var(--krds-semantic-surface-subtle);
   --krds-component-result-card-border: var(--krds-semantic-border-subtle);
   --krds-component-filter-radius: var(--krds-semantic-radius-control);
@@ -81,11 +68,25 @@
   --krds-component-button-primary-fill: var(--krds-semantic-action);
   --krds-component-button-primary-fill-hover: var(--krds-semantic-action-hover);
   --krds-component-button-primary-fill-pressed: var(--krds-semantic-action-pressed);
+  --krds-component-button-radius: var(--krds-semantic-radius-control);
+  --krds-component-button-primary-text: var(--krds-semantic-on-action);
+  --krds-component-button-secondary-border: var(--krds-semantic-action);
+  --krds-component-button-secondary-surface: var(--krds-semantic-surface);
+  --krds-component-button-secondary-text: var(--krds-semantic-action);
+  --krds-component-button-link-text: var(--krds-semantic-action);
   --krds-component-input-radius: var(--krds-semantic-radius-control);
   --krds-component-input-border: var(--krds-semantic-border);
+  --krds-component-input-surface: var(--krds-semantic-surface);
+  --krds-component-input-text: var(--krds-semantic-text);
   --krds-component-input-padding-y: var(--krds-semantic-padding-input-y);
   --krds-component-input-padding-x: var(--krds-semantic-padding-input-x);
   --krds-component-badge-radius: var(--krds-semantic-radius-pill);
+  --krds-component-badge-border: var(--krds-semantic-action);
+  --krds-component-badge-text: var(--krds-semantic-action);
+  --krds-component-result-navigation-border: var(--krds-semantic-border);
+  --krds-component-result-navigation-surface: var(--krds-semantic-surface);
+  --krds-component-result-navigation-text: var(--krds-semantic-text);
+  --krds-component-result-navigation-active: var(--krds-semantic-action);
 }
 
 * {
@@ -96,8 +97,8 @@ body {
   margin: 0;
   font-family:
     "Pretendard", "Noto Sans KR", system-ui, -apple-system, sans-serif;
-  color: var(--ink);
-  background: var(--surface);
+  color: var(--krds-semantic-text);
+  background: var(--krds-semantic-surface);
   line-height: 1.6;
 }
 
@@ -108,7 +109,7 @@ body {
 }
 
 .eyebrow {
-  color: var(--ink-sub);
+  color: var(--krds-semantic-text-secondary);
   font-size: 0.875rem;
   font-weight: 700;
   margin: 0 0 0.25rem;
@@ -126,12 +127,12 @@ h2 {
 }
 
 .lede {
-  color: var(--ink-sub);
+  color: var(--krds-semantic-text-secondary);
   margin-top: 0;
 }
 
 .hint {
-  color: var(--ink-sub);
+  color: var(--krds-semantic-text-secondary);
   font-size: 0.875rem;
 }
 
@@ -154,8 +155,8 @@ select {
   border: 1px solid var(--krds-component-input-border);
   border-radius: var(--krds-component-input-radius);
   font: inherit;
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--krds-component-input-surface);
+  color: var(--krds-component-input-text);
 }
 
 button {
@@ -163,7 +164,7 @@ button {
   font-weight: 700;
   padding: var(--krds-component-button-padding-y) var(--krds-component-button-padding-x);
   margin-top: var(--krds-semantic-padding-4);
-  border-radius: var(--radius);
+  border-radius: var(--krds-component-button-radius);
   cursor: pointer;
   min-height: var(--krds-component-button-min-height);
 }
@@ -171,7 +172,7 @@ button {
 button.primary {
   border: 1px solid var(--krds-component-button-primary-fill);
   background: var(--krds-component-button-primary-fill);
-  color: var(--accent-ink);
+  color: var(--krds-component-button-primary-text);
 }
 
 button.primary:hover {
@@ -183,15 +184,15 @@ button.primary:active {
 }
 
 button.secondary {
-  border: 1px solid var(--accent);
-  background: var(--surface);
-  color: var(--accent);
+  border: 1px solid var(--krds-component-button-secondary-border);
+  background: var(--krds-component-button-secondary-surface);
+  color: var(--krds-component-button-secondary-text);
 }
 
 button.linklike {
   border: none;
   background: none;
-  color: var(--accent);
+  color: var(--krds-component-button-link-text);
   text-decoration: underline;
   padding: var(--krds-semantic-padding-1) var(--krds-semantic-padding-3);
   margin: 0;
@@ -209,31 +210,31 @@ select:focus-visible,
 summary:focus-visible,
 a:focus-visible,
 pre:focus-visible {
-  outline: 3px solid var(--accent-focus);
+  outline: 3px solid var(--krds-semantic-focus);
   outline-offset: 2px;
 }
 
 h1:focus {
-  outline: 3px solid var(--accent-focus);
+  outline: 3px solid var(--krds-semantic-focus);
   outline-offset: 2px;
 }
 
 .error {
-  color: var(--error);
+  color: var(--krds-semantic-error);
   font-weight: 700;
 }
 
 .empty {
-  background: var(--surface-alt);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
+  background: var(--krds-semantic-surface-subtle);
+  border: 1px solid var(--krds-semantic-border-subtle);
+  border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-4);
 }
 
 .advanced {
   margin-top: var(--krds-semantic-padding-5);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
+  border: 1px solid var(--krds-semantic-border-subtle);
+  border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-3) var(--krds-semantic-padding-4);
 }
 
@@ -261,7 +262,7 @@ h1:focus {
 }
 
 .required {
-  color: var(--error);
+  color: var(--krds-semantic-error);
   font-size: 0.875rem;
 }
 
@@ -287,7 +288,7 @@ h1:focus {
   grid-template-columns: 10rem minmax(0, 1fr);
   gap: var(--krds-semantic-gap-3);
   padding: var(--krds-semantic-padding-3) 0;
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--krds-semantic-border-subtle);
 }
 
 .stats dt,
@@ -310,16 +311,16 @@ h1:focus {
 }
 
 .counts li {
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
+  border: 1px solid var(--krds-semantic-border-subtle);
+  border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-2) var(--krds-semantic-padding-3);
-  background: var(--surface-alt);
+  background: var(--krds-semantic-surface-subtle);
 }
 
 .badge {
   display: inline-block;
-  border: 1px solid var(--accent);
-  color: var(--accent);
+  border: 1px solid var(--krds-component-badge-border);
+  color: var(--krds-component-badge-text);
   border-radius: var(--krds-component-badge-radius);
   padding: 0 var(--krds-semantic-padding-2);
   font-size: 0.8125rem;
@@ -356,14 +357,14 @@ h1:focus {
 
 .result-navigation button {
   margin-top: 0;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink);
+  border: 1px solid var(--krds-component-result-navigation-border);
+  background: var(--krds-component-result-navigation-surface);
+  color: var(--krds-component-result-navigation-text);
 }
 
 .result-navigation button[aria-pressed="true"] {
-  border-color: var(--accent);
-  box-shadow: inset 0 -3px var(--accent);
+  border-color: var(--krds-component-result-navigation-active);
+  box-shadow: inset 0 -3px var(--krds-component-result-navigation-active);
   font-weight: 700;
 }
 
@@ -438,7 +439,7 @@ caption {
 
 th,
 td {
-  border: 1px solid var(--border);
+  border: 1px solid var(--krds-semantic-border);
   padding: var(--krds-semantic-padding-3);
   text-align: left;
   vertical-align: top;
@@ -454,8 +455,8 @@ code {
 }
 
 .steps-nav {
-  background: var(--surface-alt);
-  border-bottom: 1px solid var(--border-soft);
+  background: var(--krds-semantic-surface-subtle);
+  border-bottom: 1px solid var(--krds-semantic-border-subtle);
 }
 
 .steps {
@@ -470,18 +471,18 @@ code {
 
 .steps li {
   font-size: 0.875rem;
-  color: var(--ink-sub);
+  color: var(--krds-semantic-text-secondary);
 }
 
 .steps li.current {
-  color: var(--ink);
+  color: var(--krds-semantic-text);
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
 .steps li.done {
-  color: var(--accent);
+  color: var(--krds-semantic-action);
 }
 
 /* Completion cue is the ✓ glyph (aria-hidden, plus sr-only "완료"); the
@@ -508,8 +509,8 @@ code {
 }
 
 .checks li {
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
+  border: 1px solid var(--krds-semantic-border-subtle);
+  border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-3) var(--krds-semantic-padding-4);
   margin-bottom: var(--krds-semantic-padding-3);
 }
@@ -519,22 +520,22 @@ code {
 }
 
 .checks li.pass {
-  border-left: 6px solid var(--success);
+  border-left: 6px solid var(--krds-semantic-success);
 }
 
 .checks li.fail {
-  border-left: 6px solid var(--error);
+  border-left: 6px solid var(--krds-semantic-error);
 }
 
 .checks li span {
-  color: var(--ink-sub);
+  color: var(--krds-semantic-text-secondary);
   font-size: 0.875rem;
 }
 
 .preview {
-  background: var(--surface-alt);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
+  background: var(--krds-semantic-surface-subtle);
+  border: 1px solid var(--krds-semantic-border-subtle);
+  border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-4);
   max-height: 24rem;
   overflow: auto;
@@ -549,11 +550,11 @@ code {
   display: block;
   width: 100%;
   height: auto;
-  border: 1px solid var(--border);
+  border: 1px solid var(--krds-semantic-border);
 }
 
 .visual-evidence figcaption {
-  color: var(--ink-sub);
+  color: var(--krds-semantic-text-secondary);
   font-size: 0.875rem;
 }
 
@@ -572,10 +573,10 @@ code {
   max-height: calc(100vh - var(--krds-semantic-padding-8));
   overflow: auto;
   padding: var(--krds-semantic-padding-6);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--ink);
-  border: 1px solid var(--border);
+  border-radius: var(--krds-semantic-radius-control);
+  background: var(--krds-semantic-surface);
+  color: var(--krds-semantic-text);
+  border: 1px solid var(--krds-semantic-border);
 }
 
 .modal-panel h2 {
