@@ -24,6 +24,11 @@ whose 17 IDs joined; 13 entries had JPEG data with the expected magic bytes.
 on different loopback origins. The real scanner requests each nested frame
 document once, emits absolute `>>>` chains for both depths, and drops the inner
 finding when `maxFrameDepth` is 1 without crawling the frame origin as a page.
+`packages/scanner/test/worker-pool.test.ts` holds live page callbacks at a
+barrier and observes peak callback overlap of 1, 2, 3 and 4 for those selected
+worker counts, with all nine frontier pages requested once. An override of 5
+is rejected before navigation. This checks the live processing cap; Windows
+browser-process working set remains a separate acceptance measurement.
 `packages/detection/test/deadline-scan.test.ts` exercises the real scanner
 under a six-second global budget: a slow page becomes a typed coverage failure,
 the next queued page is not requested inside the finalization reserve, and a
