@@ -109,8 +109,11 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
             capturedPages += 1;
             try {
               const bytes = await page.screenshot({ type: "jpeg", quality: 65, timeout: deadline.operationTimeoutMs(5000) });
-              if (capturedBytes + bytes.length <= 2_000_000 && bytes.length <= 500_000) {
-                capturedBytes += bytes.length;
+              // The manifest embeds this page image in every matching
+              // finding. Budget the serialized copies, not just one capture.
+              const embeddedBytes = bytes.length * pageCandidates.length;
+              if (capturedBytes + embeddedBytes <= 2_000_000 && bytes.length <= 500_000) {
+                capturedBytes += embeddedBytes;
                 const viewport = await page.evaluate(() => ({
                   width: innerWidth, height: innerHeight, scrollX, scrollY,
                 }));

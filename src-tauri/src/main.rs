@@ -178,11 +178,11 @@ async fn finish_session(
     outcome: SessionOutcome,
 ) {
     let finished_at = chrono::Utc::now().to_rfc3339();
+    let detail_path = std::env::temp_dir().join(format!("krds-detail-{session_id}.json"));
+    let result_path = std::env::temp_dir().join(format!("krds-result-{session_id}.json"));
     let (kind, status, message): (String, String, String) = match outcome {
         SessionOutcome::Succeeded { stdout } => {
-            let detail_path = std::env::temp_dir().join(format!("krds-detail-{session_id}.json"));
             let detail_text = std::fs::read_to_string(&detail_path).map_err(|e| format!("detail manifest missing: {e}"));
-            let _ = std::fs::remove_file(&detail_path);
             let validated = validate_sidecar_stdout(entry_url, &stdout).and_then(|canonical| {
                 let detail = detail_text?;
                 validate_detail_bundle(&canonical, &detail)?;
@@ -204,8 +204,14 @@ async fn finish_session(
             ("session-failed".into(), "failed".into(), detail)
         }
         // Cancel already emitted session-cancelled synchronously; stay silent.
-        SessionOutcome::Cancelled => return,
+        SessionOutcome::Cancelled => {
+            let _ = std::fs::remove_file(detail_path);
+            let _ = std::fs::remove_file(result_path);
+            return;
+        },
     };
+    let _ = std::fs::remove_file(detail_path);
+    let _ = std::fs::remove_file(result_path);
     let progress = registry.progress_snapshot(session_id).await;
     let _ = app.emit(
         "scan-event",

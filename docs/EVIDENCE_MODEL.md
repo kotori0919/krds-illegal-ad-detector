@@ -33,7 +33,8 @@ interface VisualEvidence {
 
 The initial implementation embeds bounded JPEG data URLs in the **separate**
 session-local detail manifest. It captures at most six pages, at most 500 KB
-per image and 2 MB before base64 expansion. The host rejects manifests above
+per image and 2 MB of embedded JPEG bytes before base64 expansion, counting
+each finding's copy of a page image. The host rejects manifests above
 8 MB and validates every ID, URL, location, technique, raw text, image scheme,
 and coverage count against the official result. The official `result.json`
 never contains image bytes. This avoids arbitrary filesystem asset paths but

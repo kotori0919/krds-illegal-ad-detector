@@ -15,7 +15,8 @@ navigation to reconstruct evidence would violate ADR-0011.
 During each live-page task, record the computed CSS/box and gate evidence for
 confirmed candidates. After official detection, capture one ordinary viewport
 JPEG for a page with findings if the shared deadline and byte cap allow it.
-Limit captures to six pages, 500 KB each, and 2 MB aggregate source bytes;
+Limit captures to six pages, 500 KB each, and 2 MB aggregate embedded JPEG
+source bytes, counting a repeated page image once per finding;
 otherwise record a typed unavailable reason. A viewport image is labelled as
 context, especially for hidden/offscreen text. Do not claim a crop or overlay
 that was not captured.
