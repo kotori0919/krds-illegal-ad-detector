@@ -57,7 +57,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
           onDone();
         } else if (s.status === "failed") {
           setFailed(true);
-          setNotice(`탐지가 실패했습니다: ${s.error ?? "알 수 없는 오류"}`);
+          setNotice("점검을 완료하지 못했습니다.");
           clearInterval(timer);
         } else if (s.status === "cancelled") {
           clearInterval(timer);

@@ -237,6 +237,8 @@ describe("ScanProgress cancel poll", () => {
       await new Promise((resolve) => setTimeout(resolve, 2100));
     });
     expect(screen.getByRole("alert").textContent).toContain("다시 점검해 주세요");
+    expect(screen.getByRole("status").textContent).toBe("점검을 완료하지 못했습니다.");
+    expect(screen.getByRole("status").textContent).not.toContain("worker exited");
     expect(screen.queryByRole("button", { name: "점검 중지" })).toBeNull();
     screen.getByRole("button", { name: "새로 검사하기" }).click();
     expect(onCancel).toHaveBeenCalledTimes(1);

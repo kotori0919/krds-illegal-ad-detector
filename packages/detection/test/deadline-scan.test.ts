@@ -19,6 +19,9 @@ beforeAll(async () => {
       response.end('<p id="ad" style="display:none">카지노 첫충 보너스 지급</p>');
     } else if (path === "/b-slow") {
       setTimeout(() => { if (!response.destroyed) response.end("<p>slow</p>"); }, 6_000);
+    } else if (path === "/missing") {
+      response.statusCode = 404;
+      response.end("<p>missing</p>");
     } else {
       response.end("<p>late</p>");
     }
@@ -31,6 +34,29 @@ beforeAll(async () => {
 afterAll(async () => { await new Promise<void>((resolve) => server.close(() => resolve())); });
 
 describe("L3 global deadline settlement", () => {
+  it("fails when every attempted page fails", async () => {
+    const stages: string[] = [];
+    await expect(scanSite({
+      entryUrl: `${origin}/missing`,
+      crawl: { concurrency: 1, settleMs: 0, perPageMs: 5_000,
+        limits: { maxPages: 1, maxDepth: 0, timeoutSec: 10 } },
+      onEvent: (event) => {
+        if (["session-started", "session-failed"].includes(event.kind)) stages.push(event.progress.stage);
+      },
+    })).rejects.toThrow("no successfully analyzed pages");
+    expect(stages).toEqual(["running", "failed"]);
+  }, 15_000);
+
+  it("fails without requesting a page when the deadline cannot admit work", async () => {
+    const before = requests.length;
+    await expect(scanSite({
+      entryUrl: `${origin}/`,
+      crawl: { concurrency: 1, settleMs: 0, perPageMs: 5_000,
+        limits: { maxPages: 1, maxDepth: 0, timeoutSec: 1 } },
+    })).rejects.toThrow("no successfully analyzed pages");
+    expect(requests.length).toBe(before);
+  }, 15_000);
+
   it("retains completed findings and does not admit another page inside the reserve", async () => {
     const started = performance.now();
     const output = await scanSite({

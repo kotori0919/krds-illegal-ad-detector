@@ -140,6 +140,9 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     });
     progress.visitedPages = summary.pages.length;
     progress.queuedPages = 0;
+    if (!summary.pages.some((page) => page.status >= 200 && page.status < 300)) {
+      throw new Error("no successfully analyzed pages");
+    }
 
     const finishedAt = new Date().toISOString();
     progress.stage = "finalizing";
@@ -191,6 +194,10 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       timedOut: summary.timedOut,
       detailBundle,
     };
+  } catch (error) {
+    progress.stage = "failed";
+    emit("session-failed", error instanceof Error ? error.message : "scan failed");
+    throw error;
   } finally {
     await fixtureClose?.();
   }

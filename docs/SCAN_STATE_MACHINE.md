@@ -1,6 +1,6 @@
 # Scan state machine V2
 
-Status: Contract v0.2 running-state cutover implemented 2026-10-06; other target behavior below remains open. `ScanStatus` uses queued/running/finalizing/succeeded/cancelled/failed because each page is discovered and analyzed in one live pass. Partial cancellation coverage is not yet persisted.
+Status: Contract v0.2 running-state and zero-success failure cutovers implemented 2026-10-06; other target behavior below remains open. `ScanStatus` uses queued/running/finalizing/succeeded/cancelled/failed because each page is discovered and analyzed in one live pass. Partial cancellation coverage is not yet persisted.
 
 ## Lifecycle and operator state
 
@@ -14,7 +14,7 @@ Status: Contract v0.2 running-state cutover implemented 2026-10-06; other target
 | cancelled | 점검 중지됨 | retained completed-page result only if manifest was committed | review partial retained data or new scan |
 | failed | 점검을 완료하지 못했습니다 | reason and any explicitly retained coverage | return to setup/retry |
 
-Partial completion is a derived **outcome** from `succeeded` and coverage, not a new raw worker enum. A scan with zero successfully analyzed pages is `failed`, even if the crawler discovered URLs. If a page fails during navigation or analysis, record a `ScanIssue`, continue bounded work when safe, and preserve successful findings. A global deadline stops new work, finalizes any already completed pages, and reports partial coverage; whether this is `succeeded` or `failed` follows the zero-success rule. Never announce “all pages checked” from a queue reaching zero alone.
+Partial completion is a derived **outcome** from `succeeded` and coverage, not a new raw worker enum. A scan with zero successfully analyzed HTTP-success pages is `failed`, even if the crawler discovered URLs. If a page fails during navigation or analysis, record a `ScanIssue`, continue bounded work when safe, and preserve successful findings. A global deadline stops new work, finalizes any already completed pages, and reports partial coverage; whether this is `succeeded` or `failed` follows the zero-success rule. Never announce “all pages checked” from a queue reaching zero alone.
 
 ## One deadline across concurrent work
 
