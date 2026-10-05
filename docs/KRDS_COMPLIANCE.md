@@ -107,12 +107,16 @@ UI using keyboard activation, retained search/filter state, and restored focus
 to the search field when a changed filter hid the inspected finding. The same
 replay showed a failed-page/time-limit warning in the export dialog while
 leaving a valid partial result savable. This
-does not verify the packaged host or real evidence. Mobile return restored the
-observed 327 px list scroll position. With official light color values, the
+does not verify the packaged host or real evidence. After the typography
+change, mobile return restored the observed 366 px list scroll position.
+With official light color values, the
 same browser check measured
 body 16.18:1, primary button 4.55:1, secondary button 4.55:1 and hint 8.68:1
 contrast; primary button height was at least 44 px. BrowserHost data is a
 labelled demo, not a live scan.
+The same Chromium smoke now checks that the bundled Pretendard GOV variable
+font reaches the loaded state and computes to a 17 px body size; the 360 px
+layout and 200% CSS zoom checks still pass after the typography change.
 
-**Open:** native zoom, assistive technology, residual token migration,
+**Open:** native zoom, assistive technology, residual layout token audit,
 large-result native review, and packaged Windows acceptance.

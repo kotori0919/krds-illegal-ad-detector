@@ -1,6 +1,7 @@
 # Test strategy V2
 
-Status: initial L2 scenario implemented and measured 2026-10-06; L3 and Windows L4 remain open.
+Status: L2 measured and scanner-only L3 slices exercised on Linux on
+2026-10-06; persisted native-host L3 and packaged Windows L4 remain open.
 
 Observed Linux L2 slice: `fixtures/realistic` and
 `packages/detection/test/realistic.test.ts` exercise a municipal-style board,
