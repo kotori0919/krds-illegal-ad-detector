@@ -7,6 +7,13 @@ Observed Linux L2 slice: `fixtures/realistic` and
 comments, live iframe, delayed element, ordinary notice/report text, and one
 404 page. At concurrency 1–4, each run produced 5 TP / 0 FP / 0 FN, 6 checked
 pages, 1 failed page, and identical official IDs. See `PERF.md` for timings.
+The served five-page public-information negative scenario in
+`packages/detection/test/false-positive-site.test.ts` exercises hidden
+accessibility help, reporting/statistics, multilingual/Jamo education and
+prevention copy, including a hidden link to a topic-specific public route.
+Its expected official set is empty; the real scanner and official validator
+run at worker counts 1–4. This is a bounded negative slice of the broader
+false-positive torture plan below, not full coverage of it.
 `packages/detection/test/single-pass.test.ts` instrumented server requests:
 each admitted top-level page and iframe document was fetched once at worker
 counts 1 and 4, including when frontier admission hit `maxPages`. This is a

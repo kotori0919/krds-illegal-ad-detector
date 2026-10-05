@@ -30,6 +30,15 @@ describe("semantic gate", () => {
   it("passes suspicious destinations without vocabulary", () => {
     expect(hasSuspiciousDestination("https://ads.example/casino/join")).toBe(true);
     expect(semanticGate("click here", "https://ads.example/casino/join").passed).toBe(true);
+    expect(hasSuspiciousDestination("https://casino.example/")).toBe(true);
+    expect(hasSuspiciousDestination("https://public.example/public/casino-report")).toBe(false);
+  });
+
+  it("distinguishes public reporting from an offer embedded in reporting copy", () => {
+    expect(semanticGate("카지노 가입 광고를 발견하면 신고해 주세요.").passed).toBe(false);
+    expect(semanticGate("카지노 피해 신고 안내. 신규가입 보너스 지급").passed).toBe(true);
+    expect(semanticGate("카지노 신고 없이 가입").passed).toBe(true);
+    expect(semanticGate("카지노 피해 신고 안내", "https://ads.example/casino/join").passed).toBe(true);
   });
 });
 

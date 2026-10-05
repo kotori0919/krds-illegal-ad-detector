@@ -31,6 +31,15 @@ Rules (frozen):
 
 - At least one matched ad/illegal term **or** a suspicious ad destination
   (`destinationUrl`) is required. Hidden text with no ad semantics → no finding.
+- Reporting, prevention, education, statistics and accessibility-help text can
+  name illegal activities without advertising them. When that context has no
+  concrete offer/solicitation and no ad destination, the gate rejects it even
+  if the text is hidden or uses mixed Unicode. A concrete offer or destination
+  still passes when paired with public-information wording.
+- A topic word in a public URL path is not sufficient destination evidence.
+  The current deterministic rule requires a gambling host label or both a
+  category and conversion/action route signal. Ambiguous destinations remain
+  an explicit recall/precision limit to challenge with L2 cases.
 - Legitimate hidden UI (sr-only labels, responsive nav, inactive dialogs,
   collapsed controls, app state, normal `display:none` state) must not pass
   even when concealment is present — this is the precision gate (35 pts).
