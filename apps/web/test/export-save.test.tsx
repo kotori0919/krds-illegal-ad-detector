@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { ExportDialog } from "../src/screens/ExportDialog.js";
-import type { HostBridge, OfficialResult } from "@krds-detector/contracts";
+import type { HostBridge, OfficialResult, ScanDetailBundle } from "@krds-detector/contracts";
 
 afterEach(cleanup);
 
@@ -39,6 +39,7 @@ function hostWith(over: Partial<HostBridge>): HostBridge {
       windowsIntegration: true,
     })),
     getOfficialResult: vi.fn(async () => result()),
+    getDetailBundle: vi.fn(async () => undefined),
     exportResult: vi.fn(async () => ({ resultJson: "C:\\out\\result.json" })),
     ...over,
   } as unknown as HostBridge;
@@ -51,6 +52,25 @@ function renderExport(host: HostBridge) {
 }
 
 describe("ExportDialog save semantics", () => {
+  it("names incomplete coverage while keeping a valid result savable", async () => {
+    const finding = result().findings[0]!;
+    const bundle: ScanDetailBundle = {
+      version: 2,
+      findings: [{ findingId: finding.id, url: finding.url, location: finding.location,
+        technique: finding.technique, rawText: finding.evidence_text,
+        normalizedText: "x", matchedTerms: [], techniqueReason: "fixture",
+        observed: { box: { x: 0, y: 0, width: 1, height: 1 },
+          css: { color: "black", backgroundColor: "white", opacity: "1", display: "block", fontSize: "16px", position: "static" } },
+        visual: { state: "unavailable", reason: "budget" } }],
+      coverage: { checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: true },
+    };
+    renderExport(hostWith({ getDetailBundle: vi.fn(async () => bundle) }));
+    const note = await screen.findByRole("note");
+    expect(note.textContent).toContain("확인한 페이지 6개 중 실패 1개");
+    expect(note.textContent).toContain("점검 시간 제한 도달");
+    expect((await screen.findByRole("button", { name: "파일 저장" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("cancel is a silent no-op: no file, no error, no download", async () => {
     const exportResult = vi.fn(async () => ({ resultJson: null }));
     renderExport(hostWith({ exportResult }));

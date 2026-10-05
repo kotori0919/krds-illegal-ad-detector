@@ -22,11 +22,11 @@ checks.
 | Site URL and validation | [입력 폼](https://www.krds.go.kr/html/site/global/global_08.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Labelled required URL, field error and focus, retained entry. | Packaged host and 200% browser zoom. |
 | Scope | [선택](https://www.krds.go.kr/html/site/component/component_06_01.html), [설정](https://www.krds.go.kr/html/site/global/global_08.html) | Automatic, quick, custom; custom limits disclosed when selected. | Keyboard-only choice and native request. |
 | Scan status | [피드백](https://www.krds.go.kr/html/site/component/component_07_02.html) | Real elapsed time, counts, current page, cancellation settlement. | Live status cadence with assistive technology. |
-| Result collection and category navigation | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | Finding, page and coverage views; result counts; list and empty state. | 20-finding operator review. |
+| Result collection and category navigation | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | Finding, page and coverage views; result counts; list and empty state. | Packaged Windows operator review. |
 | Technique filter | [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Immediate visible count and no-match reset. | Keyboard path in packaged app. |
 | Result search | [검색](https://www.krds.go.kr/html/site/service/service_02_03.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | One search field; query/filter retained through inspection. | Search semantics on larger real results. |
-| Finding inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Plain-language reason, raw text, source, CSS/geometry, actual JPEG when captured, unavailable state, review control, return focus. | Packaged native evidence and desktop split layout. |
-| Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html) | Result-embedded validation, technical disclosure, focus trap and return, save outcomes. | Native save/cancel on Windows; partial coverage warning. |
+| Finding inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Plain-language reason, raw text, source, CSS/geometry, actual JPEG when captured, unavailable state, review control, return focus. The list remains mounted in a desktop split view; mobile shows the inspector alone. | Packaged native evidence and assistive-technology review. |
+| Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html) | Result-embedded validation, technical disclosure, partial-coverage warning, focus trap and return, save outcomes. | Native save/cancel on Windows. |
 | Page/scan failure | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Failed page and timeout coverage with retained findings. | Inject failures in packaged app. |
 | Contextual help | [도움](https://www.krds.go.kr/html/site/global/global_02.html) | Short scope help and optional technical explanation. | Keyboard and zoom review. |
 
@@ -67,7 +67,7 @@ layout spacing and typography remain migration work.
 | --- | --- | --- |
 | Initial, loading | URL and scope visible; result/detail loading named. | React tests; browser setup and result path observed. |
 | Running | Real counts, elapsed time, page and meaningful live status. | React tests; live screen-reader cadence open. |
-| Partial, success | Valid findings retained; checked/failed pages shown. | L2 scanner fixture and result coverage view; packaged host open. |
+| Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | L2 scanner fixture, result coverage view, and synthetic browser export dialog; packaged host open. |
 | Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React and browser demo checks. |
 | Error, unavailable evidence | Name the failure and next action; no fabricated image. | React branches; native failure injection open. |
 | Disabled | Adjacent explanation and predictable focus. | Export disabled until validation; all controls need audit. |
@@ -84,16 +84,25 @@ and control target size for mixed-age operators. An unexplained deviation
 blocks release. The packaged Windows operator walk must verify the actual
 Tauri host and real scan/evidence/export.
 
-**Observed 2026-10-06:** `npm test` passed 117 tests; `npm run typecheck` and
+**Observed 2026-10-06:** `npm test` passed 118 tests; `npm run typecheck` and
 `npm run build -w apps/web` passed. `node benchmarks/ui-smoke.mjs` exercised
 the BrowserHost demo in Chromium at 360 CSS px: three stages, five findings,
 search/reset, page review, inspector focus return, export focus/Escape/return,
 and document width 360 px. A CSS `zoom: 2` check at a 720 px viewport also
 found no document overflow. This approximates reflow; it is **not native 200%
-browser zoom**. With official light color values, the same browser check measured
+browser zoom**. At 1280 px the list and inspector were simultaneously visible;
+at 360 px the inspector replaced the list and focused its heading. A separate
+synthetic Tauri IPC browser replay reviewed 20 findings through the real React
+UI using keyboard activation, retained search/filter state, and restored focus
+to the search field when a changed filter hid the inspected finding. The same
+replay showed a failed-page/time-limit warning in the export dialog while
+leaving a valid partial result savable. This
+does not verify the packaged host or real evidence. Mobile return restored the
+observed 327 px list scroll position. With official light color values, the
+same browser check measured
 body 16.18:1, primary button 4.55:1, secondary button 4.55:1 and hint 8.68:1
 contrast; primary button height was at least 44 px. BrowserHost data is a
 labelled demo, not a live scan.
 
 **Open:** native zoom, assistive technology, residual token migration,
-large-result review, and packaged Windows acceptance.
+large-result native review, and packaged Windows acceptance.

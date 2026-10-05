@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FindingDetail, HostBridge, OfficialFinding } from "@krds-detector/contracts";
 import { techniqueExplanation, techniqueLabel } from "../technique-label.js";
 
@@ -17,6 +17,9 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
   const [detail, setDetail] = useState<FindingDetail | undefined>(undefined);
   const [missing, setMissing] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => { headingRef.current?.focus(); }, [findingId]);
 
   useEffect(() => {
     let alive = true;
@@ -36,9 +39,9 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
   }, [host, sessionId, findingId]);
 
   return (
-    <main className="page">
+    <aside className="page result-inspector" aria-label="탐지 상세">
       <p className="eyebrow">결과 검토</p>
-      <h1>탐지 상세</h1>
+      <h1 ref={headingRef} tabIndex={-1}>탐지 상세</h1>
       {demoMode ? <p role="note" className="empty">브라우저 미리보기의 예시 근거입니다. 실제 사이트 점검 결과가 아닙니다.</p> : null}
       {missing ? (
         <p role="alert" className="error">
@@ -100,6 +103,6 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
           결과 목록으로
         </button>
       </div>
-    </main>
+    </aside>
   );
 }

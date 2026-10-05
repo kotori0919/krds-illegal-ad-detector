@@ -13,11 +13,31 @@ try {
   await page.getByLabel("결과 검색").fill("없는 단어");
   await page.getByText("표시 중인 탐지 0건 / 전체 5건").waitFor();
   await page.getByRole("button", { name: "검색·필터 초기화" }).click();
+  await page.getByLabel("결과 검색").fill("Ｋ카지노");
+  await page.getByLabel("기법 필터").selectOption("HOMOGLYPH");
+  await page.getByText("표시 중인 탐지 1건 / 전체 5건").waitFor();
   await page.getByRole("button", { name: "페이지별" }).click();
-  await page.getByRole("button", { name: "근거 보기" }).first().click();
+  const firstFinding = page.getByRole("button", { name: "근거 보기" }).first();
+  await firstFinding.scrollIntoViewIfNeeded();
+  const resultScrollY = await page.evaluate(() => scrollY);
+  await firstFinding.click();
+  await page.getByRole("heading", { name: "탐지 상세" }).waitFor();
+  const mobileInspector = await page.evaluate(() => ({
+    list: getComputedStyle(document.querySelector(".result-workspace-list")).display,
+    inspector: getComputedStyle(document.querySelector(".result-inspector")).display,
+    focused: document.activeElement?.textContent,
+  }));
+  if (mobileInspector.list !== "none" || mobileInspector.inspector === "none" || mobileInspector.focused !== "탐지 상세") {
+    throw new Error(`mobile inspector layout/focus: ${JSON.stringify(mobileInspector)}`);
+  }
   await page.getByRole("button", { name: "검토 완료로 표시" }).click();
   await page.getByRole("button", { name: "결과 목록으로" }).click();
+  await page.waitForFunction((saved) => Math.abs(scrollY - saved) <= 2, resultScrollY);
   await page.getByText("탐지 1건 · 검토 완료 1건").first().waitFor();
+  if (await page.getByLabel("결과 검색").inputValue() !== "Ｋ카지노"
+    || await page.getByLabel("기법 필터").inputValue() !== "HOMOGLYPH") {
+    throw new Error("search/filter context lost after inspection");
+  }
   await page.waitForFunction(() => Boolean(document.activeElement?.getAttribute("data-finding-id")), undefined, { timeout: 5000 });
   const focused = await page.evaluate(() => document.activeElement?.getAttribute("data-finding-id"));
   if (!focused) throw new Error("finding focus was not restored");
@@ -66,7 +86,19 @@ try {
   await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
   const doubled = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
   if (doubled.document > doubled.viewport) throw new Error(`2x CSS zoom overflow: ${JSON.stringify(doubled)}`);
-  console.log(JSON.stringify({ stages: 3, visibleFindings: 5, searchReset: true, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, styles, cssZoom2x: doubled }, null, 2));
+  await page.evaluate(() => { document.documentElement.style.zoom = "1"; });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByRole("button", { name: "근거 보기" }).first().click();
+  const desktopInspector = await page.evaluate(() => {
+    const list = document.querySelector(".result-workspace-list").getBoundingClientRect();
+    const detail = document.querySelector(".result-inspector").getBoundingClientRect();
+    return { listRight: list.right, detailLeft: detail.left, listVisible: list.width > 0, detailVisible: detail.width > 0 };
+  });
+  if (!desktopInspector.listVisible || !desktopInspector.detailVisible || desktopInspector.listRight >= desktopInspector.detailLeft) {
+    throw new Error(`desktop inspector not beside list: ${JSON.stringify(desktopInspector)}`);
+  }
+  await page.getByRole("button", { name: "결과 목록으로" }).click();
+  console.log(JSON.stringify({ stages: 3, visibleFindings: 5, searchReset: true, mobileInspector, desktopInspector, restoredScrollY: resultScrollY, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, styles, cssZoom2x: doubled }, null, 2));
 } finally {
   await browser.close();
 }

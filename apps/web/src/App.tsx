@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { HostBridge } from "@krds-detector/contracts";
 import { createHost } from "./host/index.js";
 import { ScanStart } from "./screens/ScanStart.js";
@@ -8,6 +8,8 @@ import type { OfficialTechnique } from "@krds-detector/contracts";
 import { EvidenceView } from "./screens/EvidenceView.js";
 import { ExportDialog } from "./screens/ExportDialog.js";
 import { stepStates, type Phase } from "./steps.js";
+
+const narrowInspector = () => window.matchMedia?.("(max-width: 63.999rem)").matches ?? false;
 
 export function App() {
   const [phase, setPhase] = useState<Phase>("start");
@@ -20,6 +22,20 @@ export function App() {
   const [resultView, setResultView] = useState<"findings" | "pages" | "coverage">("findings");
   const [reviewedIds, setReviewedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [host, setHost] = useState<HostBridge | undefined>(undefined);
+  const resultScrollY = useRef(0);
+  const scrollFrame = useRef<number | undefined>(undefined);
+
+  const scheduleScroll = useCallback((y: number) => {
+    if (scrollFrame.current !== undefined) cancelAnimationFrame(scrollFrame.current);
+    scrollFrame.current = requestAnimationFrame(() => {
+      scrollFrame.current = undefined;
+      window.scrollTo(0, y);
+    });
+  }, []);
+
+  useEffect(() => () => {
+    if (scrollFrame.current !== undefined) cancelAnimationFrame(scrollFrame.current);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -39,10 +55,14 @@ export function App() {
   const goResultFromEvidence = useCallback(() => {
     setRestoreFindingId(findingId);
     go("result");
-  }, [findingId, go]);
+    if (narrowInspector()) scheduleScroll(resultScrollY.current);
+  }, [findingId, go, scheduleScroll]);
   /** Cancel/restart resets the whole flow, so completion state resets too. */
   const goStart = useCallback(() => {
+    if (scrollFrame.current !== undefined) cancelAnimationFrame(scrollFrame.current);
+    scrollFrame.current = undefined;
     setPhase("start");
+    resultScrollY.current = 0;
     setResultQuery("");
     setResultFilter("ALL");
     setResultView("findings");
@@ -86,7 +106,9 @@ export function App() {
           onDone={goResult}
           onCancel={goStart}
         />
-      ) : phase === "result" && sessionId ? (
+      ) : (phase === "result" || phase === "evidence") && sessionId ? (
+        <div className={`result-workspace${phase === "evidence" ? " inspecting" : ""}`}>
+        <div className="result-workspace-list">
         <ScanResult
           host={host}
           sessionId={sessionId}
@@ -105,14 +127,17 @@ export function App() {
           restoreFindingId={restoreFindingId}
           onFocusRestored={() => setRestoreFindingId(undefined)}
           onEvidence={(id) => {
+            if (phase === "result" && narrowInspector()) resultScrollY.current = window.scrollY;
             setFindingId(id);
             go("evidence");
+            if (phase === "result" && narrowInspector()) scheduleScroll(0);
           }}
           onExport={() => setExportOpen(true)}
           onRestart={goStart}
         />
-      ) : phase === "evidence" && sessionId && findingId ? (
-        <EvidenceView
+        </div>
+        {phase === "evidence" && findingId ? <EvidenceView
+          key={findingId}
           host={host}
           sessionId={sessionId}
           findingId={findingId}
@@ -123,7 +148,8 @@ export function App() {
             return next;
           })}
           onBack={goResultFromEvidence}
-        />
+        /> : null}
+        </div>
       ) : (
         <ScanStart
           host={host}
@@ -134,7 +160,7 @@ export function App() {
         />
       )}
       </div>
-      {phase === "result" && exportOpen && sessionId ? (
+      {(phase === "result" || phase === "evidence") && exportOpen && sessionId ? (
         <ExportDialog host={host} sessionId={sessionId} onClose={closeExport} />
       ) : null}
     </>

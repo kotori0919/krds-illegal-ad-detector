@@ -15,6 +15,10 @@ an official result (17 findings, validator pass) and a separate detail manifest
 whose 17 IDs joined; 13 entries had JPEG data with the expected magic bytes.
 The Tauri session store, native export and Windows packaged app have not run,
 so L3 persisted-detail/export acceptance remains open.
+`benchmarks/ui-20-smoke.mjs` exercises the real React results workspace with a
+20-finding synthetic IPC fixture in Chromium: all 20 are opened and marked
+reviewed, then search/filter and fallback focus are checked. It is a UI replay,
+not an L3 native-host or L4 operator result.
 
 ## Layers and evidence
 

@@ -2,6 +2,12 @@
 
 Status: design freeze, 2026-10-05. Content is Korean by default; this is a target spec, not a statement of current rendering.
 
+Implementation note (2026-10-06): the result list now stays mounted during
+inspection; a desktop grid shows list and inspector together, and mobile shows
+the inspector with a return control. A 20-finding synthetic browser replay
+exercised review and retained search/filter context. The remaining requirements
+in this document still need verification against the packaged Windows app.
+
 ## Shared shell
 
 Header: “공공 웹사이트 불법광고 탐지”, 도움말, and the current site after start. A three-item ordered step indicator labels 점검 설정, 사이트 점검, 결과 검토. The current stage has `aria-current="step"` and a visible non-color cue. At narrow widths it may show “2/3 사이트 점검”; the full step names remain accessible. No permanent left navigation. Main heading receives focus on stage transition, never on every progress event. Minimum 44px interactive targets are the design target; text reflows at 360px and 200% zoom without horizontal page overflow.

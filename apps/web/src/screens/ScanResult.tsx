@@ -97,11 +97,13 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
     if (!result || !restoreFindingId) return;
     const target = [...document.querySelectorAll<HTMLButtonElement>("button[data-finding-id]")]
       .find((button) => button.dataset.findingId === restoreFindingId);
-    if (target) {
-      target.focus();
+    const fallback = document.getElementById("result-search")
+      ?? document.querySelector<HTMLElement>('.result-navigation button[aria-pressed="true"]');
+    if (target || fallback) {
+      (target ?? fallback)?.focus();
       onFocusRestored?.();
     }
-  }, [result, restoreFindingId, onFocusRestored, view]);
+  }, [result, restoreFindingId, onFocusRestored, view, filter, query]);
 
   // A cancelled session never produces a result: offer a fresh scan instead
   // of stranding the evaluator on an empty result list (OBSERVED on VM:
