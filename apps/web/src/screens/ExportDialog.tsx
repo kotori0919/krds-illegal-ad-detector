@@ -70,7 +70,7 @@ export function ExportDialog({ host, sessionId, onClose }: Props) {
       const identity = new Set(r.findings.map((f) => `${f.url}\0${f.location}\0${f.technique}`));
       setChecks([
         {
-          label: "스키마 (필수 fields, findings 배열)",
+          label: "결과 구조 (필수 항목과 탐지 목록)",
           passed: verdict.ok,
           detail: verdict.ok ? "meta/findings 구조가 유효합니다." : verdict.errors.join("; "),
         },
@@ -140,10 +140,8 @@ export function ExportDialog({ host, sessionId, onClose }: Props) {
         return;
       }
       setExported(out.resultJson);
-    } catch (err) {
-      // Validation and write failures surface as-is: no automatic
-      // fallback, so a false "saved" message can never follow a failure.
-      setExportError(err instanceof Error ? err.message : "내보내기에 실패했습니다.");
+    } catch {
+      setExportError("파일을 저장하지 못했습니다. 저장 위치의 권한과 남은 공간을 확인한 뒤 다시 시도해 주세요.");
     }
   }
 

@@ -82,7 +82,7 @@ describe("ExportDialog save semantics", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByText(/저장됨/)).toBeNull();
   });
-  it("write failure surfaces without a false saved message", async () => {
+  it("write failure gives a recovery action without a false saved message", async () => {
     const exportResult = vi.fn(async () => {
       throw new Error("export failed: permission denied");
     });
@@ -92,7 +92,8 @@ describe("ExportDialog save semantics", () => {
       screen.getByRole("button", { name: "파일 저장" }).click();
     });
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent ?? "").toContain("permission denied");
+    expect(alert.textContent ?? "").toContain("저장 위치의 권한과 남은 공간");
+    expect(alert.textContent ?? "").not.toContain("permission denied");
     expect(screen.queryByText(/저장됨/)).toBeNull();
   });
 

@@ -72,7 +72,7 @@ layout spacing and typography remain migration work.
 | Running | Real counts, elapsed time, page and meaningful live status. | React tests; live screen-reader cadence open. |
 | Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | L2 scanner fixture, result coverage view, and synthetic browser export dialog; packaged host open. |
 | Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React and browser demo checks. |
-| Error, unavailable evidence | Name the failure and next action; no fabricated image. | React branches; native failure injection open. |
+| Error, unavailable evidence | Name the failure and next action; no fabricated image. | React start/cancel/save rejection paths show Korean recovery actions without raw host errors; native failure injection open. |
 | Disabled | Adjacent explanation and predictable focus. | Export disabled until validation; all controls need audit. |
 | Cancellation settlement | Confirm before stopping, then await host terminal state. | React test; packaged host open. |
 | Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | React and browser dialog checks; native save open. |

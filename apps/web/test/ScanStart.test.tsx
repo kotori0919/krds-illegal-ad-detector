@@ -163,7 +163,7 @@ describe("ScanStart field validation", () => {
     fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
     submit();
     await vi.waitFor(() =>
-      expect(screen.getByText("탐지 세션을 만들지 못했습니다.")).toBeTruthy(),
+      expect(screen.getByText(/점검을 시작하지 못했습니다/)).toBeTruthy(),
     );
 
     expect(byId("entry-url").hasAttribute("aria-invalid")).toBe(false);
@@ -173,7 +173,7 @@ describe("ScanStart field validation", () => {
     ).toBe("alert");
   });
 
-  it("never renders a blank form error when the host rejection has no message", async () => {
+  it("shows an actionable Korean error without exposing host internals", async () => {
     const start = vi.fn(async () => {
       throw "sidecar exploded";
     });
@@ -181,9 +181,9 @@ describe("ScanStart field validation", () => {
     fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
     submit();
     await vi.waitFor(() =>
-      expect(document.getElementById("scan-form-error")?.textContent?.trim().length).toBeGreaterThan(0),
+      expect(document.getElementById("scan-form-error")?.textContent).toContain("앱을 다시 열고 시도해 주세요"),
     );
-    expect(document.getElementById("scan-form-error")?.textContent).toContain("sidecar exploded");
+    expect(document.getElementById("scan-form-error")?.textContent).not.toContain("sidecar exploded");
   });
 
   it("exposes min/max matching the validator bounds on the advanced limits", () => {

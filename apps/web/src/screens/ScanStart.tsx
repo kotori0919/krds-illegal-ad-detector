@@ -102,12 +102,9 @@ export function ScanStart({ host, onStarted }: Props) {
         limits,
       });
       onStarted(session.id);
-    } catch (err) {
+    } catch {
       // Not the user's URL text: report at form level so the URL input is not marked invalid.
-      // Tauri IPC errors may stringify with an empty message — fall back to
-      // the raw payload so the surfaced sidecar detail is never blank.
-      const raw = err instanceof Error ? err.message : String(err ?? "");
-      setFormError(raw.trim() ? raw : `탐지를 시작하지 못했습니다. (${String(err ?? "unknown")})`);
+      setFormError("점검을 시작하지 못했습니다. 앱을 다시 열고 시도해 주세요. 계속 실패하면 담당자에게 알려 주세요.");
     } finally {
       setBusy(false);
     }

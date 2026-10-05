@@ -94,9 +94,9 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
     try {
       await host.cancelScan(sessionId);
       // The session poll owns navigation after the host confirms settlement.
-    } catch (error) {
+    } catch {
       setCancelling(false);
-      setCancelError(error instanceof Error ? error.message : "중지 요청에 실패했습니다. 다시 시도해 주세요.");
+      setCancelError("중지 요청을 처리하지 못했습니다. 점검 상태를 확인한 뒤 다시 시도해 주세요.");
     }
   }
 

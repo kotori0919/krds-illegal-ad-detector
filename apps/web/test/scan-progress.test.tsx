@@ -188,6 +188,22 @@ describe("ScanProgress live region", () => {
     expect(screen.getByRole("button", { name: "중지 처리 중…" })).toBeDefined();
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps cancellation available after a host failure and gives a Korean recovery action", async () => {
+    const cancelScan = vi.fn(async () => { throw new Error("IPC channel closed"); });
+    setup(cancelScan);
+    await act(async () => {
+      screen.getByRole("button", { name: "점검 중지" }).click();
+    });
+    await act(async () => {
+      screen.getByRole("button", { name: "점검 중지 확인" }).click();
+    });
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "중지 요청을 처리하지 못했습니다. 점검 상태를 확인한 뒤 다시 시도해 주세요.",
+    );
+    expect(screen.getByRole("button", { name: "점검 중지" })).toBeDefined();
+  });
 });
 describe("ScanProgress per-page counters", () => {
   it("renders the exact visited-pages value from a page-visited event", () => {
