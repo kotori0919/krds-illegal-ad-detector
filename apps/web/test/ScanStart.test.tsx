@@ -37,10 +37,16 @@ function submit() {
   fireEvent.submit(document.querySelector("form") as HTMLFormElement);
 }
 
+function chooseCustom() {
+  fireEvent.click(screen.getByText("상세 설정"));
+  fireEvent.click(screen.getByLabelText("직접 설정"));
+}
+
 describe("ScanStart field validation", () => {
   it("marks the pages input, not the URL input, when the page limit is out of range", () => {
     const start = ok();
     render(<Harness startScan={start} />);
+    chooseCustom();
     fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
     fireEvent.change(byId("limit-pages"), { target: { value: "5000" } });
     submit();
@@ -58,13 +64,14 @@ describe("ScanStart field validation", () => {
     expect(start).not.toHaveBeenCalled();
   });
 
-  it("expands the collapsed 고급 설정 and focuses the depth input on an advanced-field error", () => {
+  it("focuses the depth input on a custom-scope error", () => {
     const start = ok();
     render(<Harness startScan={start} />);
+    chooseCustom();
     fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
     fireEvent.change(byId("limit-depth"), { target: { value: "99" } });
 
-    expect(advanced().open).toBe(false);
+    expect(advanced().open).toBe(true);
     submit();
 
     expect(advanced().open).toBe(true);
@@ -98,6 +105,7 @@ describe("ScanStart field validation", () => {
 
   it("rejects a non-http(s) URL and reports the timeout error on its own field", () => {
     render(<Harness startScan={ok()} />);
+    chooseCustom();
     fireEvent.change(byId("entry-url"), { target: { value: "ftp://example.kr/" } });
     fireEvent.change(byId("limit-timeout"), { target: { value: "10" } });
     submit();
@@ -136,6 +144,17 @@ describe("ScanStart field validation", () => {
     expect(byId("entry-url").hasAttribute("aria-invalid")).toBe(false);
   });
 
+  it("uses the reduced page, depth and time limits for quick scope", () => {
+    const start = ok();
+    render(<Harness startScan={start} />);
+    fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
+    fireEvent.click(screen.getByText("상세 설정"));
+    fireEvent.click(screen.getByLabelText(/빠른 점검/));
+    expect(document.getElementById("limit-pages")).toBeNull();
+    submit();
+    expect(start.mock.calls[0][0].limits).toEqual({ maxPages: 50, maxDepth: 2, timeoutSec: 600 });
+  });
+
   it("reports a host failure at form level without marking the URL input invalid", async () => {
     const start = vi.fn(async () => {
       throw new Error("탐지 세션을 만들지 못했습니다.");
@@ -169,6 +188,7 @@ describe("ScanStart field validation", () => {
 
   it("exposes min/max matching the validator bounds on the advanced limits", () => {
     render(<Harness startScan={ok()} />);
+    chooseCustom();
     expect(byId("limit-pages").getAttribute("min")).toBe("1");
     expect(byId("limit-pages").getAttribute("max")).toBe("2000");
     expect(byId("limit-depth").getAttribute("min")).toBe("0");

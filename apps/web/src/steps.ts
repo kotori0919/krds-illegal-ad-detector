@@ -1,17 +1,15 @@
-export type Phase = "start" | "progress" | "result" | "evidence" | "export";
+export type Phase = "start" | "progress" | "result" | "evidence";
+export type Stage = "start" | "progress" | "result";
 
-export const STEPS: { id: Phase; label: string }[] = [
-  { id: "start", label: "탐지 시작" },
-  { id: "progress", label: "탐지 진행" },
-  { id: "result", label: "탐지 결과" },
-  { id: "evidence", label: "탐지 근거" },
-  { id: "export", label: "검증·내보내기" },
+export const STEPS: { id: Stage; label: string }[] = [
+  { id: "start", label: "점검 설정" },
+  { id: "progress", label: "사이트 점검" },
+  { id: "result", label: "결과 검토" },
 ];
 
 export type StepState = {
-  id: Phase;
+  id: Stage;
   label: string;
-  /** Completion comes from actually visited phases, never from position. */
   done: boolean;
   /** Current phase gets aria-current="step". */
   current: boolean;
@@ -19,14 +17,14 @@ export type StepState = {
 };
 
 /**
- * Derive step states from the phases the user actually went through.
- * A skipped step (e.g. Evidence skipped via 결과 검증 from 탐지 결과) is
- * never marked done just because it is positionally behind the current step.
+ * Evidence inspection is an action inside the result stage.
  */
-export function stepStates(phase: Phase, visited: ReadonlySet<Phase>): StepState[] {
+export function stepStates(phase: Phase): StepState[] {
+  const currentStage: Stage = phase === "evidence" ? "result" : phase;
+  const currentIndex = STEPS.findIndex((step) => step.id === currentStage);
   return STEPS.map((s) => {
-    const done = visited.has(s.id) && s.id !== phase;
-    const current = s.id === phase;
+    const done = STEPS.findIndex((step) => step.id === s.id) < currentIndex;
+    const current = s.id === currentStage;
     return {
       id: s.id,
       label: s.label,

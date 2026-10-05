@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
-import { ExportView } from "../src/screens/ExportView.js";
+import { ExportDialog } from "../src/screens/ExportDialog.js";
 import type { HostBridge, OfficialResult } from "@krds-detector/contracts";
 
 afterEach(cleanup);
@@ -46,17 +46,17 @@ function hostWith(over: Partial<HostBridge>): HostBridge {
 
 function renderExport(host: HostBridge) {
   render(
-    <ExportView host={host} sessionId="s1" onBack={() => {}} onRestart={() => {}} />,
+    <ExportDialog host={host} sessionId="s1" onClose={() => {}} />,
   );
 }
 
-describe("ExportView save semantics", () => {
+describe("ExportDialog save semantics", () => {
   it("cancel is a silent no-op: no file, no error, no download", async () => {
     const exportResult = vi.fn(async () => ({ resultJson: null }));
     renderExport(hostWith({ exportResult }));
     await act(async () => {});
     await act(async () => {
-      screen.getByRole("button", { name: "result.json 저장" }).click();
+      screen.getByRole("button", { name: "파일 저장" }).click();
     });
     expect(exportResult).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("alert")).toBeNull();
@@ -69,7 +69,7 @@ describe("ExportView save semantics", () => {
     renderExport(hostWith({ exportResult }));
     await act(async () => {});
     await act(async () => {
-      screen.getByRole("button", { name: "result.json 저장" }).click();
+      screen.getByRole("button", { name: "파일 저장" }).click();
     });
     const alert = await screen.findByRole("alert");
     expect(alert.textContent ?? "").toContain("permission denied");
@@ -80,7 +80,7 @@ describe("ExportView save semantics", () => {
     renderExport(hostWith({}));
     await act(async () => {});
     await act(async () => {
-      screen.getByRole("button", { name: "result.json 저장" }).click();
+      screen.getByRole("button", { name: "파일 저장" }).click();
     });
     const status = await screen.findByRole("status");
     expect(status.textContent ?? "").toContain("C:\\out\\result.json");
@@ -102,10 +102,14 @@ describe("ExportView save semantics", () => {
     );
     const origCreate = URL.createObjectURL;
     const origRevoke = URL.revokeObjectURL;
+    const downloads: { href: string; filename: string }[] = [];
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      downloads.push({ href: this.href, filename: this.download });
+    });
     URL.createObjectURL = (() => "blob:mock") as typeof URL.createObjectURL;
     URL.revokeObjectURL = (() => {}) as typeof URL.revokeObjectURL;
     try {
-      const button = await screen.findByRole("button", { name: "result.json 저장" });
+      const button = await screen.findByRole("button", { name: "파일 저장" });
       await act(async () => {
         button.click();
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -113,10 +117,9 @@ describe("ExportView save semantics", () => {
     } finally {
       URL.createObjectURL = origCreate;
       URL.revokeObjectURL = origRevoke;
+      click.mockRestore();
     }
-    // jsdom Download: assert the download path was taken (export untouched).
-    // The component sets exported state, but the status assertion races the
-    // anchor-click navigation in jsdom; the export mock is authoritative.
+    expect(downloads).toEqual([{ href: "blob:mock", filename: "result.json" }]);
     expect(exportResult).not.toHaveBeenCalled();
   });
 });

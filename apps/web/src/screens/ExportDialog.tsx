@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   serializeOfficialResult,
   validateOfficialResultText,
@@ -9,8 +9,7 @@ import {
 interface Props {
   host: HostBridge;
   sessionId: string;
-  onBack: () => void;
-  onRestart: () => void;
+  onClose: () => void;
 }
 
 interface Check {
@@ -19,13 +18,34 @@ interface Check {
   detail: string;
 }
 
-/** Screen 5: 결과 검증 / 내보내기. Validation failure blocks release. */
-export function ExportView({ host, sessionId, onBack, onRestart }: Props) {
+/** Results-workspace confirmation dialog. Validation failure blocks save. */
+export function ExportDialog({ host, sessionId, onClose }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [result, setResult] = useState<OfficialResult | undefined>(undefined);
   const [checks, setChecks] = useState<Check[]>([]);
   const [jsonText, setJsonText] = useState("");
   const [exported, setExported] = useState<string | undefined>(undefined);
   const [exportError, setExportError] = useState<string | undefined>(undefined);
+
+  useEffect(() => { dialogRef.current?.querySelector<HTMLElement>("h2")?.focus(); }, []);
+
+  function onDialogKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+    if (event.key !== "Tab") return;
+    const controls = [...(dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), summary, [tabindex='0']") ?? [])]
+      .filter((control) => !control.closest("details:not([open])"));
+    if (controls.length === 0) return;
+    const first = controls[0]!;
+    const last = controls[controls.length - 1]!;
+    const title = dialogRef.current?.querySelector("h2");
+    if (document.activeElement === title) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+      return;
+    }
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -80,7 +100,7 @@ export function ExportView({ host, sessionId, onBack, onRestart }: Props) {
           detail: ids.size === r.findings.length ? "ID가 모두 고유합니다." : "중복된 ID가 있습니다.",
         },
       ]);
-    });
+    }).catch(() => { if (alive) setExportError("결과를 불러오지 못했습니다. 창을 닫고 다시 시도해 주세요."); });
     return () => {
       alive = false;
     };
@@ -123,15 +143,17 @@ export function ExportView({ host, sessionId, onBack, onRestart }: Props) {
   }
 
   return (
-    <main className="page">
-      <p className="eyebrow">마무리</p>
-      <h1>결과 검증 / 내보내기</h1>
+    <div className="modal-backdrop">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="export-title" className="modal-panel" onKeyDown={onDialogKeyDown}>
+      <h2 id="export-title" tabIndex={-1}>결과 파일 생성</h2>
+      <p>공식 탐지 결과를 확인한 뒤 result.json을 저장합니다.</p>
       {!result ? (
-        <p role="status">검증할 결과가 없습니다. 탐지를 먼저 실행해 주세요.</p>
+        <p role="status">검증할 결과를 불러오는 중입니다.</p>
       ) : (
         <>
+          <p>저장할 공식 탐지: {String(result.findings.length)}건</p>
           <section aria-label="검증 상태">
-            <h2>검증 상태</h2>
+            <h3>검증 상태</h3>
             <ul className="checks">
               {checks.map((c) => (
                 <li key={c.label} className={c.passed ? "pass" : "fail"}>
@@ -147,14 +169,12 @@ export function ExportView({ host, sessionId, onBack, onRestart }: Props) {
               </p>
             ) : null}
           </section>
-          <section aria-label="출력 미리보기">
-            <h2>출력 미리보기</h2>
+          <details className="advanced"><summary>기술 정보: JSON 미리보기</summary>
             <pre className="preview" tabIndex={0} aria-label="result.json 미리보기">
               {jsonText.slice(0, 4000)}
             </pre>
-          </section>
+          </details>
           <section aria-label="내보내기">
-            <h2>내보내기</h2>
             {exported ? (
               <p role="status">저장됨: {exported}</p>
             ) : (
@@ -165,20 +185,14 @@ export function ExportView({ host, sessionId, onBack, onRestart }: Props) {
                 {exportError}
               </p>
             ) : null}
-            <button type="button" onClick={download} className="primary" disabled={!allPassed}>
-              result.json 저장
-            </button>
           </section>
         </>
       )}
       <div className="actions">
-        <button type="button" onClick={onBack} className="secondary">
-          결과 목록으로
-        </button>{" "}
-        <button type="button" onClick={onRestart} className="secondary">
-          새로 검사하기
-        </button>
+        <button type="button" onClick={onClose} className="secondary">취소</button>{" "}
+        <button type="button" onClick={download} className="primary" disabled={!allPassed}>파일 저장</button>
       </div>
-    </main>
+    </div>
+    </div>
   );
 }

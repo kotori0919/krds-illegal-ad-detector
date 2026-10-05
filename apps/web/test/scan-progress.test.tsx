@@ -109,6 +109,7 @@ describe("ScanProgress live region", () => {
     const { emit } = setup();
     emit(
       event({
+        kind: "stage-changed",
         progress: {
           visitedPages: 3,
           queuedPages: 4,
@@ -121,8 +122,8 @@ describe("ScanProgress live region", () => {
         },
       }),
     );
-    expect(statusLine()).toContain("analyzing");
-    expect(statusLine()).toContain("확정된 탐지 2건");
+    expect(statusLine()).toContain("콘텐츠를 분석하는 중");
+    expect(statusLine()).toContain("탐지 후보 2건");
   });
 
   it("does not re-announce identical lines while per-page counters still update", () => {
@@ -167,11 +168,16 @@ describe("ScanProgress live region", () => {
     expect(statusLine()).toBe(before);
   });
 
-  it("stays mounted (not busy) while cancelling, then hands off once", async () => {
+  it("confirms cancellation and waits for terminal host status before leaving", async () => {
     const cancelScan = vi.fn(async () => {});
     const { onCancel } = setup(cancelScan);
     await act(async () => {
-      screen.getByRole("button", { name: "탐지 취소" }).click();
+      screen.getByRole("button", { name: "점검 중지" }).click();
+    });
+    expect(screen.getByRole("dialog", { name: "점검을 중지할까요?" })).toBeDefined();
+    expect(cancelScan).not.toHaveBeenCalled();
+    await act(async () => {
+      screen.getByRole("button", { name: "점검 중지 확인" }).click();
       await new Promise((resolve) => setTimeout(resolve, 2600));
     });
     expect(cancelScan).toHaveBeenCalledWith("s1");
@@ -179,9 +185,8 @@ describe("ScanProgress live region", () => {
     // orphaned the finally-driven onCancel on the VM. Button flips to the
     // cancelling label while the settle runs.
     expect(page().hasAttribute("aria-busy")).toBe(false);
-    expect(screen.getByRole("button", { name: "취소 중…" })).toBeDefined();
-    // on onCancel (never strand on progress).
-    expect(onCancel).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("button", { name: "중지 처리 중…" })).toBeDefined();
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });
 describe("ScanProgress per-page counters", () => {
@@ -208,7 +213,7 @@ describe("ScanProgress per-page counters", () => {
       emit(event(base));
     });
     // Exact value assertion: stays-0 passes a label check but fails here.
-    expect(statusLine()).toContain("crawling");
+    expect(statusLine()).toBe("사이트 점검을 시작했습니다.");
     const dds = [...document.querySelectorAll("dl.stats dd")].map((d) => d.textContent);
     expect(dds).toContain("3");
     expect(dds).not.toContain("0건");
@@ -224,5 +229,16 @@ describe("ScanProgress cancel poll", () => {
     });
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
-});
 
+  it("gives a failed scan a recovery action instead of a cancel control", async () => {
+    const getSession = vi.fn(async () => ({ status: "failed" as const, error: "worker exited" }));
+    const { onCancel } = setup(vi.fn(async () => {}), getSession);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2100));
+    });
+    expect(screen.getByRole("alert").textContent).toContain("다시 점검해 주세요");
+    expect(screen.queryByRole("button", { name: "점검 중지" })).toBeNull();
+    screen.getByRole("button", { name: "새로 검사하기" }).click();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+});

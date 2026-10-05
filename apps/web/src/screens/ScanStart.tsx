@@ -7,6 +7,7 @@ interface Props {
 }
 
 type FieldName = "url" | "maxPages" | "maxDepth" | "timeoutSec";
+type ScopeMode = "automatic" | "quick" | "custom";
 
 /** DOM order. The first entry carrying an error is the one focused on submit. */
 const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
@@ -14,6 +15,7 @@ const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
 export function ScanStart({ host, onStarted }: Props) {
   const [url, setUrl] = useState("");
   const [topic, setTopic] = useState("");
+  const [scopeMode, setScopeMode] = useState<ScopeMode>("automatic");
   const [maxPages, setMaxPages] = useState("200");
   const [maxDepth, setMaxDepth] = useState("4");
   const [timeoutSec, setTimeoutSec] = useState("1500");
@@ -67,16 +69,16 @@ export function ScanStart({ host, onStarted }: Props) {
         errors.url = "http(s)로 시작하는 올바른 주소를 입력해 주세요.";
       }
     }
-    const pages = Number.parseInt(maxPages, 10);
-    const depth = Number.parseInt(maxDepth, 10);
-    const timeout = Number.parseInt(timeoutSec, 10);
-    if (!Number.isFinite(pages) || pages < 1 || pages > 2000) {
+    const pages = scopeMode === "quick" ? 50 : scopeMode === "automatic" ? 200 : Number.parseInt(maxPages, 10);
+    const depth = scopeMode === "quick" ? 2 : scopeMode === "automatic" ? 4 : Number.parseInt(maxDepth, 10);
+    const timeout = scopeMode === "quick" ? 600 : scopeMode === "automatic" ? 1500 : Number.parseInt(timeoutSec, 10);
+    if (scopeMode === "custom" && (!Number.isFinite(pages) || pages < 1 || pages > 2000)) {
       errors.maxPages = "최대 페이지 수는 1부터 2000까지 입력해 주세요.";
     }
-    if (!Number.isFinite(depth) || depth < 0 || depth > 10) {
+    if (scopeMode === "custom" && (!Number.isFinite(depth) || depth < 0 || depth > 10)) {
       errors.maxDepth = "탐색 깊이는 0부터 10까지 입력해 주세요.";
     }
-    if (!Number.isFinite(timeout) || timeout < 60 || timeout > 1750) {
+    if (scopeMode === "custom" && (!Number.isFinite(timeout) || timeout < 60 || timeout > 1750)) {
       errors.timeoutSec = "제한 시간은 60초부터 1750초까지 입력해 주세요.";
     }
     if (Object.keys(errors).length > 0) {
@@ -114,14 +116,14 @@ export function ScanStart({ host, onStarted }: Props) {
   return (
     <main className="page">
       <p className="eyebrow">공공 웹사이트 불법광고 탐지</p>
-      <h1>탐지 시작</h1>
+      <h1>공공 웹사이트 점검</h1>
       <p className="lede">
         검사할 웹사이트 첫 주소를 입력하면 관련 하위 페이지를 수집하고
         게시글·댓글·iframe 내용을 검사하여 4가지 공식 은폐 기법을 판별합니다.
       </p>
       <form onSubmit={onSubmit} aria-label="탐지 시작" noValidate>
         <div className="field">
-          <label htmlFor="entry-url">검사할 웹사이트 주소</label>
+          <label htmlFor="entry-url">점검할 웹사이트 <span className="required">필수</span></label>
           <input
             id="entry-url"
             name="entry-url"
@@ -151,31 +153,24 @@ export function ScanStart({ host, onStarted }: Props) {
             </p>
           ) : null}
         </div>
-        <div className="field">
-          <label htmlFor="scan-topic">주제 (선택)</label>
-          <input
-            id="scan-topic"
-            name="scan-topic"
-            type="text"
-            value={topic}
-            onChange={(e) => {
-              setTopic(e.target.value);
-              if (formError) setFormError(undefined);
-            }}
-            placeholder="예: 2026년 10월 정기 점검"
-          />
-        </div>
+        <p className="hint">하위 페이지와 게시글·댓글, iframe을 확인합니다. 기본 점검은 최대 약 25분입니다.</p>
         {formError ? (
           <p id="scan-form-error" role="alert" className="error">
             {formError}
           </p>
         ) : null}
         <button type="submit" disabled={busy} className="primary">
-          {busy ? "시작 중…" : "탐지 시작"}
+          {busy ? "시작 중…" : "점검 시작"}
         </button>
         <details className="advanced" ref={advancedRef}>
-          <summary>고급 설정</summary>
-          <div className="advanced-grid">
+          <summary>상세 설정</summary>
+          <fieldset className="scope-options">
+            <legend>점검 범위</legend>
+            <label><input type="radio" name="scope-mode" value="automatic" checked={scopeMode === "automatic"} onChange={() => setScopeMode("automatic")} /> 자동 점검 — 최대 200페이지, 하위 4단계, 25분</label>
+            <label><input type="radio" name="scope-mode" value="quick" checked={scopeMode === "quick"} onChange={() => setScopeMode("quick")} /> 빠른 점검 — 최대 50페이지, 하위 2단계, 10분. 확인 범위가 줄어듭니다.</label>
+            <label><input type="radio" name="scope-mode" value="custom" checked={scopeMode === "custom"} onChange={() => setScopeMode("custom")} /> 직접 설정</label>
+          </fieldset>
+          {scopeMode === "custom" ? <div className="advanced-grid">
             <div className="field">
               <label htmlFor="limit-pages">최대 페이지 수</label>
               <input
@@ -260,6 +255,12 @@ export function ScanStart({ host, onStarted }: Props) {
                 </p>
               ) : null}
             </div>
+          </div> : null}
+          <div className="field">
+            <label htmlFor="scan-topic">점검 주제 (선택)</label>
+            <input id="scan-topic" name="scan-topic" type="text" value={topic}
+              onChange={(e) => { setTopic(e.target.value); if (formError) setFormError(undefined); }}
+              placeholder="예: 정기 점검" />
           </div>
           <p className="hint">
             공식 제한 30분 안에 끝나도록 기본값은 1500초입니다. 브라우저

@@ -14,6 +14,7 @@ import {
   type HostBridge,
   type HostCapabilities,
   type OfficialResult,
+  type ScanDetailBundle,
   type ScanEvent,
   type ScanEventHandler,
   type ScanRequest,
@@ -103,6 +104,11 @@ export class TauriHost implements HostBridge {
   async getExtraResult(sessionId: string): Promise<ExtraResult | undefined> {
     const invoke = await this.invoke();
     return invoke<ExtraResult | undefined>("scan_get_extra_result", { sessionId });
+  }
+
+  async getDetailBundle(sessionId: string): Promise<ScanDetailBundle | undefined> {
+    const invoke = await this.invoke();
+    return invoke<ScanDetailBundle | undefined>("scan_get_detail_bundle", { sessionId });
   }
 
   async exportResult(sessionId: string, directory: string): Promise<ExportPaths> {

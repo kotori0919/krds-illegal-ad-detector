@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { App } from "../src/App.js";
-import { STEPS, stepStates, type StepState } from "../src/steps.js";
+import { STEPS, stepStates } from "../src/steps.js";
 import type { HostBridge } from "@krds-detector/contracts";
 
 vi.mock("../src/host/index.js", () => ({
@@ -34,29 +34,30 @@ vi.mock("../src/screens/ScanResult.js", () => ({
   ScanResult: ({
     onEvidence,
     onExport,
+    onRestart,
   }: {
     onEvidence: (id: string) => void;
     onExport: () => void;
+    onRestart: () => void;
   }) => (
     <>
       <button onClick={() => onEvidence("f1")}>mock-evidence</button>
       <button onClick={onExport}>mock-skip-to-export</button>
+      <button onClick={onRestart}>mock-restart</button>
     </>
   ),
 }));
 vi.mock("../src/screens/EvidenceView.js", () => ({
-  EvidenceView: ({ onExport, onBack }: { onExport: () => void; onBack: () => void }) => (
+  EvidenceView: ({ onBack }: { onBack: () => void }) => (
     <>
-      <button onClick={onExport}>mock-evidence-export</button>
       <button onClick={onBack}>mock-evidence-back</button>
     </>
   ),
 }));
-vi.mock("../src/screens/ExportView.js", () => ({
-  ExportView: ({ onBack, onRestart }: { onBack: () => void; onRestart: () => void }) => (
+vi.mock("../src/screens/ExportDialog.js", () => ({
+  ExportDialog: ({ onClose }: { onClose: () => void }) => (
     <>
-      <button onClick={onBack}>mock-export-back</button>
-      <button onClick={onRestart}>mock-export-restart</button>
+      <button onClick={onClose}>mock-export-close</button>
     </>
   ),
 }));
@@ -72,20 +73,12 @@ function item(id: typeof STEPS[number]["id"]): HTMLElement {
 }
 
 describe("stepStates helper", () => {
-  it("skip-Evidence visitor path leaves Evidence not done", () => {
-    const states = stepStates("export", new Set(["start", "progress", "result", "export"]));
-    expect(states.find((s) => s.id === "evidence")?.className).toBe("todo");
-    expect(states.find((s) => s.current)?.id).toBe("export");
+  it("treats inspection as a result-stage action", () => {
+    expect(stepStates("evidence").map((s) => s.className)).toEqual(["done", "done", "current"]);
   });
 
-  it("full walk marks all non-current visited steps done", () => {
-    const states: StepState[] = stepStates(
-      "evidence",
-      new Set(STEPS.map((s) => s.id)),
-    );
-    for (const s of states) {
-      expect(s.className).toBe(s.id === "evidence" ? "current" : "done");
-    }
+  it("shows exactly three stages in order", () => {
+    expect(STEPS.map((s) => s.label)).toEqual(["점검 설정", "사이트 점검", "결과 검토"]);
   });
 });
 
@@ -97,10 +90,11 @@ describe("App step indicator", () => {
     expect(await screen.findByText("mock-start")).toBeTruthy();
     expect(item("start").getAttribute("aria-current")).toBe("step");
     expect(item("start").className).toBe("current");
-    expect(item("export").className).toBe("todo");
+    expect(items()).toHaveLength(3);
+    expect(item("result").className).toBe("todo");
   });
 
-  it("marks visited steps done with a non-color cue; skipped Evidence stays todo", async () => {
+  it("keeps result stage current during evidence and export", async () => {
     render(<App />);
     fireEvent.click(await screen.findByText("mock-start")); // start → progress
     expect(item("start").className).toBe("done");
@@ -108,14 +102,14 @@ describe("App step indicator", () => {
     fireEvent.click(screen.getByText("mock-done")); // progress → result
     expect(item("progress").className).toBe("done");
 
-    // Escape hatch: 결과 검증 reachable from 탐지 결과 without Evidence.
+    fireEvent.click(screen.getByText("mock-evidence"));
+    expect(item("result").getAttribute("aria-current")).toBe("step");
+    fireEvent.click(screen.getByText("mock-evidence-back"));
     fireEvent.click(screen.getByText("mock-skip-to-export"));
-    expect(item("evidence").className).toBe("todo");
-    expect(item("evidence").textContent).not.toContain("✓");
-    expect(item("evidence").textContent).not.toContain("완료");
-    expect(item("export").getAttribute("aria-current")).toBe("step");
+    expect(item("result").getAttribute("aria-current")).toBe("step");
+    expect(screen.getByText("mock-export-close")).toBeDefined();
 
-    for (const id of ["start", "progress", "result"] as const) {
+    for (const id of ["start", "progress"] as const) {
       const li = item(id);
       expect(li.className).toBe("done");
       // Perceivable without color: visible check glyph + SR-only 완료.
@@ -130,10 +124,12 @@ describe("App step indicator", () => {
     fireEvent.click(started);
     fireEvent.click(screen.getByText("mock-done"));
     fireEvent.click(screen.getByText("mock-skip-to-export"));
-    fireEvent.click(screen.getByText("mock-export-restart")); // export onRestart → start
+    fireEvent.click(screen.getByText("mock-export-close"));
+    // Closing export keeps the result stage in place.
+    expect(item("result").getAttribute("aria-current")).toBe("step");
+    fireEvent.click(screen.getByText("mock-restart"));
     expect(item("start").getAttribute("aria-current")).toBe("step");
-    for (const id of STEPS.map((s) => s.id)) {
-      if (id === "start") continue;
+    for (const id of ["progress", "result"] as const) {
       expect(item(id).className).toBe("todo");
       expect(item(id).textContent).not.toContain("✓");
     }

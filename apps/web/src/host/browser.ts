@@ -15,6 +15,7 @@ import {
   type HostBridge,
   type HostCapabilities,
   type OfficialResult,
+  type ScanDetailBundle,
   type ScanEventHandler,
   type ScanProgress,
   type ScanRequest,
@@ -126,6 +127,11 @@ export class BrowserHost implements HostBridge {
   }
 
   async getExtraResult(sessionId: string): Promise<ExtraResult | undefined> {
+    void sessionId;
+    return undefined;
+  }
+
+  async getDetailBundle(sessionId: string): Promise<ScanDetailBundle | undefined> {
     void sessionId;
     return undefined;
   }

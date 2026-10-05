@@ -13,30 +13,40 @@ interface Props {
 }
 
 const INITIAL = initialProgress("crawling");
+const stageLabel = (stage: string): string => ({
+  crawling: "페이지를 찾고 콘텐츠를 분석하는 중",
+  analyzing: "콘텐츠를 분석하는 중",
+  finalizing: "결과를 정리하는 중",
+  done: "점검 완료",
+  cancelled: "점검 중지됨",
+}[stage] ?? "점검 중");
 
 type IntervalHandle = ReturnType<typeof globalThis.setInterval>;
 
 export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
   const [progress, setProgress] = useState<ScanProgress>(INITIAL);
   const [notice, setNotice] = useState<string>(
-    `탐지를 시작했습니다. 현재 단계: ${INITIAL.stage}`,
+    "사이트 점검을 시작했습니다.",
   );
+  const [recentPage, setRecentPage] = useState<string | undefined>(undefined);
   const [cancelling, setCancelling] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelError, setCancelError] = useState<string | undefined>(undefined);
   const [finishing, setFinishing] = useState(false);
-  const [degraded, setDegraded] = useState(false);
+  const [failed, setFailed] = useState(false);
   // The host emits one event per page. Only stage / confirmed-count / message
   // transitions are worth speaking aloud; the per-page counters stay in the
   // <dl> below, which is not a live region.
   const lastSpoken = useRef<string | undefined>(undefined);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let polls = 0;
+    if (confirmCancel) confirmRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+  }, [confirmCancel]);
+
+  useEffect(() => {
     const onTick = (): void => {
-      polls += 1;
-      if (polls > 450) {
-        clearInterval(timer);
-        return;
-      }
       void host.getSession(sessionId).then((s) => {
         if (!s) return;
         if (s.status === "succeeded") {
@@ -44,7 +54,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
           clearInterval(timer);
           onDone();
         } else if (s.status === "failed") {
-          setDegraded(true);
+          setFailed(true);
           setNotice(`탐지가 실패했습니다: ${s.error ?? "알 수 없는 오류"}`);
           clearInterval(timer);
         } else if (s.status === "cancelled") {
@@ -57,10 +67,9 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
     const stop = host.onScanEvent((event) => {
       if (event.sessionId !== sessionId) return;
       setProgress(event.progress);
-      const line = event.message
-        ? `${event.message} (${event.progress.stage}, 확정된 탐지 ${event.progress.confirmedFindings}건)`
-        : `현재 단계: ${event.progress.stage}, 확정된 탐지 ${event.progress.confirmedFindings}건`;
-      if (line !== lastSpoken.current) {
+      if (event.kind === "page-visited" && event.pageUrl) setRecentPage(event.pageUrl);
+      const line = `${stageLabel(event.progress.stage)}. 확인한 페이지 ${String(event.progress.visitedPages)}개, 탐지 후보 ${String(event.progress.confirmedFindings)}건.`;
+      if (["stage-changed", "finding-confirmed", "session-failed"].includes(event.kind) && line !== lastSpoken.current) {
         lastSpoken.current = line;
         setNotice(line);
       }
@@ -77,17 +86,21 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
   }, [host, sessionId, onDone, onCancel]);
 
   async function cancel() {
+    setConfirmCancel(false);
     setCancelling(true);
-    // Stay mounted during the settle (no finishing=true): unmounting
-    // before the host confirms cancellation orphaned the finally-driven
-    // onCancel when the component was already gone (OBSERVED: cancel
-    // landed on crawling/empty instead of the start screen).
+    setNotice("점검 중지를 요청했습니다. 종료 상태를 확인하는 중입니다.");
     try {
       await host.cancelScan(sessionId);
-      await new Promise((resolve) => setTimeout(resolve, 2500));
-    } finally {
-      onCancel();
+      // The session poll owns navigation after the host confirms settlement.
+    } catch (error) {
+      setCancelling(false);
+      setCancelError(error instanceof Error ? error.message : "중지 요청에 실패했습니다. 다시 시도해 주세요.");
     }
+  }
+
+  function closeConfirmation() {
+    setConfirmCancel(false);
+    requestAnimationFrame(() => cancelButtonRef.current?.focus());
   }
 
   return (
@@ -96,14 +109,15 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
     // container busy would suppress the status region nested inside it, and
     // aria-busy would stay "true" while onDone unmounts the screen.
     <main className="page" aria-busy={finishing ? "true" : undefined}>
+      <div inert={confirmCancel}>
       <p className="eyebrow">진행 상태</p>
-      <h1>탐지 진행</h1>
+      <h1>사이트 점검</h1>
       <p role="status" aria-live="polite">
         {notice}
       </p>
-      {degraded ? (
+      {failed ? (
         <p role="alert" className="error">
-          실시간 진행 표시 없이 상태를 확인하고 있습니다.
+          이번 점검의 결과 파일을 만들지 못했습니다. 시작 주소와 접속 상태를 확인한 뒤 다시 점검해 주세요.
         </p>
       ) : null}
       <section aria-label="탐지 현황" aria-describedby="progress-hint">
@@ -113,10 +127,10 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
         <dl className="stats">
           <div>
             <dt>현재 단계</dt>
-            <dd>{progress.stage}</dd>
+            <dd>{stageLabel(progress.stage)}</dd>
           </div>
           <div>
-            <dt>방문한 페이지</dt>
+            <dt>확인한 페이지</dt>
             <dd>{progress.visitedPages}</dd>
           </div>
           <div>
@@ -143,13 +157,31 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
             <dt>경과 시간(초)</dt>
             <dd>{Math.round(progress.elapsedSec)}</dd>
           </div>
+          {recentPage ? <div><dt>최근 확인한 페이지</dt><dd>{recentPage}</dd></div> : null}
         </dl>
       </section>
       <div className="actions">
-        <button type="button" onClick={cancel} disabled={cancelling} className="secondary">
-          {cancelling ? "취소 중…" : "탐지 취소"}
-        </button>
+        {cancelError ? <p role="alert" className="error">{cancelError}</p> : null}
+        {failed ? <button type="button" onClick={onCancel} className="primary">새로 검사하기</button>
+          : <button ref={cancelButtonRef} type="button" onClick={() => setConfirmCancel(true)} disabled={cancelling} className="secondary">
+            {cancelling ? "중지 처리 중…" : "점검 중지"}
+          </button>}
       </div>
+      </div>
+      {confirmCancel ? <div className="modal-backdrop"><div ref={confirmRef} role="dialog" aria-modal="true" aria-labelledby="cancel-title" className="modal-panel"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") { event.preventDefault(); closeConfirmation(); }
+          if (event.key === "Tab") {
+            const buttons = [...(confirmRef.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
+            if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1]?.focus(); }
+            else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0]?.focus(); }
+          }
+        }}>
+        <h2 id="cancel-title">점검을 중지할까요?</h2>
+        <p>지금 중지하면 이번 점검의 결과 파일은 생성되지 않습니다.</p>
+        <div className="actions"><button type="button" className="secondary" onClick={closeConfirmation}>계속 점검</button>{" "}
+          <button type="button" className="primary" onClick={cancel}>점검 중지 확인</button></div>
+      </div></div> : null}
     </main>
   );
 }

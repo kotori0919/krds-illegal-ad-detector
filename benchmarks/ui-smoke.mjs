@@ -1,0 +1,43 @@
+/** BrowserHost interaction smoke. Run Vite on 127.0.0.1:5173 first. */
+import { chromium } from "playwright-core";
+
+const browser = await chromium.launch({ args: ["--no-sandbox"] });
+const page = await browser.newPage({ viewport: { width: 360, height: 800 } });
+try {
+  await page.goto("http://127.0.0.1:5173/", { waitUntil: "networkidle" });
+  if (await page.locator("ol.steps > li").count() !== 3) throw new Error("expected three stages");
+  await page.getByLabel("점검할 웹사이트").fill("https://example.kr/");
+  await page.getByRole("button", { name: "점검 시작" }).click();
+  await page.getByRole("heading", { name: "점검 결과" }).waitFor({ timeout: 10000 });
+  await page.getByText("표시 중인 탐지 5건 / 전체 5건").waitFor();
+  await page.getByLabel("결과 검색").fill("없는 단어");
+  await page.getByText("표시 중인 탐지 0건 / 전체 5건").waitFor();
+  await page.getByRole("button", { name: "검색·필터 초기화" }).click();
+  await page.getByRole("button", { name: "페이지별" }).click();
+  await page.getByRole("button", { name: "근거 보기" }).first().click();
+  await page.getByRole("button", { name: "검토 완료로 표시" }).click();
+  await page.getByRole("button", { name: "결과 목록으로" }).click();
+  await page.getByText("탐지 1건 · 검토 완료 1건").first().waitFor();
+  await page.waitForFunction(() => Boolean(document.activeElement?.getAttribute("data-finding-id")), undefined, { timeout: 5000 });
+  const focused = await page.evaluate(() => document.activeElement?.getAttribute("data-finding-id"));
+  if (!focused) throw new Error("finding focus was not restored");
+  await page.getByRole("button", { name: "결과 파일 생성" }).click();
+  await page.getByRole("dialog", { name: "결과 파일 생성" }).waitFor();
+  const dialogFocused = await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]')));
+  if (!dialogFocused) throw new Error("export dialog did not receive focus");
+  await page.keyboard.press("Escape");
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page.waitForFunction(() => document.activeElement?.id === "export-trigger", undefined, { timeout: 5000 });
+  const restoredExportFocus = await page.evaluate(() => document.activeElement?.id === "export-trigger");
+  if (!restoredExportFocus) throw new Error("export trigger focus was not restored");
+  const width = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+  if (width.document > width.viewport) throw new Error(`360px overflow: ${JSON.stringify(width)}`);
+  await page.screenshot({ path: "/tmp/illegal-ad-v2-results-360.png", fullPage: true });
+  await page.setViewportSize({ width: 720, height: 900 });
+  await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
+  const doubled = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
+  if (doubled.document > doubled.viewport) throw new Error(`2x CSS zoom overflow: ${JSON.stringify(doubled)}`);
+  console.log(JSON.stringify({ stages: 3, visibleFindings: 5, searchReset: true, focusRestoredTo: focused, dialogFocused, restoredExportFocus, width, cssZoom2x: doubled }, null, 2));
+} finally {
+  await browser.close();
+}
