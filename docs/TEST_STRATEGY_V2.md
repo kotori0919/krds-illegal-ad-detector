@@ -1,6 +1,20 @@
 # Test strategy V2
 
-Status: design freeze, 2026-10-05. Existing synthetic checks are retained as L1; no new scenario is claimed to have passed.
+Status: initial L2 scenario implemented and measured 2026-10-06; L3 and Windows L4 remain open.
+
+Observed Linux L2 slice: `fixtures/realistic` and
+`packages/detection/test/realistic.test.ts` exercise a municipal-style board,
+comments, live iframe, delayed element, ordinary notice/report text, and one
+404 page. At concurrency 1–4, each run produced 5 TP / 0 FP / 0 FN, 6 checked
+pages, 1 failed page, and identical official IDs. See `PERF.md` for timings.
+`packages/detection/test/single-pass.test.ts` instrumented server requests:
+each admitted top-level page and iframe document was fetched once at worker
+counts 1 and 4, including when frontier admission hit `maxPages`. This is a
+bounded L3 execution slice. A Node worker CLI run on the synthetic site wrote
+an official result (17 findings, validator pass) and a separate detail manifest
+whose 17 IDs joined; 13 entries had JPEG data with the expected magic bytes.
+The Tauri session store, native export and Windows packaged app have not run,
+so L3 persisted-detail/export acceptance remains open.
 
 ## Layers and evidence
 

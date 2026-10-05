@@ -61,6 +61,7 @@ pub struct SessionRecord {
     pub child_pid: Option<u32>,
     pub job: Option<SendJobGuard>,
     pub result_json: Option<String>,
+    pub detail_json: Option<String>,
     pub extra_json: Option<String>,
 }
 
@@ -78,6 +79,7 @@ impl SessionRecord {
             child_pid: None,
             job: None,
             result_json: None,
+            detail_json: None,
             extra_json: None,
         }
     }
@@ -173,7 +175,32 @@ impl SessionRegistry {
         true
     }
 
-    pub async fn store_result(&self, session_id: &str, canonical: String, finished_at: String) {
+    /// Host backstop for a stalled worker. The worker owns the scan clock;
+    /// this guard kills its process tree if it has not exited by the limit.
+    pub async fn terminate_at_deadline(&self, session_id: &str, finished_at: String) -> bool {
+        let mut guard = self.inner.lock().await;
+        let Some(record) = guard.get_mut(session_id) else { return false; };
+        if matches!(record.status, SessionStatus::Succeeded | SessionStatus::Failed | SessionStatus::Cancelled) {
+            return false;
+        }
+        let child = record.child.take();
+        record.job.take();
+        drop(guard);
+        if let Some(mut child) = child {
+            let _ = child.kill().await;
+            let _ = child.wait().await;
+        }
+        let mut guard = self.inner.lock().await;
+        let Some(record) = guard.get_mut(session_id) else { return false; };
+        if record.status == SessionStatus::Cancelled { return false; }
+        record.child_pid = None;
+        record.status = SessionStatus::Failed;
+        record.finished_at = Some(finished_at);
+        record.error = Some("scan deadline reached; worker process stopped".to_string());
+        true
+    }
+
+    pub async fn store_result(&self, session_id: &str, canonical: String, detail_json: String, finished_at: String) {
         let mut guard = self.inner.lock().await;
         let Some(record) = guard.get_mut(session_id) else {
             return;
@@ -183,6 +210,7 @@ impl SessionRegistry {
             return;
         }
         record.result_json = Some(canonical);
+        record.detail_json = Some(detail_json);
         record.status = SessionStatus::Succeeded;
         record.finished_at = Some(finished_at);
         record.error = None;
@@ -218,6 +246,12 @@ impl SessionRegistry {
     pub async fn result_value(&self, session_id: &str) -> Option<serde_json::Value> {
         let guard = self.inner.lock().await;
         let text = guard.get(session_id)?.result_json.clone()?;
+        serde_json::from_str(&text).ok()
+    }
+
+    pub async fn detail_value(&self, session_id: &str) -> Option<serde_json::Value> {
+        let guard = self.inner.lock().await;
+        let text = guard.get(session_id)?.detail_json.clone()?;
         serde_json::from_str(&text).ok()
     }
 
@@ -606,7 +640,7 @@ mod tests {
         let id = record.id.clone();
         registry.insert(record).await;
         registry
-            .store_result(&id, "{\"meta\":{},\"findings\":[]}\n".to_string(), "2026-10-01T00:02:00Z".to_string())
+            .store_result(&id, "{\"meta\":{},\"findings\":[]}\n".to_string(), "{}".to_string(), "2026-10-01T00:02:00Z".to_string())
             .await;
         assert!(registry.cancel(&id, "2026-10-01T00:03:00Z".to_string()).await);
         let snapshot = registry.snapshot(&id).await.expect("session snapshot");
@@ -625,7 +659,7 @@ mod tests {
         registry.insert(record).await;
         assert!(registry.cancel(&id, "2026-10-01T00:02:00Z".to_string()).await);
         registry
-            .store_result(&id, "{\"meta\":{},\"findings\":[]}\n".to_string(), "2026-10-01T00:03:00Z".to_string())
+            .store_result(&id, "{\"meta\":{},\"findings\":[]}\n".to_string(), "{}".to_string(), "2026-10-01T00:03:00Z".to_string())
             .await;
         let snapshot = registry.snapshot(&id).await.expect("session snapshot");
         assert_eq!(snapshot["status"], "cancelled");
@@ -644,7 +678,7 @@ mod tests {
         registry.insert(record).await;
         let canonical = "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[]}\n";
         registry
-            .store_result(&id, canonical.to_string(), "2026-10-01T00:01:00Z".to_string())
+            .store_result(&id, canonical.to_string(), "{}".to_string(), "2026-10-01T00:01:00Z".to_string())
             .await;
         let snapshot = registry.snapshot(&id).await.expect("session snapshot");
         assert_eq!(snapshot["status"], "succeeded");
@@ -732,7 +766,7 @@ mod tests {
         assert!(matches!(outcome, super::SessionOutcome::Cancelled));
         // A late success arriving after cancel must not flip the session.
         registry
-            .store_result(&id, "{\"meta\":{},\"findings\":[]}\n".to_string(), "2026-10-01T00:02:00Z".to_string())
+            .store_result(&id, "{\"meta\":{},\"findings\":[]}\n".to_string(), "{}".to_string(), "2026-10-01T00:02:00Z".to_string())
             .await;
         let snapshot = registry.snapshot(&id).await.expect("session snapshot");
         assert_eq!(snapshot["status"], "cancelled");

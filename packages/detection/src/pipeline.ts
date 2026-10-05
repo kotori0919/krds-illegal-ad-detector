@@ -34,6 +34,14 @@ export interface DecidedCandidate extends CandidateEvidence {
   location: string;
   url: string;
   decision: DecisionEvidence;
+  observed: { box: { x: number; y: number; width: number; height: number }; css: {
+    color: string; backgroundColor: string; opacity: string; display: string; fontSize: string; position: string;
+  } };
+  visual?: {
+    state: "available" | "unavailable"; reason?: "budget" | "capture-error";
+    capturedAt?: string; mimeType?: "image/jpeg"; dataUrl?: string;
+    viewport?: { width: number; height: number; scrollX: number; scrollY: number };
+  };
 }
 
 interface PageTextElement {
@@ -135,6 +143,7 @@ export async function detectPageCandidates(
         location,
         url: input.pageUrl,
         decision,
+        observed: { box: signal.box, css: signal.css },
       });
     }
   }

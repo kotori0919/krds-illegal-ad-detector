@@ -8,6 +8,7 @@
  * confusable delta, otherwise the signal belongs to the Jamo detector.
  */
 import type { TechniqueEvidence } from "@krds-detector/contracts";
+import { matchedAdTerms } from "./semantic.js";
 
 const FULLWIDTH_RE = /[！-～]/;
 const CYRILLIC_RE = /[Ѐ-џ]/;
@@ -32,7 +33,9 @@ export function homoglyphSignal(rawText: string): TechniqueEvidence | undefined 
   // (카.지.노, 카-지-노). Whitespace alone is NOT a split signal — normal
   // Korean text is full of spaces, and the semantic gate already folds them.
   // Firing on spaces would flag every ordinary sentence (precision gate).
-  const hasPunctSplit = /[가-힣][.・ㆍ·∙⋅‐‑‒–—_~^|/\\-][가-힣]/.test(rawText);
+  const joinedOriginal = rawText.normalize("NFKC").replace(/\s+/g, "");
+  const hasPunctSplit = /[가-힣][.・ㆍ·∙⋅‐‑‒–—_~^|/\\-][가-힣]/.test(rawText)
+    && matchedAdTerms(rawText).some((term) => !joinedOriginal.includes(term));
   const hasLeetDigit = /[a-zA-Z][40135][a-zA-Z]/.test(rawText) || /C4sino/i.test(rawText);
   if (hasPunctSplit || hasLeetDigit) {
     const normalizedText = rawText.normalize("NFKC");

@@ -111,6 +111,14 @@ describe("selector engine", () => {
         `iframe[src="${started.url}/structural/middle.html"] >>> iframe[src="${started.url}/structural/inner.html"] >>> #ad-frame-jamo`,
       );
       expect(inner?.html).toContain("ad-frame-jamo");
+      const shallow = await crawlSite({
+        entryUrl: `${started.url}/structural/outer.html`,
+        limits: { maxPages: 1, maxDepth: 0, maxFrameDepth: 1, timeoutSec: 60 },
+        settleMs: 300,
+        perPageMs: 15000,
+      });
+      expect(shallow.pages[0]?.frames.map((frame) => frame.url)).toContain(`${started.url}/structural/middle.html`);
+      expect(shallow.pages[0]?.frames.map((frame) => frame.url)).not.toContain(`${started.url}/structural/inner.html`);
     } finally {
       await started.close();
     }

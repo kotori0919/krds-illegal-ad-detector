@@ -43,6 +43,8 @@ describe("unicode detectors", () => {
 
   it("does not flag plain visible Korean as homoglyph", () => {
     expect(homoglyphSignal("정기 점검이 예정되어 있습니다.")).toBeUndefined();
+    expect(homoglyphSignal("카지노·대출 광고 신고 안내")).toBeUndefined();
+    expect(homoglyphSignal("카.지.노 가입")).toBeDefined();
   });
 
   it("flags compat and conjoining Jamo with reconstruction separate", () => {

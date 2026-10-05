@@ -1,6 +1,6 @@
 # ADR-0011: Single-pass bounded scanner and deterministic concurrency (2026-10-05)
 
-Status: accepted for design; implementation and benchmark pending. Expands ADR-0010 and supersedes the two-pass execution implied by ADR-0007. The official result shape and selector format do not change.
+Status: initial implementation and Linux L1/L2 benchmark observed 2026-10-06; Contract v0.2, full L3, and Windows gates pending. Expands ADR-0010 and supersedes the two-pass execution implied by ADR-0007. The official result shape and selector format do not change.
 
 ## Context
 

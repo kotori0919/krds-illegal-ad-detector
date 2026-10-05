@@ -13,7 +13,8 @@ superseded.
 
 `node benchmarks/concurrency.mjs` after building scanner and detection. Node
 26.8.1, x64 Linux, 15 fixture pages, 1.8 s settle, 30-page/depth-4/300 s
-limits. Each run scanned the same synthetic site. Peak RSS and CPU columns
+limits. These L1 rows predate ADR-0013 visual capture; the L2 rows below
+include it. Each run scanned the same synthetic site. Peak RSS and CPU columns
 measure the **Node driver process only**, excluding Chromium and other host
 processes; the Windows memory/CPU acceptance measurement remains open.
 
@@ -26,9 +27,32 @@ processes; the Windows memory/CPU acceptance measurement remains open.
 
 The official finding set **including assigned IDs** was byte-for-byte
 identical at all four worker counts after excluding run-specific metadata.
-This proves concurrency equivalence on L1 only. L2/L3 hostile pages, 4-vCPU/
-8-GB Windows, browser-process peak memory/CPU, and the 1200 s target remain
-unverified.
+This L1 run proves concurrency equivalence on synthetic fixtures. The L2 run
+below adds realistic page content. Full L3, 4-vCPU/8-GB Windows,
+browser-process peak memory/CPU, and the 1200 s target remain unverified.
+
+## Product V2 L2 realistic concurrency (MEASURED 2026-10-06, Linux)
+
+`node benchmarks/concurrency.mjs --realistic` serves `fixtures/realistic` on
+loopback. Municipal-style navigation, board/post/comments, an iframe, delayed
+injection, legitimate gambling-report wording, hidden accessibility UI, and
+one expected 404 page are included. Ground truth has five official findings.
+The first run exposed an FP on “카지노·대출 광고 신고 안내”; the punctuation-split
+rule was corrected, then this benchmark was rerun. Columns have the same
+Node-only memory/CPU limitation as L1 above.
+
+| Workers | Wall s | Pages/s | Peak Node RSS MiB | Node CPU % | Checked | Failed | TP/FP/FN | Validator |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 8.584 | 0.699 | 146.6 | 1.7 | 6 | 1 | 5/0/0 | PASS |
+| 2 | 5.731 | 1.047 | 147.1 | 1.1 | 6 | 1 | 5/0/0 | PASS |
+| 3 | 4.317 | 1.390 | 147.6 | 1.3 | 6 | 1 | 5/0/0 | PASS |
+| 4 | 4.316 | 1.390 | 147.9 | 1.1 | 6 | 1 | 5/0/0 | PASS |
+
+These rows include the bounded real JPEG capture added in ADR-0013. The
+official finding set, evidence text, order, and IDs matched at all four
+settings. Throughput plateaued at 3–4 workers on this six-page scenario;
+these numbers do not justify raising the 4-vCPU Windows default above 2.
+L3 persistence/detail/export and Windows memory/performance still need proof.
 
 Environment: 16 cores, 30 GB RAM, Node 26, headless Chromium. This is NOT
 the conservative baseline (Win11, i6-class, 4–6 cores, 8 GB, no GPU) — it

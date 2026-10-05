@@ -9,6 +9,7 @@
 
 import type { ScanEvent, ScanRequest, ScanSession } from "./scan.js";
 import type { ExtraResult, OfficialResult } from "./result.js";
+import type { ScanDetailBundle } from "./detail.js";
 
 export interface HostCapabilities {
   /** Arbitrary local scan via Playwright worker (Tauri only). */
@@ -56,5 +57,6 @@ export interface HostBridge {
   getSession(sessionId: string): Promise<ScanSession | undefined>;
   getOfficialResult(sessionId: string): Promise<OfficialResult | undefined>;
   getExtraResult(sessionId: string): Promise<ExtraResult | undefined>;
+  getDetailBundle(sessionId: string): Promise<ScanDetailBundle | undefined>;
   exportResult(sessionId: string, directory: string): Promise<ExportPaths>;
 }

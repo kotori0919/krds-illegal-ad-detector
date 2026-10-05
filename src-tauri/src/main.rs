@@ -104,6 +104,11 @@ async fn scan_start(
                 .join(format!("krds-result-{session_id}.json"))
                 .to_string_lossy()
                 .into_owned(),
+            "--detail-out-file".to_string(),
+            std::env::temp_dir()
+                .join(format!("krds-detail-{session_id}.json"))
+                .to_string_lossy()
+                .into_owned(),
         ];
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
         if let Err(detail) = state.registry.spawn_sidecar(&session_id, &path, &arg_refs).await {
@@ -119,9 +124,20 @@ async fn scan_start(
             let sink: session::ProgressSink = std::sync::Arc::new(move |event| {
                 let _ = forward_handle.emit("scan-event", event);
             });
-            let outcome = registry
-                .wait_sidecar_with_progress(&finished_session, sink)
-                .await;
+            let guard_sec = timeout_sec.min(1650);
+            let outcome = match tokio::time::timeout(
+                std::time::Duration::from_secs(guard_sec),
+                registry.wait_sidecar_with_progress(&finished_session, sink),
+            ).await {
+                Ok(outcome) => outcome,
+                Err(_) => {
+                    if registry.terminate_at_deadline(&finished_session, chrono::Utc::now().to_rfc3339()).await {
+                        SessionOutcome::Failed { detail: "scan deadline reached; worker process stopped".to_string() }
+                    } else {
+                        SessionOutcome::Cancelled
+                    }
+                }
+            };
             finish_session(
                 &app_handle,
                 &registry,
@@ -163,14 +179,24 @@ async fn finish_session(
 ) {
     let finished_at = chrono::Utc::now().to_rfc3339();
     let (kind, status, message): (String, String, String) = match outcome {
-        SessionOutcome::Succeeded { stdout } => match validate_sidecar_stdout(entry_url, &stdout) {
-            Ok(canonical) => {
-                registry.store_result(session_id, canonical, finished_at.clone()).await;
-                ("session-finished".into(), "succeeded".into(), "탐지가 완료되었습니다.".into())
-            }
-            Err(detail) => {
-                registry.fail(session_id, detail.clone(), finished_at.clone()).await;
-                ("session-failed".into(), "failed".into(), detail)
+        SessionOutcome::Succeeded { stdout } => {
+            let detail_path = std::env::temp_dir().join(format!("krds-detail-{session_id}.json"));
+            let detail_text = std::fs::read_to_string(&detail_path).map_err(|e| format!("detail manifest missing: {e}"));
+            let _ = std::fs::remove_file(&detail_path);
+            let validated = validate_sidecar_stdout(entry_url, &stdout).and_then(|canonical| {
+                let detail = detail_text?;
+                validate_detail_bundle(&canonical, &detail)?;
+                Ok((canonical, detail))
+            });
+            match validated {
+                Ok((canonical, detail)) => {
+                    registry.store_result(session_id, canonical, detail, finished_at.clone()).await;
+                    ("session-finished".into(), "succeeded".into(), "탐지가 완료되었습니다.".into())
+                }
+                Err(detail) => {
+                    registry.fail(session_id, detail.clone(), finished_at.clone()).await;
+                    ("session-failed".into(), "failed".into(), detail)
+                }
             }
         },
         SessionOutcome::Failed { detail } => {
@@ -196,7 +222,7 @@ async fn finish_session(
 
 #[cfg(test)]
 mod validation_tests {
-    use super::validate_sidecar_stdout;
+    use super::{validate_detail_bundle, validate_sidecar_stdout};
 
     fn good_json() -> String {
         "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[{\"id\":\"f1\",\"url\":\"https://example.kr/a\",\"is_violation\":true,\"location\":\"#a\",\"evidence_text\":\"x\",\"technique\":\"HOMOGLYPH\"}]}".to_string()
@@ -243,6 +269,20 @@ mod validation_tests {
     fn rejects_bom() {
         let bad = format!("\u{FEFF}{}", good_json());
         assert!(validate_sidecar_stdout("https://example.kr/", &bad).is_err());
+    }
+
+    #[test]
+    fn detail_manifest_must_join_the_official_finding() {
+        let detail = serde_json::json!({
+            "version": 2,
+            "findings": [{"findingId":"f1", "url":"https://example.kr/a", "location":"#a",
+                "technique":"HOMOGLYPH", "rawText":"x", "visual":{"state":"unavailable","reason":"budget"}}],
+            "coverage": {"checkedPages":1,"failedPages":[],"timedOut":false}
+        });
+        assert!(validate_detail_bundle(&good_json(), &detail.to_string()).is_ok());
+        let mut wrong = detail;
+        wrong["findings"][0]["location"] = serde_json::Value::String("#other".to_string());
+        assert!(validate_detail_bundle(&good_json(), &wrong.to_string()).is_err());
     }
 }
 
@@ -305,6 +345,46 @@ fn validate_sidecar_stdout(entry_url: &str, stdout: &str) -> Result<String, Stri
     Ok(format!("{canonical}\n"))
 }
 
+/// Bind every internal detail to a validated official finding. Visual bytes
+/// remain in the session-local manifest and never enter result.json.
+fn validate_detail_bundle(official_text: &str, detail_text: &str) -> Result<(), String> {
+    if detail_text.len() > 8_000_000 { return Err("detail manifest exceeds size limit".to_string()); }
+    let official: serde_json::Value = serde_json::from_str(official_text).map_err(|e| e.to_string())?;
+    let detail: serde_json::Value = serde_json::from_str(detail_text).map_err(|e| format!("detail manifest invalid JSON: {e}"))?;
+    if detail.get("version").and_then(|v| v.as_u64()) != Some(2) {
+        return Err("detail manifest version must be 2".to_string());
+    }
+    let expected = official["findings"].as_array().ok_or("official findings missing")?;
+    let actual = detail["findings"].as_array().ok_or("detail findings missing")?;
+    if expected.len() != actual.len() { return Err("detail finding count mismatch".to_string()); }
+    for finding in expected {
+        let id = finding["id"].as_str().ok_or("official finding id missing")?;
+        let item = actual.iter().find(|item| item["findingId"].as_str() == Some(id))
+            .ok_or(format!("detail missing official finding {id}"))?;
+        for (source, target) in [("url", "url"), ("location", "location"), ("technique", "technique"), ("evidence_text", "rawText")] {
+            if finding[source] != item[target] { return Err(format!("detail {id} {target} mismatch")); }
+        }
+        let visual = &item["visual"];
+        match visual["state"].as_str() {
+            Some("available") => {
+                let uri = visual["dataUrl"].as_str().ok_or(format!("detail {id} visual data missing"))?;
+                if !uri.starts_with("data:image/jpeg;base64,") || uri.len() > 700_000 {
+                    return Err(format!("detail {id} visual data invalid"));
+                }
+            }
+            Some("unavailable") => {
+                if visual.get("dataUrl").is_some() { return Err(format!("detail {id} unavailable visual has data")); }
+            }
+            _ => return Err(format!("detail {id} visual state invalid")),
+        }
+    }
+    let coverage = detail.get("coverage").ok_or("detail coverage missing")?;
+    let checked = coverage["checkedPages"].as_u64().ok_or("detail checkedPages missing")?;
+    let failed = coverage["failedPages"].as_array().ok_or("detail failedPages missing")?;
+    if failed.len() as u64 > checked { return Err("detail failedPages exceeds checkedPages".to_string()); }
+    Ok(())
+}
+
 #[tauri::command]
 async fn scan_cancel(
     app: tauri::AppHandle,
@@ -342,6 +422,14 @@ async fn scan_get_result(
     session_id: String,
 ) -> Result<Option<serde_json::Value>, String> {
     Ok(state.registry.result_value(&session_id).await)
+}
+
+#[tauri::command]
+async fn scan_get_detail_bundle(
+    state: State<'_, AppState>,
+    session_id: String,
+) -> Result<Option<serde_json::Value>, String> {
+    Ok(state.registry.detail_value(&session_id).await)
 }
 
 #[tauri::command]
@@ -564,6 +652,7 @@ fn main() {
             scan_cancel,
             scan_get_session,
             scan_get_result,
+            scan_get_detail_bundle,
             scan_get_extra_result,
             scan_export
         ])

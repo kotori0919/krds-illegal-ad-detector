@@ -20,6 +20,7 @@ interface WorkerArgs {
   executablePath?: string;
   channel?: string;
   outFile?: string;
+  detailOutFile?: string;
 }
 
 function parseArgs(argv: string[]): WorkerArgs {
@@ -38,6 +39,7 @@ function parseArgs(argv: string[]): WorkerArgs {
     executablePath: get("--executable-path"),
     channel: get("--channel"),
     outFile: get("--out-file"),
+    detailOutFile: get("--detail-out-file"),
   };
 }
 
@@ -52,7 +54,7 @@ async function main(): Promise<void> {
   // (the same seam the 17/17 e2e test exercises). Progress events stay on
   // stderr so stdout remains result.json only.
   const startedAt = new Date().toISOString();
-  const { json } = await scanSite({
+  const { json, detailBundle } = await scanSite({
     entryUrl: args.entryUrl,
     topic: args.topic,
     crawl: {
@@ -78,6 +80,7 @@ async function main(): Promise<void> {
   // --out-file bypasses shell redirection entirely (PowerShell `>` forces
   // UTF-16); stdout stays a fallback for piped Tauri capture (bytes).
   const text = json.endsWith("\n") ? json : `${json}\n`;
+  if (args.detailOutFile) writeFileSync(args.detailOutFile, JSON.stringify(detailBundle), "utf8");
   if (args.outFile) writeFileSync(args.outFile, text, "utf8");
   else writeFileSync(1, text);
 }

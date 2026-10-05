@@ -112,6 +112,10 @@ function isNavigable(url: string): boolean {
   return url.startsWith("http://") || url.startsWith("https://");
 }
 
+function compareExternal(a: ObservedExternal, b: ObservedExternal): number {
+  return a.url.localeCompare(b.url) || a.from.localeCompare(b.from) || a.kind.localeCompare(b.kind);
+}
+
 /** Extract iframe descriptors + anchors from a live page. */
 async function describePage(page: Page, frameDepth: number): Promise<{ links: string[]; frames: { src: string; selector: string }[] }> {
   return page.evaluate((maxDepth: number) => {
@@ -196,6 +200,11 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       if (!deadline.canStartPage()) return undefined;
       const pageStarted = Date.now();
       const page: Page = await activeContext.newPage();
+      const pageExternals: ObservedExternal[] = [];
+      const observeExternal = (external: ObservedExternal): void => {
+        pageExternals.push(external);
+        pushExternal(external);
+      };
       let pageTimer: ReturnType<typeof setTimeout> | undefined;
       // Hostile-page caps: abort oversized media/fonts, record externals.
       const seenRequests: string[] = [];
@@ -204,7 +213,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         if (!isNavigable(url)) return "abort";
         try {
           if (new URL(url).host !== entry.host) {
-            pushExternal({ url, from: next?.url ?? entry.href, kind: "resource" });
+            observeExternal({ url, from: next?.url ?? entry.href, kind: "resource" });
           }
         } catch {
           /* ignore malformed */
@@ -221,7 +230,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         if ((status >= 300 && status < 400) || status >= 400) {
           try {
             if (new URL(url).host !== entry.host) {
-              pushExternal({ url, from: page.url() || (next?.url ?? entry.href), kind: "redirect" });
+              observeExternal({ url, from: page.url() || (next?.url ?? entry.href), kind: "redirect" });
             }
           } catch {
             /* ignore */
@@ -269,42 +278,47 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             if (!fUrl || fUrl === "about:blank") continue;
             // Ancestor chain: walk parentFrame() up to main, resolving each
             // level's selector via its frameElement handle.
-            const chain: { url: string; selector: string }[] = [];
+            const chain: { src: string; selector: string }[] = [];
             let cursor = f;
             let guard = 0;
             while (cursor && cursor.parentFrame() && guard < 5) {
               let selector = "iframe";
+              let absoluteSrc = cursor.url() || fUrl;
               try {
                 const ownerHandle = await cursor.frameElement();
-                const resolved: unknown = await ownerHandle.evaluate((el: Element) => {
-                  if (el.id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(el.id)) return `#${el.id}`;
+                const resolved = await ownerHandle.evaluate((el: Element) => {
+                  const rawSrc = el.getAttribute("src");
+                  const src = rawSrc ? new URL(rawSrc, el.ownerDocument.baseURI).href : "";
+                  if (el.id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(el.id)) return { selector: `#${el.id}`, src };
                   const parent = el.parentElement;
-                  if (!parent) return "iframe";
+                  if (!parent) return { selector: "iframe", src };
                   const sibs = Array.from(parent.children).filter(
                     (s) => s.tagName.toLowerCase() === "iframe",
                   );
                   const index = sibs.indexOf(el) + 1;
-                  return el.id ? `iframe#${el.id}` : `iframe:nth-of-type(${String(index)})`;
-                }).catch(() => "iframe");
-                if (typeof resolved === "string" && resolved.length > 0) selector = resolved;
+                  return { selector: `iframe:nth-of-type(${String(index)})`, src };
+                }).catch(() => ({ selector: "iframe", src: "" }));
+                if (resolved.selector) selector = resolved.selector;
+                if (resolved.src) absoluteSrc = resolved.src;
                 await ownerHandle.dispose().catch(() => undefined);
               } catch {
-                /* cross-origin owner: keep generic selector */
+                  /* cross-origin owner: keep generic selector */
               }
-              chain.unshift({ url: cursor.url() || fUrl, selector });
+              chain.unshift({ src: absoluteSrc, selector });
               const parent = cursor.parentFrame();
               if (!parent || parent === page.mainFrame()) break;
               cursor = parent;
               guard += 1;
             }
-            if (chain.length === 0) chain.push({ url: fUrl, selector: "iframe" });
+            if (chain.length === 0) chain.push({ src: fUrl, selector: "iframe" });
+            if (chain.length > limits.maxFrameDepth) continue;
             frameSnapshots.push({
-              srcChain: chain.map((c) => c.url),
+              srcChain: chain.map((c) => c.src),
               selectorChain: chain.map((c) => c.selector),
               url: fUrl,
               html: "",
             });
-            liveFrames.push({ frame: f, srcChain: chain.map((c) => c.url), selectorChain: chain.map((c) => c.selector) });
+            liveFrames.push({ frame: f, srcChain: chain.map((c) => c.src), selectorChain: chain.map((c) => c.selector) });
           } catch {
             /* cross-origin frame: recorded via describe, content skipped */
           }
@@ -322,7 +336,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           if (!fr.src) continue;
           try {
             const abs = new URL(fr.src, finalUrl).href;
-            pushExternal({ url: abs, from: finalUrl, kind: "iframe" });
+            observeExternal({ url: abs, from: finalUrl, kind: "iframe" });
           } catch {
             /* ignore */
           }
@@ -335,7 +349,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           html: "",
           links: absoluteLinks,
           frames: frameSnapshots,
-          externals: [...externals],
+          externals: [...pageExternals].sort(compareExternal),
           duplicateContent: false,
           elapsedMs: Date.now() - pageStarted,
         };
@@ -359,7 +373,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           html: "",
           links: [],
           frames: [],
-          externals: [...externals],
+          externals: [...pageExternals].sort(compareExternal),
           duplicateContent: false,
           elapsedMs: Date.now() - pageStarted,
         };
@@ -399,7 +413,8 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   return {
     entryUrl: options.entryUrl,
     pages,
-    externals: [...queue.observedExternals, ...externals].filter(
+    externals: [...queue.observedExternals, ...externals].sort(compareExternal)
+      .filter(
       (e, i, all) => all.findIndex((x) => x.url === e.url && x.kind === e.kind) === i,
     ),
     elapsedMs: Date.now() - t0,

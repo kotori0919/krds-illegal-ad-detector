@@ -30,6 +30,7 @@ export interface ElementSignal {
   offscreen: boolean;
   offscreenDetail: string;
   box: { x: number; y: number; width: number; height: number };
+  css: { color: string; backgroundColor: string; opacity: string; display: string; fontSize: string; position: string };
 }
 
 /** Page-side collector: serializable, runs via page.evaluate. Paste-safe. */
@@ -131,6 +132,8 @@ export function collectElementSignals(inputs: ElementSignalInput[]): ElementSign
       offscreen,
       offscreenDetail: offscreenReasons.join("; ") || "in-flow geometry",
       box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      css: { color: style.color, backgroundColor: style.backgroundColor, opacity: style.opacity,
+        display: style.display, fontSize: style.fontSize, position: style.position },
     });
   }
   return out;

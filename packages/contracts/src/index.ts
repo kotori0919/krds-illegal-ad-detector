@@ -5,4 +5,5 @@ export * from "./scan.js";
 export * from "./host.js";
 export * from "./detection.js";
 export * from "./evidence.js";
+export * from "./detail.js";
 export * from "./selector.js";
