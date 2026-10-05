@@ -20,6 +20,12 @@ counts 1 and 4, including when frontier admission hit `maxPages`. This is a
 bounded L3 execution slice. A Node worker CLI run on the synthetic site wrote
 an official result (17 findings, validator pass) and a separate detail manifest
 whose 17 IDs joined; 13 entries had JPEG data with the expected magic bytes.
+`packages/detection/test/deadline-scan.test.ts` exercises the real scanner
+under a six-second global budget: a slow page becomes a typed coverage failure,
+the next queued page is not requested inside the finalization reserve, and a
+finding from a completed page remains in valid official and detail output.
+It proves that settlement path for a short local fixture, not the long-running
+Windows watchdog or app cancellation behavior.
 The Tauri session store, native export and Windows packaged app have not run,
 so L3 persisted-detail/export acceptance remains open.
 `benchmarks/ui-20-smoke.mjs` exercises the real React results workspace with a

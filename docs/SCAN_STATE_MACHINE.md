@@ -26,7 +26,7 @@ The central coordinator admits a sorted breadth-depth frontier to a bounded pool
 
 `queued → running → finalizing → succeeded` is the normal V2 path. Discovery and analysis overlap inside `running`; the UI may describe a specific current activity but must not pretend that all crawling ended before analysis began. Any active state may enter cancellation settlement, then `cancelled`; a fatal infrastructure error enters `failed`. Terminal states do not transition back to active. A new scan creates a new session. Duplicate terminal events are idempotent. The host records terminal state only after associated artifacts are readable. UI polls the canonical session record to resolve event/persistence races; events update the progress display but do not alone trigger a result route.
 
-The current worker emits page-visited both while crawling and after analysis, and `elementsAnalyzed` currently increments by found candidates. These counters must be corrected or relabelled before the V2 UI presents them as analyzed elements or completed pages. `finding-confirmed` events must carry bounded, display-safe technique/page summaries for the recent activity list; do not rely on free-form worker messages as operator copy.
+The live-page worker increments `elementsAnalyzed` from extracted elements and emits page-visited after page analysis. `finding-confirmed` events still need bounded, display-safe technique/page summaries for the recent activity list; do not rely on free-form worker messages as operator copy.
 
 ## Cancellation and retention decision
 
