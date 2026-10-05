@@ -5,9 +5,30 @@ historical. ADR-0011 now requires single-pass live-page processing, one global
 monotonic deadline, bounded concurrency (initial 2/3/4 by logical CPUs; hard
 max 4), deterministic output, and a 1–4 worker benchmark on 4-vCPU/8-GB
 Windows without GPU. Desired acceptance <=1200 s, normal budget 1500 s,
-internal guard 1650 s, official ceiling 1800 s. None of those V2 numbers has
+internal guard 1650 s, official ceiling 1800 s. Windows V2 numbers have not
 been measured yet. The earlier "parallel only if dry run demands it" stance is
 superseded.
+
+## Product V2 L1 concurrency correctness (MEASURED 2026-10-06, Linux)
+
+`node benchmarks/concurrency.mjs` after building scanner and detection. Node
+26.8.1, x64 Linux, 15 fixture pages, 1.8 s settle, 30-page/depth-4/300 s
+limits. Each run scanned the same synthetic site. Peak RSS and CPU columns
+measure the **Node driver process only**, excluding Chromium and other host
+processes; the Windows memory/CPU acceptance measurement remains open.
+
+| Workers | Wall s | Pages/s | Peak Node RSS MiB | Node CPU % | Checked | Failed | TP/FP/FN | Validator |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 27.737 | 0.541 | 149.0 | 0.9 | 15 | 0 | 17/0/0 | PASS |
+| 2 | 16.420 | 0.914 | 149.8 | 0.7 | 15 | 0 | 17/0/0 | PASS |
+| 3 | 12.788 | 1.173 | 150.6 | 1.2 | 15 | 0 | 17/0/0 | PASS |
+| 4 | 10.967 | 1.368 | 161.1 | 0.9 | 15 | 0 | 17/0/0 | PASS |
+
+The official finding set **including assigned IDs** was byte-for-byte
+identical at all four worker counts after excluding run-specific metadata.
+This proves concurrency equivalence on L1 only. L2/L3 hostile pages, 4-vCPU/
+8-GB Windows, browser-process peak memory/CPU, and the 1200 s target remain
+unverified.
 
 Environment: 16 cores, 30 GB RAM, Node 26, headless Chromium. This is NOT
 the conservative baseline (Win11, i6-class, 4–6 cores, 8 GB, no GPU) — it
@@ -33,7 +54,7 @@ re-proving recall (slower Windows hardware needs ≥1500, possibly more).
   chrome-matching lines system-wide incl. unrelated processes — count on
   clean Windows in dry run).
 
-## Budget analysis (official timeout 1800 s)
+## Historical serial budget analysis (official timeout 1800 s)
 
 Settle dominates: 15 pages × ~1.5 s ≈ 22 s crawl + ~22 s live-detect pass
 ≈ 46 s total. Linear extrapolation: ~200 pages ≈ 10 min on THIS hardware.
@@ -43,13 +64,14 @@ max limits. Mitigations (frozen defaults already conservative):
 - Defaults: maxPages 200, maxDepth 4, perPageMs 30000, global 1500 s.
 - Settle is the knob: 1500 ms → 800 ms halves wall time; delayed-injection
   recall must be re-proven at any lower value (fixture: 1200 ms delay).
-- Parallel page contexts (2–4) would cut wall ~linearly; NOT implemented —
-  complexity risk before submission; only if dry run demands it.
+- Parallel page contexts (2–4) were not implemented at the time of this
+  projection; Product V2 now implements the initial worker policy.
 - Evaluator sites are small (dozens of pages, not hundreds); the realistic
   case runs in ~1–2 min even derated ×4.
 
-Verdict: PASS with margin for realistic evaluation scale; max-limit stress
-requires the dry-run measurement on real hardware before any tuning.
+Historical verdict: projected margin for realistic evaluation scale. This
+projection is superseded by the new L1 measurements and does not establish
+Windows or max-limit acceptance.
 
 ## What remains (Phase 23 dry run)
 

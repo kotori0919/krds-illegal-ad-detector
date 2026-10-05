@@ -8,7 +8,7 @@
  * (transparent/offscreen over computed style + geometry), then emits one
  * CandidateEvidence per (element, technique) pair that passes BOTH axes.
  */
-import type { Page } from "playwright-core";
+import type { Frame, Page } from "playwright-core";
 import {
   serializeFramePath,
   type CandidateEvidence,
@@ -43,7 +43,7 @@ interface PageTextElement {
 }
 
 /** Extract leaf id-bearing text elements (containers excluded: textContent would duplicate descendants). */
-async function extractTextElements(page: Page): Promise<PageTextElement[]> {
+async function extractTextElements(page: Page | Frame): Promise<PageTextElement[]> {
   return page.evaluate(() => {
     const out: { selector: string; text: string; href?: string }[] = [];
     const els = document.querySelectorAll("[id]");
@@ -73,14 +73,15 @@ function decide(rule: string, score: number, threshold: number, detail: string):
 }
 
 export async function detectPageCandidates(
-  page: Page,
-  input: { pageUrl: string; framePath?: { src: string; selector: string }[]; baseUrl?: string },
+  page: Page | Frame,
+  input: { pageUrl: string; framePath?: { src: string; selector: string }[]; baseUrl?: string; onElementsAnalyzed?: (count: number) => void },
 ): Promise<DecidedCandidate[]> {
   const framePath = (input.framePath ?? []).map((s) => ({
     src: input.baseUrl ? normalizeFrameSrc(s.src, input.baseUrl) : s.src,
     selector: s.selector,
   }));
   const elements = await extractTextElements(page);
+  input.onElementsAnalyzed?.(elements.length);
   const payload = elements.map((e) => ({ selector: e.selector, rawText: e.text, href: e.href }));
   const signals = await page.evaluate(collectElementSignals, payload);
   const bySelector = new Map(elements.map((e) => [e.selector, e]));

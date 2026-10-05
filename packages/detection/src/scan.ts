@@ -1,5 +1,5 @@
 /**
- * End-to-end scan: crawl → detect per page (+ frames) → result engine.
+ * End-to-end scan: discover and detect on each live page → result engine.
  *
  * This is the Phase 5–10 integration seam: the Playwright crawler supplies
  * live pages, the detection pipeline scores candidates with the two-axis
@@ -7,22 +7,23 @@
  * progress flows through the optional callback using the frozen contract
  * vocabulary.
  */
-import { chromium, type Browser } from "playwright-core";
+import { performance } from "node:perf_hooks";
 import {
   initialProgress,
   type OfficialResult,
   type ScanEvent,
   type ScanProgress,
 } from "@krds-detector/contracts";
-import { crawlSite, type CrawlOptions } from "@krds-detector/scanner";
+import { crawlSite, ScanDeadline, type CrawlOptions } from "@krds-detector/scanner";
+import { DEFAULT_SCAN_LIMITS } from "@krds-detector/contracts";
 import { startFixtureServer } from "@krds-detector/synth-eval/serve.js";
-import { detectPageCandidates } from "./pipeline.js";
+import { detectPageCandidates, type DecidedCandidate } from "./pipeline.js";
 import { buildOfficialResult, serializeValidatedResult } from "./result-engine.js";
 
 export interface ScanInput {
   entryUrl: string;
   topic?: string;
-  crawl?: Omit<CrawlOptions, "entryUrl" | "events">;
+  crawl?: Omit<CrawlOptions, "entryUrl" | "events" | "deadline" | "onLivePage">;
   /** Serve fixtures in-process when set (tests / local eval). */
   fixturePort?: number;
   onEvent?: (event: ScanEvent) => void;
@@ -32,15 +33,18 @@ export interface ScanOutput {
   result: OfficialResult;
   json: string;
   pagesVisited: number;
+  failedPages: number;
+  timedOut: boolean;
 }
 
 export async function scanSite(input: ScanInput): Promise<ScanOutput> {
   const startedAt = new Date().toISOString();
-  const t0 = Date.now();
-  const sessionId = `scan-${String(t0)}`;
+  const t0 = performance.now();
+  const sessionId = `scan-${String(Date.now())}`;
+  const deadline = new ScanDeadline(input.crawl?.limits?.timeoutSec ?? DEFAULT_SCAN_LIMITS.timeoutSec);
   const progress: ScanProgress = initialProgress("crawling");
   const emit = (kind: ScanEvent["kind"], message?: string, pageUrl?: string): void => {
-    progress.elapsedSec = (Date.now() - t0) / 1000;
+    progress.elapsedSec = (performance.now() - t0) / 1000;
     input.onEvent?.({ kind, sessionId, at: new Date().toISOString(), progress: { ...progress }, message, pageUrl });
   };
 
@@ -52,11 +56,9 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     fixtureClose = started.close;
     entryUrl = `${started.url}${input.entryUrl}`;
   }
-  let browser: Browser | undefined;
   try {
-    // Crawl for discovery (same-site BFS, dedup, hostile guards).
-    // Stream per-page progress so the desktop host can show real counters
-    // (KODEX §36): the worker forwards these as scan-event IPC.
+    const allCandidates: DecidedCandidate[] = [];
+    // Discovery and detection share the same live Page, Frame tree and clock.
     const summary = await crawlSite({
       entryUrl,
       limits: input.crawl?.limits,
@@ -64,12 +66,40 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       perPageMs: input.crawl?.perPageMs,
       executablePath: input.crawl?.executablePath,
       channel: input.crawl?.channel,
+      concurrency: input.crawl?.concurrency,
+      deadline,
+      onLivePage: async (page, snapshot, liveFrames) => {
+        const collect = (found: DecidedCandidate[], url: string): void => {
+          allCandidates.push(...found);
+          progress.candidates += found.length;
+          progress.confirmedFindings += found.length;
+          if (found.length > 0) emit("finding-confirmed", `${String(found.length)} candidates on ${url}`, url);
+        };
+        collect(await detectPageCandidates(page, {
+          pageUrl: snapshot.url,
+          onElementsAnalyzed: (count) => { progress.elementsAnalyzed += count; },
+        }), snapshot.url);
+        for (const live of liveFrames) {
+          if (!deadline.canStartPage(0)) break;
+          const chain = live.srcChain.map((src, index) => ({ src, selector: live.selectorChain[index] ?? "iframe" }));
+          try {
+            const found = await detectPageCandidates(live.frame, {
+              pageUrl: live.frame.url(),
+              framePath: chain,
+              baseUrl: snapshot.finalUrl,
+              onElementsAnalyzed: (count) => { progress.elementsAnalyzed += count; },
+            });
+            progress.framesInspected += 1;
+            collect(found, live.frame.url());
+          } catch {
+            // A detached or inaccessible frame does not discard page findings.
+          }
+        }
+      },
       events: {
         onPageVisited: (snapshot) => {
-          // Real per-page state: the CURRENT page URL and the ACTUAL
-          // remaining queue depth (not a reset zero). Tests assert these.
           progress.visitedPages += 1;
-          emit("page-visited", `crawled ${String(progress.visitedPages)} pages`, snapshot.url);
+          emit("page-visited", `processed ${String(progress.visitedPages)} pages`, snapshot.url);
         },
         onPageQueued: (queued) => {
           progress.queuedPages = queued.pending;
@@ -79,62 +109,6 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     });
     progress.visitedPages = summary.pages.length;
     progress.queuedPages = 0;
-    progress.stage = "analyzing";
-    emit("stage-changed", `crawled ${String(summary.pages.length)} pages; analyzing`, entryUrl);
-
-    // Detect per discovered page in a fresh context (crawler snapshots are
-    // static HTML; live pages give computed style + geometry).
-    browser = await chromium.launch({ executablePath: input.crawl?.executablePath, channel: input.crawl?.channel, args: ["--no-sandbox"] });
-    const context = await browser.newContext();
-    const allCandidates = [];
-    for (const snapshot of summary.pages) {
-      const page = await context.newPage();
-      try {
-        await page.goto(snapshot.url, { waitUntil: "commit", timeout: 20000 });
-        const settle = input.crawl?.settleMs ?? 1500;
-        await page.waitForTimeout(Math.min(settle, 5000));
-        const found = await detectPageCandidates(page, { pageUrl: snapshot.url });
-        progress.elementsAnalyzed += found.length;
-        progress.candidates += found.length;
-        for (const c of found) allCandidates.push(c);
-        if (found.length > 0) {
-          progress.confirmedFindings += found.length;
-          emit("finding-confirmed", `${String(found.length)} candidates on ${snapshot.url}`, snapshot.url);
-        }
-        emit("page-visited", snapshot.url, snapshot.url);
-      } finally {
-        await page.close().catch(() => undefined);
-      }
-      // Frame-level detection for nested iframe ads. Crawler FrameSnapshots
-      // carry full ancestor chains; detect each frame document in place.
-      for (const frame of snapshot.frames) {
-        const chain: { src: string; selector: string }[] = frame.srcChain.map((src, i) => ({
-          src,
-          selector: frame.selectorChain[i] ?? "iframe",
-        }));
-        const framePage = await context.newPage();
-        try {
-          await framePage.goto(frame.url, { waitUntil: "commit", timeout: 20000 });
-          await framePage.waitForTimeout(500);
-          const found = await detectPageCandidates(framePage, {
-            pageUrl: frame.url,
-            framePath: chain,
-            baseUrl: snapshot.finalUrl,
-          });
-          progress.framesInspected += 1;
-          for (const c of found) allCandidates.push(c);
-          if (found.length > 0) {
-            progress.confirmedFindings += found.length;
-            emit("finding-confirmed", `${String(found.length)} frame candidates on ${frame.url}`, frame.url);
-          }
-        } finally {
-          await framePage.close().catch(() => undefined);
-        }
-      }
-    }
-    await context.close();
-    await browser.close();
-    browser = undefined;
 
     const finishedAt = new Date().toISOString();
     progress.stage = "finalizing";
@@ -146,9 +120,14 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     const json = serializeValidatedResult(result);
     progress.stage = "done";
     emit("session-finished", `done: ${String(result.findings.length)} findings`);
-    return { result, json, pagesVisited: summary.pages.length };
+    return {
+      result,
+      json,
+      pagesVisited: summary.pages.length,
+      failedPages: summary.pages.filter((page) => page.status === 0 || page.status >= 400).length,
+      timedOut: summary.timedOut,
+    };
   } finally {
-    await browser?.close().catch(() => undefined);
     await fixtureClose?.();
   }
 }

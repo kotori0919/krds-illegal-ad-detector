@@ -27,12 +27,10 @@ describe("end-to-end scan on synthetic fixtures", () => {
     // Exact rendered-counter assertions: a label-only check would pass with
     // zeros; these fail if the value stays 0 or the URL is not the page.
     expect(visited.length).toBeGreaterThan(0);
-    // Crawl emits one event per page; the analysis loop re-emits
-    // page-visited per page, so the final counter is >= the crawl count.
-    // Monotonicity + non-zero + real URL is the exactness guarantee.
+    // Single-pass processing emits one visit event per completed page.
     let last = 0;
     for (const v of visited) {
-      expect(v.pages).toBeGreaterThanOrEqual(last);
+      expect(v.pages).toBe(last + 1);
       last = v.pages;
       expect(v.url).toMatch(/^http/);
     }

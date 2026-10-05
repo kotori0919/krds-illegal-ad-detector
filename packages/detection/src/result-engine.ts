@@ -2,7 +2,7 @@
  * Result engine (GOAL Phase 10): candidates → validated OfficialResult.
  *
  * - Dedups by identity url + location + technique (KODEX §6).
- * - Assigns stable finding ids (f1, f2, … in first-seen order).
+ * - Assigns stable finding ids after canonical deduplication and sorting.
  * - Serializes BOM-free UTF-8 JSON; validates via the frozen contract
  *   validator. Any validation failure throws — release blocked.
  */
@@ -14,7 +14,12 @@ import {
   type OfficialFinding,
   type OfficialResult,
 } from "@krds-detector/contracts";
+import { normalizeUrlKey } from "@krds-detector/scanner";
 import type { DecidedCandidate } from "./pipeline.js";
+
+function compare(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
 
 export interface ResultMetaInput {
   topic: string;
@@ -31,16 +36,24 @@ export function buildOfficialResult(
   meta: ResultMetaInput,
   candidates: DecidedCandidate[],
 ): OfficialResult {
-  const seen = new Set<string>();
+  const seen = new Map<string, DecidedCandidate>();
   const findings: OfficialFinding[] = [];
-  let n = 0;
   for (const c of candidates) {
     const key = findingIdentityKey({ url: c.url, location: c.location, technique: c.technique.technique });
-    if (seen.has(key)) continue;
-    seen.add(key);
-    n += 1;
+    const previous = seen.get(key);
+    // Dynamic DOM can yield more than one text for the same official identity.
+    // Pick a stable representative rather than the first worker to finish.
+    if (!previous || compare(c.technique.rawText, previous.technique.rawText) < 0) seen.set(key, c);
+  }
+  const ordered = [...seen.values()].sort((a, b) => {
+    return compare(normalizeUrlKey(a.url), normalizeUrlKey(b.url))
+      || compare(a.location, b.location)
+      || compare(a.technique.technique, b.technique.technique)
+      || compare(a.technique.rawText, b.technique.rawText);
+  });
+  for (const [index, c] of ordered.entries()) {
     findings.push({
-      id: `f${String(n)}`,
+      id: `f${String(index + 1)}`,
       url: c.url,
       is_violation: true,
       location: c.location,

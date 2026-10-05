@@ -9,9 +9,10 @@
  * - Mutation settling: network-idle attempt + fixed settle windows so
  *   delayed (setTimeout) ad injection is observed without unbounded waits.
  */
-import { chromium, type Browser, type BrowserContext, type Page, type Request, type Response, type Route } from "playwright-core";
+import { chromium, type Browser, type BrowserContext, type Frame, type Page, type Request, type Response, type Route } from "playwright-core";
 import { DEFAULT_SCAN_LIMITS, type ScanLimits } from "@krds-detector/contracts";
-import { CrawlQueue, type ObservedExternal } from "./queue.js";
+import { CrawlQueue, type ObservedExternal, type QueuedPage } from "./queue.js";
+import { ScanDeadline, pageConcurrency } from "./deadline.js";
 import { normalizeUrl } from "./urls.js";
 
 export interface FrameSnapshot {
@@ -44,6 +45,12 @@ export interface PageSnapshot {
   elapsedMs: number;
 }
 
+export interface LiveFrame {
+  frame: Frame;
+  srcChain: string[];
+  selectorChain: string[];
+}
+
 export interface CrawlEvents {
   onPageVisited?: (snapshot: PageSnapshot) => void;
   onPageQueued?: (queued: { url: string; depth: number; pending: number }) => void;
@@ -64,6 +71,12 @@ export interface CrawlOptions {
   executablePath?: string;
   /** Installed-browser channel (e.g. msedge on Windows evaluators). */
   channel?: string;
+  /** Shared whole-scan monotonic clock; standalone crawling creates its own. */
+  deadline?: ScanDeadline;
+  /** Fixed page worker count for benchmarks (1–4); defaults to CPU policy. */
+  concurrency?: number;
+  /** Called while the first and only navigated Page remains live. */
+  onLivePage?: (page: Page, snapshot: PageSnapshot, frames: LiveFrame[]) => Promise<void>;
 }
 
 export interface CrawlSummary {
@@ -72,6 +85,19 @@ export interface CrawlSummary {
   externals: ObservedExternal[];
   elapsedMs: number;
   timedOut: boolean;
+}
+
+async function boundedMap<T, R>(items: readonly T[], concurrency: number, task: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const worker = async (): Promise<void> => {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await task(items[index] as T);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
+  return results;
 }
 
 const POPUP_BLOCK_JS = `(() => {
@@ -122,11 +148,15 @@ async function describePage(page: Page, frameDepth: number): Promise<{ links: st
 export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   const t0 = Date.now();
   const limits: ScanLimits = { ...DEFAULT_SCAN_LIMITS, ...options.limits };
+  const deadline = options.deadline ?? new ScanDeadline(limits.timeoutSec);
+  const concurrency = options.concurrency ?? pageConcurrency();
+  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 4) {
+    throw new RangeError("page concurrency must be between 1 and 4");
+  }
   const entry = normalizeUrl(options.entryUrl);
   const queue = new CrawlQueue(options.entryUrl, entry.host, {
     maxPages: limits.maxPages,
     maxDepth: limits.maxDepth,
-    timeoutSec: limits.timeoutSec,
   });
   const settleMs = options.settleMs ?? 1500;
   const perPageMs = options.perPageMs ?? 30000;
@@ -150,6 +180,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       bypassCSP: false,
       javaScriptEnabled: true,
     });
+    const activeContext = context;
     await context.addInitScript({ content: POPUP_BLOCK_JS });
     // Download suppression + popup containment, registered once.
     context.on("page", (p: Page) => {
@@ -161,15 +192,11 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       }).catch(() => undefined);
     });
 
-    let next = queue.next();
-    while (next && !queue.expired()) {
-      const remaining = queue.remainingMs();
-      if (remaining <= 0) {
-        timedOut = true;
-        break;
-      }
+    const processPage = async (next: QueuedPage): Promise<PageSnapshot | undefined> => {
+      if (!deadline.canStartPage()) return undefined;
       const pageStarted = Date.now();
-      const page: Page = await context.newPage();
+      const page: Page = await activeContext.newPage();
+      let pageTimer: ReturnType<typeof setTimeout> | undefined;
       // Hostile-page caps: abort oversized media/fonts, record externals.
       const seenRequests: string[] = [];
       const decide = (req: Request): "abort" | "continue" => {
@@ -201,20 +228,22 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           }
         }
       };
-      await page.route("**/*", (route: Route) => {
-        if (decide(route.request()) === "abort") {
-          void route.abort().catch(() => undefined);
-          return;
-        }
-        void route.continue().catch(() => undefined);
-      });
-      page.on("response", (res: Response) => {
-        onResponse(res);
-      });
-
       let snapshot: PageSnapshot | undefined;
+      const liveFrames: LiveFrame[] = [];
       try {
-        const budget = Math.min(perPageMs, Math.max(1000, remaining - 500));
+        const budget = Math.min(perPageMs, deadline.operationTimeoutMs(perPageMs));
+        if (budget < 1000) throw new Error("scan deadline reached before page navigation");
+        pageTimer = setTimeout(() => { void page.close().catch(() => undefined); }, budget);
+        page.setDefaultTimeout(budget);
+        page.setDefaultNavigationTimeout(budget);
+        await page.route("**/*", (route: Route) => {
+          if (decide(route.request()) === "abort") {
+            void route.abort().catch(() => undefined);
+            return;
+          }
+          void route.continue().catch(() => undefined);
+        });
+        page.on("response", onResponse);
         const settleBudget = Math.min(settleMs, Math.max(0, budget - 1000));
         const navStart = Date.now();
         const response = await page.goto(next.url, {
@@ -225,26 +254,19 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         // Settle clock starts at navigation start: delayed injection is a
         // wall-clock race, and domcontentloaded/networkidle already consume it.
         const waited = Date.now() - navStart;
-        if (waited < settleBudget) await page.waitForTimeout(settleBudget - waited);
+        if (waited < settleBudget) {
+          const waitMs = Math.min(settleBudget - waited, deadline.operationTimeoutMs(settleBudget));
+          if (waitMs > 0) await page.waitForTimeout(waitMs);
+        }
         // Frame snapshot after settle: resolve absolute srcs, capture nested html.
         const described = await describePage(page, limits.maxFrameDepth);
         const finalUrl = page.url();
-        let html = "";
-        try {
-          // Live DOM after settle: captures delayed/mutated injection.
-          // Raw bytes stay available via response body only for debugging.
-          html = (await page.content()).slice(0, maxBodyBytes);
-        } catch {
-          html = "";
-        }
-        const duplicateContent = queue.isDuplicateContent(html.slice(0, 65536));
         const frameSnapshots: FrameSnapshot[] = [];
         const frameEls = page.frames();
         for (const f of frameEls.slice(1, 16)) {
           try {
             const fUrl = f.url();
             if (!fUrl || fUrl === "about:blank") continue;
-            const fHtml = await f.content().catch(() => "");
             // Ancestor chain: walk parentFrame() up to main, resolving each
             // level's selector via its frameElement handle.
             const chain: { url: string; selector: string }[] = [];
@@ -280,8 +302,9 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
               srcChain: chain.map((c) => c.url),
               selectorChain: chain.map((c) => c.selector),
               url: fUrl,
-              html: fHtml.slice(0, maxBodyBytes),
+              html: "",
             });
+            liveFrames.push({ frame: f, srcChain: chain.map((c) => c.url), selectorChain: chain.map((c) => c.selector) });
           } catch {
             /* cross-origin frame: recorded via describe, content skipped */
           }
@@ -295,10 +318,6 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             }
           })
           .filter((h): h is string => h !== undefined && isNavigable(h));
-        const added = queue.discover(next.url, next.depth, absoluteLinks);
-        for (const a of added) {
-          options.events?.onPageQueued?.({ url: a.url, depth: a.depth, pending: queue.pendingCount });
-        }
         for (const fr of described.frames) {
           if (!fr.src) continue;
           try {
@@ -313,13 +332,24 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           finalUrl,
           depth: next.depth,
           status,
-          html: html.slice(0, maxBodyBytes),
+          html: "",
           links: absoluteLinks,
           frames: frameSnapshots,
           externals: [...externals],
-          duplicateContent,
+          duplicateContent: false,
           elapsedMs: Date.now() - pageStarted,
         };
+        if (options.onLivePage) await options.onLivePage(page, snapshot, liveFrames);
+        // Snapshot copies are optional evidence; official live detection has
+        // already run and gets the shared deadline first.
+        if (deadline.operationTimeoutMs(1000) > 0) {
+          snapshot.html = (await page.content().catch(() => "")).slice(0, maxBodyBytes);
+          for (let i = 0; i < liveFrames.length; i += 1) {
+            if (deadline.operationTimeoutMs(1000) <= 0) break;
+            const frame = frameSnapshots[i];
+            if (frame) frame.html = (await liveFrames[i]!.frame.content().catch(() => "")).slice(0, maxBodyBytes);
+          }
+        }
       } catch (error) {
         snapshot = {
           url: next.url,
@@ -335,18 +365,33 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         };
         void error;
       } finally {
+        if (pageTimer) clearTimeout(pageTimer);
         await page.close().catch(() => undefined);
       }
-      if (snapshot) {
+      if (!snapshot) throw new Error("page processing did not produce a snapshot");
+      return snapshot;
+    };
+
+    let frontier = queue.nextFrontier();
+    while (frontier.length > 0 && deadline.canStartPage()) {
+      const completed = await boundedMap(frontier, concurrency, processPage);
+      // boundedMap preserves frontier order even when worker completion differs.
+      for (const snapshot of completed) {
+        if (!snapshot) {
+          timedOut = true;
+          continue;
+        }
+        snapshot.duplicateContent = queue.isDuplicateContent(snapshot.html.slice(0, 65536));
         pages.push(snapshot);
         options.events?.onPageVisited?.(snapshot);
+        const added = queue.discover(snapshot.url, snapshot.depth, [...snapshot.links].sort());
+        for (const item of added) {
+          options.events?.onPageQueued?.({ url: item.url, depth: item.depth, pending: queue.pendingCount });
+        }
       }
-      if (queue.expired()) {
-        timedOut = true;
-        break;
-      }
-      next = queue.next();
+      frontier = queue.nextFrontier();
     }
+    if (frontier.length > 0 || deadline.expired() || !deadline.canStartPage()) timedOut = true;
   } finally {
     await context?.close().catch(() => undefined);
     await browser?.close().catch(() => undefined);

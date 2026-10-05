@@ -2,7 +2,8 @@
  * Bounded crawl queue (GOAL Phase 3).
  *
  * BFS by depth; same-site only; visited-key dedup; content-hash dedup hook;
- * maxPages / maxDepth / deadline enforced. External URLs are reported as
+ * maxPages / maxDepth enforced. The caller owns the one scan deadline.
+ * External URLs are reported as
  * observed infrastructure, never enqueued.
  */
 import { contentKey, isSameSite, normalizeUrlKey } from "./urls.js";
@@ -10,7 +11,6 @@ import { contentKey, isSameSite, normalizeUrlKey } from "./urls.js";
 export interface CrawlLimits {
   maxPages: number;
   maxDepth: number;
-  timeoutSec: number;
 }
 
 export interface QueuedPage {
@@ -30,15 +30,12 @@ export class CrawlQueue {
   private visited = new Set<string>();
   private seenContent = new Set<string>();
   private externals: ObservedExternal[] = [];
-  private deadlineMs: number;
 
   constructor(
     readonly entryUrl: string,
     readonly entryHost: string,
     private limits: CrawlLimits,
-    startedMs = Date.now(),
   ) {
-    this.deadlineMs = startedMs + limits.timeoutSec * 1000;
     this.enqueue(entryUrl, 0);
   }
 
@@ -52,15 +49,6 @@ export class CrawlQueue {
 
   get observedExternals(): readonly ObservedExternal[] {
     return this.externals;
-  }
-
-  expired(nowMs = Date.now()): boolean {
-    return nowMs >= this.deadlineMs;
-  }
-
-  /** Remaining budget in ms (<= 0 means exhausted). */
-  remainingMs(nowMs = Date.now()): number {
-    return this.deadlineMs - nowMs;
   }
 
   private enqueue(url: string, depth: number): boolean {
@@ -82,6 +70,18 @@ export class CrawlQueue {
     const page = this.queue.shift();
     if (page) this.visited.add(page.key);
     return page;
+  }
+
+  /** Admit one complete BFS depth in normalized URL order. */
+  nextFrontier(): QueuedPage[] {
+    this.queue.sort((a, b) => a.depth - b.depth || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    const depth = this.queue[0]?.depth;
+    if (depth === undefined) return [];
+    let count = 0;
+    while (this.queue[count]?.depth === depth) count += 1;
+    const frontier = this.queue.splice(0, count);
+    for (const page of frontier) this.visited.add(page.key);
+    return frontier;
   }
 
   /** Register discovered hrefs; returns newly enqueued same-site pages. */

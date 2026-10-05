@@ -5,7 +5,6 @@ function makeQueue(overrides = {}) {
   return new CrawlQueue("https://example.kr/", "example.kr", {
     maxPages: 10,
     maxDepth: 2,
-    timeoutSec: 60,
     ...overrides,
   });
 }
@@ -62,9 +61,4 @@ describe("CrawlQueue", () => {
     expect(q.isDuplicateContent("other body")).toBe(false);
   });
 
-  it("expires on deadline", () => {
-    const q = makeQueue({ timeoutSec: 0 });
-    expect(q.expired(Date.now() + 1)).toBe(true);
-    expect(q.remainingMs(Date.now() + 1000)).toBeLessThanOrEqual(0);
-  });
 });
