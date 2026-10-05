@@ -52,6 +52,22 @@ function renderExport(host: HostBridge) {
 }
 
 describe("ExportDialog save semantics", () => {
+  it.each(["missing", "rejected"] as const)(
+    "settles %s result loading with a recovery action and disabled save",
+    async (failure) => {
+      const getOfficialResult = vi.fn(async () => {
+        if (failure === "rejected") throw new Error("native read failed");
+        return undefined;
+      });
+      renderExport(hostWith({ getOfficialResult }));
+      const alert = await screen.findByRole("alert");
+      expect(alert.textContent).toContain("창을 닫고 다시 시도해 주세요");
+      expect(screen.queryByText("검증할 결과를 불러오는 중입니다.")).toBeNull();
+      expect((screen.getByRole("button", { name: "파일 저장" }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByRole("button", { name: "취소" })).toBeDefined();
+    },
+  );
+
   it("names incomplete coverage while keeping a valid result savable", async () => {
     const finding = result().findings[0]!;
     const bundle: ScanDetailBundle = {

@@ -23,6 +23,7 @@ interface Check {
 export function ExportDialog({ host, sessionId, onClose }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [result, setResult] = useState<OfficialResult | undefined>(undefined);
+  const [resultLoadComplete, setResultLoadComplete] = useState(false);
   const [checks, setChecks] = useState<Check[]>([]);
   const [jsonText, setJsonText] = useState("");
   const [exported, setExported] = useState<string | undefined>(undefined);
@@ -58,9 +59,8 @@ export function ExportDialog({ host, sessionId, onClose }: Props) {
       if (!alive) return;
       setResult(r);
       if (!r) {
-        setChecks([
-          { label: "결과 존재", passed: false, detail: "세션 결과가 없습니다." },
-        ]);
+        setExportError("저장할 결과를 찾지 못했습니다. 창을 닫고 다시 시도해 주세요.");
+        setResultLoadComplete(true);
         return;
       }
       const text = serializeOfficialResult(r);
@@ -105,7 +105,13 @@ export function ExportDialog({ host, sessionId, onClose }: Props) {
           detail: ids.size === r.findings.length ? "ID가 모두 고유합니다." : "중복된 ID가 있습니다.",
         },
       ]);
-    }).catch(() => { if (alive) setExportError("결과를 불러오지 못했습니다. 창을 닫고 다시 시도해 주세요."); });
+      setResultLoadComplete(true);
+    }).catch(() => {
+      if (alive) {
+        setExportError("결과를 불러오지 못했습니다. 창을 닫고 다시 시도해 주세요.");
+        setResultLoadComplete(true);
+      }
+    });
     return () => {
       alive = false;
     };
@@ -151,7 +157,9 @@ export function ExportDialog({ host, sessionId, onClose }: Props) {
       <h2 id="export-title" tabIndex={-1}>결과 파일 생성</h2>
       <p>공식 탐지 결과를 확인한 뒤 result.json을 저장합니다.</p>
       {!result ? (
-        <p role="status">검증할 결과를 불러오는 중입니다.</p>
+        resultLoadComplete
+          ? <p role="alert" className="error">{exportError}</p>
+          : <p role="status">검증할 결과를 불러오는 중입니다.</p>
       ) : (
         <>
           <p>저장할 공식 탐지: {String(result.findings.length)}건</p>

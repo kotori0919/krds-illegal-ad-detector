@@ -80,7 +80,7 @@ and reflow still need packaged-app verification.
 
 | State | Required behavior | Current evidence or gap |
 | --- | --- | --- |
-| Initial, loading | URL and scope visible; result/detail loading named. | React tests; browser setup and result path observed. |
+| Initial, loading | URL and scope visible; result/detail loading named and settled. | React tests include missing/rejected export result so the dialog exits loading with a recovery action; browser setup and result path observed. |
 | Running | Real counts, elapsed time, page and meaningful live status. | React tests; live screen-reader cadence open. |
 | Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | L2 scanner fixture, result coverage view, and synthetic browser export dialog; packaged host open. |
 | Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React and browser demo checks. |
