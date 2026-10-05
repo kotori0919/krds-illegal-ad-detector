@@ -20,6 +20,10 @@ counts 1 and 4, including when frontier admission hit `maxPages`. This is a
 bounded L3 execution slice. A Node worker CLI run on the synthetic site wrote
 an official result (17 findings, validator pass) and a separate detail manifest
 whose 17 IDs joined; 13 entries had JPEG data with the expected magic bytes.
+`packages/detection/test/cross-origin-frame.test.ts` serves the site and frame
+on different loopback origins. The real scanner requests each nested frame
+document once, emits absolute `>>>` chains for both depths, and drops the inner
+finding when `maxFrameDepth` is 1 without crawling the frame origin as a page.
 `packages/detection/test/deadline-scan.test.ts` exercises the real scanner
 under a six-second global budget: a slow page becomes a typed coverage failure,
 the next queued page is not requested inside the finalization reserve, and a

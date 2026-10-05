@@ -93,10 +93,11 @@ claim. Viewport-relative judgment uses actual boxes, not class names.
 
 ## 7. Frame analysis
 
-All frames traversed to `maxFrameDepth` (default 4); nested frames repeat
-`>>>`. Relative iframe `src` normalized via `normalizeFrameSrc` before
-emission. External ad infrastructure is observed (Resource/Creative/Domain
-nodes) but never recursively crawled.
+Live Playwright frames are inspected up to `maxFrameDepth` (default 4) and a
+15-child-frame cap per page; nested frames repeat `>>>`. Relative iframe `src`
+is normalized before emission. Cross-origin frames exposed by Playwright can
+be inspected directly without opening a second Page. External frame URLs are
+observed but never recursively crawled as site pages.
 
 ## 8. Evidence graph (observation channel)
 
