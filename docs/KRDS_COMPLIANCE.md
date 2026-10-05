@@ -39,9 +39,11 @@ collecting a user's opinion and is not the scanner's status pattern.
 
 KRDS defines **primitive → semantic → component**. Primitive values are
 references, semantic values express roles, and component values are the styles
-consumed by controls. The local primitive values now match the [KRDS HTML
-Component Kit transformed token JSON](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json)
-for the light mode; the CSS names are local mappings, not an imported package.
+consumed by controls. Color values match the [KRDS HTML Component Kit
+transformed token JSON](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json)
+for the light mode. KRDS number and typography `rem` values use a 10 px base;
+the app converts them to its 16 px root so their rendered sizes match. The CSS
+names are local mappings, not an imported package.
 Buttons, inputs, result navigation, badges, result cards and the dialog now
 consume component roles backed by semantic roles. The former flat color and
 radius aliases have been removed. The [KRDS typography guide](https://www.krds.go.kr/html/site/style/style_03.html)
@@ -49,7 +51,7 @@ specifies Pretendard GOV; the app bundles the v1.3.9 variable font under its
 [OFL license](https://github.com/orioncactus/pretendard/blob/v1.3.9/packages/pretendard-gov/dist/LICENSE.txt)
 so packaged Windows use has no font CDN dependency. The source font SHA-256 is
 `a2f477842d55918053db560007dd615ab44eab848d3aa09dd61e96b4da76210e`.
-Some layout spacing and state-specific component styles still need audit, so
+Some layout widths and state-specific component styles still need audit, so
 **full token conformance is not yet proven**.
 
 | Local primitive → semantic → component | Source KRDS role | Purpose and consumers | Deviation reason |
@@ -57,8 +59,9 @@ Some layout spacing and state-specific component styles still need audit, so
 | `primary-50` → `action` → `button-primary-fill`, `button-secondary-border`, `button-link-text`, `badge-border`, `result-navigation-active` | `mode-light.color.button.primary-fill` | Start/save, secondary and link buttons, badge, active result topic; 60/70 supply hover/pressed | Local component role names separate consumers; colors are unchanged. |
 | `gray-5` → `surface-subtle` → `result-card-surface` | `mode-light.color.surface.gray-subtler` | Page groups (`#f4f5f6`) | None. |
 | `danger-60` → `error` | `mode-light.color.text.danger` | Form, export and status errors (`#bd2c0f`) | Generic error text currently consumes the semantic role; error text accompanies color. |
-| `number-4` → `radius-control` → `input-radius`, `button-radius`, `filter-radius` | `semantic.radius.medium2` | Control and result group corners (`0.6rem`) | None. |
-| `number-5/6/7/8` → `padding-3/4/5/6` → button/input padding | `semantic.padding.3/4/5/6` | Control and result workspace spacing | None for controls; remaining layout numbers need audit. |
+| `number-4` → `radius-control` → `input-radius`, `button-radius`, `filter-radius` | `semantic.radius.medium2` | Control and result group corners (6 px) | App-root rem conversion preserves the KRDS pixel value. |
+| `number-5/6/7/8` → `padding-3/4/5/6` → button/input padding | `semantic.padding.3/4/5/6` | Control and result workspace spacing | Rem values are converted to preserve the official pixel scale. |
+| `number-16` → `size-control` → button/input minimum height | `semantic.size-height.7` | 48 px button and input targets for mixed-age operators | Local component role selects the KRDS 48 px size tier. |
 | `alpha-black-75` → `overlay-scrim` → `dialog-scrim` | `mode-light.color.background.dim` | Export dialog backdrop (`#000000bf`) | None. |
 | 13/15/17/19/24/32px type values → `font-body-*` / `font-heading-*` → badge, step, card title, check detail and preview | `responsive-pc.font-size.body` / `heading` in the [transformed tokens](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json) | Body, hints, headings, result and dialog text | Numeric rem values are converted from KRDS's 10px base to this app's 16px root; rendered sizes preserve KRDS roles without changing the user's root font setting. |
 | `Pretendard GOV Variable` → `font-family` → body text | `primitive.typo.font` | All product text | Bundled font file replaces a network-dependent font source. |
@@ -68,8 +71,10 @@ purpose, consuming components, and reason for deviation. The local button,
 input, badge and result-navigation roles map existing KRDS semantic colors
 without changing their values. The release audit
 must inspect computed styles for representative normal, focus, disabled and
-error controls and trace each value through the three levels. Residual raw
-layout spacing remains migration work.
+error controls and trace each value through the three levels. The 52 rem
+reading column, 90 rem split workspace, 42 rem modal width and 64 rem split
+breakpoint are local layout limits for the operator workflow; their widths
+and reflow still need packaged-app verification.
 
 ## State coverage
 
@@ -108,15 +113,16 @@ to the search field when a changed filter hid the inspected finding. The same
 replay showed a failed-page/time-limit warning in the export dialog while
 leaving a valid partial result savable. This
 does not verify the packaged host or real evidence. After the typography
-change, mobile return restored the observed 366 px list scroll position.
+change and KRDS spacing conversion, mobile return restored the observed
+298 px list scroll position.
 With official light color values, the
 same browser check measured
 body 16.18:1, primary button 4.55:1, secondary button 4.55:1 and hint 8.68:1
-contrast; primary button height was at least 44 px. BrowserHost data is a
+contrast; primary button and URL input each measured 48 px tall. BrowserHost data is a
 labelled demo, not a live scan.
 The same Chromium smoke now checks that the bundled Pretendard GOV variable
 font reaches the loaded state and computes to a 17 px body size; the 360 px
 layout and 200% CSS zoom checks still pass after the typography change.
 
-**Open:** native zoom, assistive technology, residual layout token audit,
+**Open:** native zoom, assistive technology, local layout limit audit,
 large-result native review, and packaged Windows acceptance.

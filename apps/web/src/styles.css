@@ -30,17 +30,19 @@
   --krds-primitive-type-size-19: 1.1875rem;
   --krds-primitive-type-size-24: 1.5rem;
   --krds-primitive-type-size-32: 2rem;
-  --krds-primitive-number-2: 0.2rem;
-  --krds-primitive-number-3: 0.4rem;
-  --krds-primitive-number-4: 0.6rem;
-  --krds-primitive-number-5: 0.8rem;
-  --krds-primitive-number-6: 1rem;
-  --krds-primitive-number-7: 1.2rem;
-  --krds-primitive-number-8: 1.6rem;
-  --krds-primitive-number-10: 2.4rem;
-  --krds-primitive-number-11: 2.8rem;
-  --krds-primitive-number-14: 4rem;
-  --krds-primitive-number-max: 100rem;
+  /* KRDS number tokens are authored on a 10px rem base. Keep their rendered
+     pixel values while retaining the user's 16px root for text scaling. */
+  --krds-primitive-number-2: 0.125rem;
+  --krds-primitive-number-3: 0.25rem;
+  --krds-primitive-number-4: 0.375rem;
+  --krds-primitive-number-5: 0.5rem;
+  --krds-primitive-number-6: 0.625rem;
+  --krds-primitive-number-7: 0.75rem;
+  --krds-primitive-number-8: 1rem;
+  --krds-primitive-number-10: 1.5rem;
+  --krds-primitive-number-14: 2.5rem;
+  --krds-primitive-number-16: 3rem;
+  --krds-primitive-number-max: 62.5rem;
 
   --krds-semantic-surface: var(--krds-primitive-gray-0);
   --krds-semantic-font-family: var(--krds-primitive-font-family);
@@ -69,7 +71,7 @@
   --krds-semantic-padding-control-x: var(--krds-semantic-padding-5);
   --krds-semantic-padding-input-y: var(--krds-semantic-padding-3);
   --krds-semantic-padding-input-x: var(--krds-semantic-padding-3);
-  --krds-semantic-size-control: var(--krds-primitive-number-11);
+  --krds-semantic-size-control: var(--krds-primitive-number-16);
   --krds-semantic-padding-1: var(--krds-primitive-number-2);
   --krds-semantic-padding-2: var(--krds-primitive-number-3);
   --krds-semantic-padding-3: var(--krds-primitive-number-5);
@@ -81,6 +83,7 @@
   --krds-semantic-gap-2: var(--krds-primitive-number-3);
   --krds-semantic-gap-3: var(--krds-primitive-number-5);
   --krds-semantic-gap-4: var(--krds-primitive-number-7);
+  --krds-semantic-gap-7: var(--krds-primitive-number-10);
 
   --krds-component-result-card-surface: var(--krds-semantic-surface-subtle);
   --krds-component-result-card-border: var(--krds-semantic-border-subtle);
@@ -104,6 +107,7 @@
   --krds-component-input-text: var(--krds-semantic-text);
   --krds-component-input-padding-y: var(--krds-semantic-padding-input-y);
   --krds-component-input-padding-x: var(--krds-semantic-padding-input-x);
+  --krds-component-input-min-height: var(--krds-semantic-size-control);
   --krds-component-badge-radius: var(--krds-semantic-radius-pill);
   --krds-component-badge-border: var(--krds-semantic-action);
   --krds-component-badge-text: var(--krds-semantic-action);
@@ -141,18 +145,18 @@ body {
   color: var(--krds-semantic-text-secondary);
   font-size: var(--krds-semantic-font-body-small);
   font-weight: 700;
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--krds-semantic-gap-2);
 }
 
 h1 {
   font-size: var(--krds-semantic-font-heading-large);
   line-height: 1.5;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--krds-semantic-gap-4);
 }
 
 h2 {
   font-size: var(--krds-semantic-font-heading-medium);
-  margin: 1.75rem 0 0.5rem;
+  margin: var(--krds-semantic-gap-7) 0 var(--krds-semantic-gap-3);
 }
 
 .lede {
@@ -172,7 +176,7 @@ h2 {
 label {
   display: block;
   font-weight: 700;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--krds-semantic-gap-2);
 }
 
 input[type="text"],
@@ -180,6 +184,7 @@ input[type="search"],
 input[inputmode="numeric"],
 select {
   width: 100%;
+  min-height: var(--krds-component-input-min-height);
   padding: var(--krds-component-input-padding-y) var(--krds-component-input-padding-x);
   border: 1px solid var(--krds-component-input-border);
   border-radius: var(--krds-component-input-radius);
@@ -287,7 +292,7 @@ h1:focus {
 
 .scope-options input {
   flex: none;
-  margin-top: 0.4rem;
+  margin-top: var(--krds-semantic-gap-2);
 }
 
 .required {
