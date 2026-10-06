@@ -10,6 +10,15 @@ Run on the cleanest available Windows 11 environment. Record each line
 PASS/FAIL with evidence (commit SHA, exe hash, OS/toolchain versions,
 command, input, expected/actual, original log or artifact path).
 
+Current Product V2 gate (2026-10-06): NSIS content, clean-account operator
+flow and Windows concurrency 1–4 measurements remain **UNVERIFIED**. The
+locally staged Node/Playwright runtime and Windows GNU `cargo check` do not
+replace those checks. `virsh domstate clean11` reports `shut off`, while
+QEMU PID 1252614 is still live with its VNC port open; a read-only VNC
+capture showed a black frame. The existing VM disk is held by that process.
+No termination, resume or disk mutation was performed. The historical
+records below describe their named builds only.
+
 ## A. Release unpack (no dev tooling)
 
 Status 2026-10-02 (Windows 11 VM, gnu-lane exe — NSIS PENDING):
