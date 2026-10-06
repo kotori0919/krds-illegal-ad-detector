@@ -1,5 +1,6 @@
 /** Contract v0.2: session-local evidence, separate from official result.json. */
 import type { OfficialTechnique } from "./technique.js";
+import type { DecisionEvidence } from "./detection.js";
 import type { ExtraResult, OfficialResult, ValidationOutcome } from "./result.js";
 
 export interface FindingDetail {
@@ -13,6 +14,8 @@ export interface FindingDetail {
   techniqueReason: string;
   destinationUrl?: string;
   observed: {
+    /** Unique source of CSS/geometry when an inline descendant carries the signal. */
+    selector?: string;
     box: { x: number; y: number; width: number; height: number };
     css: { color: string; backgroundColor: string; opacity: string; display: string; fontSize: string; position: string };
   };
@@ -36,6 +39,26 @@ export interface ScanCoverage {
   checkedPages: number;
   failedPages: { url: string; status: number; reason: string }[];
   timedOut: boolean;
+  cancelled?: boolean;
+}
+
+export interface PageOutcome {
+  url: string;
+  finalUrl: string;
+  status: number;
+  depth: number;
+  outcome: "checked" | "failed";
+  reason?: string;
+}
+
+export interface ImageAnalysis {
+  sourceUrl: string;
+  pageUrls: string[];
+  ocr: { state: "available"; backend: string; text: string; confidence: number }
+    | { state: "unavailable"; backend: string; reason: "budget" | "recognition-error" };
+  matchedTerms: string[];
+  normalizedText?: string;
+  decision: DecisionEvidence;
 }
 
 export interface CreativeImage {
@@ -54,6 +77,8 @@ export interface ScanDetailBundle {
   findings: FindingDetail[];
   creativeImages: CreativeImage[];
   coverage: ScanCoverage;
+  pageOutcomes?: PageOutcome[];
+  imageAnalysis?: ImageAnalysis[];
 }
 
 /** Check the ID join and bounded image representation before host transfer. */
@@ -98,6 +123,43 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
     } else if (detail.visual.dataUrl) errors.push(`unavailable detail has image ${finding.id}`);
   }
   if (!Number.isSafeInteger(bundle.coverage.checkedPages) || bundle.coverage.checkedPages < 0) errors.push("checked pages invalid");
+  if (bundle.coverage.cancelled !== undefined && typeof bundle.coverage.cancelled !== "boolean") errors.push("cancelled coverage invalid");
+  if (bundle.pageOutcomes !== undefined) {
+    const pages = bundle.pageOutcomes;
+    if (!Array.isArray(pages) || pages.length > 200 || new Set(pages.map((page) => page.url)).size !== pages.length) {
+      errors.push("page outcomes invalid");
+    } else {
+      for (const page of pages) {
+        if (typeof page.url !== "string" || !page.url || typeof page.finalUrl !== "string" || !page.finalUrl
+          || !Number.isSafeInteger(page.depth) || page.depth < 0 || !Number.isSafeInteger(page.status) || page.status < 0
+          || !["checked", "failed"].includes(page.outcome)
+          || (page.outcome === "checked") !== (page.status > 0 && page.status < 400)) errors.push("page outcome representation invalid");
+        if (page.outcome === "failed" && !bundle.coverage.failedPages.some((failure) => failure.url === page.url && failure.status === page.status)) {
+          errors.push("failed page outcome mismatch");
+        }
+      }
+      if (pages.filter((page) => page.outcome === "checked").length !== bundle.coverage.checkedPages
+        || pages.filter((page) => page.outcome === "failed").length !== bundle.coverage.failedPages.length) errors.push("page outcome coverage mismatch");
+    }
+  }
+  if (bundle.imageAnalysis !== undefined) {
+    if (!Array.isArray(bundle.imageAnalysis) || bundle.imageAnalysis.length > 64) errors.push("image analysis invalid");
+    else for (const analysis of bundle.imageAnalysis) {
+      if (typeof analysis.sourceUrl !== "string" || !analysis.sourceUrl || !Array.isArray(analysis.pageUrls)
+        || !analysis.pageUrls.length || analysis.pageUrls.some((url) => typeof url !== "string" || !url)
+        || !Array.isArray(analysis.matchedTerms) || analysis.matchedTerms.some((term) => typeof term !== "string")
+        || analysis.normalizedText !== undefined && typeof analysis.normalizedText !== "string") errors.push("image analysis source invalid");
+      const recognition = analysis.ocr;
+      if (!recognition || typeof recognition.backend !== "string" || !recognition.backend
+        || (recognition.state === "available" ? typeof recognition.text !== "string"
+          || !Number.isFinite(recognition.confidence) || recognition.confidence < 0 || recognition.confidence > 1
+          : recognition.state !== "unavailable" || !["budget", "recognition-error"].includes(recognition.reason))) errors.push("image OCR representation invalid");
+      const decision = analysis.decision;
+      if (!decision || typeof decision.rule !== "string" || typeof decision.detail !== "string"
+        || !Number.isFinite(decision.score) || !Number.isFinite(decision.threshold)
+        || typeof decision.passed !== "boolean" || decision.passed !== (decision.score >= decision.threshold)) errors.push("image decision invalid");
+    }
+  }
   const creativeIds = new Set<string>();
   let imageCharacters = 0;
   if (!Array.isArray(bundle.creativeImages) || bundle.creativeImages.length > 64) errors.push("creative images invalid");

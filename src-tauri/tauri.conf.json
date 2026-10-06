@@ -30,9 +30,11 @@
     },
     "resources": {
       "binaries/scanner-worker-x86_64-pc-windows-gnu.mjs": "binaries/scanner-worker-x86_64-pc-windows-gnu.mjs",
+      "binaries/ocr-worker.mjs": "binaries/ocr-worker.mjs",
+      "binaries/ocr-data/": "binaries/ocr-data/",
       "binaries/node.exe": "binaries/node.exe",
       "binaries/node-LICENSE": "binaries/node-LICENSE",
-      "binaries/node_modules/playwright-core/": "binaries/node_modules/playwright-core/",
+      "binaries/node_modules/": "binaries/node_modules/",
       "binaries/ms-playwright/": "binaries/ms-playwright/"
     }
   }

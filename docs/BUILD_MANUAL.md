@@ -78,6 +78,12 @@ npx tauri bundle --target x86_64-pc-windows-gnullvm --bundles nsis --config src-
 교차 빌드 결과는 Windows에서 설치 후 실행해 확인해야 합니다. 설치 완료 메시지만으로
 실행 파일과 스캐너 런타임의 누락 여부를 확인할 수 없습니다.
 
+OCR 런타임도 설치 리소스에 포함됩니다. `build:sidecar`가 별도 OCR worker와
+고정된 한국어·영어 학습 데이터를 만들고, `prepare:windows-runtime`이 Tesseract의
+Node 의존성과 WASM을 준비합니다. 기존 Node·Playwright만 복사한 구형 리소스로는
+새 OCR 기능을 검증할 수 없습니다. 좁은 실제 worker 검증 명령은
+`src-tauri/binaries/README.md`의 `windows-v2-integration.mjs`를 사용합니다.
+
 ## 5. 검증
 
 - `result.json`: UTF-8/BOM 없음, `meta`+`findings`, 기법 4종만, ID 고유,

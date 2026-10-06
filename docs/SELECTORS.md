@@ -1,7 +1,9 @@
 # Selector engine (Phase 4)
 
-Deterministic builder in `packages/scanner/src/selectors.ts`, consumed by
-the crawler and (Phase 5+) the detectors.
+Deterministic builder in `packages/scanner/src/selectors.ts`, consumed by live
+DOM text detection. `createSelectorEngine` supplies the canonical functions in
+both Node and browser contexts; detection serializes trusted function source
+only, without interpolating page text, URLs, attributes, or selectors into code.
 
 ## Priority (KODEX §8)
 
@@ -13,6 +15,13 @@ the crawler and (Phase 5+) the detectors.
 
 `buildSelectorFor` returns `undefined` when no unique selector exists —
 callers must drop the finding, never emit an ambiguous selector.
+IDs and classes follow CSS identifier escaping, including leading digits;
+attribute strings escape quotes, backslashes, and control characters. A duplicate
+ID falls through to another unique stable attribute before ancestry is tried.
+Ancestry and positional fallback continue to the document root, so repeated
+chains deeper than eight elements remain addressable. Every emitted selector
+must match exactly one element and round-trip to the intended element;
+`roundTrips` rejects ambiguous selectors even when their first match is correct.
 
 ## Frame locations
 
@@ -22,13 +31,14 @@ browser (`#frame-outer`, `#frame-inner` OBSERVED on fixtures). The contract
 for nesting. Crawler `FrameSnapshot.selectorChain` carries the per-level
 selectors; `LocatedSnapshot` carries the final contract location.
 
-## OBSERVED (this machine)
+## Verification
 
 - All direct ground-truth positive selectors round-trip
   (found + unique + same element).
-- Priority test: `#unique-ad` unique; bare `p.dup` correctly ambiguous
-  (2 matches, must not emit); `nth-of-type` disambiguation unique.
+- Actual generator regression test uses served Chromium pages with escaped IDs,
+  classes and attribute strings, duplicate IDs, and repeated 16-level ancestry.
+  It checks uniqueness and identity against each original DOM element, and
+  rejects ambiguous and wrong-element round trips.
 - Nested iframe: `#frame-outer` / `#frame-inner` resolved live; contract
   serialization matches `iframe[src="ABS"] >>> … >>> #ad-frame-jamo`;
   inner HTML contains the Jamo ad.
-- Suite: selector tests 3/3; full suite green; typecheck/lint clean.

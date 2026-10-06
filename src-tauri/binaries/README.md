@@ -14,7 +14,7 @@ then checks next to the executable for the portable layout.
 
 ## What the sidecar is
 
-The sidecar is the frozen detection pipeline
+The sidecar is the live detection pipeline
 (`packages/detection/src/worker.ts` → `scanSite`, ADR-0007) bundled to ONE
 JavaScript file. It is NOT a renamed executable: the `.mjs` bundle runs
 via the fixed invocation `node <sidecar> <args>`; there is no
@@ -24,6 +24,24 @@ caller-controlled shell string.
 bundling it breaks (`chromium-bidi` CJS require fails at bundle time,
 verified). `npm run prepare:windows-runtime` stages it under the same
 `$RESOURCE/binaries/` directory as the worker, with Node and the browser.
+
+Offline OCR additionally requires `ocr-worker.mjs`, `ocr-data/kor.traineddata.gz`,
+`ocr-data/eng.traineddata.gz` and the staged Tesseract Node dependency closure
+(including its WASM). `build:sidecar` builds the OCR worker and copies the pinned
+language data; `prepare:windows-runtime` stages all runtime modules and licenses.
+Tauri includes these resources next to the scanner, so recognition does not
+download language data or require a separate Tesseract installation.
+
+After staging, run the narrow integration smoke with the packaged Node:
+
+```powershell
+$env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\src-tauri\binaries\ms-playwright"
+& .\src-tauri\binaries\node.exe .\benchmarks\windows-v2-integration.mjs
+```
+
+It serves a real non-ID text/image fixture, checks actual Korean OCR output,
+then cancels a second scan and checks partial artifacts and Windows descendant
+cleanup. This smoke does not replace installed Tauri or full A-F acceptance.
 
 The `--channel` flag is OPT-IN plumbing (default: headless shell).
 `--channel msedge` does NOT work under session-0 on this VM (exit 1002
@@ -75,7 +93,8 @@ os error 32 while the old app runs; stop it first).
 ## Clean-machine install test (no repo, no separate Node install, no cache)
 
 1. Install the NSIS package containing `install-dir/binaries/` with the `.mjs`,
-   `node.exe`, `node_modules/playwright-core` and `ms-playwright/`.
+   `node.exe`, `ocr-worker.mjs`, `ocr-data/`, all staged `node_modules/` and
+   `ms-playwright/`.
 2. WITHOUT `C:\work\repo`, `node_modules`, Bun, or a prefilled cache:
    launch, enter the fixture URL, submit.
 3. Expect: progress → result list → evidence → `result.json` export,

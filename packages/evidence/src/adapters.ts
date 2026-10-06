@@ -1,10 +1,8 @@
 /**
  * OCR + decision/VLM adapter contracts (GOAL Phases 14–16).
  *
- * No OCR backend is bundled in this slice: the interfaces freeze the
- * candidate-crop → text → semantic-evidence pipeline and the structured
- * decision record so a benchmarked backend (CPU, Windows-packaging-feasible,
- * no GPU, Korean ad-text quality) can plug in without reshaping callers.
+ * LocalOcrBackend implements candidate-image → text with bundled CPU WASM
+ * and Korean/English data. Structured rules add corroborating evidence.
  * The decision model resolves ambiguity only — never the sole detector.
  * The multimodal fallback is disabled by default until benchmarked.
  */
@@ -41,6 +39,7 @@ export interface DecisionInput {
   destinationUrl?: string;
   infrastructureRefs: number;
   creativeSimilarity: number;
+  semanticMatch?: boolean;
 }
 
 export interface DecisionModel {
@@ -54,6 +53,7 @@ export class RuleDecisionModel implements DecisionModel {
   resolveAmbiguity(input: DecisionInput): DecisionEvidence {
     let score = 0;
     const reasons: string[] = [];
+    if (input.semanticMatch) { score += 1; reasons.push("ad-semantics"); }
     if (input.rawText.trim().length > 0) {
       score += 1;
       reasons.push("has-text");

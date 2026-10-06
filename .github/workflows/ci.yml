@@ -15,9 +15,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright-core install chromium --only-shell
-      - run: npm run build -w @krds-detector/contracts
-      - run: npm run build -w @krds-detector/synth-eval
-      - run: npm run build -w @krds-detector/scanner
+      - run: npm run build:scanner
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test

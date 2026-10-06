@@ -3,3 +3,4 @@ export * from "./graph.js";
 export * from "./fingerprint.js";
 export * from "./extra.js";
 export * from "./adapters.js";
+export * from "./ocr.js";

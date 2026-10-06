@@ -11,6 +11,7 @@ export default defineConfig([
     "**/*.d.ts",
     "src-tauri/target/**",
     "src-tauri/binaries/scanner-worker-*.mjs",
+    "src-tauri/binaries/ocr-worker.mjs",
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,

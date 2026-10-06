@@ -11,6 +11,8 @@ packages/*/dist/
 src-tauri/target/
 benchmarks/native-session-l3/target/
 src-tauri/binaries/scanner-worker-*.mjs
+src-tauri/binaries/ocr-worker.mjs
+src-tauri/binaries/ocr-data/
 src-tauri/binaries/node.exe
 src-tauri/binaries/node-LICENSE
 src-tauri/binaries/llvm-LICENSE

@@ -9,6 +9,8 @@ import process from "node:process";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { fileURLToPath, URL } from "node:url";
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const stage = join(root, "src-tauri", "binaries");
@@ -101,6 +103,31 @@ await downloadVerifiedNode();
 const targetPackage = join(stage, "node_modules", "playwright-core");
 await rm(targetPackage, { recursive: true, force: true });
 await cp(packageDir, targetPackage, { recursive: true, force: true });
+// OCR executes offline in its own worker. Stage its complete Node dependency
+// closure, including WASM and pinned Korean/English traineddata packages.
+const stagedPackages = new Set();
+async function stagePackage(name, fromDir = root) {
+  if (stagedPackages.has(name)) return;
+  const require = createRequire(join(fromDir, "package.json"));
+  let source = dirname(require.resolve(name));
+  let manifest;
+  while (source !== dirname(source)) {
+    try {
+      const candidate = JSON.parse(await readFile(join(source, "package.json"), "utf8"));
+      if (candidate.name === name) { manifest = candidate; break; }
+    } catch (error) { if (error.code !== "ENOENT") throw error; }
+    source = dirname(source);
+  }
+  if (!manifest) throw new Error(`Runtime dependency not found: ${name}`);
+  stagedPackages.add(name);
+  const destination = join(stage, "node_modules", name);
+  await rm(destination, { recursive: true, force: true });
+  await cp(source, destination, { recursive: true, force: true });
+  for (const dependency of Object.keys(manifest.dependencies ?? {})) await stagePackage(dependency, source);
+}
+await stagePackage("tesseract.js");
+await stagePackage("@tesseract.js-data/kor");
+await stagePackage("@tesseract.js-data/eng");
 await installBrowser();
 console.log(JSON.stringify({ nodeVersion, playwrightVersion,
-  headlessShellRevision: shell.revision, stage }, null, 2));
+  headlessShellRevision: shell.revision, ocrPackages: [...stagedPackages].sort(), stage }, null, 2));

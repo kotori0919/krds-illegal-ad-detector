@@ -20,6 +20,39 @@ candidate OCR → structured decision → optional gated VLM.
 OCR/VLM run on gated candidates only, never whole-page default. Official
 operation is offline, no GPU, no external AI service (KODEX §28).
 
+### Source text ownership
+
+DOM extraction traverses ordinary text nodes, including elements without IDs.
+Script, style, noscript, template, and head text are excluded. Each text node
+belongs to its nearest semantic text block, link, control, or rendered block.
+Inline fragments compose at that owner, so a link containing separate `카` and
+`지노 신규가입` spans is evaluated as one phrase. A wrapper around one complete
+text leaf collapses to that leaf when their source text is identical; links
+and controls retain their semantic ownership. Containers without owned text
+emit no candidate, and each owner emits at most one finding per technique.
+
+Independent child blocks own their own text. When direct parent text coexists
+with a child block, only the parent's owned text enters its semantic and Unicode
+decision, preventing a child's phrase from generating duplicate parent findings.
+Official source evidence remains the owner's exact, untrimmed `textContent`,
+including whitespace; normalized or reconstructed decision text stays separate.
+
+CSS and geometry are inspected on the owner and its text-bearing inline
+descendants. A descendant concealment signal uses the composed owner phrase,
+keeps the owner's finding selector, and records the responsible descendant as
+`evidenceSelector` / `observed.selector` with that descendant's computed CSS and
+box. Selector uniqueness and identity are validated in the actual document by
+the canonical scanner selector engine. Frame locations retain the contract's
+`>>>` serialization.
+
+`onAdText` reports each semantic-passing source owner once before the official
+technique gate, including visible owners with no official technique signal.
+For additional zero-width analysis only, the callback's semantic check removes
+U+200B–U+200D and U+FEFF from its match form. Its evidence still preserves the
+exact original source, and public-information text without an offer remains
+excluded. This supplies additional analysis independently of official findings;
+the four official technique decisions use their existing semantic gate.
+
 ## 2. Semantic gate (axis B: illegal-ad?)
 
 Inputs: raw text, normalized Unicode, OCR text, destination URL, ad

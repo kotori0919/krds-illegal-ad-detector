@@ -9,6 +9,7 @@
 
 import { scanSite } from "./scan.js";
 import { writeFileSync } from "node:fs";
+import { createInterface } from "node:readline";
 interface WorkerArgs {
   session: string;
   entryUrl: string;
@@ -62,10 +63,20 @@ async function main(): Promise<void> {
   // scanSite owns crawl → live-page detection → validated result.json
   // (the same seam the 17/17 e2e test exercises). Progress events stay on
   // stderr so stdout remains result.json only.
-  const startedAt = new Date().toISOString();
+  const controller = new AbortController();
+  const commands = createInterface({ input: process.stdin });
+  commands.on("line", (line) => {
+    try {
+      if (JSON.parse(line).type === "cancel") controller.abort();
+    } catch { /* Ignore malformed host commands. */ }
+  });
+  // The command pipe must not keep a settled worker alive.
+  process.stdin.unref?.();
+  try {
   const { json, detailBundle, extraJson } = await scanSite({
     entryUrl: args.entryUrl,
     topic: args.topic,
+    signal: controller.signal,
     crawl: {
       limits: { maxPages: args.maxPages, maxDepth: args.maxDepth, timeoutSec: args.timeoutSec },
       settleMs: args.settleMs,
@@ -86,7 +97,6 @@ async function main(): Promise<void> {
       console.error(`KRDSPROGRESS ${payload}`);
     },
   });
-  void startedAt;
   // --out-file bypasses shell redirection entirely (PowerShell `>` forces
   // UTF-16); stdout stays a fallback for piped Tauri capture (bytes).
   const text = json.endsWith("\n") ? json : `${json}\n`;
@@ -94,6 +104,7 @@ async function main(): Promise<void> {
   if (args.extraOutFile) writeFileSync(args.extraOutFile, extraJson, "utf8");
   if (args.outFile) writeFileSync(args.outFile, text, "utf8");
   else writeFileSync(1, text);
+  } finally { commands.close(); }
 }
 
 void main().catch((err: unknown) => {

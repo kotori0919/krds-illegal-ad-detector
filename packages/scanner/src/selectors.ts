@@ -1,135 +1,88 @@
-/**
- * Deterministic CSS selector builder (GOAL Phase 4).
- *
- * Priority (KODEX §8): stable unique ID → stable attribute → tag + meaningful
- * class → parent-child path → nth-of-type fallback. No finding may be emitted
- * with an ambiguous selector: every built selector must match exactly one
- * element in its document.
- *
- * `buildSelectorFor` resolves a unique selector for one element in its
- * document; `countMatches` validates uniqueness; `roundTrips` validates the
- * selector resolves to exactly the intended element. Frame documents resolve
- * per-document and join with the frozen `>>>` convention in the caller.
- */
+/** Unique, deterministic selectors shared by live text extraction and scanners. */
 export interface SelectorCandidate {
   selector: string;
   strategy: "id" | "attribute" | "class" | "path" | "nth-of-type";
 }
 
-const STABLE_ATTRIBUTES = [
-  "data-testid",
-  "data-test-id",
-  "data-qa",
-  "data-cy",
-  "name",
-  "aria-label",
-  "title",
-  "alt",
-  "href",
-] as const;
-
-function cssEscapeIdent(value: string): string {
-  return value.replace(/[^a-zA-Z0-9_-]/g, (c) => `\\${c}`);
-}
-
-function uniqueIn(doc: Document, selector: string): boolean {
-  try {
-    return doc.querySelectorAll(selector).length === 1;
-  } catch {
-    return false;
-  }
-}
-
-function meaningfulClasses(el: Element): string[] {
-  const raw = el.getAttribute("class") ?? "";
-  return raw
-    .split(/\s+/)
-    .filter((c) => c.length > 0)
-    .filter((c) => !/^(active|open|show|hidden|collapsed|selected|focus|hover)-?/i.test(c))
-    .slice(0, 2);
-}
-
-function tagOf(el: Element): string {
-  return el.tagName.toLowerCase();
-}
-
-/** Single-element segment without ancestry (may be ambiguous alone). */
-export function segmentFor(el: Element): string {
-  const tag = tagOf(el);
-  if (el.id && /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(el.id)) return `#${cssEscapeIdent(el.id)}`;
-  for (const attr of STABLE_ATTRIBUTES) {
-    const value = el.getAttribute(attr);
-    if (value && value.length > 0 && value.length < 80 && !/\s{2,}/.test(value)) {
-      return `${tag}[${attr}="${value.replace(/"/g, '\\"')}"]`;
+/** Self-contained factory: callers may serialize this trusted function into a browser context. */
+export function createSelectorEngine() {
+  const attributes = ["data-testid", "data-test-id", "data-qa", "data-cy", "name", "aria-label", "title", "alt", "href"];
+  function escapeIdent(value: string): string {
+    let escaped = "";
+    for (let index = 0; index < value.length; index += 1) {
+      const code = value.charCodeAt(index);
+      const char = value[index]!;
+      if (code === 0) escaped += "\uFFFD";
+      else if (code <= 31 || code === 127 || (index === 0 && code >= 48 && code <= 57) || (index === 1 && code >= 48 && code <= 57 && value[0] === "-")) escaped += "\\" + code.toString(16) + " ";
+      else if (index === 0 && char === "-" && value.length === 1) escaped += "\\-";
+      else if (code >= 128 || /[a-zA-Z0-9_-]/.test(char)) escaped += char;
+      else escaped += "\\" + char;
     }
+    return escaped;
   }
-  const classes = meaningfulClasses(el);
-  if (classes.length > 0) return `${tag}.${classes.map(cssEscapeIdent).join(".")}`;
-  return tag;
+  function escapeString(value: string): string {
+    let escaped = "";
+    for (let index = 0; index < value.length; index += 1) {
+      const code = value.charCodeAt(index);
+      const char = value[index]!;
+      if (code === 0) escaped += "\uFFFD";
+      else if (char === '"' || char === "\\") escaped += "\\" + char;
+      else if (code <= 31 || code === 127) escaped += "\\" + code.toString(16) + " ";
+      else escaped += char;
+    }
+    return escaped;
+  }
+  function candidatesFor(el: Element): string[] {
+    const tag = escapeIdent(el.localName);
+    const candidates: string[] = [];
+    if (el.id) candidates.push("#" + escapeIdent(el.id));
+    for (const attribute of attributes) {
+      const value = el.getAttribute(attribute);
+      if (value) candidates.push(tag + "[" + attribute + '="' + escapeString(value) + '"]');
+    }
+    const classes = Array.from(el.classList).filter((value) => !/^(active|open|show|hidden|collapsed|selected|focus|hover)(?:-|$)/i.test(value)).slice(0, 2);
+    if (classes.length) candidates.push(tag + "." + classes.map(escapeIdent).join("."));
+    candidates.push(tag);
+    return candidates;
+  }
+  function segmentFor(el: Element): string {
+    return candidatesFor(el)[0]!;
+  }
+  function countMatches(doc: Document, selector: string): number {
+    try { return doc.querySelectorAll(selector).length; } catch { return -1; }
+  }
+  function roundTrips(doc: Document, el: Element, selector: string): boolean {
+    try {
+      const matches = doc.querySelectorAll(selector);
+      return matches.length === 1 && matches[0] === el;
+    } catch { return false; }
+  }
+  function buildSelectorFor(el: Element, doc: Document = el.ownerDocument): string | undefined {
+    if (el.ownerDocument !== doc || !el.isConnected) return undefined;
+    for (const candidate of candidatesFor(el)) {
+      if (roundTrips(doc, el, candidate)) return candidate;
+    }
+    const parts = [segmentFor(el)];
+    for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+      parts.unshift(segmentFor(parent));
+      const selector = parts.join(" > ");
+      if (roundTrips(doc, el, selector)) return selector;
+    }
+    // Walk to the actual root: repeated ancestry can require more than eight levels.
+    const fallback: string[] = [];
+    for (let target: Element | null = el; target; target = target.parentElement) {
+      const tag = escapeIdent(target.localName);
+      let index = 1;
+      for (let sibling = target.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+        if (sibling.localName === target.localName) index += 1;
+      }
+      fallback.unshift(tag + ":nth-of-type(" + index + ")");
+      const selector = fallback.join(" > ");
+      if (roundTrips(doc, el, selector)) return selector;
+    }
+    return undefined;
+  }
+  return { segmentFor, buildSelectorFor, countMatches, roundTrips };
 }
 
-/** Full unique selector for `el` within `doc`, or undefined when impossible. */
-export function buildSelectorFor(el: Element, doc: Document = document): string | undefined {
-  if (el.ownerDocument !== doc) return undefined;
-  const direct = segmentFor(el);
-  if (uniqueIn(doc, direct)) return direct;
-  // Parent-child path, nearest scope first.
-  const parts: string[] = [direct];
-  let node: Element | null = el.parentElement;
-  while (node && node !== doc.documentElement) {
-    const seg = segmentFor(node);
-    parts.unshift(seg);
-    const joined = parts.join(" > ");
-    if (uniqueIn(doc, joined)) return joined;
-    node = node.parentElement;
-    if (parts.length > 6) break;
-  }
-  // nth-of-type fallback on the target within its parent chain.
-  let target: Element | null = el;
-  const fallback: string[] = [];
-  while (target && target !== doc.documentElement) {
-    const parent: Element | null = target.parentElement;
-    if (!parent) {
-      fallback.unshift(segmentFor(target));
-      break;
-    }
-    const tag = tagOf(target);
-    const siblings = parent.children;
-    const sameTag: Element[] = [];
-    for (let i = 0; i < siblings.length; i += 1) {
-      const s = siblings[i];
-      if (s && tagOf(s) === tag) sameTag.push(s);
-    }
-    if (sameTag.length === 1) {
-      fallback.unshift(segmentFor(target));
-    } else {
-      const index = sameTag.indexOf(target) + 1;
-      fallback.unshift(`${segmentFor(target)}:nth-of-type(${String(index)})`);
-    }
-    const joined = fallback.join(" > ");
-    if (uniqueIn(doc, joined)) return joined;
-    target = parent;
-    if (fallback.length > 8) break;
-  }
-  const full = fallback.join(" > ");
-  return uniqueIn(doc, full) ? full : undefined;
-}
-
-/** Count matches for uniqueness validation. */
-export function countMatches(doc: Document, selector: string): number {
-  try {
-    return doc.querySelectorAll(selector).length;
-  } catch {
-    return -1;
-  }
-}
-
-/** Round-trip: selector resolves to exactly the intended element. */
-export function roundTrips(doc: Document, el: Element, selector: string): boolean {
-  try {
-    const found = doc.querySelector(selector);
-    return found === el;
-  } catch {
-    return false;
-  }
-}
+export const { segmentFor, buildSelectorFor, countMatches, roundTrips } = createSelectorEngine();

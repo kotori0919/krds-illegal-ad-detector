@@ -1,7 +1,7 @@
 # Evidence intelligence (Phases 12–17)
 
 `packages/evidence`: graph, creative fingerprint, extras, OCR/decision/VLM
-adapter contracts. Official scoring untouched: extras never enter
+offline CPU OCR and structured decision rules. Official scoring untouched: extras never enter
 `OfficialResult`; similarity alone never creates an official finding.
 
 ## Modules
@@ -23,14 +23,32 @@ adapter contracts. Official scoring untouched: extras never enter
   `RuleDecisionModel` (corroboration threshold, ambiguity-only),
   `DisabledMultimodalFallback` (VLM off by default until benchmarked).
 
-## OCR decision (Phase 14 verdict)
+## Connected image OCR
 
-No OCR backend bundled: none of the lightweight CPU Korean-text options is
-proven inside this repo yet, and KODEX §27 requires a Korean/CPU benchmark
-before adoption. The `OcrBackend` interface freezes the integration seam
-(crop → text → semantic evidence) so a benchmarked backend plugs in without
-reshaping callers. Shipping an unbenchmarked backend would risk the 30-minute
-budget for unproven recall — deferred, not dropped.
+`scanSite` collects observed ad-marked/external-link image response bytes while
+the page is live. At most six distinct image hashes per scan enter one serial
+`LocalOcrBackend`; each initialization/recognition shares the remaining scan
+budget (maximum eight seconds including queue time). Images are capped at
+250 KB and four million pixels. Identical hashes reuse recognition. The CPU
+worker uses pinned Tesseract.js 7 WASM with local Korean/English traineddata;
+no network request or GPU is required at runtime. Cancellation/deadline
+terminates the worker and records unavailable/budget, never fabricated text.
+
+Recognized text, normalized match form, matched terms and `RuleDecisionModel`
+verdict are stored in session-local `imageAnalysis`. HostBridge detail reads
+show these in the additional-analysis area even when no recurring-creative
+finding exists. OCR is auxiliary and never replaces official source text.
+Rules are deterministic corroboration; they are not a learned classifier.
+
+OBSERVED on AMD Ryzen 7 9700X/Linux: the 800×150 Korean fixture
+`fixtures/ocr/banner.png` yielded `카지노 가입 보너스 지급` at confidence 0.96.
+The first offline worker test completed in 526 ms including startup; the
+live-page image-to-manifest scan test completed in 1.35 s. These are narrow
+fixture observations, not a representative Korean accuracy/throughput study.
+Active startup cancellation also settles and closes the worker. The real
+manifest was displayed in Chromium results with search/filter context and
+validated save controls. Windows/candidate release checks retain their own
+scope; do not infer broad OCR accuracy from this fixture.
 
 ## VLM decision (Phase 16 verdict)
 

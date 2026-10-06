@@ -27,7 +27,7 @@ Product V2 acceptance has **two inseparable tracks**. The operator track include
 
 One restrained application shell, with title, help, current site, and three-stage indicator. No permanent left sidebar. The result workspace has three peer areas: 공식 탐지 (default), 추가 분석 (separate, clearly non-official), 점검 범위. The official area has 탐지 항목별 and 페이지별 views. The inspector and save confirmation remain within results. Technical data is available only through 기술 정보.
 
-The operator sees Korean labels: 닮은꼴 글자 위장, 자모 분해, 투명 텍스트, 화면 밖 은닉. Enum strings and session IDs are secondary technical data. URL/path remains readable and copyable. The '주제' input has no demonstrated operational role; remove it from primary UI while passing the schema-required `meta.topic` as an empty string unless an official requirement later supplies a meaning.
+The operator sees Korean labels: 닮은꼴 글자 위장, 자모 분해, 투명 텍스트, 화면 밖 은닉. Enum strings and session IDs are secondary technical data. URL/path remains readable and copyable. The '주제' input has no demonstrated operational role in the primary flow. The official scanner writes the schema-required `meta.topic` as the fixed value `TOPIC`; an operator-supplied session topic does not override this official field.
 
 Results use one search input for content/page URL, a visible total and category count, official/extra/coverage navigation, instant filter count, loading and zero-match states, and a clear reset action. Search and filter values persist while the operator inspects findings. KRDS Adaptive is the declared style track; `KRDS_COMPLIANCE.md` owns the component/basic/service pattern map and primitive → semantic → component token migration. Unexplained deviations block release.
 

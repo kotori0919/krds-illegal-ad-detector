@@ -44,6 +44,7 @@ export interface PageSnapshot {
   externals: ObservedExternal[];
   duplicateContent: boolean;
   elapsedMs: number;
+  failureReason?: string;
 }
 
 export interface LiveFrame {
@@ -83,6 +84,7 @@ export interface CrawlOptions {
   deadline?: ScanDeadline;
   /** Fixed page worker count for benchmarks (1–4); defaults to CPU policy. */
   concurrency?: number;
+  signal?: AbortSignal;
   /** Called while the first and only navigated Page remains live. */
   onLivePage?: (page: Page, snapshot: PageSnapshot, frames: LiveFrame[], images: LiveImageResponse[], pageRank: number) => Promise<void>;
 }
@@ -93,6 +95,7 @@ export interface CrawlSummary {
   externals: ObservedExternal[];
   elapsedMs: number;
   timedOut: boolean;
+  cancelled: boolean;
 }
 
 async function boundedMap<T, R>(items: readonly T[], concurrency: number, task: (item: T) => Promise<R>): Promise<R[]> {
@@ -186,9 +189,16 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   let context: BrowserContext | undefined;
   let timedOut = false;
   let queuedPages = 0;
+  const activePages = new Set<Page>();
+  const abortPages = (): void => {
+    for (const page of activePages) void page.close().catch(() => undefined);
+  };
+  options.signal?.addEventListener("abort", abortPages, { once: true });
   const launchBudgetMs = deadline.operationTimeoutMs(30_000);
-  if (!deadline.canStartPage() || launchBudgetMs < 1) {
-    return { entryUrl: options.entryUrl, pages, externals, elapsedMs: performance.now() - t0, timedOut: true };
+  if (options.signal?.aborted || !deadline.canStartPage() || launchBudgetMs < 1) {
+    options.signal?.removeEventListener("abort", abortPages);
+    return { entryUrl: options.entryUrl, pages, externals, elapsedMs: performance.now() - t0,
+      timedOut: !options.signal?.aborted, cancelled: options.signal?.aborted ?? false };
   }
   try {
     browser = await chromium.launch({
@@ -215,11 +225,12 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     });
 
     const processPage = async (next: QueuedPage & { pageRank: number }): Promise<PageSnapshot | undefined> => {
-      if (!deadline.canStartPage()) return undefined;
+      if (options.signal?.aborted || !deadline.canStartPage()) return undefined;
       queuedPages -= 1;
       options.events?.onPageStarted?.(next.url, queuedPages);
       const pageStarted = performance.now();
       const page: Page = await activeContext.newPage();
+      activePages.add(page);
       const pageExternals: ObservedExternal[] = [];
       const imageResponses: LiveImageResponse[] = [];
       const observeExternal = (external: ObservedExternal): void => {
@@ -272,6 +283,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       let snapshot: PageSnapshot | undefined;
       const liveFrames: LiveFrame[] = [];
       try {
+        if (options.signal?.aborted) throw new Error("scan cancelled");
         const budget = Math.min(perPageMs, deadline.operationTimeoutMs(perPageMs));
         if (budget < 1000) throw new Error("scan deadline reached before page navigation");
         pageTimer = setTimeout(() => { void page.close().catch(() => undefined); }, budget);
@@ -398,7 +410,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             if (frame) frame.html = (await liveFrames[i]!.frame.content().catch(() => "")).slice(0, maxBodyBytes);
           }
         }
-      } catch (error) {
+      } catch {
         snapshot = {
           url: next.url,
           finalUrl: next.url,
@@ -410,9 +422,11 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           externals: [...pageExternals].sort(compareExternal),
           duplicateContent: false,
           elapsedMs: performance.now() - pageStarted,
+          failureReason: options.signal?.aborted ? "cancelled-during-analysis"
+            : "navigation-or-analysis-failed",
         };
-        void error;
       } finally {
+        activePages.delete(page);
         if (pageTimer) clearTimeout(pageTimer);
         await page.close().catch(() => undefined);
       }
@@ -423,7 +437,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
 
     let frontier = queue.nextFrontier();
     let admittedPages = 0;
-    while (frontier.length > 0 && deadline.canStartPage()) {
+    while (frontier.length > 0 && !options.signal?.aborted && deadline.canStartPage()) {
       const rankedFrontier = frontier.map((next, index) => ({ ...next, pageRank: admittedPages + index }));
       admittedPages += rankedFrontier.length;
       queuedPages = rankedFrontier.length;
@@ -431,7 +445,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       // boundedMap preserves frontier order even when worker completion differs.
       for (const snapshot of completed) {
         if (!snapshot) {
-          timedOut = true;
+          if (!options.signal?.aborted) timedOut = true;
           continue;
         }
         snapshot.duplicateContent = queue.isDuplicateContent(snapshot.html.slice(0, 65536));
@@ -443,8 +457,9 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       }
       frontier = queue.nextFrontier();
     }
-    if (frontier.length > 0 || deadline.expired() || !deadline.canStartPage()) timedOut = true;
+    if (!options.signal?.aborted && (frontier.length > 0 || deadline.expired() || !deadline.canStartPage())) timedOut = true;
   } finally {
+    options.signal?.removeEventListener("abort", abortPages);
     await context?.close().catch(() => undefined);
     await browser?.close().catch(() => undefined);
   }
@@ -457,5 +472,6 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     ),
     elapsedMs: performance.now() - t0,
     timedOut,
+    cancelled: options.signal?.aborted ?? false,
   };
 }
