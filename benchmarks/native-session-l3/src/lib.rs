@@ -8,7 +8,7 @@ mod session;
 
 #[cfg(test)]
 mod tests {
-    use super::session::{new_session, ProgressSink, SessionOutcome, SessionRegistry};
+    use super::session::{load_cancelled_bundle, new_session, validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout, ProgressSink, SessionOutcome, SessionRegistry};
     use std::collections::BTreeSet;
     use std::path::{Path, PathBuf};
     use std::sync::{Arc, Mutex};
@@ -43,6 +43,108 @@ mod tests {
                 std::fs::copy(entry.path(), destination).unwrap();
             }
         }
+    }
+
+    fn process_descendants(pid: u32) -> Vec<u32> {
+        let children = std::fs::read_to_string(format!("/proc/{pid}/task/{pid}/children")).unwrap_or_default();
+        let mut descendants = Vec::new();
+        for child in children.split_whitespace().filter_map(|value| value.parse::<u32>().ok()) {
+            descendants.push(child);
+            descendants.extend(process_descendants(child));
+        }
+        descendants
+    }
+
+    #[tokio::test]
+    async fn real_worker_cancellation_retains_validated_completed_page_and_exports() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let temporary = TempDir::new();
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let entry = format!("http://{}/", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move {
+            loop {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                tokio::spawn(async move {
+                    let mut request = [0_u8; 4096];
+                    let count = stream.read(&mut request).await.unwrap_or(0);
+                    let text = String::from_utf8_lossy(&request[..count]);
+                    if text.split_whitespace().nth(1) == Some("/slow") {
+                        // Keep navigation pending until the scanner closes the socket.
+                        let _ = stream.read(&mut request).await;
+                        return;
+                    }
+                    let body = "<!doctype html><html lang=ko><meta charset=utf-8><body><p id=retained>Ｃ카지노 신규 가입 보너스</p><a href=/slow>다음 페이지</a></body></html>";
+                    let headers = format!("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
+                    let _ = stream.write_all(headers.as_bytes()).await;
+                    let _ = stream.write_all(body.as_bytes()).await;
+                });
+            }
+        });
+        let registry = SessionRegistry::shared();
+        let record = new_session(entry.clone(), "cancellation-fixture".to_string(), chrono::Utc::now().to_rfc3339());
+        let id = record.id.clone();
+        registry.insert(record).await;
+        let result_file = temporary.0.join("result.json");
+        let detail_file = temporary.0.join("detail.json");
+        let extra_file = temporary.0.join("result_extra.json");
+        let args = vec!["--session".to_string(), id.clone(), "--entry-url".to_string(), entry.clone(),
+            "--topic".to_string(), "cancellation-fixture".to_string(), "--max-pages".to_string(), "2".to_string(),
+            "--max-depth".to_string(), "1".to_string(), "--timeout-sec".to_string(), "90".to_string(),
+            "--concurrency".to_string(), "1".to_string(), "--settle-ms".to_string(), "50".to_string(),
+            "--out-file".to_string(), result_file.to_string_lossy().into_owned(),
+            "--detail-out-file".to_string(), detail_file.to_string_lossy().into_owned(),
+            "--extra-out-file".to_string(), extra_file.to_string_lossy().into_owned()];
+        let worker = root.join("src-tauri/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs");
+        let argv: Vec<&str> = args.iter().map(String::as_str).collect();
+        let pid = registry.spawn_sidecar(&id, worker.to_str().unwrap(), &argv).await.unwrap();
+        let (started_sender, started_receiver) = tokio::sync::oneshot::channel();
+        let started_sender = Mutex::new(Some(started_sender));
+        let sink: ProgressSink = Arc::new(move |event| {
+            if event["kind"] == "page-started" && event["pageUrl"].as_str().is_some_and(|url| url.ends_with("/slow")) {
+                if let Some(sender) = started_sender.lock().unwrap().take() { let _ = sender.send(()); }
+            }
+        });
+        let waiter_registry = registry.clone();
+        let waiter_id = id.clone();
+        let waiter = tokio::spawn(async move { waiter_registry.wait_sidecar_with_progress(&waiter_id, sink).await });
+        tokio::time::timeout(std::time::Duration::from_secs(20), started_receiver).await.expect("slow page admitted after first page").unwrap();
+        assert_eq!(registry.progress_snapshot(&id).await.pages, 1);
+        let descendants = process_descendants(pid);
+        assert!(registry.cancel(&id, chrono::Utc::now().to_rfc3339()).await);
+        let outcome = tokio::time::timeout(std::time::Duration::from_secs(15), waiter).await.unwrap().unwrap();
+        assert!(matches!(outcome, SessionOutcome::Cancelled));
+        let settling = registry.snapshot(&id).await.unwrap();
+        assert_eq!(settling["status"], "finalizing");
+        assert_eq!(settling["hasResult"], false);
+        assert!(registry.validated_export_text(&id).await.is_err());
+        let bundle = load_cancelled_bundle(&entry, &result_file, &detail_file, &extra_file).expect("real host validates partial worker artifacts");
+        registry.complete_cancellation(&id, Some(bundle), None, chrono::Utc::now().to_rfc3339()).await;
+        let terminal = registry.snapshot(&id).await.unwrap();
+        assert_eq!(terminal["status"], "cancelled");
+        assert_eq!(terminal["hasResult"], true);
+        assert_eq!(terminal["progress"]["currentPages"], serde_json::json!([]));
+        let official = registry.result_value(&id).await.unwrap();
+        assert_eq!(official["findings"].as_array().unwrap().len(), 1);
+        assert_eq!(official["findings"][0]["technique"], "HOMOGLYPH");
+        assert_eq!(official["findings"][0]["location"], "#retained");
+        let detail = registry.detail_value(&id).await.unwrap();
+        assert_eq!(detail["coverage"]["checkedPages"], 1);
+        assert_eq!(detail["coverage"]["cancelled"], true);
+        assert_eq!(detail["pageOutcomes"][0]["outcome"], "checked");
+        assert_eq!(detail["pageOutcomes"][1]["outcome"], "failed");
+        assert_eq!(detail["findings"][0]["findingId"], official["findings"][0]["id"]);
+        assert_eq!(detail["findings"][0]["visual"]["state"], "available");
+        assert_eq!(registry.extra_value(&id).await.unwrap()["meta"], official["meta"]);
+        let export = registry.validated_export_text(&id).await.unwrap();
+        let exported_file = temporary.0.join("exported-result.json");
+        std::fs::write(&exported_file, export).unwrap();
+        assert_eq!(serde_json::from_slice::<serde_json::Value>(&std::fs::read(exported_file).unwrap()).unwrap(), official);
+        assert!(!Path::new(&format!("/proc/{pid}")).exists(), "worker reaped before cancelled publication");
+        for child in &descendants {
+            assert!(!Path::new(&format!("/proc/{child}")).exists(), "browser descendant {child} exited before cancelled publication");
+        }
+        println!("native cancellation L3: completed HOMOGLYPH retained; official/detail/extra validated; cancelled hasResult=true; export readable; worker {pid} and {} browser descendants reaped", descendants.len());
+        server.abort();
     }
 
     #[tokio::test]
@@ -148,6 +250,9 @@ mod tests {
         let official_text = std::fs::read_to_string(&result_file).unwrap();
         let detail_text = std::fs::read_to_string(&detail_file).unwrap();
         let extra_text = std::fs::read_to_string(&extra_file).unwrap();
+        validate_sidecar_stdout(&entry, &official_text).unwrap();
+        validate_extra_bundle(&official_text, &extra_text).unwrap();
+        validate_detail_bundle(&official_text, &detail_text, &extra_text).unwrap();
         let official: serde_json::Value = serde_json::from_str(&official_text).unwrap();
         let detail: serde_json::Value = serde_json::from_str(&detail_text).unwrap();
         let extra: serde_json::Value = serde_json::from_str(&extra_text).unwrap();

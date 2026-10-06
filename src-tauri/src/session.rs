@@ -55,6 +55,7 @@ pub struct SessionRecord {
     pub started_at: String,
     pub finished_at: Option<String>,
     pub error: Option<String>,
+    pub cancel_requested: bool,
     pub child: Option<tokio::process::Child>,
     pub child_pid: Option<u32>,
     pub job: Option<SendJobGuard>,
@@ -74,6 +75,7 @@ impl SessionRecord {
             started_at,
             finished_at: None,
             error: None,
+            cancel_requested: false,
             child: None,
             child_pid: None,
             job: None,
@@ -179,10 +181,11 @@ impl SessionRegistry {
         self.inner.lock().await.insert(record.id.clone(), record);
     }
 
-    /// Cancel keeps an effective kill path in every state: live Child is
-    /// killed directly, and the Job guard drops (whole-tree kill) even when
-    /// the waiter already reaped the Child. Terminal states are left alone.
+    /// Request cooperative settlement before the bounded process-tree kill.
+    /// The monitor owns reaping; cancellation is terminal only after the host
+    /// has validated any artifacts written by the settling worker.
     pub async fn cancel(&self, session_id: &str, finished_at: String) -> bool {
+        use tokio::io::AsyncWriteExt;
         let mut guard = self.inner.lock().await;
         let Some(record) = guard.get_mut(session_id) else {
             return false;
@@ -193,29 +196,59 @@ impl SessionRegistry {
             }
             _ => {}
         }
-        // Cancel wins the race against a concurrently exiting child: the
-        // Child is taken out of the record HERE (under the lock) so the
-        // waiter's natural-exit path observes "no child" and can never
-        // complete the session as succeeded (OBSERVED on VM: the cancel
-        // keystroke landed but the scan still showed succeeded 17/17).
-        // kill_child takes the already-removed Child (no-op) and drops
-        // the Job guard for whole-tree kill.
-        let mut taken = record.child.take();
-        record.job.take();
-        // Drop the guard before awaiting kill (Child is owned locally now).
-        drop(guard);
-        if let Some(mut child) = taken.take() {
-            let _ = child.kill().await;
-            let _ = child.wait().await;
+        if record.cancel_requested { return true; }
+        record.cancel_requested = true;
+        record.status = SessionStatus::Finalizing;
+        let has_child = record.child.is_some();
+        let stdin = record.child.as_mut().and_then(|child| child.stdin.take());
+        if !has_child && record.child_pid.is_none() {
+            record.status = SessionStatus::Cancelled;
+            record.finished_at = Some(finished_at);
+            return true;
         }
+        drop(guard);
+        if let Some(mut stdin) = stdin {
+            let _ = tokio::time::timeout(std::time::Duration::from_secs(1), async {
+                stdin.write_all(b"{\"type\":\"cancel\"}\n").await?;
+                stdin.shutdown().await
+            }).await;
+        }
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(10);
+        loop {
+            let mut guard = self.inner.lock().await;
+            let Some(record) = guard.get_mut(session_id) else { return false; };
+            let Some(child) = record.child.as_mut() else { break; };
+            if matches!(child.try_wait(), Ok(Some(_))) { break; }
+            if tokio::time::Instant::now() >= deadline {
+                record.kill_child().await;
+                break;
+            }
+            drop(guard);
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        }
+        true
+    }
+
+    pub async fn cancellation_requested(&self, session_id: &str) -> bool {
+        self.inner.lock().await.get(session_id).is_some_and(|record| record.cancel_requested)
+    }
+
+    /// Store only a fully validated partial bundle, then publish cancellation.
+    pub async fn complete_cancellation(&self, session_id: &str, bundle: Option<(String, String, String)>, error: Option<String>, finished_at: String) {
         let mut guard = self.inner.lock().await;
-        let Some(record) = guard.get_mut(session_id) else {
-            return false;
-        };
-        record.child_pid = None;
+        let Some(record) = guard.get_mut(session_id) else { return; };
+        if !record.cancel_requested { return; }
+        if let Some((canonical, detail, extra)) = bundle {
+            record.progress.findings = serde_json::from_str::<serde_json::Value>(&canonical).ok()
+                .and_then(|value| value["findings"].as_array().map(|items| items.len() as u64)).unwrap_or(0);
+            record.result_json = Some(canonical);
+            record.detail_json = Some(detail);
+            record.extra_json = Some(extra);
+        }
         record.status = SessionStatus::Cancelled;
         record.finished_at = Some(finished_at);
-        true
+        record.error = error;
+        record.child_pid = None;
     }
 
     /// Host backstop for a stalled worker. The worker owns the scan clock;
@@ -235,7 +268,7 @@ impl SessionRegistry {
         }
         let mut guard = self.inner.lock().await;
         let Some(record) = guard.get_mut(session_id) else { return false; };
-        if record.status == SessionStatus::Cancelled { return false; }
+        if record.cancel_requested { return false; }
         record.child_pid = None;
         record.status = SessionStatus::Failed;
         record.finished_at = Some(finished_at);
@@ -243,14 +276,14 @@ impl SessionRegistry {
         true
     }
 
-    pub async fn store_result(&self, session_id: &str, canonical: String, detail_json: String, extra_json: String, finished_at: String) {
+    pub async fn store_result(&self, session_id: &str, canonical: String, detail_json: String, extra_json: String, finished_at: String) -> bool {
         let mut guard = self.inner.lock().await;
         let Some(record) = guard.get_mut(session_id) else {
-            return;
+            return false;
         };
         // Never overwrite a terminal cancel/fail with a late success.
-        if matches!(record.status, SessionStatus::Cancelled | SessionStatus::Failed) {
-            return;
+        if record.cancel_requested || matches!(record.status, SessionStatus::Cancelled | SessionStatus::Failed) {
+            return false;
         }
         record.result_json = Some(canonical);
         if let Some(count) = record.result_json.as_deref()
@@ -263,6 +296,8 @@ impl SessionRegistry {
         record.status = SessionStatus::Succeeded;
         record.finished_at = Some(finished_at);
         record.error = None;
+        record.child_pid = None;
+        true
     }
 
     pub async fn fail(&self, session_id: &str, detail: String, finished_at: String) {
@@ -270,7 +305,7 @@ impl SessionRegistry {
         let Some(record) = guard.get_mut(session_id) else {
             return;
         };
-        if matches!(record.status, SessionStatus::Cancelled) {
+        if record.cancel_requested || matches!(record.status, SessionStatus::Cancelled) {
             return;
         }
         record.status = SessionStatus::Failed;
@@ -289,6 +324,7 @@ impl SessionRegistry {
             "startedAt": record.started_at,
             "finishedAt": record.finished_at,
             "error": record.error,
+            "hasResult": record.result_json.is_some() && record.detail_json.is_some() && record.extra_json.is_some(),
             "progress": record.progress.value(record.status.as_str(), matches!(record.status,
                 SessionStatus::Succeeded | SessionStatus::Cancelled | SessionStatus::Failed)),
         }))
@@ -312,9 +348,16 @@ impl SessionRegistry {
         serde_json::from_str(&text).ok()
     }
 
-    pub async fn result_text(&self, session_id: &str) -> Option<String> {
+    pub async fn validated_export_text(&self, session_id: &str) -> Result<String, String> {
         let guard = self.inner.lock().await;
-        guard.get(session_id)?.result_json.clone()
+        let record = guard.get(session_id).ok_or("unknown session")?;
+        if !matches!(record.status, SessionStatus::Succeeded | SessionStatus::Cancelled)
+            || record.detail_json.is_none() || record.extra_json.is_none() {
+            return Err("no validated result stored for session yet".to_string());
+        }
+        let text = record.result_json.as_deref().ok_or("no result stored for session yet")?;
+        validate_sidecar_stdout(&record.entry_url, text)
+            .map_err(|error| format!("stored result invalid, export blocked: {error}"))
     }
 
     pub async fn progress_snapshot(&self, session_id: &str) -> ProgressSnapshot {
@@ -406,7 +449,7 @@ impl SessionRegistry {
         let registry = Arc::clone(self);
         let diagnostics = std::sync::Arc::new(tokio::sync::Mutex::new(VecDeque::<String>::new()));
         let pump_diagnostics = diagnostics.clone();
-        let pump = tokio::spawn(async move {
+        let mut pump = tokio::spawn(async move {
             let mut lines = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = lines.next_line().await {
                 if let Some(payload) = line.split_once("KRDSPROGRESS ") {
@@ -446,7 +489,10 @@ impl SessionRegistry {
         let outcome = self.wait_sidecar(session_id).await;
         // The child has exited (or was cancelled): the pipe is at EOF, so
         // awaiting the pump cannot block. Abort is only a backstop.
-        let _ = tokio::time::timeout(std::time::Duration::from_secs(5), pump).await;
+        if tokio::time::timeout(std::time::Duration::from_secs(5), &mut pump).await.is_err() {
+            pump.abort();
+            let _ = pump.await;
+        }
         match outcome {
             SessionOutcome::Failed { detail } => {
                 let buffer = diagnostics.lock().await;
@@ -472,7 +518,7 @@ impl SessionRegistry {
     /// happens exactly once — here on natural exit, or in `cancel`.
     pub async fn wait_sidecar(&self, session_id: &str) -> SessionOutcome {
         loop {
-            enum Poll { Cancelled, Failed(String), Running, Exited }
+            enum Poll { Failed(String), Running, Exited }
             let step: Poll = {
                 let mut guard = self.inner.lock().await;
                 let Some(record) = guard.get_mut(session_id) else {
@@ -497,7 +543,6 @@ impl SessionRegistry {
                 }
             };
             match step {
-                Poll::Cancelled => return SessionOutcome::Cancelled,
                 Poll::Failed(detail) => return SessionOutcome::Failed { detail },
                 Poll::Running => {
                     tokio::time::sleep(std::time::Duration::from_millis(200)).await;
@@ -509,18 +554,17 @@ impl SessionRegistry {
                             detail: "unknown session".to_string(),
                         };
                     };
-                    if record.status == SessionStatus::Cancelled {
-                        record.child.take();
-                        record.job.take();
-                        drop(guard);
-                        return SessionOutcome::Cancelled;
-                    }
                     let Some(child) = record.child.take() else {
                         return SessionOutcome::Cancelled;
                     };
+                    let cancelled = record.cancel_requested;
                     record.job.take();
                     drop(guard);
-                    return Self::collect_output(child, session_id).await;
+                    let output = Self::collect_output(child, session_id).await;
+                    if cancelled || self.cancellation_requested(session_id).await {
+                        return SessionOutcome::Cancelled;
+                    }
+                    return output;
                 }
             }
         }
@@ -529,7 +573,7 @@ impl SessionRegistry {
     /// Collect piped output from an exited child (called after try_wait
     /// observed exit, or for a freshly spawned child in tests).
     async fn collect_output(
-        mut child: tokio::process::Child,
+        child: tokio::process::Child,
         session_id: &str,
     ) -> SessionOutcome {
         match child.wait_with_output().await {
@@ -544,7 +588,6 @@ impl SessionRegistry {
                         if let Ok(text) = std::fs::read_to_string(&candidate) {
                             stdout = text;
                         }
-                        let _ = std::fs::remove_file(&candidate);
                     }
                     SessionOutcome::Succeeded { stdout }
                 } else {
@@ -579,9 +622,8 @@ impl SessionRegistry {
         // the mutex across the OS call.
         {
             let guard = self.inner.lock().await;
-            if !guard.contains_key(session_id) {
-                return Err("unknown session".to_string());
-            }
+            let record = guard.get(session_id).ok_or("unknown session")?;
+            if record.cancel_requested { return Err("session cancelled before worker startup".to_string()); }
         }
         // The resource worker resolves npm packages relative to its own path.
         // Keep Node and its browser beside that worker in installed bundles.
@@ -620,7 +662,7 @@ impl SessionRegistry {
             }
         }
         cmd.args(args)
-            .stdin(SyncStdio::null())
+            .stdin(SyncStdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
         #[cfg(windows)]
@@ -645,6 +687,12 @@ impl SessionRegistry {
             let record = guard
                 .get_mut(session_id)
                 .ok_or_else(|| "unknown session".to_string())?;
+            if record.cancel_requested {
+                drop(job);
+                let _ = child.kill().await;
+                let _ = child.wait().await;
+                return Err("session cancelled before worker startup".to_string());
+            }
             record.job = Some(SendJobGuard(job));
             record.child = Some(child);
             record.child_pid = Some(pid);
@@ -655,6 +703,11 @@ impl SessionRegistry {
             let record = guard
                 .get_mut(session_id)
                 .ok_or_else(|| "unknown session".to_string())?;
+            if record.cancel_requested {
+                let _ = child.kill().await;
+                let _ = child.wait().await;
+                return Err("session cancelled before worker startup".to_string());
+            }
             record.child = Some(child);
             record.child_pid = Some(pid);
         }
@@ -673,7 +726,7 @@ impl SessionRegistry {
         }
         let mut cmd = tokio::process::Command::new(argv[0]);
         cmd.args(&argv[1..])
-            .stdin(SyncStdio::null())
+            .stdin(SyncStdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .kill_on_drop(true);
@@ -691,6 +744,464 @@ impl SessionRegistry {
 pub fn new_session(entry_url: String, topic: String, started_at: String) -> SessionRecord {
     let id = uuid::Uuid::new_v4().to_string();
     SessionRecord::new(id, entry_url, topic, started_at)
+}
+
+/// Cancellation can arrive after a natural worker exit. Validate its completed
+/// artifacts identically, then mark coverage with the host's cancellation verdict.
+pub(crate) fn load_cancelled_bundle(entry_url: &str, result_path: &std::path::Path, detail_path: &std::path::Path, extra_path: &std::path::Path) -> Result<(String, String, String), String> {
+    let result = std::fs::read_to_string(result_path).map_err(|e| format!("partial result missing: {e}"))?;
+    let detail = std::fs::read_to_string(detail_path).map_err(|e| format!("partial detail missing: {e}"))?;
+    let extra = std::fs::read_to_string(extra_path).map_err(|e| format!("partial extra result missing: {e}"))?;
+    let canonical = validate_sidecar_stdout(entry_url, &result)?;
+    validate_extra_bundle(&canonical, &extra)?;
+    validate_detail_bundle(&canonical, &detail, &extra)?;
+    let mut parsed: serde_json::Value = serde_json::from_str(&detail).map_err(|e| e.to_string())?;
+    if parsed["coverage"]["checkedPages"].as_u64().unwrap_or(0) == 0 {
+        return Err("no completed page result to retain".to_string());
+    }
+    parsed["coverage"]["cancelled"] = serde_json::json!(true);
+    let retained_detail = serde_json::to_string(&parsed).map_err(|e| e.to_string())?;
+    Ok((canonical, retained_detail, extra))
+}
+
+/// BOM-free UTF-8, valid JSON, complete meta, required finding fields,
+/// official technique enum only, unique ids, no duplicate
+/// url+location+technique identities, and request/result entry_url match.
+/// Any violation fails the session and is never exportable (KODEX §38).
+pub(crate) fn validate_sidecar_stdout(entry_url: &str, stdout: &str) -> Result<String, String> {
+    if stdout.starts_with('\u{FEFF}') {
+        return Err("sidecar result contained a BOM".to_string());
+    }
+    let parsed: serde_json::Value =
+        serde_json::from_str(stdout).map_err(|e| format!("sidecar result is not JSON: {e}"))?;
+    let meta = parsed.get("meta").ok_or("sidecar result missing meta")?;
+    for field in ["topic", "entry_url", "started_at", "finished_at", "elapsed_sec", "tool_version"] {
+        if meta.get(field).is_none() {
+            return Err(format!("sidecar result meta.{field} is required"));
+        }
+    }
+    let result_url = meta.get("entry_url").and_then(|u| u.as_str()).unwrap_or("");
+    if result_url.is_empty() {
+        return Err("sidecar result meta.entry_url must be a non-empty string".to_string());
+    }
+    if result_url != entry_url {
+        return Err(format!("sidecar result entry_url mismatch: request {entry_url} vs result {result_url}"));
+    }
+    let findings = parsed.get("findings").and_then(|f| f.as_array()).ok_or("sidecar result findings must be an array")?;
+    let mut ids = std::collections::HashSet::new();
+    let mut identities = std::collections::HashSet::new();
+    for (i, item) in findings.iter().enumerate() {
+        let at = format!("findings[{i}]");
+        for field in ["id", "url", "is_violation", "location", "evidence_text", "technique"] {
+            if item.get(field).is_none() {
+                return Err(format!("sidecar result {at}.{field} is required"));
+            }
+        }
+        let id = item.get("id").and_then(|v| v.as_str()).ok_or(format!("sidecar result {at}.id must be a string"))?;
+        if !ids.insert(id.to_string()) {
+            return Err(format!("sidecar result {at}.id is duplicated"));
+        }
+        let technique = item.get("technique").and_then(|v| v.as_str()).unwrap_or("");
+        if !matches!(technique, "HOMOGLYPH" | "JAMO" | "TRANSPARENT" | "OFFSCREEN") {
+            return Err(format!("sidecar result {at}.technique must be one of HOMOGLYPH, JAMO, TRANSPARENT, OFFSCREEN"));
+        }
+        let url = item.get("url").and_then(|v| v.as_str()).unwrap_or("");
+        let location = item.get("location").and_then(|v| v.as_str()).unwrap_or("");
+        if location.trim().is_empty() {
+            return Err(format!("sidecar result {at}.location must be non-empty"));
+        }
+        let key = format!("{url}\u{0}{location}\u{0}{technique}");
+        if !identities.insert(key) {
+            return Err(format!("sidecar result {at} duplicates url+location+technique"));
+        }
+    }
+    let canonical = serde_json::to_string_pretty(&parsed)
+        .map_err(|e| format!("sidecar result not serializable: {e}"))?;
+    if canonical.starts_with('\u{FEFF}') {
+        return Err("canonical serializer emitted a BOM".to_string());
+    }
+    Ok(format!("{canonical}\n"))
+}
+
+/// Bind every internal detail to a validated official finding. Visual bytes
+/// remain in the session-local manifest and never enter result.json.
+pub(crate) fn validate_detail_bundle(official_text: &str, detail_text: &str, extra_text: &str) -> Result<(), String> {
+    if detail_text.len() > 8_000_000 { return Err("detail manifest exceeds size limit".to_string()); }
+    let official: serde_json::Value = serde_json::from_str(official_text).map_err(|e| e.to_string())?;
+    let detail: serde_json::Value = serde_json::from_str(detail_text).map_err(|e| format!("detail manifest invalid JSON: {e}"))?;
+    if detail.get("version").and_then(|v| v.as_u64()) != Some(2) {
+        return Err("detail manifest version must be 2".to_string());
+    }
+    let expected = official["findings"].as_array().ok_or("official findings missing")?;
+    let actual = detail["findings"].as_array().ok_or("detail findings missing")?;
+    if expected.len() != actual.len() { return Err("detail finding count mismatch".to_string()); }
+    for finding in expected {
+        let id = finding["id"].as_str().ok_or("official finding id missing")?;
+        let item = actual.iter().find(|item| item["findingId"].as_str() == Some(id))
+            .ok_or(format!("detail missing official finding {id}"))?;
+        for (source, target) in [("url", "url"), ("location", "location"), ("technique", "technique"), ("evidence_text", "rawText")] {
+            if finding[source] != item[target] { return Err(format!("detail {id} {target} mismatch")); }
+        }
+        if let Some(selector) = item["observed"].get("selector") {
+            if selector.as_str().is_none_or(str::is_empty) { return Err(format!("detail {id} observed selector invalid")); }
+        }
+        let visual = &item["visual"];
+        match visual["state"].as_str() {
+            Some("available") => {
+                let uri = visual["dataUrl"].as_str().ok_or(format!("detail {id} visual data missing"))?;
+                if !uri.starts_with("data:image/jpeg;base64,") || uri.len() > 700_000 {
+                    return Err(format!("detail {id} visual data invalid"));
+                }
+                let valid_box = |rect: &serde_json::Value| {
+                    ["x", "y", "width", "height"].iter().all(|key|
+                        rect[*key].as_f64().map(|value| value.is_finite()).unwrap_or(false))
+                        && rect["width"].as_f64().unwrap_or(0.0) > 0.0
+                        && rect["height"].as_f64().unwrap_or(0.0) > 0.0
+                };
+                let viewport = &visual["viewport"];
+                let width = viewport["width"].as_f64().filter(|value| value.is_finite() && *value > 0.0)
+                    .ok_or(format!("detail {id} viewport width invalid"))?;
+                let height = viewport["height"].as_f64().filter(|value| value.is_finite() && *value > 0.0)
+                    .ok_or(format!("detail {id} viewport height invalid"))?;
+                if !viewport["deviceScaleFactor"].as_f64().map(|value| value.is_finite() && value > 0.0).unwrap_or(false) {
+                    return Err(format!("detail {id} device scale invalid"));
+                }
+                if !["scrollX", "scrollY"].iter().all(|key| viewport[*key].as_f64().map(|value| value.is_finite()).unwrap_or(false)) {
+                    return Err(format!("detail {id} viewport scroll invalid"));
+                }
+                let target = &visual["target"];
+                match target["state"].as_str() {
+                    Some("available") if valid_box(&target["box"]) && target["coordinateSpace"] == "main-viewport" => {},
+                    Some("unavailable") if target["reason"] == "target-unavailable" => {},
+                    _ => return Err(format!("detail {id} target invalid")),
+                }
+                let element = &visual["element"];
+                match element["state"].as_str() {
+                    Some("available") => {
+                        let image = element["dataUrl"].as_str().ok_or(format!("detail {id} element data missing"))?;
+                        let rect = &element["box"];
+                        if target["state"] != "available" || !valid_box(rect)
+                            || element["mimeType"] != "image/jpeg"
+                            || !image.starts_with("data:image/jpeg;base64,") || image.len() > 700_000
+                            || rect["x"].as_f64().unwrap_or(-1.0) < 0.0 || rect["y"].as_f64().unwrap_or(-1.0) < 0.0
+                            || rect["x"].as_f64().unwrap_or(0.0) + rect["width"].as_f64().unwrap_or(0.0) > width
+                            || rect["y"].as_f64().unwrap_or(0.0) + rect["height"].as_f64().unwrap_or(0.0) > height {
+                            return Err(format!("detail {id} element capture invalid"));
+                        }
+                    },
+                    Some("unavailable") if matches!(element["reason"].as_str(),
+                        Some("budget" | "capture-error" | "outside-viewport" | "target-unavailable"))
+                        && element.get("dataUrl").is_none() => {},
+                    _ => return Err(format!("detail {id} element state invalid")),
+                }
+            }
+            Some("unavailable") => {
+                if visual.get("dataUrl").is_some() { return Err(format!("detail {id} unavailable visual has data")); }
+            }
+            _ => return Err(format!("detail {id} visual state invalid")),
+        }
+    }
+    let coverage = detail.get("coverage").ok_or("detail coverage missing")?;
+    let checked = coverage["checkedPages"].as_u64().ok_or("detail checkedPages missing")?;
+    if checked > 9_007_199_254_740_991 { return Err("detail checkedPages invalid".to_string()); }
+    let failed_pages = coverage["failedPages"].as_array().ok_or("detail failedPages missing")?;
+    if !coverage["timedOut"].is_boolean()
+        || coverage.get("cancelled").is_some_and(|value| !value.is_boolean()) {
+        return Err("detail coverage flags invalid".to_string());
+    }
+    let nonempty_string = |value: &serde_json::Value| value.as_str().is_some_and(|text| !text.is_empty());
+    let safe_integer = |value: &serde_json::Value| value.as_u64().is_some_and(|number| number <= 9_007_199_254_740_991);
+    for page in failed_pages {
+        if !nonempty_string(&page["url"]) || !safe_integer(&page["status"]) || !nonempty_string(&page["reason"]) {
+            return Err("detail failed page invalid".to_string());
+        }
+    }
+    if let Some(outcomes) = detail.get("pageOutcomes") {
+        let outcomes = outcomes.as_array().ok_or("detail pageOutcomes must be an array")?;
+        if outcomes.len() > 200 { return Err("detail pageOutcomes exceeds limit".to_string()); }
+        let mut urls = std::collections::HashSet::new();
+        let mut checked_count = 0;
+        let mut failed_count = 0;
+        for page in outcomes {
+            if !nonempty_string(&page["url"]) || !nonempty_string(&page["finalUrl"])
+                || !safe_integer(&page["status"]) || !safe_integer(&page["depth"])
+                || page.get("reason").is_some_and(|reason| !nonempty_string(reason)) {
+                return Err("detail page outcome invalid".to_string());
+            }
+            if !urls.insert(page["url"].as_str().unwrap()) { return Err("detail page outcome URL duplicated".to_string()); }
+            let status = page["status"].as_u64().unwrap();
+            let was_checked = status > 0 && status < 400;
+            if page["outcome"] != if was_checked { "checked" } else { "failed" } {
+                return Err("detail page outcome status mismatch".to_string());
+            }
+            if was_checked { checked_count += 1; } else {
+                failed_count += 1;
+                if !failed_pages.iter().any(|failed| failed["url"] == page["url"] && failed["status"] == page["status"]) {
+                    return Err("detail page outcome missing failed coverage".to_string());
+                }
+            }
+        }
+        if checked_count != checked || failed_count != failed_pages.len() as u64 {
+            return Err("detail page outcomes coverage mismatch".to_string());
+        }
+    }
+    if let Some(analysis) = detail.get("imageAnalysis") {
+        let analysis = analysis.as_array().ok_or("detail imageAnalysis must be an array")?;
+        if analysis.len() > 64 { return Err("detail imageAnalysis exceeds limit".to_string()); }
+        let string_array = |value: &serde_json::Value| value.as_array().is_some_and(|items| items.iter().all(nonempty_string));
+        for image in analysis {
+            if !nonempty_string(&image["sourceUrl"]) || !string_array(&image["pageUrls"])
+                || image["pageUrls"].as_array().is_none_or(Vec::is_empty) || !string_array(&image["matchedTerms"])
+                || image.get("normalizedText").is_some_and(|text| !text.is_string()) {
+                return Err("detail image analysis identity invalid".to_string());
+            }
+            let ocr = &image["ocr"];
+            if !nonempty_string(&ocr["backend"]) { return Err("detail OCR backend invalid".to_string()); }
+            match ocr["state"].as_str() {
+                Some("available") if ocr["text"].is_string()
+                    && ocr["confidence"].as_f64().is_some_and(|confidence| confidence.is_finite() && (0.0..=1.0).contains(&confidence)) => {},
+                Some("unavailable") if matches!(ocr["reason"].as_str(), Some("budget" | "recognition-error")) => {},
+                _ => return Err("detail OCR result invalid".to_string()),
+            }
+            let decision = &image["decision"];
+            if !nonempty_string(&decision["rule"]) || !nonempty_string(&decision["detail"])
+                || !decision["passed"].is_boolean()
+                || !["score", "threshold"].iter().all(|field| decision[*field].as_f64().is_some_and(f64::is_finite)) {
+                return Err("detail image analysis decision invalid".to_string());
+            }
+            if decision["passed"].as_bool() != Some(decision["score"].as_f64().unwrap() >= decision["threshold"].as_f64().unwrap()) {
+                return Err("detail image analysis decision threshold mismatch".to_string());
+            }
+        }
+    }
+    let extra: serde_json::Value = serde_json::from_str(extra_text).map_err(|e| e.to_string())?;
+    let extras = extra["findings"].as_array().ok_or("extra findings missing")?;
+    let images = detail["creativeImages"].as_array().ok_or("detail creativeImages missing")?;
+    if images.len() > 64 { return Err("detail creativeImages exceeds limit".to_string()); }
+    let mut ids = std::collections::HashSet::new();
+    let mut image_chars = 0;
+    for image in images {
+        let id = image["findingId"].as_str().ok_or("creative image findingId missing")?;
+        let finding = extras.iter().find(|finding| finding["id"] == id).ok_or("creative image finding missing")?;
+        if !ids.insert(id) || finding["extra_finding"] != "REUSED_AD_CREATIVE"
+            || finding["url"] != image["sourceUrl"] || finding["location"] != image["sourceUrl"] {
+            return Err("creative image identity invalid".to_string());
+        }
+        let mime = image["mimeType"].as_str().ok_or("creative image MIME missing")?;
+        let data = image["dataUrl"].as_str().ok_or("creative image data missing")?;
+        let hash = image["sha256"].as_str().ok_or("creative image hash missing")?;
+        let encoded = data.split_once(',').map(|(_, payload)| payload).unwrap_or("");
+        let content = encoded.trim_end_matches('=');
+        if !matches!(mime, "image/png" | "image/jpeg" | "image/webp")
+            || !data.starts_with(&format!("data:{mime};base64,")) || data.len() > 334_000
+            || content.is_empty() || encoded.len() - content.len() > 2
+            || !content.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'+' || byte == b'/')
+            || hash.len() != 64 || !hash.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            || image["width"].as_u64().unwrap_or(0) < 8 || image["height"].as_u64().unwrap_or(0) < 8
+            || image["capturedAt"].as_str().and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok()).is_none() {
+            return Err("creative image representation invalid".to_string());
+        }
+        image_chars += data.len();
+    }
+    if image_chars > 2_670_000 { return Err("creative images exceed capture budget".to_string()); }
+    Ok(())
+}
+
+pub(crate) fn validate_extra_bundle(official_text: &str, extra_text: &str) -> Result<(), String> {
+    if extra_text.len() > 1_000_000 { return Err("extra result exceeds size limit".to_string()); }
+    if extra_text.starts_with('\u{FEFF}') { return Err("extra result contained a BOM".to_string()); }
+    let official: serde_json::Value = serde_json::from_str(official_text).map_err(|e| e.to_string())?;
+    let extra: serde_json::Value = serde_json::from_str(extra_text).map_err(|e| format!("extra result invalid JSON: {e}"))?;
+    for field in ["topic", "entry_url", "started_at", "finished_at", "elapsed_sec", "tool_version"] {
+        if extra["meta"][field] != official["meta"][field] {
+            return Err(format!("extra result meta.{field} mismatch"));
+        }
+    }
+    let findings = extra["findings"].as_array().ok_or("extra findings must be an array")?;
+    let mut ids = std::collections::HashSet::new();
+    for (index, finding) in findings.iter().enumerate() {
+        let at = format!("extra findings[{index}]");
+        let id = finding["id"].as_str().ok_or(format!("{at}.id missing"))?;
+        if !ids.insert(id) { return Err(format!("{at}.id duplicated")); }
+        if finding["technique"].as_str() != Some("ETC") { return Err(format!("{at}.technique must be ETC")); }
+        if !matches!(finding["extra_finding"].as_str(), Some("REUSED_AD_CREATIVE" | "AD_INFRASTRUCTURE_CORRELATION" | "ZERO_WIDTH_OBFUSCATION")) {
+            return Err(format!("{at}.extra_finding invalid"));
+        }
+        for field in ["url", "location", "evidence_text"] {
+            if finding[field].as_str().is_none_or(str::is_empty) { return Err(format!("{at}.{field} missing")); }
+        }
+        if finding["is_violation"].as_bool() != Some(true) { return Err(format!("{at}.is_violation invalid")); }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod validation_tests {
+    use super::{validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout};
+
+    fn good_json() -> String {
+        "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[{\"id\":\"f1\",\"url\":\"https://example.kr/a\",\"is_violation\":true,\"location\":\"#a\",\"evidence_text\":\"x\",\"technique\":\"HOMOGLYPH\"}]}".to_string()
+    }
+
+    #[test]
+    fn rejects_unreconciled_page_outcomes_and_invalid_ocr_decisions() {
+        let detail = serde_json::json!({
+            "version": 2, "creativeImages": [],
+            "findings": [{"findingId":"f1", "url":"https://example.kr/a", "location":"#a",
+                "technique":"HOMOGLYPH", "rawText":"x", "observed":{"selector":"#source"},
+                "visual":{"state":"unavailable","reason":"budget"}}],
+            "coverage": {"checkedPages":1,"failedPages":[{"url":"https://example.kr/slow","status":0,"reason":"cancelled"}],
+                "timedOut":false,"cancelled":true},
+            "pageOutcomes": [
+                {"url":"https://example.kr/a","finalUrl":"https://example.kr/a","status":200,"depth":0,"outcome":"checked"},
+                {"url":"https://example.kr/slow","finalUrl":"https://example.kr/slow","status":0,"depth":1,"outcome":"failed","reason":"cancelled"}],
+            "imageAnalysis": [{"sourceUrl":"https://example.kr/ad.png","pageUrls":["https://example.kr/a"],
+                "ocr":{"state":"available","backend":"local","text":"ad","confidence":0.9},"normalizedText":"ad",
+                "matchedTerms":["ad"],"decision":{"rule":"semantic","score":1,"threshold":0.5,"passed":true,"detail":"matching text"}}]
+        });
+        let check = |value: &serde_json::Value| validate_detail_bundle(&good_json(), &value.to_string(), "{\"findings\":[]}");
+        assert!(check(&detail).is_ok());
+        let mut wrong = detail.clone();
+        wrong["coverage"]["checkedPages"] = serde_json::json!(2);
+        assert_eq!(check(&wrong).unwrap_err(), "detail page outcomes coverage mismatch");
+        wrong = detail.clone();
+        wrong["pageOutcomes"][1]["outcome"] = serde_json::json!("checked");
+        assert_eq!(check(&wrong).unwrap_err(), "detail page outcome status mismatch");
+        wrong = detail.clone();
+        wrong["pageOutcomes"][1]["url"] = serde_json::json!("https://example.kr/missing");
+        assert_eq!(check(&wrong).unwrap_err(), "detail page outcome missing failed coverage");
+        wrong = detail.clone();
+        wrong["imageAnalysis"][0]["ocr"]["confidence"] = serde_json::json!(1.1);
+        assert_eq!(check(&wrong).unwrap_err(), "detail OCR result invalid");
+        wrong = detail.clone();
+        wrong["imageAnalysis"][0]["decision"]["passed"] = serde_json::json!("yes");
+        assert_eq!(check(&wrong).unwrap_err(), "detail image analysis decision invalid");
+        wrong = detail.clone();
+        wrong["imageAnalysis"][0]["decision"]["passed"] = serde_json::json!(false);
+        assert_eq!(check(&wrong).unwrap_err(), "detail image analysis decision threshold mismatch");
+        wrong = detail.clone();
+        wrong["imageAnalysis"][0]["decision"]["score"] = serde_json::json!(0.5);
+        assert!(check(&wrong).is_ok(), "score at threshold passes");
+        wrong["imageAnalysis"][0]["decision"]["score"] = serde_json::json!(0.4);
+        wrong["imageAnalysis"][0]["decision"]["passed"] = serde_json::json!(false);
+        assert!(check(&wrong).is_ok(), "score below threshold fails");
+        wrong = detail.clone();
+        wrong["imageAnalysis"] = serde_json::json!(vec![detail["imageAnalysis"][0].clone(); 64]);
+        assert!(check(&wrong).is_ok(), "64 image analyses fit the contract");
+        wrong["imageAnalysis"].as_array_mut().unwrap().push(detail["imageAnalysis"][0].clone());
+        assert_eq!(check(&wrong).unwrap_err(), "detail imageAnalysis exceeds limit");
+        wrong = detail.clone();
+        wrong["coverage"]["checkedPages"] = serde_json::json!(200);
+        wrong["coverage"]["failedPages"] = serde_json::json!([]);
+        let outcomes: Vec<_> = (0..200).map(|index| serde_json::json!({
+            "url":format!("https://example.kr/{index}"), "finalUrl":format!("https://example.kr/{index}"),
+            "status":200,"depth":0,"outcome":"checked"})).collect();
+        wrong["pageOutcomes"] = serde_json::json!(outcomes);
+        assert!(check(&wrong).is_ok(), "200 page outcomes reconcile coverage");
+        wrong["pageOutcomes"].as_array_mut().unwrap().push(serde_json::json!({
+            "url":"https://example.kr/200","finalUrl":"https://example.kr/200","status":200,"depth":0,"outcome":"checked"}));
+        wrong["coverage"]["checkedPages"] = serde_json::json!(201);
+        assert_eq!(check(&wrong).unwrap_err(), "detail pageOutcomes exceeds limit");
+        wrong = detail.clone();
+        wrong["findings"][0]["observed"]["selector"] = serde_json::json!("");
+        assert_eq!(check(&wrong).unwrap_err(), "detail f1 observed selector invalid");
+        wrong = detail;
+        wrong["imageAnalysis"][0]["ocr"] = serde_json::json!({"state":"unavailable","backend":"local","reason":"budget"});
+        assert!(check(&wrong).is_ok());
+    }
+
+    fn good_extra() -> String {
+        let official: serde_json::Value = serde_json::from_str(&good_json()).unwrap();
+        serde_json::json!({
+            "meta": official["meta"],
+            "findings": [{
+                "id": "x1", "url": "https://example.kr/a", "is_violation": true,
+                "location": "https://example.kr/a", "evidence_text": "shared infrastructure",
+                "technique": "ETC", "extra_finding": "AD_INFRASTRUCTURE_CORRELATION"
+            }]
+        }).to_string()
+    }
+
+    #[test]
+    fn accepts_separate_extra_result() {
+        assert!(validate_extra_bundle(&good_json(), &good_extra()).is_ok());
+    }
+
+    #[test]
+    fn rejects_extra_metadata_and_type_mismatch() {
+        let mut wrong_time: serde_json::Value = serde_json::from_str(&good_extra()).unwrap();
+        wrong_time["meta"]["elapsed_sec"] = serde_json::json!(61);
+        assert!(validate_extra_bundle(&good_json(), &wrong_time.to_string()).is_err());
+        let mut wrong_type: serde_json::Value = serde_json::from_str(&good_extra()).unwrap();
+        wrong_type["findings"][0]["extra_finding"] = serde_json::json!("UNKNOWN");
+        assert!(validate_extra_bundle(&good_json(), &wrong_type.to_string()).is_err());
+    }
+
+    #[test]
+    fn accepts_valid_result() {
+        assert!(validate_sidecar_stdout("https://example.kr/", &good_json()).is_ok());
+    }
+
+    #[test]
+    fn rejects_missing_meta_field() {
+        let bad = good_json().replace("\"elapsed_sec\":60,", "");
+        assert!(validate_sidecar_stdout("https://example.kr/", &bad).is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_technique() {
+        let bad = good_json().replace("HOMOGLYPH", "ETC");
+        let err = validate_sidecar_stdout("https://example.kr/", &bad).unwrap_err();
+        assert!(err.contains("technique"), "{err}");
+    }
+
+    #[test]
+    fn rejects_entry_url_mismatch() {
+        let err = validate_sidecar_stdout("https://other.kr/", &good_json()).unwrap_err();
+        assert!(err.contains("mismatch"), "{err}");
+    }
+
+    #[test]
+    fn rejects_duplicate_identity() {
+        let v: serde_json::Value = serde_json::from_str(&good_json()).unwrap();
+        let mut dup = v.clone();
+        let second = v["findings"][0].clone();
+        let mut with_id = second.clone();
+        with_id["id"] = serde_json::Value::String("f2".to_string());
+        dup["findings"].as_array_mut().unwrap().push(with_id);
+        let text = serde_json::to_string(&dup).unwrap();
+        let err = validate_sidecar_stdout("https://example.kr/", &text).unwrap_err();
+        assert!(err.contains("duplicates"), "{err}");
+    }
+
+    #[test]
+    fn rejects_bom() {
+        let bad = format!("\u{FEFF}{}", good_json());
+        assert!(validate_sidecar_stdout("https://example.kr/", &bad).is_err());
+    }
+
+    #[test]
+    fn detail_manifest_must_join_the_official_finding() {
+        let detail = serde_json::json!({
+            "version": 2,
+            "creativeImages": [],
+            "findings": [{"findingId":"f1", "url":"https://example.kr/a", "location":"#a",
+                "technique":"HOMOGLYPH", "rawText":"x", "visual":{"state":"unavailable","reason":"budget"}}],
+            "coverage": {"checkedPages":1,"failedPages":[],"timedOut":false}
+        });
+        assert!(validate_detail_bundle(&good_json(), &detail.to_string(), "{\"findings\":[]}").is_ok());
+        let mut partial = detail.clone();
+        partial["coverage"]["failedPages"] = serde_json::json!([
+            {"url":"https://example.kr/missing-a","status":404,"reason":"HTTP 404"},
+            {"url":"https://example.kr/missing-b","status":404,"reason":"HTTP 404"}
+        ]);
+        assert!(validate_detail_bundle(&good_json(), &partial.to_string(), "{\"findings\":[]}").is_ok());
+        partial["coverage"]["checkedPages"] = serde_json::json!(-1);
+        assert!(validate_detail_bundle(&good_json(), &partial.to_string(), "{\"findings\":[]}").is_err());
+        let mut wrong = detail;
+        wrong["findings"][0]["location"] = serde_json::Value::String("#other".to_string());
+        assert!(validate_detail_bundle(&good_json(), &wrong.to_string(), "{\"findings\":[]}").is_err());
+    }
 }
 
 #[cfg(test)]
@@ -718,6 +1229,9 @@ mod tests {
         assert!(done);
         let snapshot = registry.snapshot(&id).await.expect("session snapshot");
         assert_eq!(snapshot["status"], "cancelled");
+        assert_eq!(snapshot["hasResult"], false);
+        assert!(registry.validated_export_text(&id).await.is_err());
+        assert_eq!(registry.spawn_sidecar(&id, "missing-worker.mjs", &[]).await.unwrap_err(), "session cancelled before worker startup");
     }
 
     #[tokio::test]
@@ -776,8 +1290,8 @@ mod tests {
         assert_eq!(snapshot["status"], "succeeded");
         let value = registry.result_value(&id).await.expect("result value");
         assert!(value["findings"].as_array().is_some_and(|f| f.is_empty()));
-        let text = registry.result_text(&id).await.expect("result text");
-        assert_eq!(text, canonical);
+        let text = registry.validated_export_text(&id).await.expect("validated export text");
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&text).unwrap(), value);
         let progress = registry.progress_snapshot(&id).await;
         assert_eq!(progress.pages, 3);
         assert_eq!(progress.findings, 0, "validated result count overrides worker progress");
@@ -824,6 +1338,8 @@ mod tests {
         assert!(registry.cancel(&id, "2026-10-01T00:01:00Z".to_string()).await);
         let outcome = waiter.await.expect("waiter joins");
         assert!(matches!(outcome, super::SessionOutcome::Cancelled));
+        assert_eq!(registry.snapshot(&id).await.unwrap()["status"], "finalizing");
+        registry.complete_cancellation(&id, None, None, "finish".to_string()).await;
         let snapshot = registry.snapshot(&id).await.expect("session snapshot");
         assert_eq!(snapshot["status"], "cancelled");
         // Host survives the kill; registry still serves reads.
@@ -860,6 +1376,7 @@ mod tests {
         let outcome = waiter.await.expect("waiter joins");
         assert!(matches!(outcome, super::SessionOutcome::Cancelled));
         // A late success arriving after cancel must not flip the session.
+        registry.complete_cancellation(&id, None, None, "finish".to_string()).await;
         registry
             .store_result(&id, "{\"meta\":{},\"findings\":[]}\n".to_string(), "{}".to_string(), "{}".to_string(), "2026-10-01T00:02:00Z".to_string())
             .await;
@@ -1148,6 +1665,8 @@ mod progress_pump_tests {
         assert!(registry.cancel(&id, "2026-10-01T00:01:00Z".to_string()).await);
         let outcome = waiter.await.expect("waiter joins");
         assert!(matches!(outcome, super::SessionOutcome::Cancelled));
+        assert_eq!(registry.snapshot(&id).await.unwrap()["status"], "finalizing");
+        registry.complete_cancellation(&id, None, None, "finish".to_string()).await;
         let snapshot = registry.snapshot(&id).await.expect("snapshot");
         assert_eq!(snapshot["status"], "cancelled");
     }

@@ -45,6 +45,8 @@ export interface ScanSession {
   startedAt: string;
   finishedAt?: string;
   error?: string;
+  /** Host sets this only after validated result artifacts have been persisted. */
+  hasResult?: boolean;
   progress: ScanProgress;
 }
 

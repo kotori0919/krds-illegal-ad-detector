@@ -6,8 +6,10 @@ bounded recent activity and host snapshot recovery implemented 2026-10-06.
 each page is discovered and analyzed in one live pass. Actual packaged
 Windows progress, active-worker cancellation settlement, restart and short
 deadline partial-result/export observations are recorded in DRY_RUN and PERF.
-Cancellation returns to setup; completed findings are not offered for export
-from a cancelled session. Deadline expiry finalizes a partial succeeded result.
+Cancellation cooperatively settles the worker and preserves validated results
+from completed pages. The canonical host snapshot exposes `hasResult` only after
+all three artifacts have been validated and stored. Deadline expiry finalizes a
+partial succeeded result.
 
 ## Lifecycle and operator state
 
@@ -18,7 +20,8 @@ from a cancelled session. Deadline expiry finalizes a partial succeeded result.
 | finalizing | 결과 정리 중 | counts may be provisional; save disabled | Wait or stop if host supports safe settlement |
 | succeeded + no issues | 점검 완료 | persisted official result, detail, coverage | review/save/new scan |
 | succeeded + issues | 점검 완료 — 일부 페이지 확인 실패 | same result plus failure list | review/save with warning/new scan |
-| cancelled | 점검 중지됨 | terminal session/progress snapshot; no exportable result is promised | return to setup and start a new scan |
+| cancelled + hasResult | 중지 전 확인한 결과 | validated official result, detail and extra result; cancelled coverage | review/save with partial warning/new scan |
+| cancelled + no result | 점검 중지됨 — 저장된 결과 없음 | terminal session/progress snapshot | return to setup and start a new scan |
 | failed | 점검을 완료하지 못했습니다 | reason and any explicitly retained coverage | return to setup/retry |
 
 Partial completion is a derived **outcome** from `succeeded` and coverage, not a new raw worker enum. A scan with zero successfully analyzed HTTP-success pages is `failed`, even if the crawler discovered URLs. If a page fails during navigation or analysis, record a `ScanIssue`, continue bounded work when safe, and preserve successful findings. A global deadline stops new work, finalizes any already completed pages, and reports partial coverage; whether this is `succeeded` or `failed` follows the zero-success rule. Never announce “all pages checked” from a queue reaching zero alone.
@@ -55,7 +58,21 @@ announcing every tick or pretending that another page completed.
 
 ## Cancellation and retention decision
 
-The target is to settle the worker and persist valid findings from fully analyzed pages with `cancelled` coverage, then show “중지 전 확인한 결과” and a coverage warning. Export of that partial official result is allowed only after normal validation and explicit partial warning in the save dialog. If no page finished or persistence failed, cancellation returns to setup with a clear “저장된 결과 없음” message. Until this retention path exists, the UI must accurately say that cancelling discards current results; it must not promise recovery.
+The host sends `{"type":"cancel"}` over the worker's piped stdin and keeps the
+session `finalizing` while active work settles. The worker stops admissions,
+aborts active pages and writes completed-page artifacts with cancelled coverage.
+After a ten-second cooperative grace, the host forces process termination; the
+Windows Job Object remains the process-tree backstop. The worker monitor waits
+for exit before the host validates and stores the official, detail and extra
+bundle, then emits its terminal event. A late natural exit cannot turn an
+accepted cancellation into success.
+
+Valid completed-page artifacts produce `cancelled` with `hasResult: true` and
+“중지 전 확인한 결과”. Export uses the same official validation as success and
+the save dialog explicitly warns that coverage is partial. No completed page,
+missing artifacts or failed validation produce `cancelled` with `hasResult:
+false` and “저장된 결과 없음”. UI navigation follows this stored snapshot rather
+than a worker event or a cancellation request alone.
 
 ## Bounded activity and failures
 

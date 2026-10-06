@@ -15,7 +15,7 @@ mod job;
 mod job_fallback;
 mod session;
 
-use session::{SessionOutcome, SessionRegistry};
+use session::{load_cancelled_bundle, validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout, SessionOutcome, SessionRegistry};
 use std::sync::Arc;
 use tauri::{Emitter, Manager, State, WebviewWindowBuilder};
 
@@ -180,39 +180,47 @@ async fn finish_session(
     let detail_path = std::env::temp_dir().join(format!("krds-detail-{session_id}.json"));
     let extra_path = std::env::temp_dir().join(format!("krds-extra-{session_id}.json"));
     let result_path = std::env::temp_dir().join(format!("krds-result-{session_id}.json"));
-    let (kind, status, message): (String, String, String) = match outcome {
+    match outcome {
         SessionOutcome::Succeeded { stdout } => {
-            let detail_text = std::fs::read_to_string(&detail_path).map_err(|e| format!("detail manifest missing: {e}"));
-            let extra_text = std::fs::read_to_string(&extra_path).map_err(|e| format!("extra result missing: {e}"));
-            let validated = validate_sidecar_stdout(entry_url, &stdout).and_then(|canonical| {
-                let detail = detail_text?;
-                let extra = extra_text?;
+            let validated = (|| {
+                let canonical = validate_sidecar_stdout(entry_url, &stdout)?;
+                let detail = std::fs::read_to_string(&detail_path).map_err(|e| format!("detail manifest missing: {e}"))?;
+                let extra = std::fs::read_to_string(&extra_path).map_err(|e| format!("extra result missing: {e}"))?;
                 validate_extra_bundle(&canonical, &extra)?;
                 validate_detail_bundle(&canonical, &detail, &extra)?;
                 Ok((canonical, detail, extra))
-            });
+            })();
             match validated {
                 Ok((canonical, detail, extra)) => {
                     registry.store_result(session_id, canonical, detail, extra, finished_at.clone()).await;
-                    ("session-finished".into(), "succeeded".into(), "탐지가 완료되었습니다.".into())
                 }
                 Err(detail) => {
-                    registry.fail(session_id, detail.clone(), finished_at.clone()).await;
-                    ("session-failed".into(), "failed".into(), detail)
+                    registry.fail(session_id, detail, finished_at.clone()).await;
                 }
             }
-        },
-        SessionOutcome::Failed { detail } => {
-            registry.fail(session_id, detail.clone(), finished_at.clone()).await;
-            ("session-failed".into(), "failed".into(), detail)
         }
-        // Cancel already emitted session-cancelled synchronously; stay silent.
-        SessionOutcome::Cancelled => {
-            let _ = std::fs::remove_file(detail_path);
-            let _ = std::fs::remove_file(extra_path);
-            let _ = std::fs::remove_file(result_path);
-            return;
-        },
+        SessionOutcome::Failed { detail } => {
+            registry.fail(session_id, detail, finished_at.clone()).await;
+        }
+        SessionOutcome::Cancelled => {}
+    }
+    // Acceptance of cancellation is recorded under the same lock as success
+    // and failure. It wins even when it arrives during artifact validation.
+    if registry.cancellation_requested(session_id).await {
+        let retained = load_cancelled_bundle(entry_url, &result_path, &detail_path, &extra_path);
+        let (bundle, error) = match retained {
+            Ok(bundle) => (Some(bundle), None),
+            Err(error) => (None, Some(error)),
+        };
+        registry.complete_cancellation(session_id, bundle, error, finished_at.clone()).await;
+    }
+    let Some(snapshot) = registry.snapshot(session_id).await else { return; };
+    let status = snapshot["status"].as_str().unwrap_or("failed");
+    let (kind, message) = match status {
+        "succeeded" => ("session-finished", "탐지가 완료되었습니다."),
+        "cancelled" if snapshot["hasResult"] == true => ("session-cancelled", "중지 전 확인한 결과가 저장되었습니다."),
+        "cancelled" => ("session-cancelled", "점검이 중지되었습니다. 저장된 결과가 없습니다."),
+        _ => ("session-failed", snapshot["error"].as_str().unwrap_or("점검을 완료하지 못했습니다.")),
     };
     let _ = std::fs::remove_file(detail_path);
     let _ = std::fs::remove_file(extra_path);
@@ -224,317 +232,15 @@ async fn finish_session(
             "kind": kind,
             "sessionId": session_id,
             "at": finished_at,
-            "progress": progress.terminal_value(&status),
+            "progress": progress.terminal_value(status),
             "message": message,
             "pageUrl": entry_url,
         }),
     );
 }
 
-#[cfg(test)]
-mod validation_tests {
-    use super::{validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout};
-
-    fn good_json() -> String {
-        "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[{\"id\":\"f1\",\"url\":\"https://example.kr/a\",\"is_violation\":true,\"location\":\"#a\",\"evidence_text\":\"x\",\"technique\":\"HOMOGLYPH\"}]}".to_string()
-    }
-
-    fn good_extra() -> String {
-        let official: serde_json::Value = serde_json::from_str(&good_json()).unwrap();
-        serde_json::json!({
-            "meta": official["meta"],
-            "findings": [{
-                "id": "x1", "url": "https://example.kr/a", "is_violation": true,
-                "location": "https://example.kr/a", "evidence_text": "shared infrastructure",
-                "technique": "ETC", "extra_finding": "AD_INFRASTRUCTURE_CORRELATION"
-            }]
-        }).to_string()
-    }
-
-    #[test]
-    fn accepts_separate_extra_result() {
-        assert!(validate_extra_bundle(&good_json(), &good_extra()).is_ok());
-    }
-
-    #[test]
-    fn rejects_extra_metadata_and_type_mismatch() {
-        let mut wrong_time: serde_json::Value = serde_json::from_str(&good_extra()).unwrap();
-        wrong_time["meta"]["elapsed_sec"] = serde_json::json!(61);
-        assert!(validate_extra_bundle(&good_json(), &wrong_time.to_string()).is_err());
-        let mut wrong_type: serde_json::Value = serde_json::from_str(&good_extra()).unwrap();
-        wrong_type["findings"][0]["extra_finding"] = serde_json::json!("UNKNOWN");
-        assert!(validate_extra_bundle(&good_json(), &wrong_type.to_string()).is_err());
-    }
-
-    #[test]
-    fn accepts_valid_result() {
-        assert!(validate_sidecar_stdout("https://example.kr/", &good_json()).is_ok());
-    }
-
-    #[test]
-    fn rejects_missing_meta_field() {
-        let bad = good_json().replace("\"elapsed_sec\":60,", "");
-        assert!(validate_sidecar_stdout("https://example.kr/", &bad).is_err());
-    }
-
-    #[test]
-    fn rejects_invalid_technique() {
-        let bad = good_json().replace("HOMOGLYPH", "ETC");
-        let err = validate_sidecar_stdout("https://example.kr/", &bad).unwrap_err();
-        assert!(err.contains("technique"), "{err}");
-    }
-
-    #[test]
-    fn rejects_entry_url_mismatch() {
-        let err = validate_sidecar_stdout("https://other.kr/", &good_json()).unwrap_err();
-        assert!(err.contains("mismatch"), "{err}");
-    }
-
-    #[test]
-    fn rejects_duplicate_identity() {
-        let v: serde_json::Value = serde_json::from_str(&good_json()).unwrap();
-        let mut dup = v.clone();
-        let second = v["findings"][0].clone();
-        let mut with_id = second.clone();
-        with_id["id"] = serde_json::Value::String("f2".to_string());
-        dup["findings"].as_array_mut().unwrap().push(with_id);
-        let text = serde_json::to_string(&dup).unwrap();
-        let err = validate_sidecar_stdout("https://example.kr/", &text).unwrap_err();
-        assert!(err.contains("duplicates"), "{err}");
-    }
-
-    #[test]
-    fn rejects_bom() {
-        let bad = format!("\u{FEFF}{}", good_json());
-        assert!(validate_sidecar_stdout("https://example.kr/", &bad).is_err());
-    }
-
-    #[test]
-    fn detail_manifest_must_join_the_official_finding() {
-        let detail = serde_json::json!({
-            "version": 2,
-            "creativeImages": [],
-            "findings": [{"findingId":"f1", "url":"https://example.kr/a", "location":"#a",
-                "technique":"HOMOGLYPH", "rawText":"x", "visual":{"state":"unavailable","reason":"budget"}}],
-            "coverage": {"checkedPages":1,"failedPages":[],"timedOut":false}
-        });
-        assert!(validate_detail_bundle(&good_json(), &detail.to_string(), "{\"findings\":[]}").is_ok());
-        let mut partial = detail.clone();
-        partial["coverage"]["failedPages"] = serde_json::json!([
-            {"url":"https://example.kr/missing-a","status":404,"reason":"HTTP 404"},
-            {"url":"https://example.kr/missing-b","status":404,"reason":"HTTP 404"}
-        ]);
-        assert!(validate_detail_bundle(&good_json(), &partial.to_string(), "{\"findings\":[]}").is_ok());
-        partial["coverage"]["checkedPages"] = serde_json::json!(-1);
-        assert!(validate_detail_bundle(&good_json(), &partial.to_string(), "{\"findings\":[]}").is_err());
-        let mut wrong = detail;
-        wrong["findings"][0]["location"] = serde_json::Value::String("#other".to_string());
-        assert!(validate_detail_bundle(&good_json(), &wrong.to_string(), "{\"findings\":[]}").is_err());
-    }
-}
-
-/// BOM-free UTF-8, valid JSON, complete meta, required finding fields,
-/// official technique enum only, unique ids, no duplicate
-/// url+location+technique identities, and request/result entry_url match.
-/// Any violation fails the session and is never exportable (KODEX §38).
-fn validate_sidecar_stdout(entry_url: &str, stdout: &str) -> Result<String, String> {
-    if stdout.starts_with('\u{FEFF}') {
-        return Err("sidecar result contained a BOM".to_string());
-    }
-    let parsed: serde_json::Value =
-        serde_json::from_str(stdout).map_err(|e| format!("sidecar result is not JSON: {e}"))?;
-    let meta = parsed.get("meta").ok_or("sidecar result missing meta")?;
-    for field in ["topic", "entry_url", "started_at", "finished_at", "elapsed_sec", "tool_version"] {
-        if meta.get(field).is_none() {
-            return Err(format!("sidecar result meta.{field} is required"));
-        }
-    }
-    let result_url = meta.get("entry_url").and_then(|u| u.as_str()).unwrap_or("");
-    if result_url.is_empty() {
-        return Err("sidecar result meta.entry_url must be a non-empty string".to_string());
-    }
-    if result_url != entry_url {
-        return Err(format!("sidecar result entry_url mismatch: request {entry_url} vs result {result_url}"));
-    }
-    let findings = parsed.get("findings").and_then(|f| f.as_array()).ok_or("sidecar result findings must be an array")?;
-    let mut ids = std::collections::HashSet::new();
-    let mut identities = std::collections::HashSet::new();
-    for (i, item) in findings.iter().enumerate() {
-        let at = format!("findings[{i}]");
-        for field in ["id", "url", "is_violation", "location", "evidence_text", "technique"] {
-            if item.get(field).is_none() {
-                return Err(format!("sidecar result {at}.{field} is required"));
-            }
-        }
-        let id = item.get("id").and_then(|v| v.as_str()).ok_or(format!("sidecar result {at}.id must be a string"))?;
-        if !ids.insert(id.to_string()) {
-            return Err(format!("sidecar result {at}.id is duplicated"));
-        }
-        let technique = item.get("technique").and_then(|v| v.as_str()).unwrap_or("");
-        if !matches!(technique, "HOMOGLYPH" | "JAMO" | "TRANSPARENT" | "OFFSCREEN") {
-            return Err(format!("sidecar result {at}.technique must be one of HOMOGLYPH, JAMO, TRANSPARENT, OFFSCREEN"));
-        }
-        let url = item.get("url").and_then(|v| v.as_str()).unwrap_or("");
-        let location = item.get("location").and_then(|v| v.as_str()).unwrap_or("");
-        if location.trim().is_empty() {
-            return Err(format!("sidecar result {at}.location must be non-empty"));
-        }
-        let key = format!("{url}\u{0}{location}\u{0}{technique}");
-        if !identities.insert(key) {
-            return Err(format!("sidecar result {at} duplicates url+location+technique"));
-        }
-    }
-    let canonical = serde_json::to_string_pretty(&parsed)
-        .map_err(|e| format!("sidecar result not serializable: {e}"))?;
-    if canonical.starts_with('\u{FEFF}') {
-        return Err("canonical serializer emitted a BOM".to_string());
-    }
-    Ok(format!("{canonical}\n"))
-}
-
-/// Bind every internal detail to a validated official finding. Visual bytes
-/// remain in the session-local manifest and never enter result.json.
-fn validate_detail_bundle(official_text: &str, detail_text: &str, extra_text: &str) -> Result<(), String> {
-    if detail_text.len() > 8_000_000 { return Err("detail manifest exceeds size limit".to_string()); }
-    let official: serde_json::Value = serde_json::from_str(official_text).map_err(|e| e.to_string())?;
-    let detail: serde_json::Value = serde_json::from_str(detail_text).map_err(|e| format!("detail manifest invalid JSON: {e}"))?;
-    if detail.get("version").and_then(|v| v.as_u64()) != Some(2) {
-        return Err("detail manifest version must be 2".to_string());
-    }
-    let expected = official["findings"].as_array().ok_or("official findings missing")?;
-    let actual = detail["findings"].as_array().ok_or("detail findings missing")?;
-    if expected.len() != actual.len() { return Err("detail finding count mismatch".to_string()); }
-    for finding in expected {
-        let id = finding["id"].as_str().ok_or("official finding id missing")?;
-        let item = actual.iter().find(|item| item["findingId"].as_str() == Some(id))
-            .ok_or(format!("detail missing official finding {id}"))?;
-        for (source, target) in [("url", "url"), ("location", "location"), ("technique", "technique"), ("evidence_text", "rawText")] {
-            if finding[source] != item[target] { return Err(format!("detail {id} {target} mismatch")); }
-        }
-        let visual = &item["visual"];
-        match visual["state"].as_str() {
-            Some("available") => {
-                let uri = visual["dataUrl"].as_str().ok_or(format!("detail {id} visual data missing"))?;
-                if !uri.starts_with("data:image/jpeg;base64,") || uri.len() > 700_000 {
-                    return Err(format!("detail {id} visual data invalid"));
-                }
-                let valid_box = |rect: &serde_json::Value| {
-                    ["x", "y", "width", "height"].iter().all(|key|
-                        rect[*key].as_f64().map(|value| value.is_finite()).unwrap_or(false))
-                        && rect["width"].as_f64().unwrap_or(0.0) > 0.0
-                        && rect["height"].as_f64().unwrap_or(0.0) > 0.0
-                };
-                let viewport = &visual["viewport"];
-                let width = viewport["width"].as_f64().filter(|value| value.is_finite() && *value > 0.0)
-                    .ok_or(format!("detail {id} viewport width invalid"))?;
-                let height = viewport["height"].as_f64().filter(|value| value.is_finite() && *value > 0.0)
-                    .ok_or(format!("detail {id} viewport height invalid"))?;
-                if !viewport["deviceScaleFactor"].as_f64().map(|value| value.is_finite() && value > 0.0).unwrap_or(false) {
-                    return Err(format!("detail {id} device scale invalid"));
-                }
-                if !["scrollX", "scrollY"].iter().all(|key| viewport[*key].as_f64().map(|value| value.is_finite()).unwrap_or(false)) {
-                    return Err(format!("detail {id} viewport scroll invalid"));
-                }
-                let target = &visual["target"];
-                match target["state"].as_str() {
-                    Some("available") if valid_box(&target["box"]) && target["coordinateSpace"] == "main-viewport" => {},
-                    Some("unavailable") if target["reason"] == "target-unavailable" => {},
-                    _ => return Err(format!("detail {id} target invalid")),
-                }
-                let element = &visual["element"];
-                match element["state"].as_str() {
-                    Some("available") => {
-                        let image = element["dataUrl"].as_str().ok_or(format!("detail {id} element data missing"))?;
-                        let rect = &element["box"];
-                        if target["state"] != "available" || !valid_box(rect)
-                            || element["mimeType"] != "image/jpeg"
-                            || !image.starts_with("data:image/jpeg;base64,") || image.len() > 700_000
-                            || rect["x"].as_f64().unwrap_or(-1.0) < 0.0 || rect["y"].as_f64().unwrap_or(-1.0) < 0.0
-                            || rect["x"].as_f64().unwrap_or(0.0) + rect["width"].as_f64().unwrap_or(0.0) > width
-                            || rect["y"].as_f64().unwrap_or(0.0) + rect["height"].as_f64().unwrap_or(0.0) > height {
-                            return Err(format!("detail {id} element capture invalid"));
-                        }
-                    },
-                    Some("unavailable") if matches!(element["reason"].as_str(),
-                        Some("budget" | "capture-error" | "outside-viewport" | "target-unavailable"))
-                        && element.get("dataUrl").is_none() => {},
-                    _ => return Err(format!("detail {id} element state invalid")),
-                }
-            }
-            Some("unavailable") => {
-                if visual.get("dataUrl").is_some() { return Err(format!("detail {id} unavailable visual has data")); }
-            }
-            _ => return Err(format!("detail {id} visual state invalid")),
-        }
-    }
-    let coverage = detail.get("coverage").ok_or("detail coverage missing")?;
-    let checked = coverage["checkedPages"].as_u64().ok_or("detail checkedPages missing")?;
-    if checked > 9_007_199_254_740_991 { return Err("detail checkedPages invalid".to_string()); }
-    coverage["failedPages"].as_array().ok_or("detail failedPages missing")?;
-    let extra: serde_json::Value = serde_json::from_str(extra_text).map_err(|e| e.to_string())?;
-    let extras = extra["findings"].as_array().ok_or("extra findings missing")?;
-    let images = detail["creativeImages"].as_array().ok_or("detail creativeImages missing")?;
-    if images.len() > 64 { return Err("detail creativeImages exceeds limit".to_string()); }
-    let mut ids = std::collections::HashSet::new();
-    let mut image_chars = 0;
-    for image in images {
-        let id = image["findingId"].as_str().ok_or("creative image findingId missing")?;
-        let finding = extras.iter().find(|finding| finding["id"] == id).ok_or("creative image finding missing")?;
-        if !ids.insert(id) || finding["extra_finding"] != "REUSED_AD_CREATIVE"
-            || finding["url"] != image["sourceUrl"] || finding["location"] != image["sourceUrl"] {
-            return Err("creative image identity invalid".to_string());
-        }
-        let mime = image["mimeType"].as_str().ok_or("creative image MIME missing")?;
-        let data = image["dataUrl"].as_str().ok_or("creative image data missing")?;
-        let hash = image["sha256"].as_str().ok_or("creative image hash missing")?;
-        let encoded = data.split_once(',').map(|(_, payload)| payload).unwrap_or("");
-        let content = encoded.trim_end_matches('=');
-        if !matches!(mime, "image/png" | "image/jpeg" | "image/webp")
-            || !data.starts_with(&format!("data:{mime};base64,")) || data.len() > 334_000
-            || content.is_empty() || encoded.len() - content.len() > 2
-            || !content.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'+' || byte == b'/')
-            || hash.len() != 64 || !hash.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-            || image["width"].as_u64().unwrap_or(0) < 8 || image["height"].as_u64().unwrap_or(0) < 8
-            || image["capturedAt"].as_str().and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok()).is_none() {
-            return Err("creative image representation invalid".to_string());
-        }
-        image_chars += data.len();
-    }
-    if image_chars > 2_670_000 { return Err("creative images exceed capture budget".to_string()); }
-    Ok(())
-}
-
-fn validate_extra_bundle(official_text: &str, extra_text: &str) -> Result<(), String> {
-    if extra_text.len() > 1_000_000 { return Err("extra result exceeds size limit".to_string()); }
-    if extra_text.starts_with('\u{FEFF}') { return Err("extra result contained a BOM".to_string()); }
-    let official: serde_json::Value = serde_json::from_str(official_text).map_err(|e| e.to_string())?;
-    let extra: serde_json::Value = serde_json::from_str(extra_text).map_err(|e| format!("extra result invalid JSON: {e}"))?;
-    for field in ["topic", "entry_url", "started_at", "finished_at", "elapsed_sec", "tool_version"] {
-        if extra["meta"][field] != official["meta"][field] {
-            return Err(format!("extra result meta.{field} mismatch"));
-        }
-    }
-    let findings = extra["findings"].as_array().ok_or("extra findings must be an array")?;
-    let mut ids = std::collections::HashSet::new();
-    for (index, finding) in findings.iter().enumerate() {
-        let at = format!("extra findings[{index}]");
-        let id = finding["id"].as_str().ok_or(format!("{at}.id missing"))?;
-        if !ids.insert(id) { return Err(format!("{at}.id duplicated")); }
-        if finding["technique"].as_str() != Some("ETC") { return Err(format!("{at}.technique must be ETC")); }
-        if !matches!(finding["extra_finding"].as_str(), Some("REUSED_AD_CREATIVE" | "AD_INFRASTRUCTURE_CORRELATION" | "ZERO_WIDTH_OBFUSCATION")) {
-            return Err(format!("{at}.extra_finding invalid"));
-        }
-        for field in ["url", "location", "evidence_text"] {
-            if finding[field].as_str().is_none_or(str::is_empty) { return Err(format!("{at}.{field} missing")); }
-        }
-        if finding["is_violation"].as_bool() != Some(true) { return Err(format!("{at}.is_violation invalid")); }
-    }
-    Ok(())
-}
-
 #[tauri::command]
 async fn scan_cancel(
-    app: tauri::AppHandle,
     state: State<'_, AppState>,
     session_id: String,
 ) -> Result<(), String> {
@@ -542,17 +248,6 @@ async fn scan_cancel(
     if !state.registry.cancel(&session_id, finished_at.clone()).await {
         return Err("unknown session".to_string());
     }
-    let progress = state.registry.progress_snapshot(&session_id).await;
-    app.emit(
-        "scan-event",
-        serde_json::json!({
-            "kind": "session-cancelled",
-            "sessionId": session_id,
-            "at": finished_at,
-            "progress": progress.terminal_value("cancelled"),
-        }),
-    )
-    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -595,24 +290,13 @@ async fn scan_export(
     session_id: String,
     directory: String,
 ) -> Result<serde_json::Value, String> {
-    // Only succeeded sessions export: failed/cancelled/running results
-    // must never become a submittable file.
+    // Cancelled sessions export only after the host retained a validated bundle.
     let Some(snapshot) = state.registry.snapshot(&session_id).await else {
         return Err("unknown session".to_string());
     };
-    if snapshot.get("status").and_then(|s| s.as_str()) != Some("succeeded") {
-        return Err("no succeeded result stored for session yet".to_string());
-    }
-    let Some(text) = state.registry.result_text(&session_id).await else {
-        return Err("no result stored for session yet".to_string());
-    };
     // Re-validate the stored bytes: a stale or tampered store must fail
     // here, never produce a submittable file.
-    let canonical = validate_sidecar_stdout(
-        snapshot.get("entryUrl").and_then(|u| u.as_str()).unwrap_or(""),
-        &text,
-    )
-    .map_err(|e| format!("stored result invalid, export blocked: {e}"))?;
+    let canonical = state.registry.validated_export_text(&session_id).await?;
     // Ask the evaluator where to save (native dialog); an empty directory
     // string means "ask". A cancelled dialog is a clean no-op, not an error.
     if directory.trim().is_empty() || directory.trim() == "." {
@@ -622,6 +306,9 @@ async fn scan_export(
             .file()
             .set_file_name("result.json")
             .add_filter("JSON", &["json"]);
+        if snapshot["status"] == "cancelled" {
+            dlg = dlg.set_title("중지 전 확인한 일부 결과 저장 — 전체 페이지를 확인하지 못했습니다");
+        }
         // Default to the INTERACTIVE user's Documents folder. document_dir()
         // resolves for the process user (SYSTEM under the service task),
         // whose profile has no Documents redirect — the dialog then falls
