@@ -180,4 +180,26 @@ describe("recoverable scan feedback", () => {
     fireEvent.click(screen.getByRole("button", { name: "새로 검사하기" }));
     expect(screen.getByRole("heading", { name: "점검 설정" })).toBeDefined();
   });
+
+  it("opens preserved results after cancelled host settlement", async () => {
+    const host = setup();
+    await tick(0);
+    fireEvent.click(screen.getByRole("button", { name: "점검 중지" }));
+    expect(screen.getByRole("dialog").textContent).toContain("완료된 페이지의 결과는 유지됩니다");
+    fireEvent.click(screen.getByRole("button", { name: "점검 중지 확인" }));
+    host.setSession({ status: "cancelled", hasResult: true,
+      progress: { ...initialProgress("cancelled"), sequence: 1, visitedPages: 3, confirmedFindings: 1 } });
+    await tick();
+    expect(screen.getByRole("heading", { name: "결과 검토" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "점검 설정" })).toBeNull();
+  });
+
+  it("offers preserved results after a failed host settlement", async () => {
+    const host = setup();
+    host.setSession({ status: "failed", hasResult: true,
+      progress: { ...initialProgress("failed"), sequence: 1, visitedPages: 3 } });
+    await tick();
+    fireEvent.click(screen.getByRole("button", { name: "완료된 결과 보기" }));
+    expect(screen.getByRole("heading", { name: "결과 검토" })).toBeDefined();
+  });
 });

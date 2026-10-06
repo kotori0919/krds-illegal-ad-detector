@@ -131,7 +131,7 @@ describe("ExportDialog save semantics", () => {
     },
   );
 
-  it("names incomplete coverage while keeping a valid result savable", async () => {
+  it.each([false, true])("names incomplete coverage while keeping a valid result savable (cancelled=%s)", async (cancelled) => {
     const finding = result().findings[0]!;
     const bundle: ScanDetailBundle = {
       version: 2,
@@ -142,12 +142,13 @@ describe("ExportDialog save semantics", () => {
         observed: { box: { x: 0, y: 0, width: 1, height: 1 },
           css: { color: "black", backgroundColor: "white", opacity: "1", display: "block", fontSize: "16px", position: "static" } },
         visual: { state: "unavailable", reason: "budget" } }],
-      coverage: { checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: true },
+      coverage: { checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: true, cancelled },
     };
     renderExport(hostWith({ getDetailBundle: vi.fn(async () => bundle) }));
     const note = await screen.findByRole("note");
     expect(note.textContent).toContain("확인 실패 1페이지");
     expect(note.textContent).toContain("점검 시간 초과");
+    if (cancelled) expect(note.textContent).toContain("중지 전 완료된 부분 결과");
     expect((await screen.findByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(false);
   });
 

@@ -1,6 +1,51 @@
-# Product V2 acceptance audit
+# Product V2 integration and release acceptance
 
-Date: 2026-10-06. Overall status: OPEN.
+## Current integration (2026-10-07)
+
+The current source replaces the historical package described below. No new
+freeze or whole-product audit is required before connecting features.
+
+**Feature integration incomplete**
+
+- Learned VLM inference remains disabled. The active image decision is the
+  deterministic RuleDecisionModel; it is not a learned model.
+- OCR currently consumes bounded captured image-response bytes. Canvas, SVG
+  and CSS background rasterization are not connected to this OCR path.
+
+**Feature integration complete, release verification incomplete**
+
+- General text owners, independent-child exclusion, inline CSS sources and
+  unique round-trip selectors run in the live single-pass scanner.
+- Official and extra metadata use literal TOPIC. PageOutcome, FindingDetail,
+  coverage, zero-width analysis and offline Korean/English OCR are serialized
+  by the main worker and validated/persisted by the host.
+- Shared deadline, bounded concurrency and deterministic official aggregation
+  remain active. Cooperative cancellation preserves completed-page artifacts;
+  the UI routes only after terminal state and confirmed hasResult.
+- The KRDS three-step UI includes search, filters, page outcomes, evidence,
+  image analysis and official file saving. Real scanner output was exercised
+  in Chromium through explicitly marked IPC replay; replay is not a native
+  Tauri UI observation.
+
+OBSERVED: live served Chromium text/selector/zero-width/OCR/cancel regressions,
+the packaged Node worker's complete and cancelled scans, native Rust worker
+launch -> validated persistence -> retrieval/export, UI behavior and scoped
+type/lint checks. The Korean image fixture produced the expected phrase with
+0.96 confidence. This is one fixture, not a broad OCR accuracy measurement.
+The full suite passed 166 tests before the additional OCR shutdown regression;
+that later regression and its scoped OCR suite passed separately.
+
+NOT_RUN: current-candidate installed Windows A-F, long C1-C4 and strict native
+UX acceptance. Windows-target host checking passed, but the VM GUI control
+could not deliver a verified command: foreground_unavailable reported that
+the window manager had not set _NET_ACTIVE_WINDOW. Background/persistent-focus
+and bounded desktop attempts also failed readback. No Windows runtime success
+is inferred from cross-compilation. Historical Windows evidence below retains
+its original executable/worker hashes and does not close these new gates.
+
+## Historical package observations (2026-10-06)
+
+Date: 2026-10-06. Historical overall status: OPEN.
 
 Completion audit: two additional defects were found and corrected in source:
 the inspector retained a finding excluded by a new search/filter, and checked

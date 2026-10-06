@@ -3,9 +3,12 @@ import {
   OFFICIAL_TECHNIQUES,
   type ExtraResult,
   type ExtraFinding,
+  type CreativeImage,
+  type ImageAnalysis,
   type HostBridge,
   type OfficialResult,
   type OfficialTechnique,
+  type PageOutcome,
   type ScanDetailBundle,
   type ScanSession,
 } from "@krds-detector/contracts";
@@ -52,6 +55,33 @@ function extraSummary(finding: ExtraFinding): string {
   return "광고 문구에 보이지 않는 글자가 포함되었습니다.";
 }
 
+function ImageAnalysisView({ analysis, image }: { analysis: ImageAnalysis; image?: CreativeImage }) {
+  return <li className="finding-card">
+    <h3>이미지 문자 분석</h3>
+    {image ? <figure className="visual-evidence">
+      <img src={image.dataUrl} alt="문자를 분석한 수집 이미지" width={image.width} height={image.height} />
+      <figcaption>수집한 이미지 · {image.width} × {image.height}</figcaption>
+    </figure> : null}
+    <dl className="evidence">
+      <div><dt>이미지 주소</dt><dd>{analysis.sourceUrl}</dd></div>
+      <div><dt>관측한 페이지</dt><dd><ul>{analysis.pageUrls.map((url) => <li key={url}>{url}</li>)}</ul></dd></div>
+      {analysis.ocr.state === "available" ? <>
+        <div><dt>인식한 원문</dt><dd className="raw">{analysis.ocr.text || "인식된 문자가 없습니다."}</dd></div>
+        {analysis.ocr.confidence !== undefined ? <div><dt>문자 인식 신뢰도</dt><dd>{String(Math.round(analysis.ocr.confidence * 100))}%</dd></div> : null}
+      </> : <div><dt>문자 인식 상태</dt><dd>{analysis.ocr.reason === "budget"
+        ? "시간·용량 제한으로 문자를 인식하지 못했습니다." : "문자 인식에 실패했습니다."}</dd></div>}
+      {analysis.matchedTerms.length ? <div><dt>광고 표현</dt><dd>{analysis.matchedTerms.join(", ")}</dd></div> : null}
+      <div><dt>규칙 판단</dt><dd>{analysis.ocr.state === "unavailable" ? "판단할 수 없음"
+        : analysis.decision.passed ? "광고 표현 확인" : "광고 표현 미확인"}</dd></div>
+      <div><dt>판단 규칙</dt><dd>{analysis.decision.rule}</dd></div>
+      <div><dt>판단 점수 / 기준</dt><dd>{String(analysis.decision.score)} / {String(analysis.decision.threshold)}</dd></div>
+    </dl>
+    <details className="advanced"><summary>기술 정보</summary>
+      <p>문자 인식 엔진: {analysis.ocr.backend}</p><p>{analysis.decision.detail}</p>
+    </details>
+  </li>;
+}
+
 export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
   const [selectionNotice, setSelectionNotice] = useState(false);
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
@@ -68,9 +98,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
   useEffect(() => {
     let alive = true;
     void host.getCapabilities().then((caps) => { if (alive) setDemoMode(!caps.localScan); }).catch(() => undefined);
-    // Set the fetched session synchronously into state (microtask, not the
-    // 500 ms poll): cancelled sessions must render the fresh-scan branch
-    // before the delayed-availability retry loop matters.
+    // Read the terminal session before deciding whether a stored result exists.
     host.getSession(sessionId).then((s) => {
       if (alive) setSession(s);
     }).catch(() => undefined);
@@ -119,19 +147,33 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
     return map;
   }, [findings]);
   const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
+  const pageSourceUrls = useMemo(() => {
+    const sources = new Map<string, string>();
+    for (const page of detailBundle?.pageOutcomes ?? []) {
+      sources.set(page.finalUrl, `${sources.get(page.finalUrl) ?? ""} ${page.url}`);
+    }
+    return sources;
+  }, [detailBundle]);
   const visible = findings.filter((f) =>
     (filter === "ALL" || f.technique === filter)
-    && (!normalizedQuery || `${f.url} ${f.evidence_text}`.toLocaleLowerCase("ko-KR").includes(normalizedQuery)),
+    && (!normalizedQuery || `${f.url} ${f.evidence_text} ${view === "pages" ? pageSourceUrls.get(f.url) ?? "" : ""}`.toLocaleLowerCase("ko-KR").includes(normalizedQuery)),
   );
   const pageGroups = useMemo(() => {
-    const groups = new Map<string, typeof visible>();
-    for (const finding of visible) {
-      const group = groups.get(finding.url);
-      if (group) group.push(finding);
-      else groups.set(finding.url, [finding]);
+    const groups = new Map<string, { findings: typeof visible; outcome?: PageOutcome }>();
+    const finalUrls = new Map<string, string>();
+    for (const outcome of detailBundle?.pageOutcomes ?? []) {
+      groups.set(outcome.url, { findings: [], outcome });
+      if (!finalUrls.has(outcome.finalUrl)) finalUrls.set(outcome.finalUrl, outcome.url);
     }
-    return [...groups.entries()];
-  }, [visible]);
+    for (const finding of visible) {
+      const url = groups.has(finding.url) ? finding.url : finalUrls.get(finding.url) ?? finding.url;
+      const group = groups.get(url);
+      if (group) group.findings.push(finding);
+      else groups.set(url, { findings: [finding] });
+    }
+    return [...groups.entries()].filter(([url, group]) => group.findings.length > 0 || (filter === "ALL"
+      && (!normalizedQuery || `${url} ${group.outcome?.finalUrl ?? ""}`.toLocaleLowerCase("ko-KR").includes(normalizedQuery))));
+  }, [visible, detailBundle, filter, normalizedQuery]);
   const resetFilters = () => { setSelectionNotice(false); onFilterChange("ALL"); onQueryChange(""); };
   const selectedVisible = visible.some((finding) => finding.id === selectedFindingId);
   useEffect(() => {
@@ -154,10 +196,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
     }
   }, [result, restoreFindingId, onFocusRestored, view, filter, query]);
 
-  // A cancelled session never produces a result: offer a fresh scan instead
-  // of stranding the evaluator on an empty result list (OBSERVED on VM:
-  // cancel landed on `상태: running` with zero rows).
-  if (session?.status === "cancelled") {
+  if (session?.status === "cancelled" && session.hasResult !== true) {
     return (
       <main className="page">
         <p className="eyebrow">결과 검토</p>
@@ -180,6 +219,8 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
       <p className="eyebrow">결과 검토</p>
       <h1>점검 결과</h1>
       <p className="lede">{session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}</p>
+      {session?.status === "cancelled" || detailBundle?.coverage.cancelled ? <p role="note" className="empty">점검이 중지되었습니다. 완료된 페이지의 결과를 표시합니다.</p>
+        : session?.status === "failed" && session.hasResult === true ? <p role="note" className="empty">점검이 실패했습니다. 완료된 페이지의 결과를 표시합니다.</p> : null}
       {demoMode ? <p role="note" className="empty">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다.</p> : null}
       {result ? <p className="hint">탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개` : ""}</p> : null}
       {result && (view === "findings" || view === "pages") ? (
@@ -232,8 +273,8 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
             <h2>추가 분석</h2>
             {extraLoadError ? <p role="alert" className="empty">추가 분석 결과를 불러오지 못했습니다.</p>
               : !extraLoaded ? <p role="status" className="empty">추가 분석 결과를 불러오는 중입니다.</p>
-                : !extraResult ? <p role="status" className="empty">이 세션에는 추가 분석 결과가 없습니다.</p>
-                : extraResult.findings.length === 0 ? <p role="status" className="empty">추가 분석에서 확인된 항목이 없습니다.</p>
+                : !extraResult ? <p role="status" className="empty">{detailBundle?.imageAnalysis?.length ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "이 세션에는 추가 분석 결과가 없습니다."}</p>
+                : extraResult.findings.length === 0 ? <p role="status" className="empty">{detailBundle?.imageAnalysis?.length ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "추가 분석에서 확인된 항목이 없습니다."}</p>
                   : <>
                     <p role="status" aria-live="polite">추가 분석 {String(extraResult.findings.length)}건</p>
                     <ol className="finding-list" aria-label="추가 분석 목록">
@@ -255,6 +296,14 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                       </li>; })}
                     </ol>
                   </>}
+            {!detailLoaded ? <p role="status" className="empty">이미지 문자 분석을 불러오는 중입니다.</p>
+              : detailLoadError ? <p role="alert" className="error">이미지 문자 분석을 불러오지 못했습니다.</p>
+                : detailBundle?.imageAnalysis?.length ? <section aria-label="이미지 문자 분석">
+                  <h2>이미지 문자 분석 ({String(detailBundle.imageAnalysis.length)}건)</h2>
+                  <ol className="finding-list">{detailBundle.imageAnalysis.map((analysis) =>
+                    <ImageAnalysisView key={analysis.sourceUrl} analysis={analysis}
+                      image={detailBundle.creativeImages.find((image) => image.sourceUrl === analysis.sourceUrl)} />)}</ol>
+                </section> : detailBundle?.imageAnalysis ? <p className="hint">문자 분석 대상 이미지가 없습니다.</p> : null}
           </div>
         ) : view === "coverage" ? (
           <div className="coverage-summary">
@@ -267,7 +316,33 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                 : <p>확인에 실패한 페이지가 없습니다.</p>}
             </> : <p role="status" className="empty">점검 범위 기록 없음</p>}
           </div>
-        ) : findings.length === 0 ? (
+        ) : view === "pages" && !detailLoaded ? (
+          <p role="status" className="empty">페이지별 점검 기록을 불러오는 중입니다.</p>
+        ) : view === "pages" && pageGroups.length > 0 ? (
+          <div className="page-groups">
+            {pageGroups.map(([url, { findings: group, outcome }]) => (
+              <section key={url} className="page-group" aria-label={`${url} 탐지 ${String(group.length)}건`}>
+                <h2>{url}</h2>
+                {outcome ? <>
+                  <p>{outcome.outcome === "checked" ? "확인 완료" : "확인 실패"} · {outcome.status === 0 ? "응답 없음" : `HTTP ${String(outcome.status)}`} · 하위 {String(outcome.depth)}단계</p>
+                  {outcome.finalUrl !== url ? <dl><div><dt>최종 주소</dt><dd>{outcome.finalUrl}</dd></div></dl> : null}
+                  {outcome.reason ? <details className="advanced"><summary>실패 상세</summary><p className="raw">{outcome.reason}</p></details> : null}
+                </> : null}
+                <p>탐지 {String(group.length)}건 · 검토 완료 {String(group.filter((finding) => reviewedIds.has(finding.id)).length)}건</p>
+                {group.length > 0 ? <>
+                  <p className="hint">{OFFICIAL_TECHNIQUES.map((technique) => {
+                    const count = group.filter((finding) => finding.technique === technique).length;
+                    return count > 0 ? `${techniqueLabel[technique]} ${String(count)}건` : undefined;
+                  }).filter(Boolean).join(" · ")}</p>
+                  <button type="button" className="secondary" onClick={() => onReviewMany(group.map((finding) => finding.id), !group.every((finding) => reviewedIds.has(finding.id)))}>
+                    {group.every((finding) => reviewedIds.has(finding.id)) ? "페이지 검토 취소" : "페이지 항목 모두 검토 완료"}
+                  </button>
+                  <ul>{group.map((f) => <li key={f.id}>{techniqueLabel[f.technique]} · {f.evidence_text} · {f.id === selectedFindingId ? "확인 중 · " : ""}{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"} <button type="button" className="linklike" data-finding-id={f.id} aria-current={f.id === selectedFindingId ? "true" : undefined} onClick={() => onEvidence(f.id)}>근거 보기</button></li>)}</ul>
+                </> : <p>{outcome?.outcome === "failed" ? "페이지 확인에 실패해 탐지 여부를 판단할 수 없습니다." : "확정된 탐지가 없습니다."}</p>}
+              </section>
+            ))}
+          </div>
+        ) : findings.length === 0 && !(view === "pages" && (query || filter !== "ALL")) ? (
           <p role="status" className="empty">
             확정된 탐지가 없습니다. 검사 범위를 넓히거나 시작 주소를 확인해 주세요.
           </p>
@@ -275,23 +350,6 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
           <div role="status" className="empty">
             <p>검색어나 선택한 기법에 해당하는 탐지가 없습니다.</p>
             <button type="button" className="secondary" onClick={resetFilters}>검색·필터 초기화</button>
-          </div>
-        ) : view === "pages" ? (
-          <div className="page-groups">
-            {pageGroups.map(([url, group]) => (
-              <section key={url} className="page-group" aria-label={`${url} 탐지 ${String(group.length)}건`}>
-                <h2>{url}</h2>
-                <p>탐지 {String(group.length)}건 · 검토 완료 {String(group.filter((finding) => reviewedIds.has(finding.id)).length)}건</p>
-                <p className="hint">{OFFICIAL_TECHNIQUES.map((technique) => {
-                  const count = group.filter((finding) => finding.technique === technique).length;
-                  return count > 0 ? `${techniqueLabel[technique]} ${String(count)}건` : undefined;
-                }).filter(Boolean).join(" · ")}</p>
-                <button type="button" className="secondary" onClick={() => onReviewMany(group.map((finding) => finding.id), !group.every((finding) => reviewedIds.has(finding.id)))}>
-                  {group.every((finding) => reviewedIds.has(finding.id)) ? "페이지 검토 취소" : "페이지 항목 모두 검토 완료"}
-                </button>
-                <ul>{group.map((f) => <li key={f.id}>{techniqueLabel[f.technique]} · {f.evidence_text} · {f.id === selectedFindingId ? "확인 중 · " : ""}{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"} <button type="button" className="linklike" data-finding-id={f.id} aria-current={f.id === selectedFindingId ? "true" : undefined} onClick={() => onEvidence(f.id)}>근거 보기</button></li>)}</ul>
-              </section>
-            ))}
           </div>
         ) : (
           <div>

@@ -3,13 +3,15 @@
 Real Windows-capable public-website illegal-advertisement inspection tool for the
 2026 행정안전부 / 한국지능정보사회진흥원 "공공 웹사이트 불법광고 탐지 도구 개발 공모전".
 
-The scan engine and synthetic Windows runs have evidence; Product Architecture
-V2 is a design freeze in progress. The current app still uses a five-step UI.
-The three-stage operator workflow, real visual evidence, realistic site
-scenarios, and current-build clean-install acceptance are pending.
-Product V2 also requires a shared scan deadline, single-pass live-page worker
-pool, deterministic results across concurrency 1–4, and stronger KRDS
-pattern/token conformance; see ADR-0011/0012. Those changes are not yet in code.
+Product V2 runs a three-stage KRDS workflow: setup, live scan, and results.
+The scanner processes general text owners with unique selectors in one live
+page pass, using a shared deadline and bounded 1–4 workers. Results include
+search/filter/page views, source and visual evidence, page outcomes, separately
+stored additional analysis, and validated export. Offline Korean/English CPU
+OCR analyzes selected advertisement images; cooperative cancellation preserves
+validated completed results. Browser preview is explicitly a replay; Tauri
+uses the real worker and session artifacts. Release acceptance remains scoped
+to the candidate build; see `docs/PRODUCT_V2_ACCEPTANCE.md`.
 
 - Submission deadline: 2026-10-23 18:00 KST
 - Constitution: [`KODEX.md`](./KODEX.md) (wins over temporary tasks)
@@ -38,7 +40,7 @@ apps/web               React + TypeScript + Vite (canonical UI; platform-indepen
 packages/contracts     Shared Contract v0 in code; v0.2 product design in docs (HostBridge, scan, findings, result.json)
 packages/scanner       Playwright crawler (queue, selectors, live snapshots)
 packages/detection     Semantic gate, 4 detectors, result engine, worker sidecar
-packages/evidence      Graph, fingerprint, result_extra engine, OCR/VLM seams
+packages/evidence      Graph, fingerprint, result_extra engine, offline CPU OCR
 packages/synth-eval    Fixture server + static baseline harness
 fixtures/synthetic     Deterministic evaluator site + ground truth (22 cases)
 src-tauri              Tauri 2 thin host (lifecycle, export, Job-Object cleanup)

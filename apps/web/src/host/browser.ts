@@ -5,7 +5,7 @@
  * demo result (apps/web/src/demo/findings.ts) so the KRDS flow — filters,
  * evidence, export validation — exercises against stable data. The banner in
  * ScanProgress and the demo topic label make clear these are not live scan
- * results. Real scanning arrives with the Tauri host (Phase 18).
+ * results. The Tauri host runs the real scanner and validates its artifacts.
  */
 import {
   BROWSER_HOST_CAPABILITIES,
@@ -68,6 +68,7 @@ export class BrowserHost implements HostBridge {
         ),
       })),
     });
+    session.hasResult = true;
     const at = new Date().toISOString();
     const progress: ScanProgress = {
       ...initialProgress("running"),

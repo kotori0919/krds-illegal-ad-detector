@@ -139,11 +139,12 @@ export function ExportDialog({ host, sessionId, onClose }: Props) {
           <p>공식 탐지 {String(result.findings.length)}건</p>
           {!coverageLoaded ? <p role="status">점검 범위를 불러오는 중입니다.</p>
             : !coverage ? <p role="note" className="empty">점검 범위 기록 없음</p> : null}
-          {coverage && (coverage.failedPages.length > 0 || coverage.timedOut) ? (
+          {coverage && (coverage.failedPages.length > 0 || coverage.timedOut || coverage.cancelled) ? (
             <p role="note" className="empty">
               {coverage.failedPages.length > 0 ? `확인 실패 ${String(coverage.failedPages.length)}페이지` : ""}
               {coverage.failedPages.length > 0 && coverage.timedOut ? " · " : ""}
               {coverage.timedOut ? "점검 시간 초과" : ""}
+              {coverage.cancelled ? `${coverage.failedPages.length > 0 || coverage.timedOut ? " · " : ""}중지 전 완료된 부분 결과` : ""}
             </p>
           ) : null}
           {!validationPassed ? (

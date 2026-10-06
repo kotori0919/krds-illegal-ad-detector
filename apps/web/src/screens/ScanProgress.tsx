@@ -41,6 +41,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
   const [cancelError, setCancelError] = useState<string | undefined>(undefined);
   const [finishing, setFinishing] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [hasResult, setHasResult] = useState(false);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLDivElement>(null);
 
@@ -102,12 +103,14 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
         } else if (s.status === "failed") {
           settled = true;
           setFailed(true);
+          setHasResult(s.hasResult === true);
           setNotice("점검 실패");
           clearInterval(timer);
         } else if (s.status === "cancelled") {
           settled = true;
           clearInterval(timer);
-          onCancel();
+          if (s.hasResult === true) onDone();
+          else onCancel();
         }
       } catch {
         if (!disposed) setPollUnavailable(true);
@@ -121,8 +124,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       if (event.sessionId !== sessionId) return;
       acceptProgress(event.progress);
       // Navigation is poll-driven ONLY: the poll reads the terminal
-      // session status and routes (succeeded→result, cancelled→start,
-      // failed→stays with error). Reacting to worker events here caused
+      // session status and stored-result availability. Reacting to worker events caused
       // empty-result races (OBSERVED: cancel landed on running/empty).
     });
     void onTick();
@@ -214,7 +216,8 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       </details>
       <div className="actions">
         {cancelError ? <p role="alert" className="error">{cancelError}</p> : null}
-        {failed ? <button type="button" onClick={onCancel} className="primary">새로 검사하기</button>
+        {failed ? <>{hasResult ? <button type="button" onClick={onDone} className="primary">완료된 결과 보기</button> : null}
+          <button type="button" onClick={onCancel} className={hasResult ? "secondary" : "primary"}>새로 검사하기</button></>
           : <button ref={cancelButtonRef} type="button" onClick={() => setConfirmCancel(true)} disabled={cancelling} className="secondary">
             {cancelling ? "중지 처리 중…" : "점검 중지"}
           </button>}
@@ -230,7 +233,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
           }
         }}>
         <h2 id="cancel-title">점검을 중지할까요?</h2>
-        <p>이번 점검의 결과는 저장되지 않습니다.</p>
+        <p>완료된 페이지의 결과는 유지됩니다. 진행 중인 페이지의 확인을 종료합니다.</p>
         <div className="actions"><button type="button" className="secondary" onClick={closeConfirmation}>계속 점검</button>{" "}
           <button type="button" className="primary" onClick={cancel}>점검 중지 확인</button></div>
       </div></div> : null}
