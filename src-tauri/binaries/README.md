@@ -1,26 +1,23 @@
-# Scanner sidecar packaging (Tauri externalBin, reproducible)
+# Scanner worker packaging (Tauri resource)
 
-`tauri.conf.json` declares `externalBin: ["binaries/scanner-worker"]`.
-At build time Tauri requires the per-triple file staged here:
+`tauri.conf.json` maps the generated
+`scanner-worker-x86_64-pc-windows-gnu.mjs` into `bundle.resources`.
+`npm run build:sidecar` creates that file, and Tauri's
+`beforeBuildCommand` runs it before packaging. The file is JavaScript,
+so it must not be staged through `externalBin`, which requires a native
+executable and previously led to Windows os error 216.
 
-- `scanner-worker-x86_64-pc-windows-gnu.exe` — portable exe lane
-  (MinGW gnu toolchain; what the Windows 11 VM builds today)
-- `scanner-worker-x86_64-pc-windows-msvc.exe` — NSIS lane
-  (needs the Win11 SDK; blocked on this VM — see docs/DESKTOP.md)
-
-Runtime lookup (`sidecar_path` in `src-tauri/src/main.rs`) resolves the
-file NEXT TO the installed executable first, then falls back to the
-`Resource/binaries/scanner-worker` path — installed location and runtime
-resolution cannot drift.
+Runtime lookup (`sidecar_path` in `src-tauri/src/main.rs`) prefers the
+packaged `Resource/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs`,
+then checks next to the executable for the portable layout.
 
 ## What the sidecar is
 
 The sidecar is the frozen detection pipeline
 (`packages/detection/src/worker.ts` → `scanSite`, ADR-0007) bundled to ONE
-JavaScript file. It is NOT a renamed executable: a `.mjs`/`.js` bundle runs
-via the fixed invocation `node <sidecar> <args>`; only a `bun build
---compile` artifact (a real PE binary) runs directly. `spawn_sidecar`
-chooses by file extension — no caller-controlled shell string either way.
+JavaScript file. It is NOT a renamed executable: the `.mjs` bundle runs
+via the fixed invocation `node <sidecar> <args>`; there is no
+caller-controlled shell string.
 
 `playwright-core` MUST stay external (`--external:playwright-core`):
 bundling it breaks (`chromium-bidi` CJS require fails at bundle time,
@@ -44,20 +41,16 @@ Prerequisites (exact, current VM):
   `node node_modules/playwright-core/cli.js install --only-shell`
   (needs network ONCE; subsequent scans are offline)
 
-Build the sidecar bundle (from `C:\work\repo`):
+Build and exercise the sidecar bundle (from `C:\work\repo`):
 
-```bat
-C:\Program` Files\nodejs\node.exe node_modules\typescript\bin\tsc -p packages\scanner\tsconfig.json
-C:\Program` Files\nodejs\node.exe node_modules\typescript\bin\tsc -p packages\detection\tsconfig.json
-C:\Program` Files\nodejs\node.exe node_modules\esbuild\bin\esbuild packages\detection\src\worker.ts --bundle --platform=node --format=esm --external:playwright-core --outfile=C:\prov\scanner-worker.mjs
-copy C:\prov\scanner-worker.mjs src-tauri\binaries\scanner-worker-x86_64-pc-windows-gnu.mjs
+```powershell
+npm run build:sidecar
+npm run smoke:sidecar
 ```
 
-Verify before staging (`--help` exits 2; full e2e exits 0, 17 findings):
-
-```bat
-C:\Program` Files\nodejs\node.exe src-tauri\binaries\scanner-worker-x86_64-pc-windows-gnu.mjs --help
-```
+The smoke starts the built worker as a separate process and validates the
+official result, detail joins, JPEG evidence and progress on a local realistic
+site. It does not validate Tauri resource placement or the installer.
 
 Build the app (gnu lane; needs SYSTEM cargo + MinGW on PATH):
 
@@ -72,7 +65,7 @@ over `target\x86_64-pc-windows-gnu\release\krds-detector.exe`
 (the top-level exe is a stale hardlink target — link step fails with
 os error 32 while the old app runs; stop it first).
 
-## Clean-machine install test (no repo, no Node, no cache)
+## Clean-machine install test (no repo, no separate Node install, no cache)
 
 1. Copy ONLY: `krds-detector.exe` + staged sidecar `.mjs` +
    `node.exe` (portable) + `node_modules/playwright-core` +

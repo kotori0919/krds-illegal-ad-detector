@@ -9,10 +9,12 @@ Status: PROVEN on dev VM 2026-10-03 (`C:\prov\portable`, build
 Total tree ~407 MB (node 85 MB + shell 283 MB); trimmable to
 ~110 MB (node + mjs + playwright-core + shell-only).
 
-## Installed tree
+## Target installed tree
 
-The installer / portable zip places these NEXT TO the executable
-(`std::env::current_exe` parent — no username, no PATH, no repo):
+The proven manual portable tree places these next to the executable
+(`std::env::current_exe` parent — no username, no PATH, no repo). The
+installer currently stages only the worker `.mjs` resource; the other
+runtime assets are an open packaging gate:
 
 ```
 install-dir/
@@ -37,9 +39,10 @@ No other files are required. In particular the install does NOT need:
 
 ## Resolution order (code: `spawn_sidecar`, `sidecar_path`)
 
-1. **Worker**: exe-adjacent `scanner-worker-x86_64-pc-windows-gnu.mjs`
-   (preferred — the staged esbuild JS bundle), then `.exe`-named bundle,
-   then Tauri `Resource/binaries/scanner-worker` fallback.
+1. **Worker**: Tauri `Resource/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs`
+   in the installer layout, then exe-adjacent
+   `scanner-worker-x86_64-pc-windows-gnu.mjs` in the portable layout.
+   No JavaScript file is renamed to `.exe`.
 2. **Node**: exe-adjacent `node.exe` when present, else PATH `node`.
    Fixed invocation `node <sidecar> <args>` — no caller shell string.
 3. **Browser**: `PLAYWRIGHT_BROWSERS_PATH` when it points at a dir
@@ -49,13 +52,15 @@ No other files are required. In particular the install does NOT need:
 
 ## Provisioning
 
-- Build sidecar: `src-tauri/binaries/README.md` recipe (tsc + esbuild,
-  `--external:playwright-core`, staged as `.mjs`).
+- Build sidecar: `npm run build:sidecar` (esbuild with external
+  `playwright-core`); `npm run smoke:sidecar` checks the actual bundle.
 - Browsers: `node playwright-core/cli.js install --only-shell
   --with-deps` once at image time into the shipped `ms-playwright/`
   (needs network ONCE; scans run offline).
-- NSIS (pending Win11 SDK on the clean VM): bundles the whole tree
-  above; per-user install, no admin, no expanded system permissions.
+- NSIS still needs a verified resource mapping for portable `node.exe`,
+  `node_modules/playwright-core/` and `ms-playwright/` in addition to the
+  bundled `.mjs`. Until these are present and exercised on a clean Windows
+  account, the installer is not an accepted distribution.
 
 ## Clean-account validation (UNVERIFIED — pending clean VM)
 

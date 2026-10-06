@@ -10,6 +10,7 @@ export default defineConfig([
     "**/*.js",
     "**/*.d.ts",
     "src-tauri/target/**",
+    "src-tauri/binaries/scanner-worker-*.mjs",
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommended,

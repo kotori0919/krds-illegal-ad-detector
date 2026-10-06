@@ -536,21 +536,17 @@ impl SessionRegistry {
                 return Err("unknown session".to_string());
             }
         }
-        let is_script = sidecar_path.ends_with(".mjs") || sidecar_path.ends_with(".js");
         // Portable runtime resolution (install layout, docs/INSTALL_LAYOUT):
-        // exe-adjacent node.exe first, PATH node second. The worker bundle
-        // is JavaScript, not itself executable: fixed invocation, still no
-        // caller shell string.
+        // exe-adjacent node.exe first, PATH node second. The worker is always
+        // an .mjs resource invoked by Node; no caller-controlled shell string.
         let node_bin = std::env::current_exe()
             .ok()
             .and_then(|exe| exe.parent().map(|d| d.join("node.exe")))
             .filter(|p| p.is_file())
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|| "node".to_string());
-        let mut cmd = std::process::Command::new(if is_script { &node_bin } else { sidecar_path });
-        if is_script {
-            cmd.arg(sidecar_path);
-        }
+        let mut cmd = std::process::Command::new(&node_bin);
+        cmd.arg(sidecar_path);
         // Portable browser resolution: prefer the HOST executable's
         // directory (installed layout: exe + node.exe + ms-playwright/),
         // NOT the worker's node.exe parent — node may be a system install

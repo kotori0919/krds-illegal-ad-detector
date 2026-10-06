@@ -74,11 +74,11 @@ async fn scan_start(
     let record = session::new_session(parsed.clone(), topic.clone(), started_at.clone());
     let session_id = record.id.clone();
     state.registry.insert(record).await;
-    // Bundled sidecar (resources/binaries/scanner-worker*). No silent
+    // Bundled worker script (resources/binaries/scanner-worker*.mjs). No silent
     // heartbeat: if the sidecar is absent the session must fail loudly
     // instead of freezing the UI on zero counters.
     let Some(path) = sidecar_path(&app) else {
-        let detail = "scanner sidecar not found (binaries/scanner-worker missing from bundle)".to_string();
+        let detail = "scanner worker script not found in the app resources".to_string();
         state.registry.fail(&session_id, detail.clone(), chrono::Utc::now().to_rfc3339()).await;
         return Err(detail);
     };
@@ -533,33 +533,26 @@ fn url_like_valid(raw: &str) -> Result<String, String> {
 }
 
 fn sidecar_path(app: &tauri::AppHandle) -> Option<String> {
-    // Tauri externalBin stages `binaries/scanner-worker-<triple>(.exe)`
-    // next to the application executable. Resolve there first so the
-    // installed location always matches the runtime lookup — no drift
-    // between `tauri.conf.json` staging and this resolver.
+    // The installer resource is authoritative. A portable layout keeps the
+    // same JS worker beside the executable when there is no resource. It
+    // retains .mjs so spawn_sidecar invokes Node rather than treating JS as PE.
+    const WORKER: &str = "scanner-worker-x86_64-pc-windows-gnu.mjs";
+    if let Ok(resource) = app.path()
+        .resolve(format!("binaries/{WORKER}"), tauri::path::BaseDirectory::Resource)
+    {
+        if resource.is_file() {
+            return Some(resource.to_string_lossy().to_string());
+        }
+    }
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
-            // Prefer the .mjs bundle: the staged exe-named file is the
-            // esbuild JS bundle, not executable (os error 216 OBSERVED).
-            for name in [
-                "scanner-worker-x86_64-pc-windows-gnu.mjs",
-                "scanner-worker-x86_64-pc-windows-gnu.exe",
-                "scanner-worker.exe",
-            ] {
-                let candidate = dir.join(name);
-                if candidate.is_file() {
-                    return Some(candidate.to_string_lossy().to_string());
-                }
+            let candidate = dir.join(WORKER);
+            if candidate.is_file() {
+                return Some(candidate.to_string_lossy().to_string());
             }
         }
     }
-    app.path()
-        .resolve(
-            "binaries/scanner-worker",
-            tauri::path::BaseDirectory::Resource,
-        )
-        .ok()
-        .map(|p| p.to_string_lossy().to_string())
+    None
 }
 
 /// Resolve a writable WebView profile dir. Order: explicit env override,

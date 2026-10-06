@@ -9,6 +9,7 @@ coverage/
 apps/web/dist/
 packages/*/dist/
 src-tauri/target/
+src-tauri/binaries/scanner-worker-*.mjs
 playwright-report/
 test-results/
 result.json

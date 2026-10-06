@@ -7,7 +7,7 @@
     "frontendDist": "../apps/web/dist",
     "devUrl": "http://127.0.0.1:5173",
     "beforeDevCommand": "npm run dev -w apps/web",
-    "beforeBuildCommand": "npm run build -w apps/web"
+    "beforeBuildCommand": "npm run build -w apps/web && npm run build:sidecar"
   },
   "app": {
     "security": {
@@ -28,8 +28,8 @@
         ]
       }
     },
-    "externalBin": [
-      "binaries/scanner-worker"
-    ]
+    "resources": {
+      "binaries/scanner-worker-x86_64-pc-windows-gnu.mjs": "binaries/scanner-worker-x86_64-pc-windows-gnu.mjs"
+    }
   }
 }

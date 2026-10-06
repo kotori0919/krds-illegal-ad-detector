@@ -25,8 +25,8 @@ detection port would duplicate the TypeScript pipeline in Rust.
 
 - Worker/crawler accept `--channel`/`channel` and both launches pass
   `--no-sandbox` (needed under SYSTEM session-0).
-- `tauri.conf.json` declares `externalBin: ["binaries/scanner-worker"]`
-  with a staging README (esbuild + `bun build --compile` recipes).
+- The initial configuration used `externalBin` for the worker. The
+  2026-10-06 amendment below replaces it for the JavaScript bundle.
 - VERDICT on this VM (OBSERVED): channel `msedge` does NOT launch here —
   bare `chromium.launch({ channel: msedge })` fails headless AND headed,
   and `msedge.exe --headless --dump-dom` exits 1002 under SYSTEM
@@ -37,3 +37,21 @@ detection port would duplicate the TypeScript pipeline in Rust.
 - Clean-evaluator implication: ship the sidecar + Playwright browsers
   (or install headless shell at first run), OR retry channel `msedge`
   in an interactive session where Edge launches.
+
+## Amendment 2026-10-06: stage JavaScript as a resource
+
+The tested worker is an esbuild `.mjs` bundle invoked by portable Node,
+not a PE executable. `externalBin` requires an executable with a target
+triple; renaming the JavaScript bundle to `.exe` caused Windows os error
+216. `npm run build:sidecar` now generates the `.mjs` file and Tauri
+`bundle.resources` stages it under `binaries/`. The host resolves the
+same filename in the Tauri resource directory for an installer or beside
+the executable for the proven portable layout, then always invokes Node.
+
+`npm run smoke:sidecar` executed the generated file as a real child
+process against the realistic site: five official findings, five matching
+details with JPEG evidence, six checked pages, one failed page and valid
+official/detail output. A Windows GNU cross-target `cargo check` passed
+with the real resource mapping. This does not establish NSIS acceptance:
+portable Node, `playwright-core` and the headless shell still need installer
+staging and clean-account runtime verification.

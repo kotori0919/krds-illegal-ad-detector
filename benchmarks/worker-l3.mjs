@@ -11,7 +11,12 @@ import { validateOfficialResultText } from "../packages/contracts/dist/result.js
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
 
 const run = promisify(execFile);
-const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "../fixtures/realistic");
+const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+const root = resolve(repoRoot, "fixtures/realistic");
+const bundled = process.argv.includes("--bundled");
+const workerFile = resolve(repoRoot, bundled
+  ? "src-tauri/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs"
+  : "packages/detection/dist/worker.js");
 const truth = JSON.parse(await readFile(join(root, "ground-truth.json"), "utf8"));
 const temporary = await mkdtemp(join(tmpdir(), "illegal-ad-worker-"));
 const server = createServer((request, response) => {
@@ -42,7 +47,7 @@ try {
   const resultFile = join(temporary, "result.json");
   const detailFile = join(temporary, "detail.json");
   const { stdout, stderr } = await run(process.execPath, [
-    resolve(fileURLToPath(new URL(".", import.meta.url)), "../packages/detection/dist/worker.js"),
+    workerFile,
     "--session", "l3-worker-smoke",
     "--entry-url", `${origin}/`,
     "--topic", "municipal-style-fixture",
@@ -87,7 +92,7 @@ try {
     jpegCount += 1;
   }
   console.log(JSON.stringify({
-    fixture: "municipal-style L3 worker process",
+    fixture: bundled ? "municipal-style bundled sidecar" : "municipal-style L3 worker process",
     officialFindings: actual.length,
     detailFindings: detail.findings.length,
     jpegEvidence: jpegCount,
