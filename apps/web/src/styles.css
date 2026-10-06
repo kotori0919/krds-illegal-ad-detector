@@ -464,26 +464,46 @@ h1:focus {
   margin-block: var(--krds-semantic-padding-3);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: var(--krds-semantic-padding-4);
-  display: block;
-  overflow-x: auto;
+.finding-list {
+  display: grid;
+  gap: var(--krds-semantic-gap-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-caption {
-  text-align: left;
+.finding-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: var(--krds-semantic-padding-4);
+  border: 1px solid var(--krds-component-result-card-border);
+  border-radius: var(--krds-component-filter-radius);
+  background: var(--krds-component-result-card-surface);
+}
+
+.finding-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--krds-semantic-gap-2);
+}
+
+.finding-card dl {
+  margin: var(--krds-semantic-padding-3) 0 0;
+}
+
+.finding-card dl > div {
+  padding-block: var(--krds-semantic-padding-2);
+  border-top: 1px solid var(--krds-semantic-border-subtle);
+}
+
+.finding-card dt {
   font-weight: 700;
-  padding-bottom: var(--krds-semantic-padding-3);
 }
 
-th,
-td {
-  border: 1px solid var(--krds-semantic-border);
-  padding: var(--krds-semantic-padding-3);
-  text-align: left;
-  vertical-align: top;
+.finding-card dd {
+  margin: 0;
 }
 
 .raw {
@@ -574,6 +594,8 @@ code {
 }
 
 .preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   background: var(--krds-semantic-surface-subtle);
   border: 1px solid var(--krds-semantic-border-subtle);
   border-radius: var(--krds-semantic-radius-control);

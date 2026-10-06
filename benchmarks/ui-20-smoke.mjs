@@ -72,7 +72,7 @@ try {
   }
   await page.getByRole("button", { name: "결과 목록으로" }).click();
   await page.waitForFunction(() => document.activeElement?.getAttribute("data-finding-id") === "f20");
-  const reviewed = await page.locator("tbody tr").filter({ hasText: "검토 완료" }).count();
+  const reviewed = await page.locator(".finding-card").filter({ hasText: "검토 완료" }).count();
   if (reviewed !== 20) throw new Error(`only ${String(reviewed)} findings show reviewed state`);
   await page.getByLabel("결과 검색").fill("post/1");
   await page.getByLabel("기법 필터").selectOption("HOMOGLYPH");

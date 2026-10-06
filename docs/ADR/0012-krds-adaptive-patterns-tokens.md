@@ -17,3 +17,15 @@ Results follow KRDS search-result behavior: visible result count, category navig
 ## Release consequence
 
 Every Product V2 UI PR records pattern mapping and deviation reasons, token lineage, keyboard-only operation, visible and restored focus, 360px reflow, 200% zoom, text/shape state cues, status announcements, dialog focus, plain Korean wording, and mixed-age target size. An unexplained pattern deviation is a release-blocking product defect. Historical checks on the old five-step UI remain evidence of that build only.
+
+## Amendment 2026-10-06: result list reflow
+
+Native Chromium 200% zoom exposed a horizontally scrolling six-column result
+table that visually hid most finding content while leaving the outer document
+width within the viewport. The result collection now uses a single semantic
+list of cards for both narrow and wide layouts. This maps to KRDS 목록 탐색 and
+keeps the page, selector, technique, raw evidence, review state and evidence
+action together without horizontal navigation. The export JSON preview wraps
+long lines. A headed Chromium smoke checks the entry, results, inspector and
+export dialog at native 200% zoom, including nested overflow and focus return.
+Windows packaging and assistive-technology verification remain release gates.

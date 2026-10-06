@@ -67,6 +67,14 @@ package; packaged runtime verification remains open.
 20-finding synthetic IPC fixture in Chromium: all 20 are opened and marked
 reviewed, then search/filter and fallback focus are checked. It is a UI replay,
 not an L3 native-host or L4 operator result.
+With Vite running on `127.0.0.1:5173`, `npm run smoke:ui-native-zoom` uses
+headed Chromium and OS key events under Xvfb to reach actual 200% browser
+zoom. At an effective 360 CSS px it checks
+entry, result list, inspector and export dialog for document and nested
+horizontal overflow, inspector focus, dialog focus and Escape focus return.
+The wide result table failed visual review despite an outer-width pass; its
+single responsive card-list replacement and the wrapped JSON preview passed
+the same smoke. This is a Linux browser gate, not Windows L4.
 
 ## Layers and evidence
 

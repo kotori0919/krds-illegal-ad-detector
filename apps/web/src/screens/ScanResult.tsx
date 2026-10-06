@@ -206,39 +206,27 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
             ))}
           </div>
         ) : (
-          <table>
-            <caption>확정된 탐지 목록 ({String(visible.length)}건)</caption>
-            <thead>
-              <tr>
-                <th scope="col">페이지</th>
-                <th scope="col">위치</th>
-                <th scope="col">기법</th>
-                <th scope="col">증거 원문</th>
-                <th scope="col">근거</th>
-                <th scope="col">검토 상태</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div>
+            <h2>확정된 탐지 목록 ({String(visible.length)}건)</h2>
+            <ol className="finding-list" aria-label="확정된 탐지 목록">
               {visible.map((f) => (
-                <tr key={f.id}>
-                  <td>{f.url}</td>
-                  <td>
-                    <code>{f.location}</code>
-                  </td>
-                  <td>
+                <li key={f.id} className="finding-card">
+                  <div className="finding-card-head">
                     <span className="badge">{techniqueLabel[f.technique]}</span>
-                  </td>
-                  <td>{f.evidence_text}</td>
-                  <td>
-                    <button type="button" onClick={() => onEvidence(f.id)} className="linklike" data-finding-id={f.id}>
-                      근거 보기
-                    </button>
-                  </td>
-                  <td>{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"}</td>
-                </tr>
+                    <span>{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"}</span>
+                  </div>
+                  <dl>
+                    <div><dt>페이지</dt><dd>{f.url}</dd></div>
+                    <div><dt>위치</dt><dd><code>{f.location}</code></dd></div>
+                    <div><dt>증거 원문</dt><dd>{f.evidence_text}</dd></div>
+                  </dl>
+                  <button type="button" onClick={() => onEvidence(f.id)} className="secondary" data-finding-id={f.id}>
+                    근거 보기
+                  </button>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ol>
+          </div>
         )}
       </section>
       <div className="actions">

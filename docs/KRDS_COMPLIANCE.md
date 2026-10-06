@@ -99,7 +99,7 @@ and control target size for mixed-age operators. An unexplained deviation
 blocks release. The packaged Windows operator walk must verify the actual
 Tauri host and real scan/evidence/export.
 
-**Observed 2026-10-06:** `npm test` passed 118 tests; `npm run typecheck` and
+**Observed 2026-10-06:** `npm test` passed 129 tests; `npm run typecheck` and
 `npm run build -w apps/web` passed. `node benchmarks/ui-smoke.mjs` exercised
 the BrowserHost demo in Chromium at 360 CSS px: three stages, five findings,
 search/reset, page review, inspector focus return, export focus/Escape/return,
@@ -125,5 +125,19 @@ The same Chromium smoke now checks that the bundled Pretendard GOV variable
 font reaches the loaded state and computes to a 17 px body size; the 360 px
 layout and 200% CSS zoom checks still pass after the typography change.
 
-**Open:** native zoom, assistive technology, local layout limit audit,
-large-result native review, and packaged Windows acceptance.
+**Observed native browser zoom 2026-10-06:** `npm run smoke:ui-native-zoom`
+used headed Chromium under Xvfb and OS keyboard zoom to reach actual 200%
+(`devicePixelRatio=2`, effective viewport 360 CSS px from a 720 px window).
+The entry, result list, inspector and export dialog each had document width
+352 px and no nested horizontal overflow. The inspector hid the list and
+focused its heading; the dialog received focus and returned it to export on
+Escape. Visual inspection exposed an unusable wide result table despite a
+passing document-width check. The result view now uses one semantic list of
+cards at every width, with page, location, raw evidence, technique, review
+state and a 48 px evidence action. The JSON preview wraps long lines. The
+same native zoom smoke passed again after both changes; `ui-smoke` and the
+20-finding keyboard review replay also passed. This is a Linux Chromium
+operator slice, not a packaged Windows or assistive-technology audit.
+
+**Open:** assistive technology, local layout limit audit, large-result native
+review, and packaged Windows acceptance.
