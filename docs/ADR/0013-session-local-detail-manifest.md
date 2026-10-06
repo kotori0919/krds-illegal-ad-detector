@@ -1,6 +1,6 @@
 # ADR-0013: Bounded session-local detail manifest (2026-10-06)
 
-Status: bounded element-region captures and analysis position metadata observed in Linux scanner/UI and actual installed Windows host execution. Current-worker Windows memory/performance acceptance remains pending.
+Status: bounded element-region captures, analysis position and creative assets observed in Linux scanner/UI and actual installed Windows host execution. Current-worker Windows memory/performance scenario acceptance passed; full V2 strict UX remains open.
 
 ## Context
 
@@ -39,11 +39,12 @@ increase manifest size, so the host caps the full manifest at 8 MB. If the
 replace this representation with session-owned opaque asset IDs and validated
 local files without changing `result.json`.
 
-The L2 scanner test and Node worker CLI observed a real JPEG, CSS/geometry,
-detail-to-official ID join, and failed-page coverage. The packaged Tauri
-retrieval, 200% zoom rendering, crop/overlay alignment, cancellation cleanup,
-and Windows memory/performance acceptance remain open. None of those are
-inferred from a successful TypeScript suite.
+The initial L2 scanner test and Node worker CLI observed a real JPEG,
+CSS/geometry, detail-to-official ID join and failed-page coverage. Later
+installed native retrieval, measured placement, cancellation cleanup and
+Windows memory/performance observations are recorded below and in DRY_RUN/PERF.
+The new controls' native narrow/zoom gate remains open. None of these native
+claims is inferred from a successful TypeScript suite.
 
 The 2026-10-06 built-web smoke feeds the real municipal-site scan output into
 the React workspace through a labelled IPC replay. All five JPEGs decoded in
@@ -86,4 +87,7 @@ the extra finding join before storing the session atomically. Official
 Linux real-scanner/React and actual installed Windows execution passed
 original-byte and decode checks. Windows displayed the64-by-64 observed asset,
 kept official0/extra2 separation and saved a validated246-byte official file.
-Current-worker Windows C1-C4 performance acceptance remains pending.
+Current-worker Windows C1-C4 and paired capture-unavailable performance
+acceptance passed. Complete official/failure objects remain identical with
+zero image bytes in the injected-unavailable run. See PERF for actual byte,
+memory and time measurements and limits; this is no universal performance claim.

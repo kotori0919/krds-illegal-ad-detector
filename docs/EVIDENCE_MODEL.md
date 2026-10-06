@@ -7,7 +7,8 @@ host code reads and joins it atomically to the official result. The worker
 path and inspector were executed locally. Earlier viewport-only Windows
 acceptance is in DRY_RUN. The new crop/position fields passed actual installed
 Windows host retrieval, rendering and export. Current-worker Windows concurrency
-measurements remain open core work. Image-creative asset presentation has now
+measurements passed the same200-page C1-C4 and paired capture-unavailable
+scenarios. Image-creative asset presentation has now
 passed actual installed Windows retrieval, original-byte/decode checks and
 rendering, separately from official export.
 
@@ -49,7 +50,8 @@ and coverage count against the official result. The official `result.json`
 never contains image bytes. This avoids arbitrary filesystem asset paths but
 keeps the manifest in process memory; asset IDs and streaming may replace it
 if the Windows memory benchmark shows a need. The base64 representation is
-not yet an approved Windows performance result.
+measured on the current Windows worker, including a paired same200-page capture
+comparison. See PERF for byte counts, memory, failure behavior and scope.
 
 ## Capture sequence and budget
 
@@ -102,7 +104,8 @@ capture remain explicit. Linux scanner-to-React execution decoded the stored
 64-by-64 asset, checked exact source bytes and preserved official0/extra2
 separation. Installed Windows execution also passed the same original-byte and
 decode checks, displayed the actual asset and saved a validated246-byte official
-zero-result file. Current-worker Windows performance acceptance remains open.
+zero-result file. Current-worker Windows scenario performance acceptance passed;
+full V2 strict UX release acceptance remains open.
 
 Transparent text needs the ordinary rendered viewport plus a clearly labelled analysis outline at the measured location; do not alter the screenshot pixels and call that the rendered page. For offscreen elements, a viewport image alone cannot show the element: provide measured bounds relative to viewport and, if technically possible within budget, a separate element crop labelled as an analysis capture. An image advertisement extra finding may use the actual image crop only when the image pipeline produces it; current text-only official detection does not support claiming image-ad capture.
 

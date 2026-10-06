@@ -16,8 +16,12 @@ chromium.launch = async (...args) => {
       page.screenshot = async (...captureArgs) => {
         const started = performance.now();
         let ok = false;
-        try { const result = await screenshot(...captureArgs); ok = true; return result; }
-        finally { console.error("KRDSCAPTURE " + JSON.stringify({ durationMs: performance.now() - started, ok })); }
+        let bytes = 0;
+        try {
+          if (process.env.KRDS_BENCH_CAPTURE_UNAVAILABLE === "1") throw new Error("benchmark injected unavailable capture");
+          const result = await screenshot(...captureArgs); bytes = result.length; ok = true; return result;
+        }
+        finally { console.error("KRDSCAPTURE " + JSON.stringify({ durationMs: performance.now() - started, ok, bytes })); }
       };
     });
     return context;

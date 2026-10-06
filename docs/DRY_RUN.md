@@ -1534,5 +1534,44 @@ The same new installed package then repeated the17-finding element-region,
 position/review/export check: seven crop references, nine exact positions and
 validated4,660-byte export. Raw `current-native-element-current.json` (301 bytes)
 was received at19:13KST. Historical worker6da evidence above keeps its scope.
-Current-worker full200-page C1-C4 Windows measurement is running; its final
-report must name worker309cacb385 before replacing the historical PERF table.
+Current-worker full200-page C1-C4 Windows measurement completed; its final
+report names worker309cacb385. See the current PERF table and follow-up below.
+
+### Current-worker full Windows concurrency acceptance (2026-10-06)
+
+MEASURED: worker309cacb385 completed the generated200-page C1-C4 sweep on
+the4-vCPU/8GiB machine, with wall times341.116/164.258/111.149/88.916s.
+Every run checked200 pages with one intended404,TP21/FP0/FN0, no timeout and
+passing official/detail/extra validators. Full official objects, IDs/order,
+absolute URLs/frame chains and failed-page identities matched; independent
+parsed-object comparison passed. The desired1200s target passed at all levels.
+Raw26,844-byte report: `current-windows-v2-large-bench.json`, copied to
+`windows-v2-worker309-full-set.json`; native terminal capture
+`capture-preflight-terminal.png` shows helper exit0. PERF records the method,
+working sets, total guest memory, CPU and actual JPEG/finalization timing.
+
+OBSERVED: the same installed5120e88 executable and309cac worker repeated the
+real60-second global deadline/export path. It settled in54.44387789s wall,
+persisted53.074s elapsed,62 checked pages, one intended404, timedOut=true and
+five official findings. The1,487-byte export validated and exactly matched
+the persisted official object. Raw report: `current-native-deadline-current.json`
+(704 bytes). Process-cold readiness was1.26416758s; renderer FP/FCP184ms.
+These are measured through WebView2 CDP with ordinary OS caches, not an OS-cold
+boot or a human paint stopwatch. Normal short deadline settlement is proved;
+forced long host-guard exhaustion is not claimed.
+
+OBSERVED/MEASURED: same200-page C2 selective and injected-unavailable capture
+runs completed in176.281/166.647s. Both retained the complete21-finding official
+array, IDs/order and failed-page set, matching the full C2 sweep. Every
+validator passed withTP21/FP0/FN0,200checked/1intended404 and no expiry.
+Selective capture produced113,612 raw JPEG bytes and468,235 embedded finding
+bytes; five of eleven optional attempts genuinely failed. The injected run
+rejected all five viewport attempts and stored zero image bytes. The
+benchmark-only preload changes the image boundary, never fabricates detector
+or host results. Raw reports: `current-windows-v2-capture-bench.json` (9,305
+bytes) and `current-windows-v2-capture-unavailable-bench.json` (9,214 bytes).
+Independent parsed-object comparison passed. The helper printed terminal
+success; actual process inspection found only fixture Nodes4008/7684/8756,
+with no app or scanner Chromium. Capture: `core-capture-acceptance-cleanup.png`.
+Core/current Windows scenario acceptance is closed. Full V2 strict UX gates
+remain open and now follow the user's required execution order.

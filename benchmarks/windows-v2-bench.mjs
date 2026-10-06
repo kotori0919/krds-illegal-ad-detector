@@ -1,5 +1,6 @@
 /** Windows 4-vCPU/8-GB acceptance benchmark against the real bundled worker. */
 import { createServer } from "node:http";
+import { Buffer } from "node:buffer";
 import { spawn, execFile } from "node:child_process";
 import { readFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir, homedir, cpus, totalmem, platform, release } from "node:os";
@@ -18,6 +19,8 @@ const site = join(root, "site");
 const worker = join(root, "scanner-worker-x86_64-pc-windows-gnu.mjs");
 const browserPath = join(root, "ms-playwright");
 const large = process.argv.includes("--large");
+const unavailableCapture = process.argv.includes("--capture-unavailable");
+const captureComparison = unavailableCapture || process.argv.includes("--capture-benchmark");
 const generated = large ? await createLargeMunicipalSite(site) : undefined;
 const truth = generated?.truth ?? JSON.parse(await readFile(join(site, "ground-truth.json"), "utf8"));
 const budgetSec = large ? 1500 : 90;
@@ -114,7 +117,8 @@ async function runOne(concurrency, origin, baselineMiB) {
       "--max-pages", String(truth.expectedCheckedPages), "--max-depth", large ? "4" : "2", "--timeout-sec", String(budgetSec),
       "--settle-ms", large ? "1500" : "1400", "--concurrency", String(concurrency),
       "--out-file", resultFile, "--detail-out-file", detailFile, "--extra-out-file", extraFile,
-    ], { env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: browserPath }, stdio: ["ignore", "pipe", "pipe"] });
+    ], { env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: browserPath,
+      KRDS_BENCH_CAPTURE_UNAVAILABLE: unavailableCapture ? "1" : "0" }, stdio: ["ignore", "pipe", "pipe"] });
     child.stdout.resume();
     child.stderr.setEncoding("utf8");
     child.stderr.on("data", (chunk) => {
@@ -156,6 +160,10 @@ async function runOne(concurrency, origin, baselineMiB) {
       firstPageStartedWallSec,
       finalizationTailSec: finalizingWallSec === null ? null : Number((wallSec - finalizingWallSec).toFixed(3)),
       capture: { calls: captures.length, failed: captures.filter((capture) => !capture.ok).length,
+        bytes: captures.reduce((sum, capture) => sum + capture.bytes, 0),
+        findingBytes: detail.findings.map((finding) => ({ id: finding.findingId,
+          viewport: finding.visual.state === "available" ? Buffer.byteLength(finding.visual.dataUrl.split(",")[1], "base64") : 0,
+          element: finding.visual.element?.state === "available" ? Buffer.byteLength(finding.visual.element.dataUrl.split(",")[1], "base64") : 0 })),
         sumMs: Number(captures.reduce((sum, capture) => sum + capture.durationMs, 0).toFixed(1)),
         maxMs: captures.length ? Number(Math.max(...captures.map((capture) => capture.durationMs)).toFixed(1)) : 0 },
       pagesPerSec: Number((detail.coverage.checkedPages / wallSec).toFixed(3)),
@@ -184,7 +192,7 @@ const results = [];
 try {
   await new Promise((done) => server.listen(4124, "127.0.0.1", done));
   const origin = "http://127.0.0.1:4124";
-  for (const concurrency of [1, 2, 3, 4]) {
+  for (const concurrency of captureComparison ? [2] : [1, 2, 3, 4]) {
     const baselineMiB = await workingSetMiB();
     const result = await runOne(concurrency, origin, baselineMiB);
     results.push(result);
@@ -197,15 +205,19 @@ try {
     && JSON.stringify(item.failedPageSet) === JSON.stringify(results[0].failedPageSet));
   const scenarioPassed = same && results.every((item) => item.checkedPages === truth.expectedCheckedPages
     && item.failedPages === truth.expectedFailedPages && !item.timedOut
-    && item.capture.calls > 0
+    && item.capture.calls > 0 && (!unavailableCapture || (item.capture.failed === item.capture.calls
+      && item.capture.findingBytes.every((finding) => finding.viewport === 0 && finding.element === 0)))
     && item.tp === expected.size && item.fp === 0 && item.fn === 0 && Object.values(item.validator).every(Boolean));
   const report = { scenario: large ? "municipal-generated-200" : "municipal-six-page", budgetSec,
+    captureMode: unavailableCapture ? "injected-unavailable" : "selective",
     workerSha256: createHash("sha256").update(await readFile(worker)).digest("hex"),
     targetMet: results.every((item) => item.wallSec <= 1200),
     machine: { os: platform(), release: release(), node: process.version,
     logicalCpus: cpus().length, totalMemoryGiB: Number((totalmem() / 1024 ** 3).toFixed(1)) },
     same, scenarioPassed, results };
-  const reportPath = join(homedir(), "Documents", large ? "windows-v2-large-bench.json" : "windows-v2-bench.json");
+  const reportName = captureComparison ? unavailableCapture ? "windows-v2-capture-unavailable-bench.json"
+    : "windows-v2-capture-bench.json" : large ? "windows-v2-large-bench.json" : "windows-v2-bench.json";
+  const reportPath = join(homedir(), "Documents", reportName);
   await writeFile(reportPath, JSON.stringify(report, null, 2), "utf8");
   console.log(`FindingSet equal=${same}; scenario passed=${scenarioPassed}; report=${reportPath}`);
   if (!scenarioPassed) process.exitCode = 1;

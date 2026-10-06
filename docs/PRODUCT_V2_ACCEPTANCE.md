@@ -9,11 +9,13 @@ Earlier build observations retain their original environment and scope.
 The implemented core workflow is OBSERVED: actual installed scans, real evidence,
 review/filter/page navigation, validated export/retry, cancellation/restart,
 full-object C1-C4 benchmark, deadline partial export and rejected-read recovery
-passed. This is not full core closure: the original visual-evidence steering
-also names image-creative presentation. Element-region crops and analysis
-position overlays and image-creative assets now passed actual installed Windows
-execution. The updated worker's full Windows benchmark is running. Complete
-that core performance/correctness acceptance before further strict UX work.
+passed. The original visual-evidence steering also names image-creative
+presentation. Element-region crops and analysis
+position overlays and image-creative assets passed actual installed Windows
+execution. The updated worker's full Windows C1-C4 benchmark, paired
+capture-unavailable comparison and native60s deadline/export passed. Core
+functional/current Windows scenario acceptance is closed. Full V2 remains
+open for strict UX release verification and reconciliation of scoped rows.
 
 | Requirement | Concrete acceptance evidence | Current assessment |
 | --- | --- | --- |
@@ -21,8 +23,8 @@ that core performance/correctness acceptance before further strict UX work.
 | B: single pass | Each admitted URL requested once at C1/C4, including capped admission; live detection in that page | OBSERVED in single-pass served request-log tests. |
 | C: live frames | Cross-origin and nested frames requested once per live instance; absolute full `>>>` chain; depth bound | OBSERVED in cross-origin-frame tests and the Windows shared-frame finding. |
 | D: deterministic identity | Compare complete official objects, full URL/frame chain, order and IDs after canonical aggregation | OBSERVED in the repeated full-object Windows 200-page C1-C4 run. |
-| E: correctness benchmark | Wall time, throughput, memory, CPU, coverage, TP/FP/FN, complete official set and validators at C1-C4 | MEASURED: 200 checked, one intended failure, TP21/FP0/FN0 at all four levels; PERF records exact metrics and limits. |
-| F: one deadline | Shared monotonic worker deadline, admission/finalization reserve, bounded operations and optional capture; host process guard | OBSERVED short-budget scanner tests and installed Windows 60-second partial scan/export: 54.127s wall, 62 checked, 5 findings, timedOut=true, validated export identical to persisted result. Configured1500/internal cap1650/ceiling1800 implementation recorded in ADR-0011. Forced long-duration host guard exhaustion was NOT_RUN; this observation exercises normal deadline settlement. |
+| E: correctness benchmark | Wall time, throughput, memory, CPU, coverage, TP/FP/FN, complete official set and validators at C1-C4 | MEASURED for current309cac worker:341.116/164.258/111.149/88.916s,200checked/1intended failure,TP21/FP0/FN0, complete official objects and failures equal, validators and1200s target pass. Paired C2 injected-unavailable captures also preserve the full official set. PERF records metrics and limits. |
+| F: one deadline | Shared monotonic worker deadline, admission/finalization reserve, bounded operations and optional capture; host process guard | OBSERVED short-budget scanner tests and current installed Windows60s partial scan/export:54.444s wall,62checked/1intended failure,5findings,timedOut=true, validated1,487-byte export identical to persisted result. Configured1500/internal cap1650/ceiling1800 implementation recorded in ADR-0011. Forced long-duration host guard exhaustion was NOT_RUN; this observation exercises normal deadline settlement. |
 | G: Adaptive style | Explicit track and official normative references, documented deviations | INFERRED from ADR-0012 and KRDS_COMPLIANCE implementation mapping; this alone does not close visual/interaction gates. |
 | H: token hierarchy | Primitive to semantic to component, custom role/purpose/consumers/deviation record | INFERRED from styles.css and KRDS_COMPLIANCE token tables; computed style/reflow observations are separately recorded. |
 | I: pattern mapping | Every named interaction maps to the official component/basic/service pattern | Documented in KRDS_COMPLIANCE; per-interaction verification remains scoped in that table. |
@@ -47,7 +49,8 @@ execution and artifact validation. PERF records the full-object C1-C4 metrics.
 KRDS_COMPLIANCE records subsequent installed zoom, native UIAutomation and
 state batches, including failed or insufficient captures. The earlier C1-C4
 benchmark used worker `90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`;
-the new crop worker needs fresh performance measurements. Raw reports are named
+the current crop/asset worker now passed a fresh full sweep and paired capture
+comparison. Raw reports are named
 in those records; report replacement does not retroactively change old proof.
 
 ## Next acceptance checks
@@ -55,9 +58,10 @@ in those records; report replacement does not retroactively change old proof.
 1. OBSERVED: installed keyboard-only scope, scan, filter/search, finding
    review/return, page navigation, confirmation and restart passed. See
    KRDS_COMPLIANCE for input method, report and distinction from file writing.
-2. Finish the updated worker's full Windows C1-C4 benchmark. Image-creative
-   assets, element-region crops and position displays passed native execution;
-   older read/accessibility checks retain their original package scope.
+2. OBSERVED/MEASURED: current-worker full C1-C4, paired capture comparison and
+   native short-deadline export passed. Current images/placement passed native
+   retrieval, rendering and export; older read/accessibility checks retain
+   their original package scope.
 3. Reconcile remaining release rows with their actual evidence. The normal
    Windows deadline/partial export path passed; do not describe that execution
    as forced host-guard exhaustion.

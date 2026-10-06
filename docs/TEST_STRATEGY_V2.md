@@ -263,6 +263,26 @@ Windows C1-C4 output order/IDs, coverage and failure identities must agree.
 Record total guest memory separately from Node/Chromium working sets. This
 generated local fixture is an L2 scale scenario, not a live public-site crawl.
 
+OBSERVED/MEASURED current worker309cacb385 passed this full Windows sweep:
+341.116/164.258/111.149/88.916s,200checked/1intended404,TP21/FP0/FN0, no expiry,
+all validators, complete official/failure objects and order/IDs equal. PERF
+records the full method and metrics. The same installed host also passed the
+60s partial scan:54.444s wall,62checked/1failed,5findings, timedOut=true,
+validated1,487-byte export exactly matching its official object.
+
+The permanent Windows benchmark supports `--large --capture-benchmark` and
+`--large --capture-unavailable` for a paired C2 run of the same200-page
+scenario. The preload reports actual returned JPEG bytes and optionally
+rejects capture with an explicit benchmark-only error. The real scanner still
+navigates and analyzes every page. Current paired runs passed176.281/166.647s,
+bothTP21/FP0/FN0 and identical complete official/failure arrays, independently
+compared with the full C2 sweep. Selective capture retained468,235 embedded
+JPEG bytes despite five genuine optional failures; the injected-unavailable
+run retained zero image bytes. This proves optional-image failure settlement
+without losing official results. It is not a production toggle or a controlled
+causal timing experiment. Per-finding JPEG bytes and all metrics are in the
+two capture reports named in DRY_RUN/PERF.
+
 Measure cold start to first meaningful paint, click-to-scan start latency, total wall time, pages/sec, per-page analysis time, peak memory, CPU utilization where available, screenshot time and bytes per selected finding, total evidence overhead, finalization time, and export latency on the evaluation-class Windows PC. Compare same scenario with and without selective capture; target <=1200 s, keep the 1500 s configured budget, enforce 1650 s internal hard stop, and stay below the 1800 s official ceiling. A capture budget breach must reduce optional evidence, never delay or erase official results. Verify the KRDS V2 state matrix and release gate in `KRDS_COMPLIANCE.md`: 360px and 200% zoom reflow, token lineage, visible/restored focus, mixed-age targets, screen-reader status cadence, dialog focus trap/return, keyboard list-detail navigation, non-color status, and actionable Korean errors. Record observed outputs and any unrun gates separately.
 
 Product V2 is complete only when both the operator/KRDS/evidence/export path and the single-pass/deadline/bounded-concurrency/deterministic scanner path have passed L2, L3, and Windows L4 gates. A green L1 suite or faster serial fixture is insufficient.

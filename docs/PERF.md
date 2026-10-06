@@ -10,7 +10,75 @@ cover six pages and a generated 200-page scenario; the latter met the desired
 target. Full native product/performance acceptance remains open. The earlier "parallel only if dry run demands it" stance is
 superseded.
 
-## Current-build Windows acceptance (MEASURED 2026-10-06)
+## Current-worker Windows concurrency acceptance (MEASURED 2026-10-06)
+
+The installed element-region/creative-asset worker
+`309cacb385292865d947134731e0b6c5720caaf608c0a7bd279378cc74c78d81`
+ran the same generated200-page municipal scenario on Windows10.0.26100,
+Node22.19.0,4 logical CPUs,8GiB RAM, no required GPU,1500s configured budget
+and1500ms settle. All four runs checked200 pages with one intended404,
+TP21/FP0/FN0, no expiry and passing official/detail/extra validators.
+
+| Workers | Wall s | Pages/s | Peak above idle MiB | Peak guest used MiB | Mean CPU % | First page s | Finalization tail s | JPEG calls / failed | JPEG sum / max ms |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 1 | 341.116 | 0.586 | 415.7 | 3378.8 | 38.1 | 10.982 | 0.027 | 11 / 0 | 277.5 / 33.0 |
+| 2 | 164.258 | 1.218 | 450.1 | 3296.8 | 38.4 | 1.237 | 0.032 | 11 / 0 | 411.4 / 74.7 |
+| 3 | 111.149 | 1.799 | 551.3 | 3398.8 | 42.8 | 1.194 | 0.024 | 11 / 0 | 441.2 / 74.2 |
+| 4 | 88.916 | 2.249 | 703.4 | 3435.8 | 53.2 | 1.217 | 0.025 | 11 / 0 | 9623.8 / 3152.1 |
+
+OBSERVED: complete official finding arrays and failed-page arrays matched at
+C1-C4, including full URLs, frame chains, evidence text, flags, IDs and order.
+The report's same/scenarioPassed/targetMet are true. Independent parsed-object
+comparison also passed. The maximum341.116s is below the desired1200s target.
+Default2 remains appropriate for the conservative machine:2.08x the C1
+throughput by wall-time ratio,450.1MiB above idle, with lower memory/CPU demand
+thanC4. This is an initial policy supported by this scenario, not a universal
+optimality claim. C4's multi-second page capture bursts remain visible.
+
+Method: one process-cold run per level inC1-C4 order, normal OS caches,
+500ms Node/Chromium working-set sampling and1s typeperf CPU/available-memory
+sampling. Guest used memory includes the OS and idle fixture servers. Actual
+JPEG calls were timed without changing arguments/results. Capture sums can
+overlap across workers; they are not wall-time overhead. First-page timing
+includes worker/browser admission, not UI paint. No parallel build or app scan
+ran during the sweep. These generated local results do not prove public-site
+throughput or statistical speedup. Evidence:
+`/tmp/illegal-ad-toolchain/current-windows-v2-large-bench.json` (26,844 bytes),
+preserved as `windows-v2-worker309-full-set.json` in the same directory.
+Terminal VNC capture: `capture-preflight-terminal.png`; helper exit0 observed.
+
+The paired same200-page C2 comparison also passed. Selective capture took
+176.281s,1.135pages/s,496.1MiB above idle,3493.8MiB peak guest used and41.5%
+mean CPU. Eleven JPEG attempts produced113,612 raw bytes; five optional
+element captures genuinely failed, and final finding copies embedded468,235
+JPEG bytes. All21 viewport references survived; one element reference was
+available. Per-finding byte counts are in the raw report. JPEG time summed
+14,438.5ms, maximum3,130.6ms; overlapping sums are not wall overhead.
+
+With captures explicitly rejected by the benchmark-only preload, C2 took
+166.647s,1.200pages/s,495.9MiB above idle,3496.8MiB peak guest used and41.2%
+mean CPU. All five viewport attempts were rejected; captured and embedded
+image bytes were zero. Complete official and failure arrays matched both the
+selective comparison and the full C2 sweep, with200/1,TP21/FP0/FN0, no expiry
+and all validators passing. The observed9.634s wall difference includes
+startup/cache/optional-failure variation; it is not a controlled causal cost
+estimate. This exercises actual navigation/detection with an injected capture
+failure, not a production setting or a fabricated detection response.
+Reports: `current-windows-v2-capture-bench.json` (9,305 bytes) and
+`current-windows-v2-capture-unavailable-bench.json` (9,214 bytes), under the
+same temporary directory. Helper terminal success and post-run inspection
+found only the three idle fixture Node servers, no app or scanner Chromium.
+
+The current installed native60s deadline/export also passed:54.44387789s wall,
+53.074s persisted elapsed,62checked/1intended404, timedOut=true,5findings,
+validated1,487-byte export identical to the official object. Process-cold UI
+readiness was1.26416758s; renderer FP/FCP184ms. CDP polling and normal OS
+caches define this measurement; it is not an OS-cold boot stopwatch. Raw
+`current-native-deadline-current.json` is704 bytes. Core functional and current
+Windows scenario acceptance are closed; full V2 strict UX acceptance remains
+open.
+
+## Historical viewport-only worker Windows acceptance (MEASURED 2026-10-06)
 
 User-directed execution priority: close core scanner and native product
 acceptance first. Defer window sizing, zoom and strict KRDS UX verification
@@ -18,7 +86,7 @@ until detection, evidence, export, cancellation and current-worker Windows
 C1-C4 semantics/performance checks are settled. Those UX gates remain part
 of V2 acceptance; they are not removed by this ordering change.
 
-The real current bundled worker ran the generated municipal 200-page scenario
+The earlier viewport-only bundled worker ran the generated municipal 200-page scenario
 on `clean11`: Windows 10.0.26100 as reported by Node, Node v22.19.0,
 4 logical CPUs, 8 GiB RAM, no required GPU, 1500s budget, 1500ms settle.
 Worker SHA-256:
@@ -53,7 +121,7 @@ C1-C4 order with normal OS caches, not cache-flushed or statistically
 controlled speed estimates. No parallel build or app scan ran during them.
 Working-set/CPU sampling uses the method documented below; guest used memory
 includes OS and pre-existing idle test servers. Original report:
-`/tmp/illegal-ad-toolchain/current-windows-v2-large-bench.json`.
+`/tmp/illegal-ad-toolchain/windows-v2-worker90-baseline.json`.
 Screenshot: `/tmp/illegal-ad-toolchain/v2-full-set-final-poll.png`.
 This generated local scenario does not establish live public-site throughput.
 
