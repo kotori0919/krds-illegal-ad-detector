@@ -79,6 +79,14 @@ package; packaged runtime verification remains open.
 20-finding synthetic IPC fixture in Chromium: all 20 are opened and marked
 reviewed, then search/filter and fallback focus are checked. It is a UI replay,
 not an L3 native-host or L4 operator result.
+`npm run smoke:real-evidence-ui` runs the real scanner against the municipal
+site, validates its five ground-truth findings and detail bundle, then serves
+the built React app with those exact outputs through a Tauri IPC replay. In
+Chromium, all five inspector images decoded and matched the scanner's actual
+JPEG data, the 6-checked/1-failed coverage appeared, the export preview
+matched the official JSON, and dialog focus returned on Escape. This joins
+real scan data to the product UI; the IPC transport and native save dialog are
+still replayed or unexercised, so packaged Windows acceptance remains open.
 With Vite running on `127.0.0.1:5173`, `npm run smoke:ui-native-zoom` uses
 headed Chromium and OS key events under Xvfb to reach actual 200% browser
 zoom. At an effective 360 CSS px it checks

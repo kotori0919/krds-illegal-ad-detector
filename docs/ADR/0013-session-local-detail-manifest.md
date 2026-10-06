@@ -44,3 +44,9 @@ detail-to-official ID join, and failed-page coverage. The packaged Tauri
 retrieval, 200% zoom rendering, crop/overlay alignment, cancellation cleanup,
 and Windows memory/performance acceptance remain open. None of those are
 inferred from a successful TypeScript suite.
+
+The 2026-10-06 built-web smoke feeds the real municipal-site scan output into
+the React workspace through a labelled IPC replay. All five JPEGs decoded in
+the finding inspector and matched their detail records; coverage and export
+preview matched the same scan. This verifies the data-to-inspector join without
+claiming native Tauri retrieval or Windows rendering.
