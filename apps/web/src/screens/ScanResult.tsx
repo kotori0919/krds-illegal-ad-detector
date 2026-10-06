@@ -232,7 +232,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                         <dl>
                           <div><dt>관련 주소</dt><dd>{finding.url}</dd></div>
                         </dl>
-                        <details><summary>기술 정보</summary><p>위치: <code>{finding.location}</code></p><p>{finding.evidence_text}</p></details>
+                        <details className="advanced"><summary>기술 정보</summary><p>위치: <code>{finding.location}</code></p><p>{finding.evidence_text}</p></details>
                       </li>)}
                     </ol>
                   </>}

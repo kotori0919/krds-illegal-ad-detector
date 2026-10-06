@@ -87,13 +87,23 @@ try {
   if (await page.getByLabel("추가 분석 목록").locator("li").count() !== 2) {
     throw new Error("extra list did not display both observed findings");
   }
+  const disclosures = page.getByLabel("추가 분석 목록").locator("summary");
+  const disclosureHeights = await disclosures.evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
+  if (disclosureHeights.some((height) => height < 48)) throw new Error("extra disclosure target is below 48px");
+  for (let index = 0; index < await disclosures.count(); index += 1) {
+    await disclosures.nth(index).focus();
+    await page.keyboard.press("Enter");
+    if (!await disclosures.nth(index).evaluate((item) => item.parentElement.open)) {
+      throw new Error("extra technical disclosure did not open with the keyboard");
+    }
+  }
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   if (overflow) throw new Error("extra results overflow at 360px");
   await page.getByRole("button", { name: "공식 탐지" }).click();
   await page.getByText("확정된 탐지가 없습니다.", { exact: false }).waitFor();
   console.log(JSON.stringify({ fixture: "observed images to React extra results via IPC replay",
     officialFindings: 0, extraFindings: 2, separateList: true,
-    keyboardNavigation: true, reflow360px: true }, null, 2));
+    keyboardNavigation: true, disclosureHeights, keyboardDisclosure: true, reflow360px: true }, null, 2));
 } finally {
   await browser?.close();
   if (app.listening) await new Promise((done) => app.close(done));

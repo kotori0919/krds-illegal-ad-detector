@@ -1473,3 +1473,19 @@ WebView2 and native IPC, without fabricated responses. Raw report:
 Test media initially lacked Joliet filenames and the guest could not locate
 the driver; a distinct Joliet ISO fixed test preparation. No product change
 was needed for this acceptance run.
+
+### Installed native rejected-read recovery (2026-10-06)
+
+OBSERVED: the same installed70320694 executable processed actual native
+argument rejections for scan_get_result, scan_get_detail_bundle and
+scan_get_extra_result. A temporary WebView2 postMessage driver changed only
+sessionId to an invalid object for the selected command; the real Tauri host
+rejected the argument. It did not fabricate a result, failure response or
+filesystem failure. Each command was faulted once and its Korean alert
+replaced loading. A rejected official result disabled Save and left New Scan
+enabled; rejected detail/extra reads kept the valid official result available.
+Every restart restored URL focus, and a subsequent uninstrumented scan showed
+its normal zero result without a stale error. All three cases passed.
+Raw report: `/tmp/illegal-ad-toolchain/current-native-read-error-current.json`
+(679 bytes). This establishes rejected-command handling, not a simulated
+physical disk-read failure.

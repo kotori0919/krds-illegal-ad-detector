@@ -409,3 +409,47 @@ captures are in `DRY_RUN.md`. The full release walk remains open.
 **Open:** assistive technology, remaining local layout limits, native zoom,
 error injection and the full Windows release walk. Actual native cancellation,
 restart and retained search/filter inspector focus are recorded in `DRY_RUN.md`.
+
+## Installed accessibility and extra disclosure correction (2026-10-06)
+
+OBSERVED: the70320694 installed executable exposed the actual WebView2
+accessibility tree for entry, URL validation error, running, results,
+inspector and confirmation. Labelled URL textbox, Korean error alert,
+progress status, result searchbox, technique combobox, review control and
+named modal were present. The modal was marked modal and its inert
+background restart action was absent from the active accessibility tree.
+Current-stage DOM metadata identified setup, scan and result phases. Invalid
+URL submission restored URL focus; technical disclosure opened with Enter.
+All visible measured main-workflow controls had targets at least48 CSS px.
+This is actual programmatic accessibility evidence; no Narrator spoken-output
+claim is made. Report: `current-native-accessibility-current.json` (13291bytes)
+in `/tmp/illegal-ad-toolchain`. The first temporary probe incorrectly expected
+the search input to have textbox role; the actual searchbox role is correct.
+The corrected probe passed; the first report is retained separately.
+
+A separate actual two-page image scan exposed both populated extra headings,
+named ordered list and disclosures in the native accessibility tree. It also
+measured both technical disclosure targets at27.1875px. This was a real
+mixed-age target defect. The extra details now reuse the existing `advanced`
+KRDS disclosure object, including its semantic48px control size, focus and
+spacing. No new tokens or pattern were introduced. The real-scanner browser
+extra smoke at360px now checks target size and Enter activation; both measured
+48px, opened with the keyboard and retained no horizontal overflow. Lint and
+Windows release build passed.
+
+OBSERVED after NSIS Add/Reinstall: both actual native extra disclosures
+measured48px, opened with Enter and exposed their real headings/list in the
+accessibility tree. Official count remained0 and actual native export wrote
+246 validated bytes; active cancellation settled with no scanner Chromium.
+Report: `/tmp/illegal-ad-toolchain/current-native-extra-accessibility-current.json`
+(2878bytes); before-fix report retained as
+`native-extra-accessibility-before-fix.json`. Installed EXE SHA-256:
+`719664a407f558d64284aae34edbd784c287d0bb9cf8058567bfff34a0a3d149`.
+It matches the executable extracted from the9fc8c667 NSIS payload; the raw
+Cargo executable has a different hash because this bundle patches its payload.
+Worker remained90aed157. Native inspection after close showed only the three
+idle fixture Node servers, no app or scanner Chromium. Identity/process
+capture: `extra-target-installed-identity.png` in the same temporary directory.
+
+The remaining release audit includes the original element-crop/analysis-position
+visual-evidence requirement. This correction does not close that functional gap.

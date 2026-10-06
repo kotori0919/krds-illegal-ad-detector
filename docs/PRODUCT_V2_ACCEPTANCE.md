@@ -6,6 +6,14 @@ This audit preserves the expanded A-M scope. Core acceptance precedes strict
 UX checks per the user's ordering. A passing slice does not close the release.
 Earlier build observations retain their original environment and scope.
 
+The implemented core workflow is OBSERVED: actual installed scans, real evidence,
+review/filter/page navigation, validated export/retry, cancellation/restart,
+full-object C1-C4 benchmark, deadline partial export and rejected-read recovery
+passed. This is not full core closure: the original visual-evidence steering
+also names element crops and analysis position overlays. EVIDENCE_MODEL.md
+still records those as open; viewport JPEGs and measured bounds do not prove
+their implementation. Close this functional gap before further strict UX work.
+
 | Requirement | Concrete acceptance evidence | Current assessment |
 | --- | --- | --- |
 | A: bounded concurrency | CPU policy 2/3/4; reject >4; real overlapping page callbacks at C1-C4 | OBSERVED in worker-pool tests and Windows benchmark; see TEST_STRATEGY_V2 and PERF. |
@@ -18,13 +26,17 @@ Earlier build observations retain their original environment and scope.
 | H: token hierarchy | Primitive to semantic to component, custom role/purpose/consumers/deviation record | INFERRED from styles.css and KRDS_COMPLIANCE token tables; computed style/reflow observations are separately recorded. |
 | I: pattern mapping | Every named interaction maps to the official component/basic/service pattern | Documented in KRDS_COMPLIANCE; per-interaction verification remains scoped in that table. |
 | J: results behavior | Count, categories, one search, immediate filter count, no-match recovery and retained context | OBSERVED in actual installed 21-finding review plus native no-match/reset and zero-result runs. |
-| K: state coverage | Initial/loading/running/partial/success/empty/no-match/error/unavailable/disabled/cancel/confirmation/save success/failure | OBSERVED across native runs and React/browser state checks; native narrow zoom batches cover extra, no-match, save error/retry and empty. Native result-read rejection and all transient disabled states are not established by these batches. |
-| L: strict UX release gate | Keyboard-only workflow, focus/return, 360 reflow/200% zoom, non-color state, dialogs, live status, Korean copy and target sizes | OPEN: native narrow zoom, confirmation focus cycle and actual Korean UIAutomation live events passed. The complete native keyboard-only workflow subsequently passed; remaining scoped accessibility and state checks still require evidence. No spoken-output claim from this audio-less VM. |
+| K: state coverage | Initial/loading/running/partial/success/empty/no-match/error/unavailable/disabled/cancel/confirmation/save success/failure | OBSERVED across native runs and React/browser state checks; native narrow zoom batches cover extra, no-match, save error/retry and empty. Native result/detail/extra command rejection now settles with Korean alerts, correct save gating and fresh-scan recovery. Transient cancellation-disabled behavior remains covered by React execution, rather than a native screenshot. |
+| L: strict UX release gate | Keyboard-only workflow, focus/return, 360 reflow/200% zoom, non-color state, dialogs, live status, Korean copy and target sizes | Native narrow zoom, confirmation focus cycle, Korean UIAutomation live events and complete keyboard-only workflow passed. Installed WebView2 accessibility roles/labels/modal isolation and 48px targets were observed; the extra disclosure's27px defect was reproduced and corrected to48px in the installed package. Reconcile remaining scoped rows; no spoken-output claim from this audio-less VM. |
 | M: combined definition of done | Product workflow/evidence/review/export plus scanner deadline/single-pass/concurrency/determinism/realistic Windows acceptance | OPEN while any applicable release gate lacks evidence; do not infer completion from core benchmark success. |
 
 ## Current installed build and evidence
 
-Installed executable SHA-256:
+Latest installed executable SHA-256 (also matched by extracting the NSIS payload):
+`719664a407f558d64284aae34edbd784c287d0bb9cf8058567bfff34a0a3d149`.
+NSIS SHA-256:
+`9fc8c667fb782993be9ee43304b465d0635073205cc4ea1d72a2c36ad2445587`.
+The deadline, read-rejection and main accessibility runs used the earlier executable:
 `70320694da2e504d9bab0891382b1dee4b488a07a6af5870871d9049ec41b1b3`.
 Bundled worker SHA-256:
 `90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`.
@@ -41,8 +53,9 @@ in those records; report replacement does not retroactively change old proof.
 1. OBSERVED: installed keyboard-only scope, scan, filter/search, finding
    review/return, page navigation, confirmation and restart passed. See
    KRDS_COMPLIANCE for input method, report and distinction from file writing.
-2. Resolve the scoped native read-failure/disabled-state and accessible-stage
-   evidence gaps without fabricating host responses.
+2. Close the element-crop/analysis-position evidence gap from the original
+   steering. Native rejected result/detail/extra reads and the scoped
+   accessibility/target-size checks passed; preserve their exact scope.
 3. Reconcile remaining release rows with their actual evidence. The normal
    Windows deadline/partial export path passed; do not describe that execution
    as forced host-guard exhaustion.
