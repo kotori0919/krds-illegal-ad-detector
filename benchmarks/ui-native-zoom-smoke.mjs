@@ -47,8 +47,11 @@ try {
   const inspector = await page.evaluate(() => ({
     listHidden: getComputedStyle(document.querySelector(".result-workspace-list")).display === "none",
     headingFocused: document.activeElement?.textContent === "탐지 상세",
+    focusOutline: document.activeElement ? getComputedStyle(document.activeElement).outlineWidth : "0px",
   }));
-  if (!inspector.listHidden || !inspector.headingFocused) throw new Error(`inspector layout/focus: ${JSON.stringify(inspector)}`);
+  if (!inspector.listHidden || !inspector.headingFocused || inspector.focusOutline !== "3px") {
+    throw new Error(`inspector layout/focus: ${JSON.stringify(inspector)}`);
+  }
   await page.getByRole("button", { name: "결과 목록으로" }).click();
   await page.getByRole("button", { name: "결과 파일 생성" }).click();
   await page.getByRole("dialog", { name: "결과 파일 생성" }).waitFor();
@@ -57,8 +60,10 @@ try {
   if (!dialogFocused) throw new Error("export dialog focus missing");
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.activeElement?.id === "export-trigger");
+  const restoredOutline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineWidth);
+  if (restoredOutline !== "3px") throw new Error(`export focus ring unavailable: ${restoredOutline}`);
   console.log(JSON.stringify({ zoom: "native Chromium 200%", devicePixelRatio: 2, listItems, widths,
-    inspector, dialogFocused, exportFocusRestored: true }, null, 2));
+    inspector, dialogFocused, exportFocusRestored: true, restoredOutline }, null, 2));
 } finally {
   await browser.close();
 }

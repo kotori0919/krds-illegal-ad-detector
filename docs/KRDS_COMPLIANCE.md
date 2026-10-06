@@ -46,13 +46,16 @@ the app converts them to its 16 px root so their rendered sizes match. The CSS
 names are local mappings, not an imported package.
 Buttons, inputs, result navigation, badges, result cards and the dialog now
 consume component roles backed by semantic roles. The former flat color and
-radius aliases have been removed. The [KRDS typography guide](https://www.krds.go.kr/html/site/style/style_03.html)
+radius aliases have been removed. Their regular borders now consume a local
+primitive → semantic mapping of KRDS `mode-light.border-width.static-regular`
+instead of component-level `1px` literals. The [KRDS typography guide](https://www.krds.go.kr/html/site/style/style_03.html)
 specifies Pretendard GOV; the app bundles the v1.3.9 variable font under its
 [OFL license](https://github.com/orioncactus/pretendard/blob/v1.3.9/packages/pretendard-gov/dist/LICENSE.txt)
 so packaged Windows use has no font CDN dependency. The source font SHA-256 is
 `a2f477842d55918053db560007dd615ab44eab848d3aa09dd61e96b4da76210e`.
-Some layout widths and state-specific component styles still need audit, so
-**full token conformance is not yet proven**.
+The focus ring is a documented local extension; its offset, step underline and
+check-status edge use KRDS number tokens. Local layout widths still need the
+packaged Windows review, so **full token conformance is not yet proven**.
 
 | Local primitive → semantic → component | Source KRDS role | Purpose and consumers | Deviation reason |
 | --- | --- | --- | --- |
@@ -62,6 +65,9 @@ Some layout widths and state-specific component styles still need audit, so
 | `number-4` → `radius-control` → `input-radius`, `button-radius`, `filter-radius` | `semantic.radius.medium2` | Control and result group corners (6 px) | App-root rem conversion preserves the KRDS pixel value. |
 | `number-5/6/7/8` → `padding-3/4/5/6` → button/input padding | `semantic.padding.3/4/5/6` | Control and result workspace spacing | Rem values are converted to preserve the official pixel scale. |
 | `number-16` → `size-control` → button/input minimum height | `semantic.size-height.7` | 48 px button and input targets for mixed-age operators | Local component role selects the KRDS 48 px size tier. |
+| `border-width-regular` → `border-width` → input/button/navigation/badge/card/dialog borders | `mode-light.border-width.static-regular` in the [transformed tokens](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json) | Shared 1 px regular border across controls and result surfaces | Converted from KRDS's 10px rem base to the app's 16px root; rendered width remains 1 px. |
+| local `focus-width` → `focus-width` → keyboard focus rings on buttons, inputs, links, summaries, preview and inspector heading | `mode-light.border-width.variable-medium` (2 px) | 3 px outline remains distinct at 200% zoom and on dense result cards | One extra pixel for a clearer keyboard target; the light KRDS focus color remains unchanged. |
+| `number-2/3/4` → `focus-offset` / `underline-offset` / `status-edge-width` → focus ring, step marker and pass/fail checks | `primitive.number.2/3/4` | 2 px focus gap, 4 px underline gap, 6 px non-color status edge | Local semantic names express each consumer's role; the rendered numeric values are unchanged. |
 | `alpha-black-75` → `overlay-scrim` → `dialog-scrim` | `mode-light.color.background.dim` | Export dialog backdrop (`#000000bf`) | None. |
 | 13/15/17/19/24/32px type values → `font-body-*` / `font-heading-*` → badge, step, card title, check detail and preview | `responsive-pc.font-size.body` / `heading` in the [transformed tokens](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json) | Body, hints, headings, result and dialog text | Numeric rem values are converted from KRDS's 10px base to this app's 16px root; rendered sizes preserve KRDS roles without changing the user's root font setting. |
 | `Pretendard GOV Variable` → `font-family` → body text | `primitive.typo.font` | All product text | Bundled font file replaces a network-dependent font source. |
@@ -74,7 +80,15 @@ must inspect computed styles for representative normal, focus, disabled and
 error controls and trace each value through the three levels. The 52 rem
 reading column, 90 rem split workspace, 42 rem modal width and 64 rem split
 breakpoint are local layout limits for the operator workflow; their widths
-and reflow still need packaged-app verification.
+and reflow still need packaged-app verification. A Linux Chromium layout audit
+at 360, 768, 1024 and 1440 CSS px found zero document or nested horizontal
+overflow while inspecting a finding. The list was hidden at 360/768 and
+visible beside the inspector at 1024/1440, with no column overlap. This
+checks these breakpoint choices in the browser, not in the Windows package.
+Computed styles on the 360 px browser path reported `1px` borders for the URL
+input, result card and export dialog from the shared regular-border token.
+The native 200% zoom smoke observed `3px` visible outlines on the focused
+inspector heading and the restored export trigger.
 
 ## State coverage
 

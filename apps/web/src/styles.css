@@ -21,6 +21,10 @@
   --krds-primitive-danger-60: #bd2c0f;
   --krds-primitive-success-60: #267337;
   --krds-primitive-alpha-black-75: #000000bf;
+  /* KRDS mode-light.border-width.static-regular: 0.1rem on the 10px base. */
+  --krds-primitive-border-width-regular: 0.0625rem;
+  /* Local focus extension from KRDS variable-medium (2px): one extra px. */
+  --krds-primitive-focus-width: 0.1875rem;
   --krds-primitive-font-family: "Pretendard GOV Variable";
   /* KRDS PC typography is specified on a 10px rem base; these preserve
      its 13/15/17/19/24/32px roles on this app's 16px rem base. */
@@ -60,10 +64,15 @@
   --krds-semantic-action-pressed: var(--krds-primitive-primary-70);
   --krds-semantic-on-action: var(--krds-primitive-gray-0);
   --krds-semantic-focus: var(--krds-primitive-primary-60);
+  --krds-semantic-focus-width: var(--krds-primitive-focus-width);
+  --krds-semantic-focus-offset: var(--krds-primitive-number-2);
+  --krds-semantic-underline-offset: var(--krds-primitive-number-3);
+  --krds-semantic-status-edge-width: var(--krds-primitive-number-4);
   --krds-semantic-error: var(--krds-primitive-danger-60);
   --krds-semantic-success: var(--krds-primitive-success-60);
   --krds-semantic-border: var(--krds-primitive-gray-60);
   --krds-semantic-border-subtle: var(--krds-primitive-gray-30);
+  --krds-semantic-border-width: var(--krds-primitive-border-width-regular);
   --krds-semantic-radius-control: var(--krds-primitive-number-4);
   --krds-semantic-radius-pill: var(--krds-primitive-number-max);
   --krds-semantic-overlay-scrim: var(--krds-primitive-alpha-black-75);
@@ -186,7 +195,7 @@ select {
   width: 100%;
   min-height: var(--krds-component-input-min-height);
   padding: var(--krds-component-input-padding-y) var(--krds-component-input-padding-x);
-  border: 1px solid var(--krds-component-input-border);
+  border: var(--krds-semantic-border-width) solid var(--krds-component-input-border);
   border-radius: var(--krds-component-input-radius);
   font: inherit;
   background: var(--krds-component-input-surface);
@@ -204,7 +213,7 @@ button {
 }
 
 button.primary {
-  border: 1px solid var(--krds-component-button-primary-fill);
+  border: var(--krds-semantic-border-width) solid var(--krds-component-button-primary-fill);
   background: var(--krds-component-button-primary-fill);
   color: var(--krds-component-button-primary-text);
 }
@@ -218,7 +227,7 @@ button.primary:active {
 }
 
 button.secondary {
-  border: 1px solid var(--krds-component-button-secondary-border);
+  border: var(--krds-semantic-border-width) solid var(--krds-component-button-secondary-border);
   background: var(--krds-component-button-secondary-surface);
   color: var(--krds-component-button-secondary-text);
 }
@@ -244,13 +253,13 @@ select:focus-visible,
 summary:focus-visible,
 a:focus-visible,
 pre:focus-visible {
-  outline: 3px solid var(--krds-semantic-focus);
-  outline-offset: 2px;
+  outline: var(--krds-semantic-focus-width) solid var(--krds-semantic-focus);
+  outline-offset: var(--krds-semantic-focus-offset);
 }
 
 h1:focus {
-  outline: 3px solid var(--krds-semantic-focus);
-  outline-offset: 2px;
+  outline: var(--krds-semantic-focus-width) solid var(--krds-semantic-focus);
+  outline-offset: var(--krds-semantic-focus-offset);
 }
 
 .error {
@@ -260,14 +269,14 @@ h1:focus {
 
 .empty {
   background: var(--krds-semantic-surface-subtle);
-  border: 1px solid var(--krds-semantic-border-subtle);
+  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
   border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-4);
 }
 
 .advanced {
   margin-top: var(--krds-semantic-padding-5);
-  border: 1px solid var(--krds-semantic-border-subtle);
+  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
   border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-3) var(--krds-semantic-padding-4);
 }
@@ -329,7 +338,7 @@ h1:focus {
   grid-template-columns: 10rem minmax(0, 1fr);
   gap: var(--krds-semantic-gap-3);
   padding: var(--krds-semantic-padding-3) 0;
-  border-bottom: 1px solid var(--krds-semantic-border-subtle);
+  border-bottom: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
 }
 
 .stats dt,
@@ -352,7 +361,7 @@ h1:focus {
 }
 
 .counts li {
-  border: 1px solid var(--krds-semantic-border-subtle);
+  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
   border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-2) var(--krds-semantic-padding-3);
   background: var(--krds-semantic-surface-subtle);
@@ -360,7 +369,7 @@ h1:focus {
 
 .badge {
   display: inline-block;
-  border: 1px solid var(--krds-component-badge-border);
+  border: var(--krds-semantic-border-width) solid var(--krds-component-badge-border);
   color: var(--krds-component-badge-text);
   border-radius: var(--krds-component-badge-radius);
   padding: 0 var(--krds-semantic-padding-2);
@@ -398,7 +407,7 @@ h1:focus {
 
 .result-navigation button {
   margin-top: 0;
-  border: 1px solid var(--krds-component-result-navigation-border);
+  border: var(--krds-semantic-border-width) solid var(--krds-component-result-navigation-border);
   background: var(--krds-component-result-navigation-surface);
   color: var(--krds-component-result-navigation-text);
 }
@@ -442,7 +451,7 @@ h1:focus {
     align-self: start;
     max-height: 100dvh;
     overflow-y: auto;
-    border-left: 1px solid var(--krds-semantic-border-subtle);
+    border-left: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
   }
 }
 
@@ -451,7 +460,7 @@ h1:focus {
   padding: var(--krds-semantic-padding-4);
   margin-block: var(--krds-semantic-padding-4);
   background: var(--krds-component-result-card-surface);
-  border: 1px solid var(--krds-component-result-card-border);
+  border: var(--krds-semantic-border-width) solid var(--krds-component-result-card-border);
   border-radius: var(--krds-component-filter-radius);
 }
 
@@ -476,7 +485,7 @@ h1:focus {
   min-width: 0;
   overflow-wrap: anywhere;
   padding: var(--krds-semantic-padding-4);
-  border: 1px solid var(--krds-component-result-card-border);
+  border: var(--krds-semantic-border-width) solid var(--krds-component-result-card-border);
   border-radius: var(--krds-component-filter-radius);
   background: var(--krds-component-result-card-surface);
 }
@@ -495,7 +504,7 @@ h1:focus {
 
 .finding-card dl > div {
   padding-block: var(--krds-semantic-padding-2);
-  border-top: 1px solid var(--krds-semantic-border-subtle);
+  border-top: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
 }
 
 .finding-card dt {
@@ -517,7 +526,7 @@ code {
 
 .steps-nav {
   background: var(--krds-semantic-surface-subtle);
-  border-bottom: 1px solid var(--krds-semantic-border-subtle);
+  border-bottom: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
 }
 
 .steps {
@@ -539,7 +548,7 @@ code {
   color: var(--krds-semantic-text);
   font-weight: 700;
   text-decoration: underline;
-  text-underline-offset: 4px;
+  text-underline-offset: var(--krds-semantic-underline-offset);
 }
 
 .steps li.done {
@@ -570,7 +579,7 @@ code {
 }
 
 .checks li {
-  border: 1px solid var(--krds-semantic-border-subtle);
+  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
   border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-3) var(--krds-semantic-padding-4);
   margin-bottom: var(--krds-semantic-padding-3);
@@ -581,11 +590,11 @@ code {
 }
 
 .checks li.pass {
-  border-left: 6px solid var(--krds-semantic-success);
+  border-left: var(--krds-semantic-status-edge-width) solid var(--krds-semantic-success);
 }
 
 .checks li.fail {
-  border-left: 6px solid var(--krds-semantic-error);
+  border-left: var(--krds-semantic-status-edge-width) solid var(--krds-semantic-error);
 }
 
 .checks li span {
@@ -597,7 +606,7 @@ code {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   background: var(--krds-semantic-surface-subtle);
-  border: 1px solid var(--krds-semantic-border-subtle);
+  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
   border-radius: var(--krds-semantic-radius-control);
   padding: var(--krds-semantic-padding-4);
   max-height: 24rem;
@@ -613,7 +622,7 @@ code {
   display: block;
   width: 100%;
   height: auto;
-  border: 1px solid var(--krds-semantic-border);
+  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border);
 }
 
 .visual-evidence figcaption {
@@ -639,7 +648,7 @@ code {
   border-radius: var(--krds-semantic-radius-control);
   background: var(--krds-semantic-surface);
   color: var(--krds-semantic-text);
-  border: 1px solid var(--krds-semantic-border);
+  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border);
 }
 
 .modal-panel h2 {
