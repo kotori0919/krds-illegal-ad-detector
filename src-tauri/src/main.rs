@@ -109,6 +109,11 @@ async fn scan_start(
                 .join(format!("krds-detail-{session_id}.json"))
                 .to_string_lossy()
                 .into_owned(),
+            "--extra-out-file".to_string(),
+            std::env::temp_dir()
+                .join(format!("krds-extra-{session_id}.json"))
+                .to_string_lossy()
+                .into_owned(),
         ];
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
         if let Err(detail) = state.registry.spawn_sidecar(&session_id, &path, &arg_refs).await {
@@ -179,18 +184,22 @@ async fn finish_session(
 ) {
     let finished_at = chrono::Utc::now().to_rfc3339();
     let detail_path = std::env::temp_dir().join(format!("krds-detail-{session_id}.json"));
+    let extra_path = std::env::temp_dir().join(format!("krds-extra-{session_id}.json"));
     let result_path = std::env::temp_dir().join(format!("krds-result-{session_id}.json"));
     let (kind, status, message): (String, String, String) = match outcome {
         SessionOutcome::Succeeded { stdout } => {
             let detail_text = std::fs::read_to_string(&detail_path).map_err(|e| format!("detail manifest missing: {e}"));
+            let extra_text = std::fs::read_to_string(&extra_path).map_err(|e| format!("extra result missing: {e}"));
             let validated = validate_sidecar_stdout(entry_url, &stdout).and_then(|canonical| {
                 let detail = detail_text?;
+                let extra = extra_text?;
                 validate_detail_bundle(&canonical, &detail)?;
-                Ok((canonical, detail))
+                validate_extra_bundle(&canonical, &extra)?;
+                Ok((canonical, detail, extra))
             });
             match validated {
-                Ok((canonical, detail)) => {
-                    registry.store_result(session_id, canonical, detail, finished_at.clone()).await;
+                Ok((canonical, detail, extra)) => {
+                    registry.store_result(session_id, canonical, detail, extra, finished_at.clone()).await;
                     ("session-finished".into(), "succeeded".into(), "탐지가 완료되었습니다.".into())
                 }
                 Err(detail) => {
@@ -206,11 +215,13 @@ async fn finish_session(
         // Cancel already emitted session-cancelled synchronously; stay silent.
         SessionOutcome::Cancelled => {
             let _ = std::fs::remove_file(detail_path);
+            let _ = std::fs::remove_file(extra_path);
             let _ = std::fs::remove_file(result_path);
             return;
         },
     };
     let _ = std::fs::remove_file(detail_path);
+    let _ = std::fs::remove_file(extra_path);
     let _ = std::fs::remove_file(result_path);
     let progress = registry.progress_snapshot(session_id).await;
     let _ = app.emit(
@@ -228,10 +239,37 @@ async fn finish_session(
 
 #[cfg(test)]
 mod validation_tests {
-    use super::{validate_detail_bundle, validate_sidecar_stdout};
+    use super::{validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout};
 
     fn good_json() -> String {
         "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[{\"id\":\"f1\",\"url\":\"https://example.kr/a\",\"is_violation\":true,\"location\":\"#a\",\"evidence_text\":\"x\",\"technique\":\"HOMOGLYPH\"}]}".to_string()
+    }
+
+    fn good_extra() -> String {
+        let official: serde_json::Value = serde_json::from_str(&good_json()).unwrap();
+        serde_json::json!({
+            "meta": official["meta"],
+            "findings": [{
+                "id": "x1", "url": "https://example.kr/a", "is_violation": true,
+                "location": "https://example.kr/a", "evidence_text": "shared infrastructure",
+                "technique": "ETC", "extra_finding": "AD_INFRASTRUCTURE_CORRELATION"
+            }]
+        }).to_string()
+    }
+
+    #[test]
+    fn accepts_separate_extra_result() {
+        assert!(validate_extra_bundle(&good_json(), &good_extra()).is_ok());
+    }
+
+    #[test]
+    fn rejects_extra_metadata_and_type_mismatch() {
+        let mut wrong_time: serde_json::Value = serde_json::from_str(&good_extra()).unwrap();
+        wrong_time["meta"]["elapsed_sec"] = serde_json::json!(61);
+        assert!(validate_extra_bundle(&good_json(), &wrong_time.to_string()).is_err());
+        let mut wrong_type: serde_json::Value = serde_json::from_str(&good_extra()).unwrap();
+        wrong_type["findings"][0]["extra_finding"] = serde_json::json!("UNKNOWN");
+        assert!(validate_extra_bundle(&good_json(), &wrong_type.to_string()).is_err());
     }
 
     #[test]
@@ -391,6 +429,34 @@ fn validate_detail_bundle(official_text: &str, detail_text: &str) -> Result<(), 
     Ok(())
 }
 
+fn validate_extra_bundle(official_text: &str, extra_text: &str) -> Result<(), String> {
+    if extra_text.len() > 1_000_000 { return Err("extra result exceeds size limit".to_string()); }
+    if extra_text.starts_with('\u{FEFF}') { return Err("extra result contained a BOM".to_string()); }
+    let official: serde_json::Value = serde_json::from_str(official_text).map_err(|e| e.to_string())?;
+    let extra: serde_json::Value = serde_json::from_str(extra_text).map_err(|e| format!("extra result invalid JSON: {e}"))?;
+    for field in ["topic", "entry_url", "started_at", "finished_at", "elapsed_sec", "tool_version"] {
+        if extra["meta"][field] != official["meta"][field] {
+            return Err(format!("extra result meta.{field} mismatch"));
+        }
+    }
+    let findings = extra["findings"].as_array().ok_or("extra findings must be an array")?;
+    let mut ids = std::collections::HashSet::new();
+    for (index, finding) in findings.iter().enumerate() {
+        let at = format!("extra findings[{index}]");
+        let id = finding["id"].as_str().ok_or(format!("{at}.id missing"))?;
+        if !ids.insert(id) { return Err(format!("{at}.id duplicated")); }
+        if finding["technique"].as_str() != Some("ETC") { return Err(format!("{at}.technique must be ETC")); }
+        if !matches!(finding["extra_finding"].as_str(), Some("REUSED_AD_CREATIVE" | "AD_INFRASTRUCTURE_CORRELATION" | "ZERO_WIDTH_OBFUSCATION")) {
+            return Err(format!("{at}.extra_finding invalid"));
+        }
+        for field in ["url", "location", "evidence_text"] {
+            if finding[field].as_str().is_none_or(str::is_empty) { return Err(format!("{at}.{field} missing")); }
+        }
+        if finding["is_violation"].as_bool() != Some(true) { return Err(format!("{at}.is_violation invalid")); }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn scan_cancel(
     app: tauri::AppHandle,
@@ -440,11 +506,10 @@ async fn scan_get_detail_bundle(
 
 #[tauri::command]
 async fn scan_get_extra_result(
-    _state: State<'_, AppState>,
-    _session_id: String,
+    state: State<'_, AppState>,
+    session_id: String,
 ) -> Result<Option<serde_json::Value>, String> {
-    // Extra intel ships after the official path proves itself; explicit None.
-    Ok(None)
+    Ok(state.registry.extra_value(&session_id).await)
 }
 
 #[tauri::command]

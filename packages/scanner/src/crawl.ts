@@ -52,6 +52,12 @@ export interface LiveFrame {
   selectorChain: string[];
 }
 
+export interface LiveImageResponse {
+  response: Response;
+  url: string;
+  mediaType: string;
+}
+
 export interface CrawlEvents {
   onPageVisited?: (snapshot: PageSnapshot) => void;
   onPageQueued?: (queued: { url: string; depth: number; pending: number }) => void;
@@ -77,7 +83,7 @@ export interface CrawlOptions {
   /** Fixed page worker count for benchmarks (1–4); defaults to CPU policy. */
   concurrency?: number;
   /** Called while the first and only navigated Page remains live. */
-  onLivePage?: (page: Page, snapshot: PageSnapshot, frames: LiveFrame[]) => Promise<void>;
+  onLivePage?: (page: Page, snapshot: PageSnapshot, frames: LiveFrame[], images: LiveImageResponse[], pageRank: number) => Promise<void>;
 }
 
 export interface CrawlSummary {
@@ -206,11 +212,12 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       }).catch(() => undefined);
     });
 
-    const processPage = async (next: QueuedPage): Promise<PageSnapshot | undefined> => {
+    const processPage = async (next: QueuedPage & { pageRank: number }): Promise<PageSnapshot | undefined> => {
       if (!deadline.canStartPage()) return undefined;
       const pageStarted = performance.now();
       const page: Page = await activeContext.newPage();
       const pageExternals: ObservedExternal[] = [];
+      const imageResponses: LiveImageResponse[] = [];
       const observeExternal = (external: ObservedExternal): void => {
         pageExternals.push(external);
         pushExternal(external);
@@ -237,6 +244,14 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       const onResponse = (res: Response): void => {
         const url = res.url();
         const status = res.status();
+        if (res.request().resourceType() === "image" && status >= 200 && status < 300 && imageResponses.length < 16) {
+          const mediaType = (res.headers()["content-type"] ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
+          const declaredBytes = Number(res.headers()["content-length"] ?? 0);
+          if (["image/png", "image/jpeg", "image/webp"].includes(mediaType)
+            && Number.isInteger(declaredBytes) && declaredBytes > 0 && declaredBytes <= 250_000) {
+            imageResponses.push({ response: res, url, mediaType });
+          }
+        }
         if ((status >= 300 && status < 400) || status >= 400) {
           try {
             if (new URL(url).host !== entry.host) {
@@ -365,7 +380,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           duplicateContent: false,
           elapsedMs: performance.now() - pageStarted,
         };
-        if (options.onLivePage) await options.onLivePage(page, snapshot, liveFrames);
+        if (options.onLivePage) await options.onLivePage(page, snapshot, liveFrames, imageResponses, next.pageRank);
         // Snapshot copies are optional evidence; official live detection has
         // already run and gets the shared deadline first.
         if (deadline.operationTimeoutMs(1000) > 0) {
@@ -399,8 +414,11 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     };
 
     let frontier = queue.nextFrontier();
+    let admittedPages = 0;
     while (frontier.length > 0 && deadline.canStartPage()) {
-      const completed = await boundedMap(frontier, concurrency, processPage);
+      const rankedFrontier = frontier.map((next, index) => ({ ...next, pageRank: admittedPages + index }));
+      admittedPages += rankedFrontier.length;
+      const completed = await boundedMap(rankedFrontier, concurrency, processPage);
       // boundedMap preserves frontier order even when worker completion differs.
       for (const snapshot of completed) {
         if (!snapshot) {

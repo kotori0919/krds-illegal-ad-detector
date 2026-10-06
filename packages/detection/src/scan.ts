@@ -13,6 +13,7 @@ import {
   findingIdentityKey,
   validateScanDetailBundle,
   type OfficialResult,
+  type ExtraResult,
   type ScanDetailBundle,
   type ScanEvent,
   type ScanProgress,
@@ -20,6 +21,8 @@ import {
 import { crawlSite, ScanDeadline, type CrawlOptions } from "@krds-detector/scanner";
 import { DEFAULT_SCAN_LIMITS } from "@krds-detector/contracts";
 import { startFixtureServer } from "@krds-detector/synth-eval/serve.js";
+import { buildEvidenceGraph, buildExtraResult, type CreativeFingerprint } from "@krds-detector/evidence";
+import { collectPageCreatives } from "./creative.js";
 import { detectPageCandidates, type DecidedCandidate } from "./pipeline.js";
 import { buildOfficialResult, serializeValidatedResult } from "./result-engine.js";
 
@@ -35,6 +38,8 @@ export interface ScanInput {
 export interface ScanOutput {
   result: OfficialResult;
   json: string;
+  extraResult: ExtraResult;
+  extraJson: string;
   pagesVisited: number;
   failedPages: number;
   timedOut: boolean;
@@ -62,6 +67,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
   }
   try {
     const allCandidates: DecidedCandidate[] = [];
+    const creatives: CreativeFingerprint[] = [];
     let capturedPages = 0;
     let capturedBytes = 0;
     // Discovery and detection share the same live Page, Frame tree and clock.
@@ -74,7 +80,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       channel: input.crawl?.channel,
       concurrency: input.crawl?.concurrency,
       deadline,
-      onLivePage: async (page, snapshot, liveFrames) => {
+      onLivePage: async (page, snapshot, liveFrames, images, pageRank) => {
         const pageCandidates: DecidedCandidate[] = [];
         const collect = (found: DecidedCandidate[], url: string): void => {
           pageCandidates.push(...found);
@@ -126,6 +132,11 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
           }
           for (const candidate of pageCandidates) candidate.visual = visual;
         }
+        if (pageRank < 8) {
+          const captured = await collectPageCreatives(page, liveFrames.map((live) => live.frame), images,
+            deadline, 250_000);
+          creatives.push(...captured.prints);
+        }
       },
       events: {
         onPageVisited: (snapshot) => {
@@ -152,6 +163,22 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       allCandidates,
     );
     const json = serializeValidatedResult(result);
+    const graph = buildEvidenceGraph(summary.pages.map((page) => ({
+      pageUrl: page.url,
+      links: page.links,
+      frames: page.frames.map((frame) => ({ url: frame.url })),
+      externals: page.externals.map((external) => ({ url: external.url, kind: external.kind })),
+    })));
+    const zeroWidthCases = [...new Map(allCandidates.map((candidate) => [
+      `${candidate.url}\0${candidate.location}\0${candidate.technique.rawText}`,
+      { url: candidate.url, location: candidate.location, evidenceText: candidate.technique.rawText },
+    ])).values()].sort((a, b) => `${a.url}\0${a.location}\0${a.evidenceText}`.localeCompare(`${b.url}\0${b.location}\0${b.evidenceText}`));
+    const extraResult = buildExtraResult({
+      topic: input.topic ?? "", entryUrl: input.entryUrl, startedAt, finishedAt,
+      creatives: creatives.sort((a, b) => a.sourceUrl.localeCompare(b.sourceUrl) || a.sha256.localeCompare(b.sha256)),
+      graph, zeroWidthCases,
+    });
+    const extraJson = `${JSON.stringify(extraResult, null, 2)}\n`;
     const candidatesByIdentity = new Map<string, DecidedCandidate>();
     for (const candidate of allCandidates) {
       const key = `${findingIdentityKey({ url: candidate.url, location: candidate.location, technique: candidate.technique.technique })}\0${candidate.technique.rawText}`;
@@ -189,6 +216,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     return {
       result,
       json,
+      extraResult,
+      extraJson,
       pagesVisited: summary.pages.length,
       failedPages: summary.pages.filter((page) => page.status === 0 || page.status >= 400).length,
       timedOut: summary.timedOut,

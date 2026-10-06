@@ -74,6 +74,19 @@ remain unmeasured.
 All four runs had the same official finding IDs and set, 5 TP / 0 FP / 0 FN,
 and valid official output.
 
+After the optional live-image extra path was connected, the same rebuilt
+municipal L2 benchmark ran on Linux x64, Node v26.8.1 (2026-10-06). It still
+checks the complete official set. The extra path did not change the 5 TP,
+0 FP, 0 FN, six checked pages, one failed page, or stable IDs. Node RSS/CPU
+exclude the Chromium process and cannot serve as Windows acceptance data.
+
+| Workers | Wall s | Pages/s | Peak Node RSS MiB | Node CPU % | Checked | Failed | TP/FP/FN | Validator |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | 8.637 | 0.695 | 145.9 | 1.9 | 6 | 1 | 5/0/0 | PASS |
+| 2 | 5.772 | 1.040 | 149.1 | 1.3 | 6 | 1 | 5/0/0 | PASS |
+| 3 | 4.348 | 1.380 | 149.2 | 1.5 | 6 | 1 | 5/0/0 | PASS |
+| 4 | 4.352 | 1.379 | 149.9 | 1.3 | 6 | 1 | 5/0/0 | PASS |
+
 ## Product V2 full official-set comparison (MEASURED 2026-10-06, Linux)
 
 The benchmark now compares each ordered official finding's ID, site-normalized

@@ -7,7 +7,7 @@ import { cp, copyFile, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { validateOfficialResultText } from "../packages/contracts/dist/result.js";
+import { validateExtraResult, validateOfficialResultText } from "../packages/contracts/dist/result.js";
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
 
 const run = promisify(execFile);
@@ -58,6 +58,7 @@ try {
   const origin = `http://127.0.0.1:${server.address().port}`;
   const resultFile = join(temporary, "result.json");
   const detailFile = join(temporary, "detail.json");
+  const extraFile = join(temporary, "result_extra.json");
   const { stdout, stderr } = await run(process.execPath, [
     workerFile,
     "--session", "l3-worker-smoke",
@@ -69,6 +70,7 @@ try {
     "--settle-ms", "1400",
     "--out-file", resultFile,
     "--detail-out-file", detailFile,
+    "--extra-out-file", extraFile,
   ], { maxBuffer: 2_000_000 });
   if (stdout.length !== 0) throw new Error("worker wrote non-result bytes to stdout");
 
@@ -81,6 +83,10 @@ try {
   const detail = JSON.parse(await readFile(detailFile, "utf8"));
   const detailVerdict = validateScanDetailBundle(detail, official);
   if (!detailVerdict.ok) throw new Error(`detail bundle invalid: ${detailVerdict.errors.join("; ")}`);
+  const extra = JSON.parse(await readFile(extraFile, "utf8"));
+  const extraVerdict = validateExtraResult(extra);
+  if (!extraVerdict.ok) throw new Error(`extra result invalid: ${extraVerdict.errors.join("; ")}`);
+  if (JSON.stringify(extra.meta) !== JSON.stringify(official.meta)) throw new Error("extra metadata differs from official result");
 
   const expected = truth.positive.map((item) => `${item.page}\0${item.selector}\0${item.technique}`).sort();
   const actual = official.findings.map(findingKey).sort();
@@ -114,6 +120,8 @@ try {
     terminalVisitedPages: finished.progress.visitedPages,
     officialValidator: verdict.ok,
     detailValidator: detailVerdict.ok,
+    extraFindings: extra.findings.length,
+    extraValidator: extraVerdict.ok,
   }, null, 2));
 } finally {
   if (server.listening) await new Promise((done) => server.close(done));

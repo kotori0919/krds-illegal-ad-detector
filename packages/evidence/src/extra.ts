@@ -63,12 +63,15 @@ export function buildExtraResult(input: ExtraBuildInput): ExtraResult {
       extra_finding: "REUSED_AD_CREATIVE",
     });
   }
-  for (const summary of summarizeCorrelatedInfrastructure(input.graph, [new URL(input.entryUrl).host])) {
+  const observedEntry = input.graph.nodes.find((node) => node.kind === "Page")?.url ?? input.entryUrl;
+  let entryHost = "";
+  try { entryHost = new URL(observedEntry).host; } catch { /* relative fixture entry */ }
+  for (const summary of summarizeCorrelatedInfrastructure(input.graph, entryHost ? [entryHost] : [])) {
     findings.push({
       id: nextId(),
-      url: input.entryUrl,
+      url: observedEntry,
       is_violation: true,
-      location: input.entryUrl,
+      location: observedEntry,
       evidence_text: summary,
       technique: "ETC",
       extra_finding: "AD_INFRASTRUCTURE_CORRELATION",

@@ -21,6 +21,7 @@ interface WorkerArgs {
   channel?: string;
   outFile?: string;
   detailOutFile?: string;
+  extraOutFile?: string;
 }
 
 function parseArgs(argv: string[]): WorkerArgs {
@@ -40,6 +41,7 @@ function parseArgs(argv: string[]): WorkerArgs {
     channel: get("--channel"),
     outFile: get("--out-file"),
     detailOutFile: get("--detail-out-file"),
+    extraOutFile: get("--extra-out-file"),
   };
 }
 
@@ -54,7 +56,7 @@ async function main(): Promise<void> {
   // (the same seam the 17/17 e2e test exercises). Progress events stay on
   // stderr so stdout remains result.json only.
   const startedAt = new Date().toISOString();
-  const { json, detailBundle } = await scanSite({
+  const { json, detailBundle, extraJson } = await scanSite({
     entryUrl: args.entryUrl,
     topic: args.topic,
     crawl: {
@@ -81,6 +83,7 @@ async function main(): Promise<void> {
   // UTF-16); stdout stays a fallback for piped Tauri capture (bytes).
   const text = json.endsWith("\n") ? json : `${json}\n`;
   if (args.detailOutFile) writeFileSync(args.detailOutFile, JSON.stringify(detailBundle), "utf8");
+  if (args.extraOutFile) writeFileSync(args.extraOutFile, extraJson, "utf8");
   if (args.outFile) writeFileSync(args.outFile, text, "utf8");
   else writeFileSync(1, text);
 }

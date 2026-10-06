@@ -1,0 +1,84 @@
+import type { Frame, Page } from "playwright-core";
+import type { LiveImageResponse, ScanDeadline } from "@krds-detector/scanner";
+import { blockAverageHash, sha256Hex, type CreativeFingerprint } from "@krds-detector/evidence";
+
+const AD_HINT = /(?:^|[^a-z])(ad|ads|banner)(?:$|[^a-z])|광고|배너/i;
+
+async function selectedImageUrls(frame: Frame): Promise<string[]> {
+  return frame.evaluate((pattern) => {
+    const hint = new RegExp(pattern, "i");
+    return Array.from(document.images)
+      .filter((img) => {
+        const marker = `${img.alt} ${img.id} ${img.className} ${img.parentElement?.id ?? ""} ${img.parentElement?.className ?? ""}`;
+        const link = img.closest("a[href]") as HTMLAnchorElement | null;
+        return hint.test(marker) || (link !== null && link.host !== location.host);
+      })
+      .map((img) => img.currentSrc || img.src)
+      .filter(Boolean);
+  }, AD_HINT.source);
+}
+
+async function within<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_resolve, reject) => { timer = setTimeout(() => reject(new Error("creative capture timed out")), ms); }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** Inspect only observed image responses while the navigated Page is live. */
+export async function collectPageCreatives(
+  page: Page,
+  frames: Frame[],
+  responses: LiveImageResponse[],
+  deadline: ScanDeadline,
+  maxBytes: number,
+): Promise<{ prints: CreativeFingerprint[]; bytes: number }> {
+  if (deadline.operationTimeoutMs(2000) < 500 || maxBytes <= 0) return { prints: [], bytes: 0 };
+  const selected = new Set<string>();
+  for (const frame of [page.mainFrame(), ...frames]) {
+    try {
+      for (const url of await within(selectedImageUrls(frame), Math.max(1, deadline.operationTimeoutMs(500)))) selected.add(url);
+    } catch {
+      // A detached frame does not affect official findings.
+    }
+  }
+  const prints: CreativeFingerprint[] = [];
+  let bytes = 0;
+  for (const observed of responses) {
+    if (prints.length >= 8 || bytes >= maxBytes || deadline.operationTimeoutMs(2000) < 500) break;
+    if (!selected.has(observed.url)) continue;
+    try {
+      const body = await within(observed.response.body(), Math.max(1, deadline.operationTimeoutMs(1000)));
+      if (body.length === 0 || body.length > 250_000 || bytes + body.length > maxBytes) continue;
+      const decoded = await within(page.evaluate(async ({ imageBytes, mediaType }) => {
+        const blob = new Blob([new Uint8Array(imageBytes)], { type: mediaType });
+        const bitmap = await createImageBitmap(blob);
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = 8;
+          canvas.height = 8;
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          if (!context) return undefined;
+          context.drawImage(bitmap, 0, 0, 8, 8);
+          return { width: bitmap.width, height: bitmap.height,
+            rgba: Array.from(context.getImageData(0, 0, 8, 8).data) };
+        } finally {
+          bitmap.close();
+        }
+      }, { imageBytes: Array.from(body), mediaType: observed.mediaType }), Math.max(1, deadline.operationTimeoutMs(1000)));
+      if (!decoded || decoded.width < 8 || decoded.height < 8) continue;
+      bytes += body.length;
+      prints.push({ sha256: sha256Hex(body), perceptualHash: blockAverageHash(new Uint8Array(decoded.rgba), 8, 8),
+        width: decoded.width, height: decoded.height, mediaType: observed.mediaType,
+        sourceUrl: observed.url, sourceHost: new URL(observed.url).host });
+    } catch {
+      // Image fingerprints are optional evidence after official detection.
+    }
+  }
+  return { prints, bytes };
+}

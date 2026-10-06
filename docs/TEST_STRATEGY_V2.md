@@ -111,9 +111,23 @@ the same smoke. This is a Linux browser gate, not Windows L4.
 
 **Advertisement infrastructure.** Several content domains share asset, redirect, and landing endpoints. Include exact duplicate, resized image, re-encoded WebP, slight modification, and repeated click destination. Verify graph edges and creative similarity on observed bytes/URLs; do not infer common ownership. Because current `packages/evidence` fingerprint code is separate from the text scanner, the scenario must exercise the integrated path before claiming detection.
 
-Current gap: the production worker does not persist an extra result, the Tauri
-`scan_get_extra_result` command returns `None`, and Results has no separate
-추가 분석 area. Evidence-package unit tests alone do not pass this scenario.
+The production worker writes `result_extra.json`; the host validates matching
+official metadata and stores it with the official/detail bundles. Results has
+a separate 추가 분석 list with empty and unavailable states. The five-page local
+ad fixture (`extra-creatives.test.ts`) serves observed PNG and WebP response
+bytes: an exact duplicate, resized, re-encoded, and slightly modified image,
+plus a repeated click destination. At concurrency 1–4 it yields one recurring
+creative and one related-infrastructure extra with stable IDs and no official
+finding. A second two-page fixture proves that a shared asset URL counts as
+two page observations. These local slices do not yet verify broader
+multi-domain ads, redirect chains, or Windows package behavior.
+`npm run smoke:extra-ui` replays a real two-page scan into the built React app:
+the extra list shows the creative and infrastructure summaries while the
+official list remains empty; keyboard category switching and 360px reflow are
+also exercised. `npm run smoke:real-evidence-ui` exercises the
+separate empty-extra state on the municipal site. The bundled worker and native
+session harness read back the extra file alongside official/detail results.
+The actual Tauri command and packaged Windows extra screen remain unverified.
 
 **False-positive torture.** A full site of legitimate accessibility UI, hidden navigation, dialogs, tabs, carousel, SVG/chart, multilingual/Hangul education, gambling-report notice, prevention campaign, casino-crime reporting, and public adult-content blocking guidance. Expected official findings: zero. Run through the real scanner, not isolated `semanticGate` calls. Any finding is a blocking FP to investigate, with page and evidence logged; do not simply add a fixture-specific exclusion.
 

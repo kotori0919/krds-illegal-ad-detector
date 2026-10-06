@@ -405,6 +405,10 @@ h1:focus {
   gap: var(--krds-semantic-gap-3);
 }
 
+.result-subnavigation {
+  margin-top: var(--krds-semantic-gap-3);
+}
+
 .result-navigation button {
   margin-top: 0;
   border: var(--krds-semantic-border-width) solid var(--krds-component-result-navigation-border);

@@ -106,8 +106,10 @@ mod tests {
         registry.insert(record).await;
         let result_file = temporary.0.join("result.json");
         let detail_file = temporary.0.join("detail.json");
+        let extra_file = temporary.0.join("result_extra.json");
         let result_name = result_file.to_string_lossy().to_string();
         let detail_name = detail_file.to_string_lossy().to_string();
+        let extra_name = extra_file.to_string_lossy().to_string();
         let args = [
             "--session",
             id.as_str(),
@@ -127,6 +129,8 @@ mod tests {
             result_name.as_str(),
             "--detail-out-file",
             detail_name.as_str(),
+            "--extra-out-file",
+            extra_name.as_str(),
         ];
         registry
             .spawn_sidecar(&id, worker.to_str().unwrap(), &args)
@@ -143,8 +147,11 @@ mod tests {
 
         let official_text = std::fs::read_to_string(&result_file).unwrap();
         let detail_text = std::fs::read_to_string(&detail_file).unwrap();
+        let extra_text = std::fs::read_to_string(&extra_file).unwrap();
         let official: serde_json::Value = serde_json::from_str(&official_text).unwrap();
         let detail: serde_json::Value = serde_json::from_str(&detail_text).unwrap();
+        let extra: serde_json::Value = serde_json::from_str(&extra_text).unwrap();
+        assert_eq!(extra["meta"], official["meta"]);
         let findings = official["findings"].as_array().unwrap();
         let detail_findings = detail["findings"].as_array().unwrap();
         let truth: serde_json::Value = serde_json::from_slice(
@@ -212,6 +219,7 @@ mod tests {
                 &id,
                 official_text,
                 detail_text,
+                extra_text,
                 chrono::Utc::now().to_rfc3339(),
             )
             .await;
@@ -227,6 +235,7 @@ mod tests {
             registry.detail_value(&id).await.unwrap()["coverage"]["checkedPages"],
             6
         );
+        assert_eq!(registry.extra_value(&id).await.unwrap(), extra);
         println!("native L3: 5 official, 5 JPEG detail, 6 checked, 1 failed, {} progress events, persisted succeeded", events.lock().unwrap().len());
         server.abort();
     }

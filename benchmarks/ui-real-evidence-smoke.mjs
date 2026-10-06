@@ -5,7 +5,7 @@ import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import { scanSite } from "../packages/detection/dist/scan.js";
-import { validateOfficialResultText } from "../packages/contracts/dist/result.js";
+import { validateExtraResult, validateOfficialResultText } from "../packages/contracts/dist/result.js";
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
 
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -55,7 +55,8 @@ try {
   });
   const result = output.result;
   const detail = output.detailBundle;
-  if (!validateOfficialResultText(output.json).ok || !validateScanDetailBundle(detail, result).ok) {
+  if (!validateOfficialResultText(output.json).ok || !validateScanDetailBundle(detail, result).ok
+    || !validateExtraResult(output.extraResult).ok) {
     throw new Error("real scanner output failed contract validation");
   }
   const truth = JSON.parse(await readFile(resolve(fixtureRoot, "ground-truth.json"), "utf8"));
@@ -76,7 +77,7 @@ try {
   const appUrl = `http://127.0.0.1:${appServer.address().port}/`;
   browser = await chromium.launch({ args: ["--no-sandbox"] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-  await page.addInitScript(({ result, detail, entryUrl }) => {
+  await page.addInitScript(({ result, detail, extra, entryUrl }) => {
     const session = { id: "real-evidence-ui", entryUrl, topic: "municipal-style-fixture",
       status: "succeeded", startedAt: result.meta.started_at, finishedAt: result.meta.finished_at };
     window.__TAURI_INTERNALS__ = {
@@ -88,12 +89,12 @@ try {
           case "scan_start": case "scan_get_session": return session;
           case "scan_get_result": return result;
           case "scan_get_detail_bundle": return detail;
-          case "scan_get_extra_result": return undefined;
+          case "scan_get_extra_result": return extra;
           default: throw new Error(`unexpected IPC command ${command}`);
         }
       },
     };
-  }, { result, detail, entryUrl });
+  }, { result, detail, extra: output.extraResult, entryUrl });
   await page.goto(appUrl, { waitUntil: "networkidle" });
   await page.getByLabel("점검할 웹사이트").fill(entryUrl);
   await page.getByRole("button", { name: "점검 시작" }).click();
@@ -121,7 +122,13 @@ try {
 
   await page.getByRole("button", { name: "점검 범위" }).click();
   await page.getByText(`확인한 페이지 ${String(detail.coverage.checkedPages)}개 · 실패한 페이지 ${String(detail.coverage.failedPages.length)}개`).last().waitFor();
-  await page.getByRole("button", { name: "탐지 항목별" }).click();
+  await page.getByRole("button", { name: "추가 분석" }).click();
+  if (output.extraResult.findings.length === 0) {
+    await page.getByText("추가 분석에서 확인된 항목이 없습니다.").waitFor();
+  } else {
+    await page.getByText(`추가 분석 ${String(output.extraResult.findings.length)}건`).waitFor();
+  }
+  await page.getByRole("button", { name: "공식 탐지" }).click();
   await page.getByRole("button", { name: "결과 파일 생성" }).click();
   const dialog = page.getByRole("dialog", { name: "결과 파일 생성" });
   await dialog.getByRole("button", { name: "파일 저장" }).waitFor();
@@ -141,6 +148,7 @@ try {
   console.log(JSON.stringify({ fixture: "real scanner to React results via IPC replay",
     officialFindings: result.findings.length, renderedJpegs,
     checkedPages: detail.coverage.checkedPages, failedPages: detail.coverage.failedPages.length,
+    extraFindings: output.extraResult.findings.length,
     exportPreviewMatchesOfficial: true, focusRestored: true }, null, 2));
 } finally {
   await browser?.close();

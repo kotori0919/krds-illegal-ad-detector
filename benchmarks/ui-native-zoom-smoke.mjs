@@ -40,6 +40,10 @@ try {
   const listItems = await page.getByRole("list", { name: "확정된 탐지 목록" }).getByRole("listitem").count();
   if (listItems !== 5) throw new Error(`result list lost semantic findings: ${String(listItems)}`);
   await page.screenshot({ path: "/tmp/illegal-ad-v2-native-zoom-results.png", fullPage: true });
+  await page.getByRole("button", { name: "추가 분석" }).click();
+  await page.getByText("이 세션에는 추가 분석 결과가 없습니다.").waitFor();
+  await checkReflow("extra analysis");
+  await page.getByRole("button", { name: "공식 탐지" }).click();
   await page.getByRole("button", { name: "페이지별" }).click();
   await page.getByRole("button", { name: "근거 보기" }).first().click();
   await page.getByRole("heading", { name: "탐지 상세" }).waitFor();

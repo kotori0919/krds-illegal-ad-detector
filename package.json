@@ -16,7 +16,7 @@
     "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json && tsc --noEmit -p packages/synth-eval/tsconfig.check.json && tsc --noEmit -p packages/scanner/tsconfig.check.json && tsc --noEmit -p packages/detection/tsconfig.check.json && tsc --noEmit -p packages/evidence/tsconfig.check.json",
     "test": "vitest run",
     "build": "npm run build -w apps/web",
-    "build:scanner": "npm run build -w packages/contracts && npm run build -w packages/synth-eval && npm run build -w packages/scanner && npm run build -w packages/detection",
+    "build:scanner": "npm run build -w packages/contracts && npm run build -w packages/synth-eval && npm run build -w packages/scanner && npm run build -w packages/evidence && npm run build -w packages/detection",
     "build:sidecar": "esbuild packages/detection/src/worker.ts --bundle --platform=node --format=esm --external:playwright-core --outfile=src-tauri/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs",
     "prepare:windows-runtime": "node scripts/prepare-windows-runtime.mjs",
     "benchmark:concurrency": "npm run build:scanner && node benchmarks/concurrency.mjs",
@@ -24,6 +24,7 @@
     "smoke:sidecar": "npm run build:sidecar && node benchmarks/worker-l3.mjs --bundled",
     "smoke:native-session": "npm run build:sidecar && cargo test --manifest-path benchmarks/native-session-l3/Cargo.toml --locked --offline real_worker_progress_result_and_evidence_survive_host_persistence -- --nocapture",
     "smoke:real-evidence-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-real-evidence-smoke.mjs",
+    "smoke:extra-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-extra-smoke.mjs",
     "smoke:ui-native-zoom": "xvfb-run -a node benchmarks/ui-native-zoom-smoke.mjs",
     "lint": "eslint .",
     "clean": "rm -rf packages/contracts/dist apps/web/dist packages/synth-eval/dist packages/scanner/dist packages/detection/dist packages/evidence/dist"

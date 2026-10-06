@@ -19,7 +19,7 @@ export function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const [resultQuery, setResultQuery] = useState("");
   const [resultFilter, setResultFilter] = useState<OfficialTechnique | "ALL">("ALL");
-  const [resultView, setResultView] = useState<"findings" | "pages" | "coverage">("findings");
+  const [resultView, setResultView] = useState<"findings" | "pages" | "extra" | "coverage">("findings");
   const [reviewedIds, setReviewedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [host, setHost] = useState<HostBridge | undefined>(undefined);
   const resultScrollY = useRef(0);

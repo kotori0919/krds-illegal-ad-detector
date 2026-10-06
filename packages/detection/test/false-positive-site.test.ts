@@ -59,6 +59,7 @@ describe("L2 public-information false-positive site", () => {
       expect(output.timedOut).toBe(false);
       expect(validateOfficialResultText(output.json).ok).toBe(true);
       expect(output.result.findings).toEqual([]);
+      expect(output.extraResult.findings).toEqual([]);
     }
   }, 30_000);
 });

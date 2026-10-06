@@ -18,13 +18,16 @@ visual capture is bounded to six pages and 2 MB of embedded JPEG data. The
 bundled Node process and React UI each consumed those outputs in separate
 Linux integration smokes.
 
-The extra-analysis path remains incomplete: `packages/evidence` contains graph
-and creative-fingerprint algorithms, but the worker does not emit a session
-`result_extra.json`, `scan_get_extra_result` returns `None`, and the results
-workspace has no separate 추가 분석 area. The realistic ad-infrastructure L2
-scenario must exercise that integrated path. The public-site L2 fixture and a
-bounded false-positive site run through the real scanner; the full three-scenario
-L2 gate, packaged Windows performance, and product acceptance remain open.
+The worker now emits a separate validated `result_extra.json`. The Tauri host
+checks its metadata against the official result and stores all result parts in
+one session transition. Results exposes a separate 추가 분석 list and empty
+state. Graph correlations use observed links, frames and external resources;
+creative fingerprints use bounded image response bytes and a live-page 8×8
+pixel sample after official detection. A five-page ad fixture exercises
+duplicate, resized, WebP and slightly changed images and repeated destinations
+at concurrency 1–4. This is one bounded ad-infrastructure L2 slice; broader
+multi-domain and false-positive scenarios, packaged Windows performance, and
+product acceptance remain open.
 
 ## V2 target data flow
 

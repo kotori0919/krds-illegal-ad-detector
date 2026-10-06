@@ -36,3 +36,17 @@ resource-to-domain edges missed that case, while counting two resources on one
 page overstated recurrence. Graph edge deduplication and summary traversal use
 indexed sets so this work stays outside the crawl hot path without quadratic
 edge scans.
+
+## Amendment 2026-10-06: live observed images and separate persistence
+
+After official live-page detection, a bounded optional pass reads up to 16
+observed image responses per page on the first 8 pages by deterministic crawl
+admission order. It fingerprints at most 8 selected ad images per page and
+accepts image bodies only when a positive Content-Length is at most 250 KB,
+and copies at most 250 KB per selected page (2 MB for the scan). This may omit
+chunked image responses from optional analysis. The pixel sample
+comes from the still-live page; no second page navigation is needed. Sorted
+fingerprints and graph observations feed the separate extra result, whose IDs
+are stable across page concurrency levels. The host validates the extra file
+against official metadata before committing the session. Extra findings never
+enter `result.json` or the official count.
