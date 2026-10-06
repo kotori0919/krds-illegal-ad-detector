@@ -15,7 +15,10 @@ position overlays and image-creative assets passed actual installed Windows
 execution. The updated worker's full Windows C1-C4 benchmark, paired
 capture-unavailable comparison and native60s deadline/export passed. Core
 functional/current Windows scenario acceptance is closed. Full V2 remains
-open for strict UX release verification and reconciliation of scoped rows.
+open for the final requirement-by-requirement audit of the original steering
+and expanded A-M scope. The new visual controls' strict native UX gates now
+passed, including the intrinsic-media correction; KRDS_COMPLIANCE preserves
+exact package and execution scopes.
 
 | Requirement | Concrete acceptance evidence | Current assessment |
 | --- | --- | --- |
@@ -36,10 +39,15 @@ open for strict UX release verification and reconciliation of scoped rows.
 ## Current installed build and evidence
 
 Latest installed executable SHA-256 (also matched by extracting the NSIS payload):
-`5120e88ccfe239f2166ce5d3835a398735a5d628420cc06b92e4a3ca9f182a00`.
+`103bad66844c684d120d5f5ce354a5f51a2893cd136c9899dcc6b8d66cd927ff`.
 NSIS SHA-256:
-`0990a3a590624b6acc7286fb006701f21e1c71f48392e835284f2c693e4dd42e`.
-The deadline, read-rejection and main accessibility runs used the earlier executable:
+`0b5efc85a91a9530589a5e0c7fc6997cd6472d1a33ac1a7fdf124ebfc2d3a721`.
+This presentation-only correction preserves the benchmarked worker below.
+Installed original-byte/decode/intrinsic-size, named image/list,48px keyboard
+disclosure and200%/350px reflow passed; current position/crop, dialog Tab
+containment and return focus also passed. The earlier5120e88 executable
+provided the current-worker60s deadline and original asset/crop core proof.
+The earlier read-rejection and main accessibility runs used executable:
 `70320694da2e504d9bab0891382b1dee4b488a07a6af5870871d9049ec41b1b3`.
 Bundled worker SHA-256:
 `309cacb385292865d947134731e0b6c5720caaf608c0a7bd279378cc74c78d81`.
@@ -62,6 +70,8 @@ in those records; report replacement does not retroactively change old proof.
    native short-deadline export passed. Current images/placement passed native
    retrieval, rendering and export; older read/accessibility checks retain
    their original package scope.
-3. Reconcile remaining release rows with their actual evidence. The normal
-   Windows deadline/partial export path passed; do not describe that execution
-   as forced host-guard exhaustion.
+3. OBSERVED: new position/crop and intrinsic asset presentation passed current
+   installed200%/350px keyboard, visible/restored focus, reflow and accessibility
+   checks. Older release rows were reconciled with their actual report scopes.
+   Finish the combined original-steering/A-M completion audit; normal Windows
+   deadline settlement is not forced host-guard exhaustion.

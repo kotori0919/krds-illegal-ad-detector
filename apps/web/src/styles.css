@@ -659,7 +659,8 @@ code {
 
 .visual-evidence img {
   display: block;
-  width: 100%;
+  max-width: 100%;
+  width: auto;
   height: auto;
   border: var(--krds-semantic-border-width) solid var(--krds-semantic-border);
 }
@@ -668,7 +669,7 @@ code {
   position: relative;
   border: var(--krds-semantic-border-width) solid var(--krds-semantic-border);
 }
-.visual-evidence-stage img { border: 0; }
+.visual-evidence-stage img { width: 100%; border: 0; }
 .visual-evidence-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .visual-evidence-overlay rect {
   fill: none;

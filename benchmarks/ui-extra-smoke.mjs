@@ -92,10 +92,14 @@ try {
   if (await image.getAttribute("src") !== storedImage.dataUrl) throw new Error("creative display differs from stored bytes");
   const dimensions = await image.evaluate(async (item) => {
     await item.decode();
-    return { width: item.naturalWidth, height: item.naturalHeight };
+    return { width: item.naturalWidth, height: item.naturalHeight,
+      renderedWidth: item.getBoundingClientRect().width };
   });
   if (dimensions.width !== storedImage.width || dimensions.height !== storedImage.height) {
     throw new Error("creative asset decoded dimensions differ from capture");
+  }
+  if (dimensions.renderedWidth > dimensions.width + 2) {
+    throw new Error("small creative asset is enlarged beyond its captured resolution");
   }
   if (!Buffer.from(storedImage.dataUrl.split(",")[1], "base64").equals(
     await readFile(resolve(assetRoot, new URL(storedImage.sourceUrl).pathname.slice(1))))) {

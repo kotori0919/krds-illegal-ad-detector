@@ -43,7 +43,8 @@ The initial L2 scanner test and Node worker CLI observed a real JPEG,
 CSS/geometry, detail-to-official ID join and failed-page coverage. Later
 installed native retrieval, measured placement, cancellation cleanup and
 Windows memory/performance observations are recorded below and in DRY_RUN/PERF.
-The new controls' native narrow/zoom gate remains open. None of these native
+The new controls' native narrow/zoom gate subsequently passed (KRDS_COMPLIANCE).
+None of these native
 claims is inferred from a successful TypeScript suite.
 
 The 2026-10-06 built-web smoke feeds the real municipal-site scan output into

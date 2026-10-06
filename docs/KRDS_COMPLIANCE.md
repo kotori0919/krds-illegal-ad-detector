@@ -1,6 +1,7 @@
 # KRDS Product V2 pattern and release record
 
-Status: **partial implementation, release gate open** (2026-10-06). The previous
+Status: **implemented with scoped native evidence; combined V2 audit open**
+(2026-10-06). The previous
 five-stage audit is available in Git history; its tests and line references do
 not describe this UI.
 
@@ -193,19 +194,19 @@ checks.
 
 ## Interaction to official pattern
 
-| Product interaction | KRDS pattern | Implemented behavior | Remaining verification |
+| Product interaction | KRDS pattern | Implemented behavior | Verification evidence |
 | --- | --- | --- | --- |
-| Three-stage shell | [단계 표시기](https://www.krds.go.kr/html/site/component/component_07_01.html) | Setup, scan, results; inspector and export stay in results. | Screen reader stage announcement. |
-| Site URL and validation | [입력 폼](https://www.krds.go.kr/html/site/global/global_08.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Labelled required URL, field error and focus, retained entry. | Packaged host and 200% browser zoom. |
-| Scope | [선택](https://www.krds.go.kr/html/site/component/component_06_01.html), [설정](https://www.krds.go.kr/html/site/global/global_08.html) | Automatic, quick, custom; custom limits disclosed when selected. | Keyboard-only choice and native request. |
-| Scan status | [불확정 스피너·피드백](https://www.krds.go.kr/html/site/component/component_07_02.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | One spinner with Korean status after one second; real elapsed time, active pages, failures, five recent activities, poll recovery and cancellation settlement. Reduced-motion preference keeps text only. | Live status cadence with assistive technology and packaged Windows snapshot recovery. |
-| Result collection and category navigation | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | Three peer areas: 공식 탐지, 추가 분석, 점검 범위. 탐지 항목별 and 페이지별 are nested under 공식 탐지. Result counts, list and empty state are visible; the one search/filter remains scoped to official findings. | Packaged Windows operator review and extra-list assistive-technology audit. |
-| Technique filter | [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Immediate visible count and no-match reset. | Keyboard path in packaged app. |
-| Result search | [검색](https://www.krds.go.kr/html/site/service/service_02_03.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | One search field; query/filter retained through inspection. | Search semantics on larger real results. |
-| Finding inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Recorded matched terms, text transformations, source, CSS/geometry, actual JPEG when captured, unavailable state, review control, return focus. The list remains mounted in a desktop split view; mobile shows the inspector alone. | Actual Windows 21-finding review observed; assistive-technology review remains open. |
-| Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | “결과 저장” shows the official count and only relevant failed-page/time-limit status. Internal validation and coverage settlement gate Save. One pending save disables both actions and retains dialog focus; settlement restores Save focus. Failure gets one actionable alert. No successful-check cards, raw JSON, or repeated explanation. | OBSERVED: installed Windows Save As success/cancel, disabled pending actions, focus restoration, actual host write failure and retry with validated bytes. Native zoom and assistive-technology checks remain open. |
-| Page/scan failure | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Failed page and timeout coverage with retained findings. | Inject failures in packaged app. |
-| Contextual help | [도움](https://www.krds.go.kr/html/site/global/global_02.html) | Short scope help and optional technical explanation. | Keyboard and zoom review. |
+| Three-stage shell | [단계 표시기](https://www.krds.go.kr/html/site/component/component_07_01.html) | Setup, scan, results; inspector and export stay in results. | OBSERVED: native accessibility stage metadata and labelled headings in entry/running/results; no spoken-output claim. |
+| Site URL and validation | [입력 폼](https://www.krds.go.kr/html/site/global/global_08.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Labelled required URL, field error and focus, retained entry. | OBSERVED: installed URL error/focus, keyboard entry and actual native 200% zoom; exact package scopes above. |
+| Scope | [선택](https://www.krds.go.kr/html/site/component/component_06_01.html), [설정](https://www.krds.go.kr/html/site/global/global_08.html) | Automatic, quick, custom; custom limits disclosed when selected. | OBSERVED: installed Tab/arrow custom choice and real native scan with the selected limits; native-keyboard report. |
+| Scan status | [불확정 스피너·피드백](https://www.krds.go.kr/html/site/component/component_07_02.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | One spinner with Korean status after one second; real elapsed time, active pages, failures, five recent activities, poll recovery and cancellation settlement. Reduced-motion preference keeps text only. | OBSERVED: installed progress and UIAutomation live-event coalescence; React execution covers poll recovery. Exact input/delivery scope above; no spoken-output claim. |
+| Result collection and category navigation | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | Three peer areas: 공식 탐지, 추가 분석, 점검 범위. 탐지 항목별 and 페이지별 are nested under 공식 탐지. Result counts, list and empty state are visible; the one search/filter remains scoped to official findings. | OBSERVED: installed21-finding review, category/page views and native extra-list accessibility; named reports retain their package scope. |
+| Technique filter | [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Immediate visible count and no-match reset. | OBSERVED: installed keyboard filter choice, no-match reset and retained inspector context; native-keyboard and operator reports. |
+| Result search | [검색](https://www.krds.go.kr/html/site/service/service_02_03.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | One search field; query/filter retained through inspection. | OBSERVED: installed 21-finding search/reset/retained context, native searchbox accessibility role. |
+| Finding inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Recorded matched terms, text transformations, source, CSS/geometry, actual JPEG when captured, unavailable state, review control, return focus. The list remains mounted in a desktop split view; mobile shows the inspector alone. | OBSERVED: installed21-finding review and native inspector roles; current crop/position execution and narrow/zoom proof recorded below. |
+| Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | “결과 저장” shows the official count and only relevant failed-page/time-limit status. Internal validation and coverage settlement gate Save. One pending save disables both actions and retains dialog focus; settlement restores Save focus. Failure gets one actionable alert. No successful-check cards, raw JSON, or repeated explanation. | OBSERVED: installed Windows Save As success/cancel, disabled pending actions, focus restoration, actual host write failure and retry with validated bytes. OBSERVED: actual narrow/zoom dialog appearance, Tab containment/Escape return and native modal/background isolation; exact reports above. |
+| Page/scan failure | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Failed page and timeout coverage with retained findings. | OBSERVED: installed actual HTTP404 coverage, short-deadline partial result/export and rejected native reads. |
+| Contextual help | [도움](https://www.krds.go.kr/html/site/global/global_02.html) | Short scope help and optional technical explanation. | OBSERVED: installed Enter disclosure, visible focus, 48px targets and narrow/zoom observations; no automatic expansion. |
 
 The KRDS result pattern motivates a visible count, category navigation, one
 search field, a result list, a no-result message, and a recovery action. Scan
@@ -273,8 +274,10 @@ specifies Pretendard GOV; the app bundles the v1.3.9 variable font under its
 so packaged Windows use has no font CDN dependency. The source font SHA-256 is
 `a2f477842d55918053db560007dd615ab44eab848d3aa09dd61e96b4da76210e`.
 The focus ring is a documented local extension; its offset, step underline and
-check-status edge use KRDS number tokens. Local layout widths still need the
-packaged Windows review, so **full token conformance is not yet proven**.
+check-status edge use KRDS number tokens. Packaged Windows narrow/zoom,
+desktop operator and native accessibility observations are recorded here and
+in DRY_RUN. These service widths are documented Adaptive extensions; they
+are not claimed as official KRDS numeric widths.
 
 | Local primitive → semantic → component | Source KRDS role | Purpose and consumers | Deviation reason |
 | --- | --- | --- | --- |
@@ -314,15 +317,15 @@ inspector heading and the restored export trigger.
 
 | State | Required behavior | Current evidence or gap |
 | --- | --- | --- |
-| Initial, loading | URL and scope visible; result/detail loading named and settled. | Result/coverage pending, absent and rejected reads exercised through React tests and actual-scanner browser replay. A rejected result exits loading; Save waits for coverage settlement. Native Windows read failures remain open. |
-| Running | Real counts, elapsed time, page and meaningful live status. | React tests and Rust child-process pump verify retained counters; actual Windows progress observed. Live screen-reader cadence remains open. |
+| Initial, loading | URL and scope visible; result/detail loading named and settled. | Result/coverage pending, absent and rejected reads exercised through React tests and actual-scanner browser replay. A rejected result exits loading; Save waits for coverage settlement. OBSERVED: installed result/detail/extra native argument rejections settle loading with Korean alerts and correct Save gating; clean restart passed (native-read-error report). |
+| Running | Real counts, elapsed time, page and meaningful live status. | React tests and Rust child-process pump verify retained counters; actual Windows progress observed. OBSERVED: installed UIAutomation live-event coalescence recorded above; spoken output was not measured. |
 | Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | Actual Windows result/save paths observed both the six-page/five-finding and 200-page/21-finding scenarios, each with one expected failed page. |
 | Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | OBSERVED: installed Windows app completed a one-page zero-finding scan. Search/filter context persisted through inspection; reset recovered all 21 municipal findings. |
-| Separate extra analysis | Keep the official list/count unchanged; show a Korean summary, item count, loading, empty, unavailable, and technical disclosure states. | OBSERVED: installed Windows app displayed both actual image-based extra findings and saved a validated 246-byte official file containing zero findings. Populated-extra native zoom passed at DPR 2 / 355px; assistive-technology review remains open. |
+| Separate extra analysis | Keep the official list/count unchanged; show a Korean summary, item count, loading, empty, unavailable, and technical disclosure states. | OBSERVED: installed Windows app displayed both actual image-based extra findings and saved a validated 246-byte official file containing zero findings. Populated-extra native zoom passed at DPR2/355px; native named list/headings and48px Enter disclosures also passed. Current actual asset proof is recorded below. |
 | Error, unavailable evidence | Name the failure and next action; no fabricated image. | OBSERVED: installed Windows inspector showed genuine budget-unavailable evidence. A real host write rejection reached the dialog error; retry saved validated bytes. Only the export directory was fault-injected through native postMessage; no response was fabricated. |
-| Disabled | Adjacent explanation and predictable focus. | Coverage and validation gate Save; a pending save disables both actions and keeps Escape/Tab focus inside. Browser replay passed; native controls still need audit. |
+| Disabled | Adjacent explanation and predictable focus. | Coverage and validation gate Save; a pending save disables both actions and keeps Escape/Tab focus inside. OBSERVED: installed pending-save actions disabled, dialog focus retained, Escape/Tab contained, and settlement restored Save focus. |
 | Cancellation settlement | Confirm before stopping, then await host terminal state. | OBSERVED: installed Windows app cancelled with two page workers active, reached cancelled status, and left zero scanner Chromium processes. A subsequent scan completed. The transient disabled state was not captured natively. |
-| Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | OBSERVED: native Save As success/cancel, disabled pending actions, Save focus restoration, actual host write failure and successful retry. Saved official bytes passed validation. Native 200% zoom and assistive-technology release checks remain open. |
+| Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | OBSERVED: native Save As success/cancel, disabled pending actions, Save focus restoration, actual host write failure and successful retry. Saved official bytes passed validation. OBSERVED: actual native narrow/zoom confirmation and focus cycle/return, plus native accessibility modal isolation; exact package scopes above. |
 
 ## Release gate and evidence
 
@@ -404,11 +407,15 @@ The subsequent actual Windows app reviewed 21 real findings, displayed text
 transformations, measured OFFSCREEN positions and JPEGs, returned keyboard
 focus, cancelled native Save As without a false message, and saved a validated
 21-finding file (21 TP / 0 FP / 0 FN). Exact app/worker and file hashes plus
-captures are in `DRY_RUN.md`. The full release walk remains open.
+captures are in `DRY_RUN.md`. Later state, native keyboard, read-rejection and accessibility walks supply the remaining workflow evidence; the new visual controls have separate current-package proof below.
 
-**Open:** assistive technology, remaining local layout limits, native zoom,
-error injection and the full Windows release walk. Actual native cancellation,
-restart and retained search/filter inspector focus are recorded in `DRY_RUN.md`.
+This earlier open-gate list is superseded by the installed accessibility,
+read-rejection and new evidence-control records below. Actual native
+cancellation, restart and retained search/filter inspector focus are recorded
+in `DRY_RUN.md`; each report retains its original package scope. The current
+asset and position controls now have native narrow/zoom proof below. The intrinsic
+image-size correction and position/crop controls also passed in the fixed
+installed package, as recorded below. Final combined V2 audit remains separate.
 
 ## Installed accessibility and extra disclosure correction (2026-10-06)
 
@@ -451,8 +458,10 @@ Worker remained90aed157. Native inspection after close showed only the three
 idle fixture Node servers, no app or scanner Chromium. Identity/process
 capture: `extra-target-installed-identity.png` in the same temporary directory.
 
-The remaining release audit includes the original element-crop/analysis-position
-visual-evidence requirement. This correction does not close that functional gap.
+The disclosure correction alone did not close the original element-region,
+analysis-position and creative-image requirements. Their subsequent actual
+installed execution and current-worker performance acceptance are recorded
+below and in DRY_RUN/PERF. New controls' narrow/zoom verification is separate.
 
 ### Evidence position disclosure extension (2026-10-06)
 
@@ -470,12 +479,58 @@ the recorded target without changing captured pixels; EvidenceView SVG is its
 consumer. It does not use arbitrary component hex/spacing/radius values.
 
 OBSERVED: installed Windows execution reviewed17 findings, decoded seven crop
-references and exercised nine exact stored position displays. This verifies the
-functional disclosure; its current native narrow/zoom gate remains open.
+references and exercised nine exact stored position displays. A subsequent
+same-package synthetic run produced five crop references and nine positions;
+capture availability is optional and does not change the official set.
+At actual OS200% zoom /350 CSS px, results, position/crop inspector and
+confirmation had343px document width and no document or nested overflow.
+Tab/Enter showed and hid the analysis outline with exact persisted coordinates;
+the button was48px with a visible3px outline. The crop decoded; return restored
+finding focus, four dialog Tab presses stayed contained and Escape restored
+Save focus. Report: `current-native-zoom360-current.json` (792bytes), earlier
+report preserved as `native-zoom360-baseline.json`. Actual VNC visual:
+`strict-position-zoom-visible.png`. The report's one-finding interaction proves
+the new control, not a new20-finding operator walk. Installed EXE5120e88,
+worker309cac; historical full operator and keyboard walks retain their scope.
 The extra-analysis list reuses the existing detailed-information/list pattern
 and visual-evidence figure to display actual observed creative bytes. It has
 loading, retrieval-error and absent-image text, with no external image fetch.
 Linux360px execution passed real-image decoding, list separation and keyboard
-disclosures. Installed Windows original-byte/decode/render/export checks passed;
-the new asset presentation's native narrow/zoom gate remains open. Core
-performance/correctness acceptance precedes these strict UI checks.
+disclosures. Installed Windows original-byte/decode/render/export checks passed.
+The same actual two-page image scan passed native200%/350px reflow with no
+nested overflow, Tab/Enter48px disclosure and3px focus, accessible image/list
+names and246-byte validated official export. Report:
+`current-native-extra-core-current.json` (2063bytes), earlier core report
+preserved as `native-extra-asset-core-baseline.json`. VNC
+`strict-asset-zoom-visible.png` also exposed unnecessary enlargement of the
+64px asset. The follow-up presentation preserves intrinsic image width and
+shrinks large images to the container; viewport/position images retain a
+shared full-width stage so the outline coordinates stay aligned. This is
+the existing detailed-information media object, with no new color/spacing
+tokens. After NSIS Add/Reinstall, installed EXE
+`103bad66844c684d120d5f5ce354a5f51a2893cd136c9899dcc6b8d66cd927ff`
+matched the extracted installer payload. NSIS SHA256:
+`0b5efc85a91a9530589a5e0c7fc6997cd6472d1a33ac1a7fdf124ebfc2d3a721`.
+Worker remained309cac. The actual two-page native scan repeated exact bytes,
+decoding, named image/list accessibility,48px Tab/Enter disclosure and3px
+focus,200%/350px reflow and246-byte validated official export. Its64px
+image measured66 CSS px including the two borders, without artificial
+enlargement. Raw report `current-native-extra-core-current.json` is2088bytes;
+the before-fix report is `native-asset-zoom-before-intrinsic.json`.
+VNC visual: `intrinsic-asset-native-visible.png`; identity:
+`intrinsic-installed-identity.png`. Linux actual-scanner IPC replay also
+passed the added intrinsic-width boundary and existing360px/keyboard checks;
+lint passed. These exact images are collected local test assets, not a claim
+that the detector has adjudicated an external advertising service.
+The fixed103bad executable subsequently repeated the same position/crop,
+keyboard, focus and200%/350px checks: all three views were343px without nested
+overflow; exact position, decoded crop, finding return and dialog Save return
+passed. `current-native-zoom360-current.json` is792bytes; the earlier same-worker
+position report is preserved as `native-position-zoom-worker309.json`.
+VNC: `intrinsic-position-running-zoom.png`. One attempt reached its180s OS-input
+wait limit because the resize/zoom input was not supplied in time; it is
+preserved as `native-position-intrinsic-os-input-timeout.json`, not counted as
+a passing execution. The terminal rerun supplied actual OS input and passed.
+Final native process inspection found only idle fixture Nodes4008/7684/8756,
+no app or scanner Chromium (`intrinsic-final-process-cleanup.png`). Core
+performance/correctness acceptance preceded these strict UI checks.

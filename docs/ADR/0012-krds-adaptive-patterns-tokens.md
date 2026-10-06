@@ -1,9 +1,11 @@
 # ADR-0012: KRDS Adaptive patterns and token hierarchy (2026-10-05)
 
 Status: pattern mapping, official light-mode color/spacing/radius values and
-documented layout extension hierarchy applied in React 2026-10-06; packaged
-Windows and assistive-technology verification pending. Expands ADR-0010's
-operator UI decision.
+documented layout extension hierarchy applied in React 2026-10-06. Packaged
+Windows keyboard, reflow/zoom, state and programmatic accessibility evidence
+is recorded in KRDS_COMPLIANCE. Expands ADR-0010's operator UI decision;
+the intrinsic-media correction also passed installed Windows original-byte,
+decoding, intrinsic-size, keyboard, accessibility and narrow/zoom checks.
 
 ## Context
 
@@ -31,7 +33,8 @@ keeps the page, technique, raw evidence, review state and evidence
 action together without horizontal navigation. Selectors remain under the
 inspector's technical disclosure. A headed Chromium smoke checks entry, results, inspector and
 export dialog at native 200% zoom, including nested overflow and focus return.
-Windows packaging and assistive-technology verification remain release gates.
+Windows packaging and programmatic accessibility observations subsequently
+passed, with exact package scopes recorded in KRDS_COMPLIANCE/DRY_RUN.
 
 ## Amendment 2026-10-06: confirmation and factual detail
 

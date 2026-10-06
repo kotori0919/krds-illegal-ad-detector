@@ -1575,3 +1575,44 @@ success; actual process inspection found only fixture Nodes4008/7684/8756,
 with no app or scanner Chromium. Capture: `core-capture-acceptance-cleanup.png`.
 Core/current Windows scenario acceptance is closed. Full V2 strict UX gates
 remain open and now follow the user's required execution order.
+
+### New evidence controls and intrinsic-media correction (2026-10-06)
+
+OBSERVED: installed5120e88 / worker309cac passed the new position/crop controls
+at actual Windows200% zoom and350 CSS px. Results, inspector and confirmation
+had343px document width with no nested overflow. Tab/Enter toggled the exact
+persisted outline, decoded the actual crop and restored finding/Save focus;
+the toggle measured48px with a3px visible outline. The same actual two-page
+image scan passed named image/list accessibility and keyboard disclosure.
+Its64px image was unnecessarily enlarged across the container in the VM.
+
+The correction preserves intrinsic image dimensions and caps large images
+to the container. The full-viewport stage keeps its shared sizing with the
+analysis outline. Real-scanner browser IPC replay at360px now measures the
+64px asset as66px including borders, with original bytes, decoded dimensions,
+48px Enter disclosures and no overflow. Lint passed; Windows release build
+completed in19s and NSIS113.83MiB installed through Add/Reinstall.
+
+OBSERVED: installed EXE103bad66844c684d120d5f5ce354a5f51a2893cd136c9899dcc6b8d66cd927ff
+matched the extracted NSIS payload. Installer SHA256:
+0b5efc85a91a9530589a5e0c7fc6997cd6472d1a33ac1a7fdf124ebfc2d3a721.
+Worker remains309cac, so the current full C1-C4 and paired capture benchmarks
+retain their measured scanner scope. The fixed installed native two-page scan
+passed original bytes/decode,66px intrinsic rendering,200%/350px reflow,
+named image/list,48px Tab/Enter disclosure with3px focus, and246-byte validated
+official export. Report: `current-native-extra-core-current.json` (2088bytes).
+Before-fix report: `native-asset-zoom-before-intrinsic.json`; actual native
+visual: `intrinsic-asset-native-visible.png`.
+
+The fixed installed app also repeated position/crop,48px/3px focus, dialog
+Tab containment, Escape Save return and finding focus return at200%/350px.
+All three views remained343px without nested overflow. Report:
+`current-native-zoom360-current.json` (792bytes). The first fixed-package
+attempt timed out waiting for absent OS resize/zoom input; that terminal
+failure is preserved as `native-position-intrinsic-os-input-timeout.json`.
+The rerun supplied actual OS input and passed. Final actual process inspection
+showed only the three idle fixture Nodes4008/7684/8756, no app or scanner
+Chromium; `intrinsic-final-process-cleanup.png` also records installed hashes.
+All reports and native captures are under `/tmp/illegal-ad-toolchain`.
+The new visual controls' strict UX gates passed; the final combined original
+steering/A-M completion audit remains open.

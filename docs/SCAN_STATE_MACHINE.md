@@ -3,8 +3,11 @@
 Status: Contract v0.2 running-state, zero-success failure, active-page feedback,
 bounded recent activity and host snapshot recovery implemented 2026-10-06.
 `ScanStatus` uses queued/running/finalizing/succeeded/cancelled/failed because
-each page is discovered and analyzed in one live pass. Partial cancellation
-coverage and packaged Windows progress verification remain open.
+each page is discovered and analyzed in one live pass. Actual packaged
+Windows progress, active-worker cancellation settlement, restart and short
+deadline partial-result/export observations are recorded in DRY_RUN and PERF.
+Cancellation returns to setup; completed findings are not offered for export
+from a cancelled session. Deadline expiry finalizes a partial succeeded result.
 
 ## Lifecycle and operator state
 
@@ -15,7 +18,7 @@ coverage and packaged Windows progress verification remain open.
 | finalizing | 결과 정리 중 | counts may be provisional; save disabled | Wait or stop if host supports safe settlement |
 | succeeded + no issues | 점검 완료 | persisted official result, detail, coverage | review/save/new scan |
 | succeeded + issues | 점검 완료 — 일부 페이지 확인 실패 | same result plus failure list | review/save with warning/new scan |
-| cancelled | 점검 중지됨 | retained completed-page result only if manifest was committed | review partial retained data or new scan |
+| cancelled | 점검 중지됨 | terminal session/progress snapshot; no exportable result is promised | return to setup and start a new scan |
 | failed | 점검을 완료하지 못했습니다 | reason and any explicitly retained coverage | return to setup/retry |
 
 Partial completion is a derived **outcome** from `succeeded` and coverage, not a new raw worker enum. A scan with zero successfully analyzed HTTP-success pages is `failed`, even if the crawler discovered URLs. If a page fails during navigation or analysis, record a `ScanIssue`, continue bounded work when safe, and preserve successful findings. A global deadline stops new work, finalizes any already completed pages, and reports partial coverage; whether this is `succeeded` or `failed` follows the zero-success rule. Never announce “all pages checked” from a queue reaching zero alone.
