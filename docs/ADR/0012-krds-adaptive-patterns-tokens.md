@@ -76,3 +76,13 @@ A missing coverage record is named once without inventing successful coverage.
 Result coverage distinguishes loading, missing and rejected reads. A rejected
 official-result read exits loading with an error and the existing new-scan
 action; it does not keep a failed IPC call in an endless background loop.
+
+## Amendment 2026-10-06: native desktop zoom
+
+The Windows acceptance run found that the main Tauri window used the default
+disabled zoom hotkeys. Browser-only reflow proof cannot satisfy the native
+operator zoom gate. Enable Windows zoom hotkeys on the actual main WebView builder;
+the existing responsive layout must work under WebView2 zoom without changing
+OS display scale. Verify Ctrl+plus/minus, focus and dialog/actions on the
+installed application, then restore the normal zoom level before performance
+measurements. No detector or scanner policy changes are required.

@@ -692,6 +692,7 @@ fn main() {
             .inner_size(1200.0, 860.0)
             .prevent_overflow()
             .center()
+            .zoom_hotkeys_enabled(cfg!(target_os = "windows"))
             .data_directory(dir)
             .visible(true)
             .focused(true)

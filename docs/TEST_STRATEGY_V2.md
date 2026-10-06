@@ -1,9 +1,10 @@
 # Test strategy V2
 
-Status: L2 measured and scanner/process/session L3 slices exercised on Linux
-on 2026-10-06. A portable Windows V2 run covered live UI, evidence, native
-save and a bounded six-page concurrency benchmark; full L3 and L4 release
-gates remain open.
+Status: Windows installed core acceptance and the complete-object 200-page
+C1-C4 benchmark passed on 2026-10-06. Detection, evidence review, export,
+active-worker cancellation, cleanup and restart were exercised in the real
+app. Remaining native zoom, assistive-technology and KRDS release gates are
+open; core acceptance does not declare all V2 criteria complete.
 
 ## Resumed core acceptance method (OBSERVED)
 
