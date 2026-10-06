@@ -8,6 +8,7 @@
  * vocabulary.
  */
 import { performance } from "node:perf_hooks";
+import type { Frame, Page } from "playwright-core";
 import {
   initialProgress,
   findingIdentityKey,
@@ -15,6 +16,7 @@ import {
   type OfficialResult,
   type ExtraResult,
   type ScanDetailBundle,
+  type CreativeImage,
   type ScanEvent,
   type ScanProgress,
 } from "@krds-detector/contracts";
@@ -76,8 +78,10 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     const allCandidates: DecidedCandidate[] = [];
     const confirmedIdentities = new Set<string>();
     const creatives: CreativeFingerprint[] = [];
+    const creativeImages = new Map<string, Omit<CreativeImage, "findingId">>();
     let capturedPages = 0;
     let capturedBytes = 0;
+    let capturedElements = 0;
     // Discovery and detection share the same live Page, Frame tree and clock.
     const summary = await crawlSite({
       entryUrl,
@@ -90,7 +94,14 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       deadline,
       onLivePage: async (page, snapshot, liveFrames, images, pageRank) => {
         const pageCandidates: DecidedCandidate[] = [];
-        const collect = (found: DecidedCandidate[], url: string): void => {
+        const candidateGroups = new Map<Page | Frame, Map<string, DecidedCandidate[]>>();
+        const collect = (found: DecidedCandidate[], url: string, scope: Page | Frame): void => {
+          let groups = candidateGroups.get(scope);
+          if (!groups) { groups = new Map(); candidateGroups.set(scope, groups); }
+          for (const candidate of found) {
+            const group = groups.get(candidate.selector);
+            if (group) group.push(candidate); else groups.set(candidate.selector, [candidate]);
+          }
           pageCandidates.push(...found);
           allCandidates.push(...found);
           progress.candidates += found.length;
@@ -106,7 +117,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         collect(await detectPageCandidates(page, {
           pageUrl: snapshot.url,
           onElementsAnalyzed: (count) => { progress.elementsAnalyzed += count; },
-        }), snapshot.url);
+        }), snapshot.url, page);
         for (const live of liveFrames) {
           if (!deadline.canStartPage(0)) break;
           const chain = live.srcChain.map((src, index) => ({ src, selector: live.selectorChain[index] ?? "iframe" }));
@@ -118,38 +129,118 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
               onElementsAnalyzed: (count) => { progress.elementsAnalyzed += count; },
             });
             progress.framesInspected += 1;
-            collect(found, live.frame.url());
+            collect(found, live.frame.url(), live.frame);
           } catch {
             // A detached or inaccessible frame does not discard page findings.
           }
         }
         if (pageCandidates.length > 0) {
           let visual: DecidedCandidate["visual"] = { state: "unavailable", reason: "budget" };
+          const beforeBoxes = new Map<DecidedCandidate, DecidedCandidate["observed"]["box"]>();
           if (capturedPages < 6 && capturedBytes < 2_000_000 && deadline.operationTimeoutMs(5000) >= 1000) {
             capturedPages += 1;
             try {
-              const bytes = await page.screenshot({ type: "jpeg", quality: 65, timeout: deadline.operationTimeoutMs(5000) });
+              const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollX, scrollY, deviceScaleFactor: devicePixelRatio }));
+              for (const [scope, groups] of candidateGroups) {
+                for (const group of groups.values()) {
+                  if (deadline.operationTimeoutMs(1000) < 100) break;
+                  const candidate = group[0]!;
+                  try {
+                    const locator = scope.locator(candidate.selector);
+                    if ((await locator.textContent({ timeout: deadline.operationTimeoutMs(1000) }))?.trim() !== candidate.technique.rawText) continue;
+                    const box = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(1000)) });
+                    if (box) beforeBoxes.set(candidate, box);
+                  } catch { /* Target metadata is optional evidence. */ }
+                }
+              }
+              if (deadline.operationTimeoutMs(5000) < 100) throw new Error("capture budget exhausted");
+              const bytes = await page.screenshot({ type: "jpeg", quality: 65, timeout: Math.max(1, deadline.operationTimeoutMs(5000)) });
+              const afterViewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollX, scrollY }));
+              if (viewport.width !== afterViewport.width || viewport.height !== afterViewport.height
+                || viewport.scrollX !== afterViewport.scrollX || viewport.scrollY !== afterViewport.scrollY) throw new Error("viewport changed during capture");
               // The manifest embeds this page image in every matching
               // finding. Budget the serialized copies, not just one capture.
               const embeddedBytes = bytes.length * pageCandidates.length;
               if (capturedBytes + embeddedBytes <= 2_000_000 && bytes.length <= 500_000) {
                 capturedBytes += embeddedBytes;
-                const viewport = await page.evaluate(() => ({
-                  width: innerWidth, height: innerHeight, scrollX, scrollY,
-                }));
                 visual = { state: "available", capturedAt: new Date().toISOString(),
                   mimeType: "image/jpeg", dataUrl: `data:image/jpeg;base64,${bytes.toString("base64")}`, viewport };
               }
             } catch {
-              visual = { state: "unavailable", reason: "capture-error" };
+              visual = { state: "unavailable", reason: deadline.operationTimeoutMs(1000) < 100 ? "budget" : "capture-error" };
             }
           }
-          for (const candidate of pageCandidates) candidate.visual = visual;
+          for (const [scope, groups] of candidateGroups) {
+            for (const group of groups.values()) {
+              const candidate = group[0]!;
+              if (visual.state !== "available" || !visual.viewport) { for (const item of group) item.visual = visual; continue; }
+              const capture: NonNullable<DecidedCandidate["visual"]> = { ...visual,
+                target: { state: "unavailable", reason: "target-unavailable" },
+                element: { state: "unavailable", reason: "budget" } };
+              for (const item of group) item.visual = capture;
+              if (deadline.operationTimeoutMs(1000) < 100) continue;
+              try {
+                const locator = scope.locator(candidate.selector);
+                const timeout = deadline.operationTimeoutMs(1000);
+                if ((await locator.textContent({ timeout }))?.trim() !== candidate.technique.rawText) {
+                  capture.element = { state: "unavailable", reason: "target-unavailable" }; continue;
+                }
+                // Playwright reports child-frame boxes in main-frame viewport coordinates.
+                const box = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(1000)) });
+                const before = beforeBoxes.get(candidate);
+                if (!box || !before || box.width <= 0 || box.height <= 0
+                  || box.x !== before.x || box.y !== before.y || box.width !== before.width || box.height !== before.height) {
+                  capture.element = { state: "unavailable", reason: "target-unavailable" }; continue;
+                }
+                capture.target = { state: "available", coordinateSpace: "main-viewport", box };
+                const viewport = visual.viewport;
+                let left = Math.max(0, box.x); let top = Math.max(0, box.y);
+                let right = Math.min(viewport.width, box.x + box.width);
+                let bottom = Math.min(viewport.height, box.y + box.height);
+                if ("frameElement" in scope) {
+                  let frame: Frame | null = scope;
+                  for (let depth = 0; frame?.parentFrame() && depth < 4; depth += 1) {
+                    const owner = await frame.frameElement();
+                    try {
+                      const frameBox = await owner.boundingBox();
+                      if (!frameBox) throw new Error("frame bounds unavailable");
+                      left = Math.max(left, frameBox.x); top = Math.max(top, frameBox.y);
+                      right = Math.min(right, frameBox.x + frameBox.width);
+                      bottom = Math.min(bottom, frameBox.y + frameBox.height);
+                    } finally { await owner.dispose(); }
+                    frame = frame.parentFrame();
+                  }
+                }
+                const x = Math.ceil(left); const y = Math.ceil(top);
+                const width = Math.floor(right) - x; const height = Math.floor(bottom) - y;
+                if (width <= 0 || height <= 0) {
+                  capture.element = { state: "unavailable", reason: "outside-viewport" }; continue;
+                }
+                if (capturedElements >= 6 || deadline.operationTimeoutMs(1000) < 100) continue;
+                capturedElements += 1;
+                const clip = { x, y, width, height };
+                const bytes = await page.screenshot({ type: "jpeg", quality: 65, clip,
+                  timeout: Math.max(1, deadline.operationTimeoutMs(1000)) });
+                const after = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(1000)) });
+                if (!after || after.x !== box.x || after.y !== box.y || after.width !== box.width || after.height !== box.height) {
+                  capture.element = { state: "unavailable", reason: "target-unavailable" }; continue;
+                }
+                const copies = group.length;
+                if (bytes.length > 500_000 || capturedBytes + bytes.length * copies > 2_000_000) continue;
+                capturedBytes += bytes.length * copies;
+                capture.element = { state: "available", capturedAt: new Date().toISOString(),
+                  mimeType: "image/jpeg", dataUrl: `data:image/jpeg;base64,${bytes.toString("base64")}`, box: clip };
+              } catch {
+                capture.element = { state: "unavailable", reason: deadline.operationTimeoutMs(1000) < 100 ? "budget" : "capture-error" };
+              }
+            }
+          }
         }
         if (pageRank < 8) {
           const captured = await collectPageCreatives(page, liveFrames.map((live) => live.frame), images,
             deadline, 250_000);
           creatives.push(...captured.prints);
+          for (const image of captured.images) creativeImages.set(`${image.sourceUrl}\0${image.sha256}`, image);
         }
       },
       events: {
@@ -210,6 +301,13 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     }
     const detailBundle: ScanDetailBundle = {
       version: 2,
+      creativeImages: extraResult.findings.flatMap((finding) => {
+        if (finding.extra_finding !== "REUSED_AD_CREATIVE") return [];
+        const print = creatives.find((item) => item.sourceUrl === finding.url
+          && finding.evidence_text.includes(item.perceptualHash));
+        const image = print && creativeImages.get(`${print.sourceUrl}\0${print.sha256}`);
+        return image ? [{ ...image, findingId: finding.id }] : [];
+      }),
       findings: result.findings.map((finding) => {
         const key = `${findingIdentityKey(finding)}\0${finding.evidence_text}`;
         const candidate = candidatesByIdentity.get(key);
@@ -233,7 +331,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         timedOut: summary.timedOut,
       },
     };
-    const detailVerdict = validateScanDetailBundle(detailBundle, result);
+    const detailVerdict = validateScanDetailBundle(detailBundle, result, extraResult);
     if (!detailVerdict.ok) throw new Error(`detail validation failed: ${detailVerdict.errors.join("; ")}`);
     progress.stage = "succeeded";
     emit("session-finished", `done: ${String(result.findings.length)} findings`);

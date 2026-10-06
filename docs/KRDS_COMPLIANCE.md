@@ -453,3 +453,29 @@ capture: `extra-target-installed-identity.png` in the same temporary directory.
 
 The remaining release audit includes the original element-crop/analysis-position
 visual-evidence requirement. This correction does not close that functional gap.
+
+### Evidence position disclosure extension (2026-10-06)
+
+Pattern: the existing 상세 정보 확인 mapping uses a specific secondary button
+to show/hide a separately labelled analysis outline. `aria-pressed` exposes
+the state; the unchanged rendered image, observed target location and actual
+element-region JPEG remain distinguishable. Outside-viewport and unavailable
+states use concise Korean text. This is evidence interpretation, not a
+decorative screenshot alteration. The existing48px button and visible-focus
+tokens apply. Component `evidence-outline-color` consumes KRDS semantic action
+color; `evidence-outline-width` consumes the documented3px focus-width role
+(source variable-medium border, one-pixel mixed-age extension), now also used
+for the bounded analysis outline. The outline's semantic purpose is to locate
+the recorded target without changing captured pixels; EvidenceView SVG is its
+consumer. It does not use arbitrary component hex/spacing/radius values.
+
+OBSERVED: installed Windows execution reviewed17 findings, decoded seven crop
+references and exercised nine exact stored position displays. This verifies the
+functional disclosure; its current native narrow/zoom gate remains open.
+The extra-analysis list reuses the existing detailed-information/list pattern
+and visual-evidence figure to display actual observed creative bytes. It has
+loading, retrieval-error and absent-image text, with no external image fetch.
+Linux360px execution passed real-image decoding, list separation and keyboard
+disclosures. Installed Windows original-byte/decode/render/export checks passed;
+the new asset presentation's native narrow/zoom gate remains open. Core
+performance/correctness acceptance precedes these strict UI checks.

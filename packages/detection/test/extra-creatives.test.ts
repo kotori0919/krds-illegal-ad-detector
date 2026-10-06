@@ -2,7 +2,7 @@ import { createServer, type Server } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { validateExtraResult, validateOfficialResultText } from "@krds-detector/contracts";
+import { validateExtraResult, validateOfficialResultText, validateScanDetailBundle } from "@krds-detector/contracts";
 import { scanSite } from "../src/scan.js";
 
 const assetRoot = resolve(import.meta.dirname, "../../../fixtures/realistic/ads");
@@ -21,6 +21,7 @@ let redirectOrigin = "";
 let landingOrigin = "";
 let contentOrigins: string[] = [];
 let redirectedImages = false;
+let imageRequests = 0;
 
 beforeAll(async () => {
   assets = createServer((request, response) => {
@@ -39,6 +40,7 @@ beforeAll(async () => {
     if (!["creative.png", "resized.png", "reencoded.webp", "modified.png"].includes(name)) {
       response.writeHead(404); response.end(); return;
     }
+    imageRequests += 1;
     void readFile(resolve(assetRoot, name)).then((bytes) => {
       response.writeHead(200, { "content-type": name.endsWith(".webp") ? "image/webp" : "image/png",
         "content-length": bytes.length });
@@ -78,6 +80,7 @@ describe("live creative and infrastructure extra result", () => {
     redirectedImages = redirected;
     let baseline: unknown;
     for (const concurrency of [1, 2, 3, 4]) {
+      imageRequests = 0;
       let inspectedFrames = 0;
       const output = await scanSite({ entryUrl: `${siteOrigin}/`,
         onEvent: (event) => { inspectedFrames = event.progress.framesInspected; }, crawl: {
@@ -90,6 +93,23 @@ describe("live creative and infrastructure extra result", () => {
       expect(validateOfficialResultText(output.json).ok).toBe(true);
       expect(validateExtraResult(output.extraResult).ok).toBe(true);
       expect(output.result.findings).toEqual([]);
+      expect(imageRequests).toBe(5);
+      const creativeFinding = output.extraResult.findings.find((item) => item.extra_finding === "REUSED_AD_CREATIVE")!;
+      const image = output.detailBundle.creativeImages.find((item) => item.findingId === creativeFinding.id)!;
+      expect(image.sourceUrl).toBe(creativeFinding.url);
+      expect(Buffer.from(image.dataUrl.split(",")[1]!, "base64"))
+        .toEqual(await readFile(resolve(assetRoot, new URL(image.sourceUrl).pathname.slice(1))));
+      if (concurrency === 1) {
+        const wrongSource = structuredClone(output.detailBundle);
+        wrongSource.creativeImages[0]!.sourceUrl = `${assetOrigin}/unobserved.png`;
+        expect(validateScanDetailBundle(wrongSource, output.result, output.extraResult).ok).toBe(false);
+        const duplicate = structuredClone(output.detailBundle);
+        duplicate.creativeImages.push(duplicate.creativeImages[0]!);
+        expect(validateScanDetailBundle(duplicate, output.result, output.extraResult).ok).toBe(false);
+        const invalidData = structuredClone(output.detailBundle);
+        invalidData.creativeImages[0]!.dataUrl = "data:image/png;base64,<svg>";
+        expect(validateScanDetailBundle(invalidData, output.result, output.extraResult).ok).toBe(false);
+      }
       const extras = output.extraResult.findings.map(({ id, extra_finding, evidence_text }) => ({ id, extra_finding, evidence_text }));
       expect(extras.filter((item) => item.extra_finding === "REUSED_AD_CREATIVE")
         .map((item) => item.evidence_text)).toEqual([expect.stringContaining("seen 5 times")]);

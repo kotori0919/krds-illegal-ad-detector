@@ -1,6 +1,7 @@
 import type { Frame, Page } from "playwright-core";
 import type { LiveImageResponse, ScanDeadline } from "@krds-detector/scanner";
 import { blockAverageHash, sha256Hex, type CreativeFingerprint } from "@krds-detector/evidence";
+import type { CreativeImage } from "@krds-detector/contracts";
 
 const AD_HINT = /(?:^|[^a-z])(ad|ads|banner)(?:$|[^a-z])|광고|배너/i;
 
@@ -37,8 +38,8 @@ export async function collectPageCreatives(
   responses: LiveImageResponse[],
   deadline: ScanDeadline,
   maxBytes: number,
-): Promise<{ prints: CreativeFingerprint[]; bytes: number }> {
-  if (deadline.operationTimeoutMs(2000) < 500 || maxBytes <= 0) return { prints: [], bytes: 0 };
+): Promise<{ prints: CreativeFingerprint[]; images: Omit<CreativeImage, "findingId">[]; bytes: number }> {
+  if (deadline.operationTimeoutMs(2000) < 500 || maxBytes <= 0) return { prints: [], images: [], bytes: 0 };
   const selected = new Set<string>();
   for (const frame of [page.mainFrame(), ...frames]) {
     try {
@@ -48,6 +49,7 @@ export async function collectPageCreatives(
     }
   }
   const prints: CreativeFingerprint[] = [];
+  const images: Omit<CreativeImage, "findingId">[] = [];
   let bytes = 0;
   for (const observed of responses) {
     if (prints.length >= 8 || bytes >= maxBytes || deadline.operationTimeoutMs(2000) < 500) break;
@@ -79,12 +81,18 @@ export async function collectPageCreatives(
       }, { imageBytes: Array.from(body), mediaType: observed.mediaType }), Math.max(1, deadline.operationTimeoutMs(1000)));
       if (!decoded || decoded.width < 8 || decoded.height < 8) continue;
       bytes += body.length;
-      prints.push({ sha256: sha256Hex(body), perceptualHash: blockAverageHash(new Uint8Array(decoded.rgba), 8, 8),
+      const sha256 = sha256Hex(body);
+      prints.push({ sha256, perceptualHash: blockAverageHash(new Uint8Array(decoded.rgba), 8, 8),
         width: decoded.width, height: decoded.height, mediaType: observed.mediaType,
         sourceUrl: observed.url, sourceHost: new URL(observed.url).host });
+      if (observed.mediaType === "image/png" || observed.mediaType === "image/jpeg" || observed.mediaType === "image/webp") {
+        images.push({ sourceUrl: observed.url, sha256, mimeType: observed.mediaType,
+          dataUrl: `data:${observed.mediaType};base64,${body.toString("base64")}`,
+          width: decoded.width, height: decoded.height, capturedAt: new Date().toISOString() });
+      }
     } catch {
       // Image fingerprints are optional evidence after official detection.
     }
   }
-  return { prints, bytes };
+  return { prints, images, bytes };
 }

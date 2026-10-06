@@ -47,7 +47,7 @@ try {
       onEvent: (event) => { progress = event.progress; },
     });
     if (!validateOfficialResultText(output.json).ok || !validateExtraResult(output.extraResult).ok
-      || !validateScanDetailBundle(output.detailBundle, output.result).ok) throw new Error("invalid scanner artifacts");
+      || !validateScanDetailBundle(output.detailBundle, output.result, output.extraResult).ok) throw new Error("invalid scanner artifacts");
     return { ...output, progress };
   }
   const positive = await scan(`${origin}/`, 30, 1800);

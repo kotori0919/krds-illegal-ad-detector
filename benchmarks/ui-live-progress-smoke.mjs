@@ -54,7 +54,7 @@ try {
           },
         }).then((result) => {
           if (!validateOfficialResultText(result.json).ok || !validateExtraResult(result.extraResult).ok
-            || !validateScanDetailBundle(result.detailBundle, result.result).ok) throw new Error("invalid persisted result");
+            || !validateScanDetailBundle(result.detailBundle, result.result, result.extraResult).ok) throw new Error("invalid persisted result");
           output = result;
           session.status = "succeeded";
           session.finishedAt = result.result.meta.finished_at;

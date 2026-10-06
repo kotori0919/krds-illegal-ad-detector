@@ -226,14 +226,22 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                   : <>
                     <p role="status" aria-live="polite">추가 분석 {String(extraResult.findings.length)}건</p>
                     <ol className="finding-list" aria-label="추가 분석 목록">
-                      {extraResult.findings.map((finding) => <li key={finding.id} className="finding-card">
+                      {extraResult.findings.map((finding) => {
+                        const image = detailBundle?.creativeImages.find((item) => item.findingId === finding.id);
+                        return <li key={finding.id} className="finding-card">
                         <h3>{extraLabels[finding.extra_finding] ?? finding.extra_finding}</h3>
                         <p>{extraSummary(finding)}</p>
+                        {finding.extra_finding === "REUSED_AD_CREATIVE" ? image ?
+                          <figure className="visual-evidence">
+                            <img src={image.dataUrl} alt="수집한 반복 광고 이미지" width={image.width} height={image.height} />
+                            <figcaption>수집한 이미지 · {image.width} × {image.height}</figcaption>
+                          </figure>
+                          : <p role={detailLoadError ? "alert" : "status"}>{!detailLoaded ? "이미지를 불러오는 중입니다." : detailLoadError ? "이미지를 불러오지 못했습니다." : "수집한 이미지가 없습니다."}</p> : null}
                         <dl>
                           <div><dt>관련 주소</dt><dd>{finding.url}</dd></div>
                         </dl>
                         <details className="advanced"><summary>기술 정보</summary><p>위치: <code>{finding.location}</code></p><p>{finding.evidence_text}</p></details>
-                      </li>)}
+                      </li>; })}
                     </ol>
                   </>}
           </div>

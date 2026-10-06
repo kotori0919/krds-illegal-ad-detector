@@ -57,7 +57,7 @@ try {
   });
   const result = output.result;
   const detail = output.detailBundle;
-  if (!validateOfficialResultText(output.json).ok || !validateScanDetailBundle(detail, result).ok
+  if (!validateOfficialResultText(output.json).ok || !validateScanDetailBundle(detail, result, output.extraResult).ok
     || !validateExtraResult(output.extraResult).ok) {
     throw new Error("real scanner output failed contract validation");
   }
@@ -103,6 +103,8 @@ try {
   await page.getByText(`표시 중인 탐지 ${String(result.findings.length)}건 / 전체 ${String(result.findings.length)}건`).waitFor({ timeout: 10000 });
 
   let renderedJpegs = 0;
+  let renderedElementCrops = 0;
+  let displayedPositions = 0;
   let transformedTexts = 0;
   for (const finding of result.findings) {
     await page.locator(`button[data-finding-id="${finding.id}"]`).click();
@@ -121,11 +123,36 @@ try {
     if (finding.technique === "OFFSCREEN") {
       await inspector.getByText(`가로 ${Math.round(expected.observed.box.x)}px · 세로 ${Math.round(expected.observed.box.y)}px`, { exact: true }).waitFor();
     }
-    const rendered = await inspector.locator(".visual-evidence img").evaluate((image) => ({
+    const rendered = await inspector.getByRole("img", { name: "탐지 당시 페이지의 실제 화면", exact: true }).evaluate((image) => ({
       src: image.getAttribute("src"), decoded: image.complete && image.naturalWidth > 0,
     }));
     if (rendered.src !== expected.visual.dataUrl || !rendered.decoded) {
       throw new Error(`inspector did not render the scanner JPEG for ${finding.id}`);
+    }
+    if (finding.location === "#comment-ad" && (expected.visual.target?.state !== "available"
+      || expected.visual.element?.state !== "available")) throw new Error("visible comment advertisement lost its position or crop");
+    if (expected.visual.target?.state === "available") {
+      await inspector.getByRole("button", { name: "분석 위치 표시", exact: true }).focus();
+      await page.keyboard.press("Enter");
+      const overlay = inspector.getByRole("img", { name: "측정한 요소 위치의 분석 표시", exact: true });
+      const box = await overlay.locator("rect").evaluate((rect) => ({
+        x: Number(rect.getAttribute("x")), y: Number(rect.getAttribute("y")),
+        width: Number(rect.getAttribute("width")), height: Number(rect.getAttribute("height")),
+      }));
+      if (["x", "y", "width", "height"].some((key) => box[key] !== expected.visual.target.box[key])) {
+        throw new Error("overlay lost recorded main-viewport coordinates");
+      }
+      displayedPositions += 1;
+      if (await inspector.getByRole("img", { name: "탐지 당시 페이지의 실제 화면", exact: true }).getAttribute("src") !== expected.visual.dataUrl) {
+        throw new Error("analysis overlay changed the rendered capture");
+      }
+    }
+    if (expected.visual.element?.state === "available") {
+      const crop = await inspector.getByRole("img", { name: "탐지 요소 위치의 실제 화면 캡처", exact: true }).evaluate((image) => ({
+        src: image.getAttribute("src"), width: image.naturalWidth, height: image.naturalHeight,
+      }));
+      if (crop.src !== expected.visual.element.dataUrl || crop.width <= 0 || crop.height <= 0) throw new Error("real element JPEG did not decode");
+      renderedElementCrops += 1;
     }
     renderedJpegs += 1;
     await inspector.getByRole("button", { name: "결과 목록으로" }).click();
@@ -157,7 +184,7 @@ try {
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.activeElement?.id === "export-trigger");
   console.log(JSON.stringify({ fixture: "real scanner to React results via IPC replay",
-    officialFindings: result.findings.length, renderedJpegs, transformedTexts, pageTechniqueCounts: true,
+    officialFindings: result.findings.length, renderedJpegs, renderedElementCrops, displayedPositions, transformedTexts, pageTechniqueCounts: true,
     checkedPages: detail.coverage.checkedPages, failedPages: detail.coverage.failedPages.length,
     extraFindings: output.extraResult.findings.length,
     exportValidationPassed: true, focusRestored: true }, null, 2));

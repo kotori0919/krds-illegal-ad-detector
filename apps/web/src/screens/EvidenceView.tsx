@@ -18,9 +18,10 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
   const [detailLoaded, setDetailLoaded] = useState(false);
   const [missing, setMissing] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const [showPosition, setShowPosition] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  useEffect(() => { headingRef.current?.focus(); }, [findingId]);
+  useEffect(() => { headingRef.current?.focus(); setShowPosition(false); }, [findingId]);
 
   useEffect(() => {
     let alive = true;
@@ -88,8 +89,30 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
           {detailLoaded ? <section aria-label="실제 화면">
             <h2>실제 화면</h2>
             {detail?.visual.state === "available" && detail.visual.dataUrl ? (
-              <figure className="visual-evidence"><img src={detail.visual.dataUrl} alt="탐지 당시 페이지의 실제 화면" />
-                <figcaption>촬영 시각 {detail.visual.capturedAt} · 화면 크기 {detail.visual.viewport?.width}×{detail.visual.viewport?.height}</figcaption></figure>
+              <>
+                {detail.visual.target?.state === "available" ? <button type="button" className="secondary"
+                  aria-pressed={showPosition} onClick={() => setShowPosition(!showPosition)}>분석 위치 표시</button> : null}
+                <figure className="visual-evidence">
+                  <div className="visual-evidence-stage">
+                    <img src={detail.visual.dataUrl} alt="탐지 당시 페이지의 실제 화면" />
+                    {showPosition && detail.visual.target?.state === "available" && detail.visual.viewport ?
+                      <svg className="visual-evidence-overlay" viewBox={`0 0 ${String(detail.visual.viewport.width)} ${String(detail.visual.viewport.height)}`}
+                        role="img" aria-label="측정한 요소 위치의 분석 표시">
+                        <rect x={detail.visual.target.box.x} y={detail.visual.target.box.y}
+                          width={detail.visual.target.box.width} height={detail.visual.target.box.height} />
+                      </svg> : null}
+                  </div>
+                  <figcaption>촬영 시각 {detail.visual.capturedAt} · 화면 크기 {detail.visual.viewport?.width}×{detail.visual.viewport?.height}</figcaption>
+                </figure>
+                {showPosition ? <p>분석 표시{detail.visual.element?.state === "unavailable" && detail.visual.element.reason === "outside-viewport"
+                  ? " · 캡처 화면 밖 위치" : ""} · {finding.evidence_text}</p> : null}
+                {detail.visual.element?.state === "available" ? <figure className="visual-evidence">
+                  <img src={detail.visual.element.dataUrl} alt="탐지 요소 위치의 실제 화면 캡처" />
+                  <figcaption>요소 위치 캡처 · {detail.visual.element.box.width}×{detail.visual.element.box.height}px</figcaption>
+                </figure> : <p className="hint">요소 캡처 없음{detail.visual.element?.reason === "outside-viewport" ? " (화면 밖 위치)"
+                  : detail.visual.element?.reason === "budget" ? " (시간·용량 제한)"
+                    : detail.visual.element?.reason === "target-unavailable" ? " (요소 위치 확인 불가)" : " (캡처 실패)"}</p>}
+              </>
             ) : <p className="empty">화면 캡처 없음{detail?.visual.reason === "budget" ? " (시간·용량 제한)" : detail?.visual.reason === "capture-error" ? " (캡처 실패)" : ""}</p>}
           </section> : null}
           <details className="advanced"><summary>기술 정보</summary>

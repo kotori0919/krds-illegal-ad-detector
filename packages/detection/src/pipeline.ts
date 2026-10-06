@@ -16,6 +16,7 @@ import {
   type IllegalAdEvidence,
   type OfficialTechnique,
   type TechniqueEvidence,
+  type FindingDetail,
 } from "@krds-detector/contracts";
 import { homoglyphSignal } from "./homoglyph.js";
 import { jamoSignal } from "./jamo.js";
@@ -37,11 +38,7 @@ export interface DecidedCandidate extends CandidateEvidence {
   observed: { box: { x: number; y: number; width: number; height: number }; css: {
     color: string; backgroundColor: string; opacity: string; display: string; fontSize: string; position: string;
   } };
-  visual?: {
-    state: "available" | "unavailable"; reason?: "budget" | "capture-error";
-    capturedAt?: string; mimeType?: "image/jpeg"; dataUrl?: string;
-    viewport?: { width: number; height: number; scrollX: number; scrollY: number };
-  };
+  visual?: FindingDetail["visual"];
 }
 
 interface PageTextElement {

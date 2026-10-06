@@ -76,7 +76,7 @@ describe("L3 global deadline settlement", () => {
     expect(output.result.findings.map((finding) => [new URL(finding.url).pathname, finding.location, finding.technique]))
       .toEqual([["/a-fast", "#ad", "OFFSCREEN"]]);
     expect(validateOfficialResultText(output.json).ok).toBe(true);
-    expect(validateScanDetailBundle(output.detailBundle, output.result).ok).toBe(true);
+    expect(validateScanDetailBundle(output.detailBundle, output.result, output.extraResult).ok).toBe(true);
     expect(wallMs).toBeLessThan(10_000);
   }, 20_000);
 });

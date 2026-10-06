@@ -144,7 +144,7 @@ async function runOne(concurrency, origin, baselineMiB) {
     const extra = JSON.parse(await readFile(extraFile, "utf8"));
     const validator = {
       official: validateOfficialResultText(officialText).ok,
-      detail: validateScanDetailBundle(detail, official).ok,
+      detail: validateScanDetailBundle(detail, official, extra).ok,
       extra: validateExtraResult(extra).ok,
     };
     const actual = new Set(official.findings.map(findingKey));

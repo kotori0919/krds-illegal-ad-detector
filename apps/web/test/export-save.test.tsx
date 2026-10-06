@@ -68,7 +68,7 @@ describe("ExportDialog save semantics", () => {
     await screen.findByRole("status");
     expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(true);
     const before = screen.getByRole("status").textContent;
-    await act(async () => coverage.resolve({ version: 2, findings: [], coverage: {
+    await act(async () => coverage.resolve({ version: 2, findings: [], creativeImages: [], coverage: {
       checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: true,
     } }));
     expect(screen.queryByRole("status")).toBeNull();
@@ -135,6 +135,7 @@ describe("ExportDialog save semantics", () => {
     const finding = result().findings[0]!;
     const bundle: ScanDetailBundle = {
       version: 2,
+      creativeImages: [],
       findings: [{ findingId: finding.id, url: finding.url, location: finding.location,
         technique: finding.technique, rawText: finding.evidence_text,
         normalizedText: "x", matchedTerms: [], techniqueReason: "fixture",

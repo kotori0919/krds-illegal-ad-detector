@@ -1,6 +1,6 @@
 /** Contract v0.2: session-local evidence, separate from official result.json. */
 import type { OfficialTechnique } from "./technique.js";
-import type { OfficialResult, ValidationOutcome } from "./result.js";
+import type { ExtraResult, OfficialResult, ValidationOutcome } from "./result.js";
 
 export interface FindingDetail {
   findingId: string;
@@ -22,7 +22,12 @@ export interface FindingDetail {
     capturedAt?: string;
     mimeType?: "image/jpeg";
     dataUrl?: string;
-    viewport?: { width: number; height: number; scrollX: number; scrollY: number };
+    viewport?: { width: number; height: number; scrollX: number; scrollY: number; deviceScaleFactor: number };
+    target?: { state: "available"; coordinateSpace: "main-viewport"; box: { x: number; y: number; width: number; height: number } }
+      | { state: "unavailable"; reason: "target-unavailable" };
+    element?: { state: "available"; capturedAt: string; mimeType: "image/jpeg"; dataUrl: string;
+      box: { x: number; y: number; width: number; height: number } }
+      | { state: "unavailable"; reason: "budget" | "capture-error" | "outside-viewport" | "target-unavailable" };
   };
 }
 
@@ -32,14 +37,26 @@ export interface ScanCoverage {
   timedOut: boolean;
 }
 
+export interface CreativeImage {
+  findingId: string;
+  sourceUrl: string;
+  sha256: string;
+  mimeType: "image/png" | "image/jpeg" | "image/webp";
+  dataUrl: string;
+  width: number;
+  height: number;
+  capturedAt: string;
+}
+
 export interface ScanDetailBundle {
   version: 2;
   findings: FindingDetail[];
+  creativeImages: CreativeImage[];
   coverage: ScanCoverage;
 }
 
 /** Check the ID join and bounded image representation before host transfer. */
-export function validateScanDetailBundle(bundle: ScanDetailBundle, official: OfficialResult): ValidationOutcome {
+export function validateScanDetailBundle(bundle: ScanDetailBundle, official: OfficialResult, extra: ExtraResult): ValidationOutcome {
   const errors: string[] = [];
   if (bundle.version !== 2) errors.push("detail version must be 2");
   if (bundle.findings.length !== official.findings.length) errors.push("detail finding count mismatch");
@@ -56,8 +73,47 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
       if (detail.visual.mimeType !== "image/jpeg"
         || !detail.visual.dataUrl?.startsWith("data:image/jpeg;base64,")
         || detail.visual.dataUrl.length > 700_000) errors.push(`detail visual invalid ${finding.id}`);
+      const { target, element, viewport } = detail.visual;
+      const validBox = (box: { x: number; y: number; width: number; height: number }): boolean =>
+        Number.isFinite(box.x) && Number.isFinite(box.y) && Number.isFinite(box.width)
+        && Number.isFinite(box.height) && box.width > 0 && box.height > 0;
+      if (!viewport || !Number.isFinite(viewport.width) || !Number.isFinite(viewport.height)
+        || viewport.width <= 0 || viewport.height <= 0 || !Number.isFinite(viewport.deviceScaleFactor)
+        || viewport.deviceScaleFactor <= 0 || !Number.isFinite(viewport.scrollX)
+        || !Number.isFinite(viewport.scrollY)) errors.push(`detail viewport invalid ${finding.id}`);
+      if (!target || (target.state === "available" ? (!validBox(target.box)
+        || target.coordinateSpace !== "main-viewport") : target.state !== "unavailable"
+        || target.reason !== "target-unavailable")) errors.push(`detail target invalid ${finding.id}`);
+      if (!element) errors.push(`detail element capture missing ${finding.id}`);
+      else if (element.state === "available" && (target?.state !== "available" || !validBox(element.box)
+        || element.mimeType !== "image/jpeg" || !element.dataUrl.startsWith("data:image/jpeg;base64,")
+        || element.dataUrl.length > 700_000 || !viewport || element.box.x < 0 || element.box.y < 0
+        || element.box.x + element.box.width > viewport.width || element.box.y + element.box.height > viewport.height)) {
+        errors.push(`detail element capture invalid ${finding.id}`);
+      }
+      else if (element.state !== "available" && (element.state !== "unavailable"
+        || !["budget", "capture-error", "outside-viewport", "target-unavailable"].includes(element.reason)
+        || "dataUrl" in element)) errors.push(`unavailable detail element invalid ${finding.id}`);
     } else if (detail.visual.dataUrl) errors.push(`unavailable detail has image ${finding.id}`);
   }
   if (bundle.coverage.failedPages.length > bundle.coverage.checkedPages) errors.push("failed pages exceed checked pages");
+  const creativeIds = new Set<string>();
+  let imageCharacters = 0;
+  if (!Array.isArray(bundle.creativeImages) || bundle.creativeImages.length > 64) errors.push("creative images invalid");
+  else for (const image of bundle.creativeImages) {
+    const finding = extra.findings.find((item) => item.id === image.findingId);
+    if (!finding || finding.extra_finding !== "REUSED_AD_CREATIVE" || finding.url !== image.sourceUrl
+      || finding.location !== image.sourceUrl || creativeIds.has(image.findingId)) errors.push("creative image identity invalid");
+    creativeIds.add(image.findingId);
+    if (!["image/png", "image/jpeg", "image/webp"].includes(image.mimeType)
+      || !image.dataUrl.startsWith(`data:${image.mimeType};base64,`) || image.dataUrl.length > 334_000
+      || !/^[A-Za-z0-9+/]+={0,2}$/.test(image.dataUrl.slice(image.dataUrl.indexOf(",") + 1))
+      || !/^[a-f0-9]{64}$/.test(image.sha256) || !Number.isInteger(image.width) || image.width < 8
+      || !Number.isInteger(image.height) || image.height < 8 || !Number.isFinite(Date.parse(image.capturedAt))) {
+      errors.push("creative image representation invalid");
+    }
+    imageCharacters += image.dataUrl.length;
+  }
+  if (imageCharacters > 2_670_000) errors.push("creative images exceed capture budget");
   return { ok: errors.length === 0, errors };
 }

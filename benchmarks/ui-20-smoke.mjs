@@ -22,6 +22,7 @@ const result = {
 };
 const detail = {
   version: 2,
+  creativeImages: [],
   findings: findings.map((finding) => ({
     findingId: finding.id, url: finding.url, location: finding.location,
     technique: finding.technique, rawText: finding.evidence_text,

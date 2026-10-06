@@ -81,9 +81,9 @@ try {
   if (!verdict.ok) throw new Error(`official result invalid: ${verdict.errors.join("; ")}`);
   const official = JSON.parse(text);
   const detail = JSON.parse(await readFile(detailFile, "utf8"));
-  const detailVerdict = validateScanDetailBundle(detail, official);
-  if (!detailVerdict.ok) throw new Error(`detail bundle invalid: ${detailVerdict.errors.join("; ")}`);
   const extra = JSON.parse(await readFile(extraFile, "utf8"));
+  const detailVerdict = validateScanDetailBundle(detail, official, extra);
+  if (!detailVerdict.ok) throw new Error(`detail bundle invalid: ${detailVerdict.errors.join("; ")}`);
   const extraVerdict = validateExtraResult(extra);
   if (!extraVerdict.ok) throw new Error(`extra result invalid: ${extraVerdict.errors.join("; ")}`);
   if (JSON.stringify(extra.meta) !== JSON.stringify(official.meta)) throw new Error("extra metadata differs from official result");

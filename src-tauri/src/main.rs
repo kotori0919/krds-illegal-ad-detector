@@ -187,8 +187,8 @@ async fn finish_session(
             let validated = validate_sidecar_stdout(entry_url, &stdout).and_then(|canonical| {
                 let detail = detail_text?;
                 let extra = extra_text?;
-                validate_detail_bundle(&canonical, &detail)?;
                 validate_extra_bundle(&canonical, &extra)?;
+                validate_detail_bundle(&canonical, &detail, &extra)?;
                 Ok((canonical, detail, extra))
             });
             match validated {
@@ -313,14 +313,15 @@ mod validation_tests {
     fn detail_manifest_must_join_the_official_finding() {
         let detail = serde_json::json!({
             "version": 2,
+            "creativeImages": [],
             "findings": [{"findingId":"f1", "url":"https://example.kr/a", "location":"#a",
                 "technique":"HOMOGLYPH", "rawText":"x", "visual":{"state":"unavailable","reason":"budget"}}],
             "coverage": {"checkedPages":1,"failedPages":[],"timedOut":false}
         });
-        assert!(validate_detail_bundle(&good_json(), &detail.to_string()).is_ok());
+        assert!(validate_detail_bundle(&good_json(), &detail.to_string(), "{\"findings\":[]}").is_ok());
         let mut wrong = detail;
         wrong["findings"][0]["location"] = serde_json::Value::String("#other".to_string());
-        assert!(validate_detail_bundle(&good_json(), &wrong.to_string()).is_err());
+        assert!(validate_detail_bundle(&good_json(), &wrong.to_string(), "{\"findings\":[]}").is_err());
     }
 }
 
@@ -385,7 +386,7 @@ fn validate_sidecar_stdout(entry_url: &str, stdout: &str) -> Result<String, Stri
 
 /// Bind every internal detail to a validated official finding. Visual bytes
 /// remain in the session-local manifest and never enter result.json.
-fn validate_detail_bundle(official_text: &str, detail_text: &str) -> Result<(), String> {
+fn validate_detail_bundle(official_text: &str, detail_text: &str, extra_text: &str) -> Result<(), String> {
     if detail_text.len() > 8_000_000 { return Err("detail manifest exceeds size limit".to_string()); }
     let official: serde_json::Value = serde_json::from_str(official_text).map_err(|e| e.to_string())?;
     let detail: serde_json::Value = serde_json::from_str(detail_text).map_err(|e| format!("detail manifest invalid JSON: {e}"))?;
@@ -409,6 +410,48 @@ fn validate_detail_bundle(official_text: &str, detail_text: &str) -> Result<(), 
                 if !uri.starts_with("data:image/jpeg;base64,") || uri.len() > 700_000 {
                     return Err(format!("detail {id} visual data invalid"));
                 }
+                let valid_box = |rect: &serde_json::Value| {
+                    ["x", "y", "width", "height"].iter().all(|key|
+                        rect[*key].as_f64().map(|value| value.is_finite()).unwrap_or(false))
+                        && rect["width"].as_f64().unwrap_or(0.0) > 0.0
+                        && rect["height"].as_f64().unwrap_or(0.0) > 0.0
+                };
+                let viewport = &visual["viewport"];
+                let width = viewport["width"].as_f64().filter(|value| value.is_finite() && *value > 0.0)
+                    .ok_or(format!("detail {id} viewport width invalid"))?;
+                let height = viewport["height"].as_f64().filter(|value| value.is_finite() && *value > 0.0)
+                    .ok_or(format!("detail {id} viewport height invalid"))?;
+                if !viewport["deviceScaleFactor"].as_f64().map(|value| value.is_finite() && value > 0.0).unwrap_or(false) {
+                    return Err(format!("detail {id} device scale invalid"));
+                }
+                if !["scrollX", "scrollY"].iter().all(|key| viewport[*key].as_f64().map(|value| value.is_finite()).unwrap_or(false)) {
+                    return Err(format!("detail {id} viewport scroll invalid"));
+                }
+                let target = &visual["target"];
+                match target["state"].as_str() {
+                    Some("available") if valid_box(&target["box"]) && target["coordinateSpace"] == "main-viewport" => {},
+                    Some("unavailable") if target["reason"] == "target-unavailable" => {},
+                    _ => return Err(format!("detail {id} target invalid")),
+                }
+                let element = &visual["element"];
+                match element["state"].as_str() {
+                    Some("available") => {
+                        let image = element["dataUrl"].as_str().ok_or(format!("detail {id} element data missing"))?;
+                        let rect = &element["box"];
+                        if target["state"] != "available" || !valid_box(rect)
+                            || element["mimeType"] != "image/jpeg"
+                            || !image.starts_with("data:image/jpeg;base64,") || image.len() > 700_000
+                            || rect["x"].as_f64().unwrap_or(-1.0) < 0.0 || rect["y"].as_f64().unwrap_or(-1.0) < 0.0
+                            || rect["x"].as_f64().unwrap_or(0.0) + rect["width"].as_f64().unwrap_or(0.0) > width
+                            || rect["y"].as_f64().unwrap_or(0.0) + rect["height"].as_f64().unwrap_or(0.0) > height {
+                            return Err(format!("detail {id} element capture invalid"));
+                        }
+                    },
+                    Some("unavailable") if matches!(element["reason"].as_str(),
+                        Some("budget" | "capture-error" | "outside-viewport" | "target-unavailable"))
+                        && element.get("dataUrl").is_none() => {},
+                    _ => return Err(format!("detail {id} element state invalid")),
+                }
             }
             Some("unavailable") => {
                 if visual.get("dataUrl").is_some() { return Err(format!("detail {id} unavailable visual has data")); }
@@ -420,6 +463,36 @@ fn validate_detail_bundle(official_text: &str, detail_text: &str) -> Result<(), 
     let checked = coverage["checkedPages"].as_u64().ok_or("detail checkedPages missing")?;
     let failed = coverage["failedPages"].as_array().ok_or("detail failedPages missing")?;
     if failed.len() as u64 > checked { return Err("detail failedPages exceeds checkedPages".to_string()); }
+    let extra: serde_json::Value = serde_json::from_str(extra_text).map_err(|e| e.to_string())?;
+    let extras = extra["findings"].as_array().ok_or("extra findings missing")?;
+    let images = detail["creativeImages"].as_array().ok_or("detail creativeImages missing")?;
+    if images.len() > 64 { return Err("detail creativeImages exceeds limit".to_string()); }
+    let mut ids = std::collections::HashSet::new();
+    let mut image_chars = 0;
+    for image in images {
+        let id = image["findingId"].as_str().ok_or("creative image findingId missing")?;
+        let finding = extras.iter().find(|finding| finding["id"] == id).ok_or("creative image finding missing")?;
+        if !ids.insert(id) || finding["extra_finding"] != "REUSED_AD_CREATIVE"
+            || finding["url"] != image["sourceUrl"] || finding["location"] != image["sourceUrl"] {
+            return Err("creative image identity invalid".to_string());
+        }
+        let mime = image["mimeType"].as_str().ok_or("creative image MIME missing")?;
+        let data = image["dataUrl"].as_str().ok_or("creative image data missing")?;
+        let hash = image["sha256"].as_str().ok_or("creative image hash missing")?;
+        let encoded = data.split_once(',').map(|(_, payload)| payload).unwrap_or("");
+        let content = encoded.trim_end_matches('=');
+        if !matches!(mime, "image/png" | "image/jpeg" | "image/webp")
+            || !data.starts_with(&format!("data:{mime};base64,")) || data.len() > 334_000
+            || content.is_empty() || encoded.len() - content.len() > 2
+            || !content.bytes().all(|byte| byte.is_ascii_alphanumeric() || byte == b'+' || byte == b'/')
+            || hash.len() != 64 || !hash.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            || image["width"].as_u64().unwrap_or(0) < 8 || image["height"].as_u64().unwrap_or(0) < 8
+            || image["capturedAt"].as_str().and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok()).is_none() {
+            return Err("creative image representation invalid".to_string());
+        }
+        image_chars += data.len();
+    }
+    if image_chars > 2_670_000 { return Err("creative images exceed capture budget".to_string()); }
     Ok(())
 }
 

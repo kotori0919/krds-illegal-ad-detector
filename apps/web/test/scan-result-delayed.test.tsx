@@ -51,7 +51,7 @@ describe("ScanResult delayed availability", () => {
     renderResultState(async () => findingResult(), () => pending);
     await screen.findByText(/공식 탐지 1건/);
     const before = screen.getByRole("status").textContent;
-    await act(async () => complete({ version: 2, findings: [], coverage: {
+    await act(async () => complete({ version: 2, findings: [], creativeImages: [], coverage: {
       checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: false,
     } }));
     expect(screen.queryByRole("status")).toBeNull();

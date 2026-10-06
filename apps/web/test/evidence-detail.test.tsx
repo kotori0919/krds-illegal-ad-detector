@@ -24,7 +24,7 @@ const detail: FindingDetail = { findingId: "f1", url: finding.url, location: fin
   observed: { box: { x: 8, y: 20, width: 200, height: 24 },
     css: { color: "rgb(0, 0, 0)", backgroundColor: "rgba(0, 0, 0, 0)", opacity: "1", display: "block", fontSize: "16px", position: "static" } },
   visual: { state: "unavailable", reason: "budget" } };
-const bundle: ScanDetailBundle = { version: 2, findings: [detail],
+const bundle: ScanDetailBundle = { version: 2, findings: [detail], creativeImages: [],
   coverage: { checkedPages: 1, failedPages: [], timedOut: false } };
 
 describe("finding evidence presentation", () => {

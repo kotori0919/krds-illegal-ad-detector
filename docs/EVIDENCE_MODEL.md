@@ -1,11 +1,15 @@
 # Evidence model V2
 
-Status: Contract v0.2 initial implementation, 2026-10-06. The scanner now
+Status: Contract v0.2 visual-evidence extension in progress, 2026-10-06. The scanner now
 returns `OfficialFinding` plus a separately validated `ScanDetailBundle`.
 The Node worker writes the bundle separately from `result.json`; the Tauri
 host code reads and joins it atomically to the official result. The worker
-path was executed locally; the changed Tauri host has not yet been compiled
-or exercised on Windows.
+path and inspector were executed locally. Earlier viewport-only Windows
+acceptance is in DRY_RUN. The new crop/position fields passed actual installed
+Windows host retrieval, rendering and export. Current-worker Windows concurrency
+measurements remain open core work. Image-creative asset presentation has now
+passed actual installed Windows retrieval, original-byte/decode checks and
+rendering, separately from official export.
 
 ## What the inspector can assert
 
@@ -21,13 +25,18 @@ supports it. Keep an explicit unavailable reason when optional capture fails.
 ## Visual artifact contract
 
 ```ts
+type Rect = { x: number; y: number; width: number; height: number };
 interface VisualEvidence {
   state: "available" | "unavailable";
   reason?: "budget" | "capture-error";
   capturedAt?: string;
   mimeType?: "image/jpeg";
   dataUrl?: string; // bounded JPEG in the session-local detail manifest
-  viewport?: { width: number; height: number; scrollX: number; scrollY: number };
+  viewport?: { width: number; height: number; scrollX: number; scrollY: number; deviceScaleFactor: number };
+  target?: { state: "available"; coordinateSpace: "main-viewport"; box: Rect }
+    | { state: "unavailable"; reason: "target-unavailable" };
+  element?: { state: "available"; capturedAt: string; mimeType: "image/jpeg"; dataUrl: string; box: Rect }
+    | { state: "unavailable"; reason: "budget" | "capture-error" | "outside-viewport" | "target-unavailable" };
 }
 ```
 
@@ -50,7 +59,50 @@ page and frame detection, the scanner captures at most one viewport JPEG for
 that page, subject to the byte/page caps and shared `ScanDeadline`; candidates
 on the same page share it. Capture exhaustion is `reason="budget"`; a
 Playwright failure is `reason="capture-error"`. Neither blocks the official
-finding. Element crops and overlays remain open work.
+finding. Available viewport captures now require target and element-capture
+states in both JavaScript and native validation. Up to six unique element
+regions per scan are captured from the existing live Page, within the same
+2 MB serialized-copy budget; shared elements reuse their capture across
+techniques. The crop is the rendered page region at the element's measured
+location, clipped to the main viewport and containing frame bounds. It does
+not scroll, rewrite opacity or reveal pixels that were not rendered.
+
+Locator text must still match the detected raw text. Main-viewport bounds are
+read before and after the page capture; a changed viewport/scroll or target
+does not receive a precise placement claim. Crop bounds are checked again
+after capture. Live child-frame locator boxes use Playwright's main-frame
+coordinates; the original official frame chain and frame-local analysis box
+are retained separately. An element outside its visible containing viewport
+gets an explicit outside-viewport state instead of an invented crop.
+
+The inspector keeps the rendered page JPEG intact. A keyboard-operated
+"분석 위치 표시" control adds a separately labelled SVG outline in its recorded
+main-viewport coordinate space, with detected text outside the image. The
+element-region JPEG is separately labelled. No fabricated screenshot or
+edited page pixels are used.
+
+## Image-based extra findings
+
+The session manifest now includes required `creativeImages`, separate from
+official and extra result exports. Each image joins exactly one
+`REUSED_AD_CREATIVE` finding by ID and the observed response URL. Its SHA-256,
+decoded dimensions, MIME type and capture timestamp identify the same body used
+for the perceptual fingerprint. Only PNG, JPEG and WebP data URLs are accepted.
+The scanner reuses the bounded, already observed response body; it performs no
+additional image fetch. At most eight admitted pages contribute, with 250 KB
+per page and eight fingerprints per page. Only representatives of emitted
+creative findings survive final aggregation. The JavaScript and native host
+reject duplicate IDs, wrong URL/category joins, invalid image representations,
+more than 64 assets or 2,670,000 image characters. The full manifest retains
+its 8 MB native limit.
+
+The extra-analysis list displays the actual collected image, labelled separately
+from viewport and element-region captures. Loading, failed retrieval and absent
+capture remain explicit. Linux scanner-to-React execution decoded the stored
+64-by-64 asset, checked exact source bytes and preserved official0/extra2
+separation. Installed Windows execution also passed the same original-byte and
+decode checks, displayed the actual asset and saved a validated246-byte official
+zero-result file. Current-worker Windows performance acceptance remains open.
 
 Transparent text needs the ordinary rendered viewport plus a clearly labelled analysis outline at the measured location; do not alter the screenshot pixels and call that the rendered page. For offscreen elements, a viewport image alone cannot show the element: provide measured bounds relative to viewport and, if technically possible within budget, a separate element crop labelled as an analysis capture. An image advertisement extra finding may use the actual image crop only when the image pipeline produces it; current text-only official detection does not support claiming image-ad capture.
 

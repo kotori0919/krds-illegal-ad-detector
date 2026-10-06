@@ -1,5 +1,6 @@
 /** Real observed ad images through the React extra-analysis workspace via IPC replay. */
 import { createServer } from "node:http";
+import { Buffer } from "node:buffer";
 import { readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -84,6 +85,22 @@ try {
   await page.getByText("추가 분석 2건").waitFor();
   await page.getByRole("heading", { name: "반복 광고 소재" }).waitFor();
   await page.getByRole("heading", { name: "연관 광고 인프라" }).waitFor();
+  const storedImage = output.detailBundle.creativeImages[0];
+  if (!storedImage) throw new Error("scan omitted the observed creative asset");
+  const image = page.getByRole("img", { name: "수집한 반복 광고 이미지" });
+  await image.waitFor();
+  if (await image.getAttribute("src") !== storedImage.dataUrl) throw new Error("creative display differs from stored bytes");
+  const dimensions = await image.evaluate(async (item) => {
+    await item.decode();
+    return { width: item.naturalWidth, height: item.naturalHeight };
+  });
+  if (dimensions.width !== storedImage.width || dimensions.height !== storedImage.height) {
+    throw new Error("creative asset decoded dimensions differ from capture");
+  }
+  if (!Buffer.from(storedImage.dataUrl.split(",")[1], "base64").equals(
+    await readFile(resolve(assetRoot, new URL(storedImage.sourceUrl).pathname.slice(1))))) {
+    throw new Error("displayed creative differs from observed asset bytes");
+  }
   if (await page.getByLabel("추가 분석 목록").locator("li").count() !== 2) {
     throw new Error("extra list did not display both observed findings");
   }
@@ -103,7 +120,8 @@ try {
   await page.getByText("확정된 탐지가 없습니다.", { exact: false }).waitFor();
   console.log(JSON.stringify({ fixture: "observed images to React extra results via IPC replay",
     officialFindings: 0, extraFindings: 2, separateList: true,
-    keyboardNavigation: true, disclosureHeights, keyboardDisclosure: true, reflow360px: true }, null, 2));
+    keyboardNavigation: true, disclosureHeights, keyboardDisclosure: true, reflow360px: true,
+    actualCreativeImage: true, dimensions }, null, 2));
 } finally {
   await browser?.close();
   if (app.listening) await new Promise((done) => app.close(done));

@@ -10,9 +10,10 @@ The implemented core workflow is OBSERVED: actual installed scans, real evidence
 review/filter/page navigation, validated export/retry, cancellation/restart,
 full-object C1-C4 benchmark, deadline partial export and rejected-read recovery
 passed. This is not full core closure: the original visual-evidence steering
-also names element crops and analysis position overlays. EVIDENCE_MODEL.md
-still records those as open; viewport JPEGs and measured bounds do not prove
-their implementation. Close this functional gap before further strict UX work.
+also names image-creative presentation. Element-region crops and analysis
+position overlays and image-creative assets now passed actual installed Windows
+execution. The updated worker's full Windows benchmark is running. Complete
+that core performance/correctness acceptance before further strict UX work.
 
 | Requirement | Concrete acceptance evidence | Current assessment |
 | --- | --- | --- |
@@ -33,19 +34,20 @@ their implementation. Close this functional gap before further strict UX work.
 ## Current installed build and evidence
 
 Latest installed executable SHA-256 (also matched by extracting the NSIS payload):
-`719664a407f558d64284aae34edbd784c287d0bb9cf8058567bfff34a0a3d149`.
+`5120e88ccfe239f2166ce5d3835a398735a5d628420cc06b92e4a3ca9f182a00`.
 NSIS SHA-256:
-`9fc8c667fb782993be9ee43304b465d0635073205cc4ea1d72a2c36ad2445587`.
+`0990a3a590624b6acc7286fb006701f21e1c71f48392e835284f2c693e4dd42e`.
 The deadline, read-rejection and main accessibility runs used the earlier executable:
 `70320694da2e504d9bab0891382b1dee4b488a07a6af5870871d9049ec41b1b3`.
 Bundled worker SHA-256:
-`90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`.
+`309cacb385292865d947134731e0b6c5720caaf608c0a7bd279378cc74c78d81`.
 
 DRY_RUN records the earlier core package, real evidence/review/save/cancel
 execution and artifact validation. PERF records the full-object C1-C4 metrics.
 KRDS_COMPLIANCE records subsequent installed zoom, native UIAutomation and
-state batches, including failed or insufficient captures. The worker remained
-unchanged through the UI-only release slices. Raw temporary reports are named
+state batches, including failed or insufficient captures. The earlier C1-C4
+benchmark used worker `90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`;
+the new crop worker needs fresh performance measurements. Raw reports are named
 in those records; report replacement does not retroactively change old proof.
 
 ## Next acceptance checks
@@ -53,9 +55,9 @@ in those records; report replacement does not retroactively change old proof.
 1. OBSERVED: installed keyboard-only scope, scan, filter/search, finding
    review/return, page navigation, confirmation and restart passed. See
    KRDS_COMPLIANCE for input method, report and distinction from file writing.
-2. Close the element-crop/analysis-position evidence gap from the original
-   steering. Native rejected result/detail/extra reads and the scoped
-   accessibility/target-size checks passed; preserve their exact scope.
+2. Finish the updated worker's full Windows C1-C4 benchmark. Image-creative
+   assets, element-region crops and position displays passed native execution;
+   older read/accessibility checks retain their original package scope.
 3. Reconcile remaining release rows with their actual evidence. The normal
    Windows deadline/partial export path passed; do not describe that execution
    as forced host-guard exhaustion.

@@ -1,6 +1,6 @@
 # ADR-0013: Bounded session-local detail manifest (2026-10-06)
 
-Status: initial implementation; Linux worker path observed, Windows host and memory acceptance pending.
+Status: bounded element-region captures and analysis position metadata observed in Linux scanner/UI and actual installed Windows host execution. Current-worker Windows memory/performance acceptance remains pending.
 
 ## Context
 
@@ -50,3 +50,40 @@ the React workspace through a labelled IPC replay. All five JPEGs decoded in
 the finding inspector and matched their detail records; coverage and export
 preview matched the same scan. This verifies the data-to-inspector join without
 claiming native Tauri retrieval or Windows rendering.
+
+## Amendment: element regions and analysis position (2026-10-06)
+
+Available viewport evidence now also carries a target state with explicit
+main-viewport coordinates and a separate element-region capture state.
+The shared scan budget permits at most six unique element captures and counts
+their serialized copies within the existing2MB cap. Candidate text and bounds
+must remain stable across page capture; crops are clipped to the main viewport
+and containing live frame bounds, never recovered by a second navigation or
+scroll. Offscreen, changed/detached and exhausted cases remain explicit.
+Both JavaScript and the native host validate the new geometry, coordinate
+space, device scale, crop bounds and bounded JPEG schemes before display.
+The inspector adds a separately labelled, toggleable SVG analysis outline;
+the original rendered pixels remain intact. Source/local smoke proof does
+not substitute for the new worker's C1-C4 benchmark. Subsequent installed
+Windows execution passed native host validation: 17 findings reviewed, seven
+displayed crop references and nine measured position displays. Crop references
+can share an element capture; they do not imply seven unique capture attempts.
+All four displayed placement coordinates matched persisted numeric fields.
+The official export was 4,660 bytes and passed validation. See DRY_RUN for the
+exact installed package and report scope.
+
+## Amendment: observed creative assets (2026-10-06)
+
+The manifest includes a required `creativeImages` array. Each entry joins an
+emitted reused-creative extra finding by ID and exact response URL and carries
+the original fingerprinted raster bytes, MIME, dimensions, SHA-256 and time.
+All callers and fixtures move to this shape; no legacy manifest path remains.
+Reuse the already bounded response body instead of revisiting the image URL.
+Keep only emitted group representatives at aggregation, under the existing
+eight-page/250-KB-per-page image processing bound. Native validation also checks
+the extra finding join before storing the session atomically. Official
+`result.json` and `result_extra.json` remain unchanged and exclude image bytes.
+Linux real-scanner/React and actual installed Windows execution passed
+original-byte and decode checks. Windows displayed the64-by-64 observed asset,
+kept official0/extra2 separation and saved a validated246-byte official file.
+Current-worker Windows C1-C4 performance acceptance remains pending.

@@ -1489,3 +1489,50 @@ its normal zero result without a stale error. All three cases passed.
 Raw report: `/tmp/illegal-ad-toolchain/current-native-read-error-current.json`
 (679 bytes). This establishes rejected-command handling, not a simulated
 physical disk-read failure.
+
+### Installed element-region and placement evidence (2026-10-06)
+
+OBSERVED: the installed executable
+`0c75dbcbfc031de2690508fac8e28f0f7a655709c4622c1bceb0286ab2e4b3f3`
+and worker `6da59b7ced82bbe9de48750c8702b98f8aaf98bf2608e692a67c68c64ea4223e`
+passed actual Tauri retrieval, persisted geometry, real crop decoding, review
+and official export. Seventeen findings were reviewed; seven displayed crop
+references and nine position displays were exercised. Several techniques can
+reuse one element capture; seven references do not mean seven unique captures.
+All four displayed SVG rectangle coordinates matched persisted numeric values.
+The official save was 4,660 bytes and passed validation. NSIS SHA-256 was
+`907606b8006a5b4e2291696e54098e590860b2e1672b2c1849e10dfc2a22daec`;
+the installed executable matched its extracted payload. Inspection found only
+the three idle fixture server Node processes, with no owned app or scan browser
+left running. Raw report:
+`/tmp/illegal-ad-toolchain/current-native-element-current.json` (301 bytes).
+The first temporary probe compared JSON object key order and failed; it was
+corrected to compare numeric fields, preserving the first report separately.
+This proves native functional behavior, not current-worker performance or
+the new control's native narrow/zoom release gate.
+
+### Installed observed creative assets (2026-10-06)
+
+OBSERVED: the new NSIS package was installed through Add/Reinstall. Its
+SHA-256 is `0990a3a590624b6acc7286fb006701f21e1c71f48392e835284f2c693e4dd42e`.
+Installed executable `5120e88ccfe239f2166ce5d3835a398735a5d628420cc06b92e4a3ca9f182a00`
+matched the extracted payload, and installed worker
+`309cacb385292865d947134731e0b6c5720caaf608c0a7bd279378cc74c78d81`
+matched the benchmark worker. The actual worker and Tauri host processed a
+two-page image scenario with official0/extra2. The persisted representative
+PNG matched the observed source bytes, decoded at64-by-64 and appeared in the
+native Results workspace. Official export stayed at zero findings,246 bytes,
+and passed validation. A preceding active scan cancelled with zero scanner
+Chromium processes left. Raw report:
+`/tmp/illegal-ad-toolchain/current-native-extra-core-current.json` (2,686 bytes).
+Native rendered capture: `creative-native-visible.png` in that directory.
+The first report transfer failed because the collector process had exited;
+the completed run was recovered through the existing transfer helper after
+restarting only the collector. The native scan was not restarted for transfer.
+
+The same new installed package then repeated the17-finding element-region,
+position/review/export check: seven crop references, nine exact positions and
+validated4,660-byte export. Raw `current-native-element-current.json` (301 bytes)
+was received at19:13KST. Historical worker6da evidence above keeps its scope.
+Current-worker full200-page C1-C4 Windows measurement is running; its final
+report must name worker309cacb385 before replacing the historical PERF table.

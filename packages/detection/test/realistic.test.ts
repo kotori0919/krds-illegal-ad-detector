@@ -53,7 +53,7 @@ describe("L2 municipal-style public site", () => {
       expect(output.failedPages).toBe(truth.expectedFailedPages);
       expect(output.timedOut).toBe(false);
       expect(validateOfficialResultText(output.json).ok).toBe(true);
-      expect(validateScanDetailBundle(output.detailBundle, output.result).ok).toBe(true);
+      expect(validateScanDetailBundle(output.detailBundle, output.result, output.extraResult).ok).toBe(true);
       expect(output.detailBundle.coverage.checkedPages).toBe(6);
       expect(output.detailBundle.coverage.failedPages.map((page) => new URL(page.url).pathname)).toEqual(["/missing.html"]);
       expect(output.detailBundle.findings.map((detail) => detail.findingId)).toEqual(output.result.findings.map((finding) => finding.id));

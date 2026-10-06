@@ -70,7 +70,15 @@ describe("L3 live cross-origin frames", () => {
       const actual = output.result.findings.map((finding) => `${finding.url}\0${finding.location}\0${finding.technique}`).sort();
       expect(actual).toEqual(expected.sort());
       expect(validateOfficialResultText(output.json).ok).toBe(true);
-      expect(validateScanDetailBundle(output.detailBundle, output.result).ok).toBe(true);
+      expect(validateScanDetailBundle(output.detailBundle, output.result, output.extraResult).ok).toBe(true);
+      if (maxFrameDepth === 2) {
+        const inner = output.detailBundle.findings.find((finding) => finding.location === innerPath)!;
+        expect(inner.visual.target?.state).toBe("available");
+        if (inner.visual.target?.state !== "available") throw new Error("nested frame position unavailable");
+        expect(inner.visual.target.box.y).toBeGreaterThan(inner.observed.box.y);
+        expect(inner.visual.target.coordinateSpace).toBe("main-viewport");
+        expect(inner.visual.element?.state).toBe("available");
+      }
     }
   }, 30_000);
 });
