@@ -57,6 +57,37 @@ closed confirmation and visibly restored Save focus. Native captures are
 `zoom-native-focus-restored.png` in the same directory. This closes the
 rendered confirmation check only; assistive-technology checks remain open.
 
+### Native status event audit (2026-10-06)
+
+OBSERVED: the actual installed synthetic scan changed its status from 0 to
+14 findings before cancellation. An MTA Windows UIAutomation listener received
+seven LiveRegionChanged events containing the actual Korean counts
+2, 4, 6, 9, 11, 13 and 14. The listener collected descendant accessible text
+because the status container's own Name is empty. Report:
+`/tmp/illegal-ad-toolchain/current-native-live-current.json` (1678 bytes).
+The empty-event municipal run did not establish an application defect.
+This proves native delivery of the changing status text, not spoken output.
+Intervals as short as 0.188 seconds reveal an unresolved announcement cadence
+issue; visible counters must remain immediate while announcements are bounded.
+The VM has no audio device, so spoken Narrator output remains unverified.
+
+OBSERVED after the cadence correction: the revised NSIS installed successfully.
+Its executable SHA-256 matches the host build
+`70320694da2e504d9bab0891382b1dee4b488a07a6af5870871d9049ec41b1b3`;
+the bundled worker remains `90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`.
+Actual synthetic work advanced the visible count to 13 while the status
+announcement had reached 6. Windows delivered Korean 0- and 6-finding events
+7.537835 seconds apart in this run; cancellation settled, and the final
+native process summary contained only the three preexisting idle fixture
+servers, with no product or scanner Chromium process. This is a single-run
+smoke of announcement coalescence, not an assertion that native delivery is
+exactly every 2 seconds or a spoken-output check. Report:
+`/tmp/illegal-ad-toolchain/current-native-live-current.json` (682 bytes);
+identity/process capture: `announcement-installed-identity.png` in the same
+directory. The original 1678-byte audit is retained separately as
+`native-live-unthrottled-baseline.json`. Eight scan-feedback tests, typecheck,
+lint and the actual-scanner browser IPC replay smoke also passed.
+
 ### Current confirmation and result-state evidence (2026-10-06)
 
 OBSERVED: `smoke:ui-states` used actual scanner output (17 official findings

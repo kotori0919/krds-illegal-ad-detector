@@ -86,3 +86,14 @@ the existing responsive layout must work under WebView2 zoom without changing
 OS display scale. Verify Ctrl+plus/minus, focus and dialog/actions on the
 installed application, then restore the normal zoom level before performance
 measurements. No detector or scanner policy changes are required.
+
+## Amendment 2026-10-06: progress announcement cadence
+
+Actual Windows UIAutomation events exposed count announcements only 188ms
+apart. Keep progress counters immediate, but collect the latest nonterminal
+status in a single 2-second announcement window. Initial and terminal status
+remain immediate. Cancel settlement still belongs to the host session poll.
+Clear the pending announcement on terminal status and component disposal.
+The interval is a local accessibility choice, not a claimed KRDS token or
+normative numerical requirement. Verify native event text and spacing after
+installing the revised package.

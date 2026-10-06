@@ -43,6 +43,25 @@ function value(label: string): string | null {
 }
 
 describe("recoverable scan feedback", () => {
+  it("coalesces rapid finding announcements while keeping counts immediate and terminal feedback prompt", async () => {
+    const host = setup();
+    await tick(0);
+    const initialNotice = screen.getByRole("status").textContent;
+    host.emit({ ...initialProgress("running"), sequence: 1, confirmedFindings: 2 });
+    await tick(200);
+    host.emit({ ...initialProgress("running"), sequence: 2, confirmedFindings: 6 });
+    expect(value("탐지")).toBe("6");
+    expect(screen.getByRole("status").textContent).toBe(initialNotice);
+    await tick(1800);
+    expect(screen.getByRole("status").textContent).toContain("6건");
+    host.emit({ ...initialProgress("running"), sequence: 3, confirmedFindings: 9 });
+    host.emit({ ...initialProgress("failed"), sequence: 4, confirmedFindings: 11 });
+    expect(screen.getByRole("status").textContent).toContain("11건");
+    expect(screen.getByRole("status").textContent).toContain("실패");
+    await tick(2000);
+    expect(screen.getByRole("status").textContent).not.toContain("9건");
+  });
+
   it("recovers active work and failures from the host and ignores stale events and polls", async () => {
     const host = setup();
     const progress = { ...initialProgress("running"), sequence: 9, visitedPages: 12, failedPages: 1,

@@ -58,6 +58,14 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
     let polling = false;
     let sequence = -1;
     let lastSpoken = "";
+    let pendingNotice = "";
+    let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+    const announce = (): void => {
+      noticeTimer = undefined;
+      if (disposed || pendingNotice === lastSpoken) return;
+      lastSpoken = pendingNotice;
+      setNotice(lastSpoken);
+    };
     let clock = { base: 0, at: performance.now(), active: true };
     const acceptProgress = (next: ScanProgress): void => {
       if (disposed || settled || next.sequence <= sequence) return;
@@ -68,7 +76,13 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
         active: !["succeeded", "failed", "cancelled"].includes(next.stage) };
       setElapsedSec(clock.base);
       const line = `${scanStatusLabel(next.stage)} · 탐지 ${String(next.confirmedFindings)}건${next.failedPages ? ` · 페이지 실패 ${String(next.failedPages)}개` : ""}`;
-      if (line !== lastSpoken) { lastSpoken = line; setNotice(line); }
+      pendingNotice = line;
+      if (!lastSpoken || !clock.active) {
+        clearTimeout(noticeTimer);
+        announce();
+      } else if (line !== lastSpoken && noticeTimer === undefined) {
+        noticeTimer = setTimeout(announce, 2000);
+      }
     };
     const onTick = async (): Promise<void> => {
       if (polling || disposed || settled) return;
@@ -117,6 +131,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       stop();
       clearInterval(timer);
       clearInterval(clockTimer);
+      clearTimeout(noticeTimer);
     };
   }, [host, sessionId, onDone, onCancel]);
 
