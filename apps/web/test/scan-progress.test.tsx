@@ -1,262 +1,164 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { initialProgress, type HostBridge, type ScanEvent, type ScanSession } from "@krds-detector/contracts";
 import { ScanProgressView } from "../src/screens/ScanProgress.js";
-import type { HostBridge, ScanEvent } from "@krds-detector/contracts";
 
-afterEach(cleanup);
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => { cleanup(); vi.useRealTimers(); });
 
-function setup(
-  cancelScan = vi.fn(async () => {}),
-  getSession = vi.fn(async () => ({ status: "cancelled" as const })),
-) {
+function setup() {
   let handler: ((event: ScanEvent) => void) | undefined;
+  let session: ScanSession = { id: "s1", entryUrl: "https://example.kr/", topic: "", status: "running",
+    startedAt: "2026-10-06T00:00:00Z", progress: initialProgress("running") };
+  let lookupFailed = false;
+  let cancelFailed = false;
   const host = {
-    onScanEvent: (h: (event: ScanEvent) => void) => {
-      handler = h;
-      return () => {
-        handler = undefined;
-      };
-    },
-    cancelScan,
-    getSession,
+    getSession: async () => { if (lookupFailed) throw new Error("private IPC error"); return session; },
+    cancelScan: async () => { if (cancelFailed) throw new Error("private IPC error"); },
+    onScanEvent: (next: (event: ScanEvent) => void) => { handler = next; return () => { handler = undefined; }; },
   } as unknown as HostBridge;
-  const onDone = vi.fn();
-  const onCancel = vi.fn();
-  render(
-    <ScanProgressView
-      host={host}
-      sessionId="s1"
-      onDone={onDone}
-      onCancel={onCancel}
-    />,
-  );
+  function Harness() {
+    const [view, setView] = useState("progress");
+    if (view === "results") return <h1>결과 검토</h1>;
+    if (view === "setup") return <h1>점검 설정</h1>;
+    return <ScanProgressView host={host} sessionId="s1" onDone={() => setView("results")} onCancel={() => setView("setup")} />;
+  }
+  render(<Harness />);
   return {
-    emit: (event: ScanEvent) => {
-      act(() => handler?.(event));
+    setSession: (value: Partial<ScanSession>) => { session = { ...session, ...value }; },
+    failLookup: (value: boolean) => { lookupFailed = value; },
+    failCancel: (value: boolean) => { cancelFailed = value; },
+    emit: (progress: ScanEvent["progress"], kind: ScanEvent["kind"] = "page-visited", sessionId = "s1") => {
+      act(() => handler?.({ sessionId, kind, progress, at: "2026-10-06T00:00:00Z" }));
     },
-    onDone,
-    onCancel,
   };
 }
 
-function event(
-  over: Partial<ScanEvent> & { progress: ScanEvent["progress"] },
-): ScanEvent {
-  return {
-    kind: "page-visited",
-    sessionId: "s1",
-    at: "2026-10-01T00:00:00.000Z",
-    ...over,
-  };
+async function tick(ms = 2000) { await act(async () => { await vi.advanceTimersByTimeAsync(ms); }); }
+
+function value(label: string): string | null {
+  return screen.getByText(label, { selector: "dt" }).nextElementSibling?.textContent ?? null;
 }
 
-function statusLine(): string {
-  return screen.getByRole("status").textContent ?? "";
-}
-
-function page(): HTMLElement {
-  return document.querySelector("main.page") as HTMLElement;
-}
-
-describe("ScanProgress live region", () => {
-  it("does not mark the page busy while the scan runs, so status updates are not suppressed", () => {
-    setup();
-    expect(page().hasAttribute("aria-busy")).toBe(false);
+describe("recoverable scan feedback", () => {
+  it("recovers active work and failures from the host and ignores stale events and polls", async () => {
+    const host = setup();
+    const progress = { ...initialProgress("running"), sequence: 9, visitedPages: 12, failedPages: 1,
+      queuedPages: 8, confirmedFindings: 3, elapsedSec: 123,
+      currentPages: ["https://example.kr/a", "https://example.kr/b"],
+      recentActivity: [{ sequence: 9, kind: "page-failed" as const, stage: "running" as const,
+        elapsedSec: 120, pageUrl: "https://example.kr/missing" }] };
+    host.setSession({ progress });
+    await tick();
+    expect(value("확인한 페이지")).toBe("12");
+    expect(value("실패한 페이지")).toBe("1");
+    expect(within(screen.getByRole("region", { name: "현재 확인 중" })).getAllByRole("listitem").map((item) => item.textContent))
+      .toEqual(progress.currentPages);
+    expect(within(screen.getByRole("region", { name: "최근 활동" })).getByText(progress.recentActivity[0].pageUrl)).toBeDefined();
+    host.emit({ ...progress, sequence: 7, visitedPages: 2, currentPages: [] });
+    expect(value("확인한 페이지")).toBe("12");
+    host.emit({ ...progress, sequence: 10, visitedPages: 13, currentPages: ["https://example.kr/b"] });
+    await tick();
+    expect(value("확인한 페이지")).toBe("13");
+    expect(within(screen.getByRole("region", { name: "현재 확인 중" })).queryByText("https://example.kr/a")).toBeNull();
   });
 
-  it("keeps the status region outside any aria-busy ancestor", () => {
-    setup();
-    const status = screen.getByRole("status");
-    expect(page().contains(status)).toBe(true);
-    expect(status.closest("[aria-busy='true']")).toBeNull();
-    expect(status.getAttribute("aria-live")).toBe("polite");
+  it("advances elapsed time without announcing each clock tick or page and never regresses on a delayed snapshot", async () => {
+    const host = setup();
+    await tick(0);
+    const progress = { ...initialProgress("running"), sequence: 1, visitedPages: 3, elapsedSec: 63 };
+    host.emit(progress);
+    const notice = screen.getByRole("status").textContent;
+    await tick(3000);
+    expect(value("경과 시간")).toBe("01:06");
+    host.emit({ ...progress, sequence: 2, visitedPages: 4, elapsedSec: 64 });
+    expect(value("경과 시간")).toBe("01:06");
+    expect(value("확인한 페이지")).toBe("4");
+    expect(screen.getByRole("status").textContent).toBe(notice);
+    expect(screen.getByRole("status").closest("[aria-busy='true']")).toBeNull();
+    host.emit({ ...progress, sequence: 50, confirmedFindings: 99 }, "finding-confirmed", "other");
+    expect(value("탐지")).toBe("0");
   });
 
-  it("hands off to onDone on succeeded poll (events never navigate)", async () => {
-    const getSession = vi.fn(async () => ({ status: "succeeded" }));
-    const { onDone } = setup(vi.fn(async () => {}), getSession);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2100));
-    });
-    expect(page().getAttribute("aria-busy")).toBe("true");
-    expect(onDone).toHaveBeenCalledTimes(1);
+  it("waits for host settlement before leaving progress even after a terminal worker event", async () => {
+    const host = setup();
+    await tick(0);
+    host.emit({ ...initialProgress("succeeded"), sequence: 8, visitedPages: 6, confirmedFindings: 5 }, "session-finished");
+    expect(screen.getByRole("heading", { name: "사이트 점검" })).toBeDefined();
+    await tick();
+    expect(screen.queryByRole("heading", { name: "결과 검토" })).toBeNull();
+    host.setSession({ status: "succeeded", progress: { ...initialProgress("succeeded"), sequence: 9, visitedPages: 6, confirmedFindings: 5 } });
+    await tick();
+    expect(screen.getByRole("heading", { name: "결과 검토" })).toBeDefined();
   });
 
-  it("ignores session-finished events for navigation (host emits completion)", () => {
-    const { emit, onDone } = setup();
-    emit(
-      event({
-        kind: "session-finished",
-        progress: {
-          visitedPages: 12,
-          queuedPages: 0,
-          framesInspected: 4,
-          elementsAnalyzed: 30,
-          candidates: 2,
-          confirmedFindings: 1,
-          elapsedSec: 42,
-          stage: "succeeded",
-        },
-      }),
-    );
-    // Event updates counters/notice only; no navigation without a poll.
-    expect(onDone).not.toHaveBeenCalled();
-    expect(document.querySelector("dl.stats")?.textContent).toContain("12");
+  it("traps and restores confirmation focus and stays disabled until cancellation settles", async () => {
+    const host = setup();
+    await tick(0);
+    const trigger = screen.getByRole("button", { name: "점검 중지" });
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog");
+    const buttons = within(dialog).getAllByRole("button");
+    expect(document.activeElement).toBe(buttons[0]);
+    fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(buttons[1]);
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await tick(20);
+    expect(document.activeElement).toBe(trigger);
+    fireEvent.click(trigger);
+    fireEvent.click(within(screen.getByRole("dialog")).getAllByRole("button")[1]);
+    await tick();
+    expect((screen.getByRole("button", { name: /중지 처리/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("heading", { name: "점검 설정" })).toBeNull();
+    host.setSession({ status: "cancelled", progress: { ...initialProgress("cancelled"), sequence: 1 } });
+    await tick();
+    expect(screen.getByRole("heading", { name: "점검 설정" })).toBeDefined();
   });
 
-  it("announces stage and confirmed-count changes", () => {
-    const { emit } = setup();
-    emit(
-      event({
-        kind: "stage-changed",
-        progress: {
-          visitedPages: 3,
-          queuedPages: 4,
-          framesInspected: 0,
-          elementsAnalyzed: 0,
-          candidates: 0,
-          confirmedFindings: 2,
-          elapsedSec: 1,
-          stage: "running",
-        },
-      }),
-    );
-    expect(statusLine()).toContain("페이지를 찾고 콘텐츠를 분석하는 중");
-    expect(statusLine()).toContain("공식 탐지 2건");
+  it("keeps prior progress and cancellation available through lookup failure and recovers on the next poll", async () => {
+    const host = setup();
+    await tick(0);
+    host.emit({ ...initialProgress("running"), sequence: 1, visitedPages: 4 });
+    host.failLookup(true);
+    await tick();
+    expect(screen.getByRole("alert").textContent).not.toContain("private IPC error");
+    expect(value("확인한 페이지")).toBe("4");
+    expect((screen.getByRole("button", { name: "점검 중지" }) as HTMLButtonElement).disabled).toBe(false);
+    host.failLookup(false);
+    host.setSession({ progress: { ...initialProgress("running"), sequence: 2, visitedPages: 5 } });
+    await tick();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(value("확인한 페이지")).toBe("5");
   });
 
-  it("does not re-announce identical lines while per-page counters still update", () => {
-    const { emit } = setup();
-    const base = {
-      visitedPages: 3,
-      queuedPages: 4,
-      framesInspected: 0,
-      elementsAnalyzed: 0,
-      candidates: 0,
-      confirmedFindings: 0,
-      elapsedSec: 1,
-      stage: "running",
-    };
-    emit(event({ progress: { ...base } }));
-    const first = statusLine();
-    emit(event({ progress: { ...base, visitedPages: 4 } }));
-    emit(event({ progress: { ...base, visitedPages: 5 } }));
-
-    expect(statusLine()).toBe(first);
-    expect(document.querySelector("dl.stats")?.textContent).toContain("5");
+  it("restores the stop control after cancellation failure and hides internal errors", async () => {
+    const host = setup();
+    await tick(0);
+    host.failCancel(true);
+    fireEvent.click(screen.getByRole("button", { name: "점검 중지" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getAllByRole("button")[1]);
+    await tick(20);
+    expect(screen.getByRole("alert").textContent).not.toContain("private IPC error");
+    const trigger = screen.getByRole("button", { name: "점검 중지" });
+    expect((trigger as HTMLButtonElement).disabled).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+    host.failCancel(false);
+    fireEvent.click(trigger);
+    fireEvent.click(within(screen.getByRole("dialog")).getAllByRole("button")[1]);
+    await tick(0);
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("ignores events belonging to another session", () => {
-    const { emit } = setup();
-    const before = statusLine();
-    emit(
-      event({
-        sessionId: "other",
-        progress: {
-          visitedPages: 9,
-          queuedPages: 0,
-          framesInspected: 0,
-          elementsAnalyzed: 0,
-          candidates: 0,
-          confirmedFindings: 9,
-          elapsedSec: 9,
-          stage: "succeeded",
-        },
-      }),
-    );
-    expect(statusLine()).toBe(before);
-  });
-
-  it("confirms cancellation and waits for terminal host status before leaving", async () => {
-    const cancelScan = vi.fn(async () => {});
-    const { onCancel } = setup(cancelScan);
-    await act(async () => {
-      screen.getByRole("button", { name: "점검 중지" }).click();
-    });
-    expect(screen.getByRole("dialog", { name: "점검을 중지할까요?" })).toBeDefined();
-    expect(cancelScan).not.toHaveBeenCalled();
-    await act(async () => {
-      screen.getByRole("button", { name: "점검 중지 확인" }).click();
-      await new Promise((resolve) => setTimeout(resolve, 2600));
-    });
-    expect(cancelScan).toHaveBeenCalledWith("s1");
-    // Stays mounted during the settle (no aria-busy): unmounting early
-    // orphaned the finally-driven onCancel on the VM. Button flips to the
-    // cancelling label while the settle runs.
-    expect(page().hasAttribute("aria-busy")).toBe(false);
-    expect(screen.getByRole("button", { name: "중지 처리 중…" })).toBeDefined();
-    expect(onCancel).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps cancellation available after a host failure and gives a Korean recovery action", async () => {
-    const cancelScan = vi.fn(async () => { throw new Error("IPC channel closed"); });
-    setup(cancelScan);
-    await act(async () => {
-      screen.getByRole("button", { name: "점검 중지" }).click();
-    });
-    await act(async () => {
-      screen.getByRole("button", { name: "점검 중지 확인" }).click();
-    });
-    expect(await screen.findByRole("alert")).toHaveProperty(
-      "textContent",
-      "중지 요청을 처리하지 못했습니다. 점검 상태를 확인한 뒤 다시 시도해 주세요.",
-    );
-    expect(screen.getByRole("button", { name: "점검 중지" })).toBeDefined();
-  });
-});
-describe("ScanProgress per-page counters", () => {
-  it("renders the exact visited-pages value from a page-visited event", () => {
-    const { emit } = setup();
-    const base = {
-      sessionId: "s1",
-      at: new Date().toISOString(),
-      kind: "page-visited",
-      message: "crawled 3 pages",
-      pageUrl: "http://127.0.0.1:4123/",
-      progress: {
-        visitedPages: 3,
-        queuedPages: 0,
-        framesInspected: 0,
-        elementsAnalyzed: 0,
-        candidates: 0,
-        confirmedFindings: 0,
-        elapsedSec: 4,
-        stage: "running",
-      },
-    } as const;
-    act(() => {
-      emit(event(base));
-    });
-    // Exact value assertion: stays-0 passes a label check but fails here.
-    expect(statusLine()).toBe("사이트 점검을 시작했습니다.");
-    const dds = [...document.querySelectorAll("dl.stats dd")].map((d) => d.textContent);
-    expect(dds).toContain("3");
-    expect(dds).not.toContain("0건");
-  });
-});
-
-describe("ScanProgress cancel poll", () => {
-  it("routes cancelled poll to onCancel (events never navigate)", async () => {
-    const getSession = vi.fn(async () => ({ status: "cancelled" as const }));
-    const { onCancel } = setup(vi.fn(async () => {}), getSession);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2100));
-    });
-    expect(onCancel).toHaveBeenCalledTimes(1);
-  });
-
-  it("gives a failed scan a recovery action instead of a cancel control", async () => {
-    const getSession = vi.fn(async () => ({ status: "failed" as const, error: "worker exited" }));
-    const { onCancel } = setup(vi.fn(async () => {}), getSession);
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 2100));
-    });
-    expect(screen.getByRole("alert").textContent).toContain("다시 점검해 주세요");
-    expect(screen.getByRole("status").textContent).toBe("점검을 완료하지 못했습니다.");
-    expect(screen.getByRole("status").textContent).not.toContain("worker exited");
+  it("provides a setup recovery path for canonical failure without exposing worker errors", async () => {
+    const host = setup();
+    host.setSession({ status: "failed", error: "private worker error", progress: { ...initialProgress("failed"), sequence: 1 } });
+    await tick();
     expect(screen.queryByRole("button", { name: "점검 중지" })).toBeNull();
-    screen.getByRole("button", { name: "새로 검사하기" }).click();
-    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status").textContent).not.toContain("private worker error");
+    expect(screen.getByRole("alert").textContent).not.toContain("private worker error");
+    fireEvent.click(screen.getByRole("button", { name: "새로 검사하기" }));
+    expect(screen.getByRole("heading", { name: "점검 설정" })).toBeDefined();
   });
 });

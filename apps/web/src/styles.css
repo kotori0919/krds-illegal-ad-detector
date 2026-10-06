@@ -47,6 +47,24 @@
   --krds-primitive-number-14: 2.5rem;
   --krds-primitive-number-16: 3rem;
   --krds-primitive-number-max: 62.5rem;
+  /* Local layout extensions from KRDS content, form and modal roles. */
+  --krds-primitive-layout-reading-width: 52rem;
+  --krds-primitive-layout-workspace-width: 90rem;
+  --krds-primitive-layout-dialog-width: 42rem;
+  --krds-primitive-layout-label-width: 10rem;
+  --krds-primitive-layout-search-width: 16rem;
+  --krds-primitive-layout-inspector-width: 20rem;
+  --krds-primitive-motion-cycle: 1s;
+
+  --krds-semantic-reading-width: var(--krds-primitive-layout-reading-width);
+  --krds-semantic-workspace-width: var(--krds-primitive-layout-workspace-width);
+  --krds-semantic-dialog-width: var(--krds-primitive-layout-dialog-width);
+  --krds-semantic-label-width: var(--krds-primitive-layout-label-width);
+  --krds-semantic-search-width: var(--krds-primitive-layout-search-width);
+  --krds-semantic-inspector-width: var(--krds-primitive-layout-inspector-width);
+  --krds-semantic-active-indicator-width: var(--krds-primitive-focus-width);
+  --krds-semantic-progress-stroke-width: var(--krds-primitive-focus-width);
+  --krds-semantic-progress-cycle-duration: var(--krds-primitive-motion-cycle);
 
   --krds-semantic-surface: var(--krds-primitive-gray-0);
   --krds-semantic-font-family: var(--krds-primitive-font-family);
@@ -96,6 +114,22 @@
   --krds-semantic-gap-7: var(--krds-primitive-number-10);
 
   --krds-component-result-card-surface: var(--krds-semantic-surface-subtle);
+  --krds-component-page-max-width: var(--krds-semantic-reading-width);
+  --krds-component-steps-max-width: var(--krds-semantic-reading-width);
+  --krds-component-workspace-max-width: var(--krds-semantic-workspace-width);
+  --krds-component-dialog-max-width: var(--krds-semantic-dialog-width);
+  --krds-component-stats-label-width: var(--krds-semantic-label-width);
+  --krds-component-counts-min-width: var(--krds-semantic-label-width);
+  --krds-component-filter-min-width: var(--krds-semantic-label-width);
+  --krds-component-search-basis: var(--krds-semantic-search-width);
+  --krds-component-inspector-min-width: var(--krds-semantic-inspector-width);
+  --krds-component-result-navigation-indicator-width: var(--krds-semantic-active-indicator-width);
+  --krds-component-spinner-size: var(--krds-semantic-size-control);
+  --krds-component-spinner-path: var(--krds-semantic-border);
+  --krds-component-spinner-indicator: var(--krds-semantic-action);
+  --krds-component-spinner-stroke: var(--krds-semantic-progress-stroke-width);
+  --krds-component-spinner-radius: var(--krds-semantic-radius-pill);
+  --krds-component-spinner-cycle-duration: var(--krds-semantic-progress-cycle-duration);
   --krds-component-result-card-border: var(--krds-semantic-border-subtle);
   --krds-component-filter-radius: var(--krds-semantic-radius-control);
   --krds-component-dialog-scrim: var(--krds-semantic-overlay-scrim);
@@ -135,6 +169,45 @@
   box-sizing: border-box;
 }
 
+.progress-pages,
+.progress-activity {
+  padding-inline-start: var(--krds-semantic-padding-10);
+  overflow-wrap: anywhere;
+}
+
+.progress-activity li {
+  margin-block-end: var(--krds-semantic-gap-3);
+}
+
+.progress-activity li span {
+  display: block;
+}
+
+.scan-status {
+  display: flex;
+  align-items: center;
+  gap: var(--krds-semantic-gap-4);
+}
+
+.krds-spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  width: var(--krds-component-spinner-size);
+  height: var(--krds-component-spinner-size);
+  border: var(--krds-component-spinner-stroke) solid var(--krds-component-spinner-path);
+  border-top-color: var(--krds-component-spinner-indicator);
+  border-radius: var(--krds-component-spinner-radius);
+  animation: scan-spin var(--krds-component-spinner-cycle-duration) linear infinite;
+}
+
+@keyframes scan-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .krds-spinner { display: none; }
+}
+
 body {
   margin: 0;
   font-family: var(--krds-semantic-font-family), "Noto Sans KR", system-ui, -apple-system, sans-serif;
@@ -145,7 +218,7 @@ body {
 }
 
 .page {
-  max-width: 52rem;
+  max-width: var(--krds-component-page-max-width);
   margin: 0 auto;
   padding: var(--krds-semantic-padding-6) var(--krds-semantic-padding-4) var(--krds-semantic-padding-10);
 }
@@ -319,7 +392,7 @@ h1:focus {
 .advanced-grid {
   display: grid;
   gap: 0 var(--krds-semantic-gap-4);
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--krds-component-counts-min-width), 1fr));
 }
 
 .actions {
@@ -335,7 +408,7 @@ h1:focus {
 .stats div,
 .evidence div {
   display: grid;
-  grid-template-columns: 10rem minmax(0, 1fr);
+  grid-template-columns: var(--krds-component-stats-label-width) minmax(0, 1fr);
   gap: var(--krds-semantic-gap-3);
   padding: var(--krds-semantic-padding-3) 0;
   border-bottom: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
@@ -392,11 +465,11 @@ h1:focus {
 
 .toolbar select {
   width: auto;
-  min-width: 10rem;
+  min-width: var(--krds-component-filter-min-width);
 }
 
 .result-search {
-  flex: 1 1 16rem;
+  flex: 1 1 var(--krds-component-search-basis);
 }
 
 .result-navigation {
@@ -418,7 +491,7 @@ h1:focus {
 
 .result-navigation button[aria-pressed="true"] {
   border-color: var(--krds-component-result-navigation-active);
-  box-shadow: inset 0 -3px var(--krds-component-result-navigation-active);
+  box-shadow: inset 0 calc(-1 * var(--krds-component-result-navigation-indicator-width)) var(--krds-component-result-navigation-active);
   font-weight: 700;
 }
 
@@ -430,12 +503,13 @@ h1:focus {
   display: none;
 }
 
+/* Local desktop split breakpoint; CSS variables are invalid in media tests. */
 @media (min-width: 64rem) {
   .result-workspace.inspecting {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(20rem, 2fr);
+    grid-template-columns: minmax(0, 3fr) minmax(var(--krds-component-inspector-min-width), 2fr);
     gap: var(--krds-semantic-gap-4);
-    max-width: 90rem;
+    max-width: var(--krds-component-workspace-max-width);
     margin: 0 auto;
   }
 
@@ -538,7 +612,7 @@ code {
   display: flex;
   flex-wrap: wrap;
   gap: var(--krds-semantic-gap-2) var(--krds-semantic-gap-4);
-  max-width: 52rem;
+  max-width: var(--krds-component-steps-max-width);
   margin: 0 auto;
   padding: var(--krds-semantic-padding-3) var(--krds-semantic-padding-4);
 }
@@ -604,7 +678,7 @@ code {
 }
 
 .modal-panel {
-  width: min(100%, 42rem);
+  width: min(100%, var(--krds-component-dialog-max-width));
   min-height: 0;
   max-height: var(--krds-component-dialog-max-height);
   overflow: auto;

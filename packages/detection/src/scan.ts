@@ -52,9 +52,16 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
   const sessionId = `scan-${String(Date.now())}`;
   const deadline = new ScanDeadline(input.crawl?.limits?.timeoutSec ?? DEFAULT_SCAN_LIMITS.timeoutSec);
   const progress: ScanProgress = initialProgress("running");
-  const emit = (kind: ScanEvent["kind"], message?: string, pageUrl?: string): void => {
+  const emit = (kind: ScanEvent["kind"], message?: string, pageUrl?: string, findingCount?: number): void => {
+    progress.sequence += 1;
     progress.elapsedSec = (performance.now() - t0) / 1000;
-    input.onEvent?.({ kind, sessionId, at: new Date().toISOString(), progress: { ...progress }, message, pageUrl });
+    if (kind === "session-started" || kind === "finding-confirmed" || kind === "page-failed" || kind === "stage-changed"
+      || kind === "session-finished" || kind === "session-cancelled" || kind === "session-failed") {
+      progress.recentActivity = [{ sequence: progress.sequence, kind, elapsedSec: progress.elapsedSec,
+        stage: progress.stage, pageUrl, findingCount }, ...progress.recentActivity].slice(0, 5);
+    }
+    input.onEvent?.({ kind, sessionId, at: new Date().toISOString(),
+      progress: { ...progress, currentPages: [...progress.currentPages], recentActivity: [...progress.recentActivity] }, message, pageUrl });
   };
 
   emit("session-started", `scan started: ${input.entryUrl}`, input.entryUrl);
@@ -94,7 +101,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
             if (!confirmedIdentities.has(identity)) { confirmedIdentities.add(identity); added += 1; }
           }
           progress.confirmedFindings = confirmedIdentities.size;
-          if (added > 0) emit("finding-confirmed", `${String(added)} findings on ${url}`, url);
+          if (added > 0) emit("finding-confirmed", `${String(added)} findings on ${url}`, url, added);
         };
         collect(await detectPageCandidates(page, {
           pageUrl: snapshot.url,
@@ -146,10 +153,18 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         }
       },
       events: {
+        onPageStarted: (url, queuedPages) => {
+          progress.currentPages.push(url);
+          progress.queuedPages = queuedPages;
+          emit("page-started", undefined, url);
+        },
         onPageVisited: (snapshot, queuedPages) => {
           progress.visitedPages += 1;
           progress.queuedPages = queuedPages;
-          emit("page-visited", `processed ${String(progress.visitedPages)} pages`, snapshot.url);
+          progress.currentPages = progress.currentPages.filter((url) => url !== snapshot.url);
+          const failed = snapshot.status === 0 || snapshot.status >= 400;
+          if (failed) progress.failedPages += 1;
+          emit(failed ? "page-failed" : "page-visited", undefined, snapshot.url);
         },
         onPageQueued: (queued) => {
           progress.queuedPages = queued.pending;
@@ -159,6 +174,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     });
     progress.visitedPages = summary.pages.length;
     progress.queuedPages = 0;
+    progress.currentPages = [];
     if (!summary.pages.some((page) => page.status >= 200 && page.status < 300)) {
       throw new Error("no successfully analyzed pages");
     }
@@ -232,6 +248,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       detailBundle,
     };
   } catch (error) {
+    progress.currentPages = [];
+    progress.queuedPages = 0;
     progress.stage = "failed";
     emit("session-failed", error instanceof Error ? error.message : "scan failed");
     throw error;

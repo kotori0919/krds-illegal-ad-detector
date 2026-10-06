@@ -39,3 +39,24 @@ stalled. Progress confirmed counts deduplicate the same official identity as
 the final result; repeated live-frame observations still count as candidates.
 Progress event order may differ by worker completion. Finding IDs and output
 order remain assigned only after canonical aggregation.
+
+## Amendment 2026-10-06: recoverable progress
+
+Each worker progress snapshot carries a strictly increasing sequence, queued
+and attempted/failed page counts, up to four active page URLs, and the five
+newest meaningful activities. Page admission adds the URL before navigation;
+page close removes it before completion feedback. Activities use typed kinds
+and numeric finding counts, not free-form worker prose. The host retains the
+latest snapshot for `getSession`, so late subscription or missed events do not
+leave an apparently idle screen. The UI ignores older poll/event sequences;
+only the host session status controls terminal navigation. Host terminal
+snapshots clear active work and use the validated final finding count.
+
+Elapsed time advances from the worker's monotonic duration between updates.
+Advancing the clock is not proof that a page has completed. A failed host
+lookup is shown as unavailable status without fabricating a terminal state.
+
+The operator and host accept configured budgets of 60 to 1500 seconds. This
+removes the previous 1750-second promise that exceeded the internal guard.
+Quick retains its existing 50-page/2-depth/600-second limits, now recorded
+consistently in the product spec.

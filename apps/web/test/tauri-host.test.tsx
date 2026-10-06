@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup } from "@testing-library/react";
 import { TauriHost } from "../src/host/tauri.js";
-import type { ScanSession } from "@krds-detector/contracts";
+import { initialProgress, type ScanSession } from "@krds-detector/contracts";
 
 afterEach(() => {
   cleanup();
@@ -18,6 +18,7 @@ function session(): ScanSession {
     topic: "",
     status: "running",
     startedAt: "2026-10-02T00:00:00.000Z",
+    progress: initialProgress("running"),
   };
 }
 

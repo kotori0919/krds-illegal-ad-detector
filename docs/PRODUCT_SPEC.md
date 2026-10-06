@@ -36,12 +36,16 @@ Results use one search input for content/page URL, a visible total and category 
 | Mode | maxPages | maxDepth | timeoutSec | When to use |
 | --- | ---: | ---: | ---: | --- |
 | 자동 권장 (default) | 200 | 4 | 1500 | Routine site inspection, same current default. |
-| 빠른 점검 | 30 | 2 | 300 | Preliminary check; explicitly warns that it covers fewer pages. |
+| 빠른 점검 | 50 | 2 | 600 | Preliminary check; explicitly names its reduced page/depth/time limits. |
 | 직접 설정 | user values | user values | user values | Experienced operator; existing validation bounds apply. |
 
 `maxFrameDepth` stays 4 for all modes. Scope summary describes configured limits, not a promise that every linked page will be accessible. Before implementation, verify Tauri actually forwards each value to the worker and that timeout is enforced. No preset is purely cosmetic.
 
-The user-facing normal budget is 1500 s (about 25 minutes); internal hard stop 1650 s is not ordinary UI copy. V2 custom settings must not promise a duration beyond that guard: reduce the currently accepted 1750 s custom maximum to at most the supported configured limit, with explicit migration/validation in Contract v0.2. Desired Windows completion is <=1200 s for the acceptance scenario, not a fake per-scan progress percentage.
+The user-facing maximum configured budget is 1500 s (about 25 minutes), enforced
+by both custom input and native host validation. The internal 1650 s stop is
+not ordinary UI copy. Quick retains the existing 50-page/2-depth/600-second
+behavior; the earlier 30-page proposal was not implemented. Desired Windows
+completion is <=1200 s for the acceptance scenario, not a per-scan percentage.
 
 ## Constraints and trust
 

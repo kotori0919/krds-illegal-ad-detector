@@ -48,7 +48,9 @@ let browser;
 try {
   await new Promise((done) => fixture.listen(0, "127.0.0.1", done));
   const entryUrl = `http://127.0.0.1:${fixture.address().port}/`;
+  let progress;
   const output = await scanSite({
+    onEvent: (event) => { progress = event.progress; },
     entryUrl,
     topic: "municipal-style-fixture",
     crawl: { concurrency: 2, limits: { maxPages: 6, maxDepth: 2, timeoutSec: 90 }, settleMs: 1400, perPageMs: 10000 },
@@ -77,9 +79,9 @@ try {
   const appUrl = `http://127.0.0.1:${appServer.address().port}/`;
   browser = await chromium.launch({ args: ["--no-sandbox"] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-  await page.addInitScript(({ result, detail, extra, entryUrl }) => {
+  await page.addInitScript(({ result, detail, extra, entryUrl, progress }) => {
     const session = { id: "real-evidence-ui", entryUrl, topic: "municipal-style-fixture",
-      status: "succeeded", startedAt: result.meta.started_at, finishedAt: result.meta.finished_at };
+      status: "succeeded", startedAt: result.meta.started_at, finishedAt: result.meta.finished_at, progress };
     window.__TAURI_INTERNALS__ = {
       transformCallback: () => 1,
       unregisterCallback: () => {},
@@ -94,7 +96,7 @@ try {
         }
       },
     };
-  }, { result, detail, extra: output.extraResult, entryUrl });
+  }, { result, detail, extra: output.extraResult, entryUrl, progress });
   await page.goto(appUrl, { waitUntil: "networkidle" });
   await page.getByLabel("점검할 웹사이트").fill(entryUrl);
   await page.getByRole("button", { name: "점검 시작" }).click();

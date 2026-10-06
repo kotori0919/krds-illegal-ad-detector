@@ -59,6 +59,18 @@ npx tauri build --config src-tauri/tauri.conf.json
 `WebView2Loader.dll`은 해당 빌드의 release 폴더에서 같은 위치로 복사합니다.
 MSVC 빌드는 기본 설정을 사용합니다.
 
+현재 GNU LLVM 경로의 리소스 컴파일러는 `RC=llvm-rc`로 지정합니다.
+`embed-resource 3.0.11`은 LLVM MinGW의 `x86_64-w64-mingw32-windres`를
+`Unknown RC compiler variant`로 거부했습니다. LLVM MinGW의 `bin`을 PATH에
+추가하고 `src-tauri` 디렉터리에서 아래 환경값으로 빌드한 실행 파일이 생성되는 것을 확인했습니다.
+
+```sh
+CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_LINKER=x86_64-w64-mingw32-clang \
+CC_x86_64_pc_windows_gnullvm=x86_64-w64-mingw32-clang \
+AR_x86_64_pc_windows_gnullvm=x86_64-w64-mingw32-ar RC=llvm-rc \
+cargo build --release --target x86_64-pc-windows-gnullvm --offline
+```
+
 ```sh
 npx tauri bundle --target x86_64-pc-windows-gnullvm --bundles nsis --config src-tauri/tauri.gnullvm.conf.json --ci
 ```

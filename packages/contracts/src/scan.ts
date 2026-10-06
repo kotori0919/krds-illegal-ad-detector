@@ -10,7 +10,7 @@ export interface ScanLimits {
   maxPages: number;
   /** Max crawl depth below the entry URL. */
   maxDepth: number;
-  /** Hard wall-clock budget in seconds (official hard timeout: 1800). */
+  /** Configured scan budget in seconds; operator/host range is 60..1500. */
   timeoutSec: number;
   /** Max nested iframe depth to traverse. */
   maxFrameDepth: number;
@@ -45,10 +45,13 @@ export interface ScanSession {
   startedAt: string;
   finishedAt?: string;
   error?: string;
+  progress: ScanProgress;
 }
 
 export type ScanEventKind =
   | "session-started"
+  | "page-started"
+  | "page-failed"
   | "page-visited"
   | "page-queued"
   | "frame-inspected"
@@ -61,14 +64,28 @@ export type ScanEventKind =
   | "session-failed";
 
 export interface ScanProgress {
+  sequence: number;
   visitedPages: number;
+  failedPages: number;
   queuedPages: number;
+  currentPages: string[];
+  recentActivity: ScanActivity[];
   framesInspected: number;
   elementsAnalyzed: number;
   candidates: number;
   confirmedFindings: number;
   elapsedSec: number;
   stage: ScanStatus;
+}
+
+export interface ScanActivity {
+  sequence: number;
+  kind: "session-started" | "finding-confirmed" | "page-failed" | "stage-changed"
+    | "session-finished" | "session-cancelled" | "session-failed";
+  elapsedSec: number;
+  stage: ScanStatus;
+  pageUrl?: string;
+  findingCount?: number;
 }
 
 export interface ScanEvent {
@@ -82,8 +99,12 @@ export interface ScanEvent {
 
 export function initialProgress(stage: ScanStatus = "queued"): ScanProgress {
   return {
+    sequence: 0,
     visitedPages: 0,
+    failedPages: 0,
     queuedPages: 0,
+    currentPages: [],
+    recentActivity: [],
     framesInspected: 0,
     elementsAnalyzed: 0,
     candidates: 0,

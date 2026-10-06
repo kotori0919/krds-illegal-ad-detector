@@ -3,8 +3,9 @@ import {
   initialProgress,
   type HostBridge,
   type ScanProgress,
-  type ScanStatus,
+  type ScanActivity,
 } from "@krds-detector/contracts";
+import { formatElapsed, scanStatusLabel } from "../scan-format.js";
 
 interface Props {
   host: HostBridge;
@@ -14,32 +15,32 @@ interface Props {
 }
 
 const INITIAL = initialProgress("running");
-const stageLabel = (stage: ScanStatus): string => ({
-  queued: "점검 준비 중",
-  running: "페이지를 찾고 콘텐츠를 분석하는 중",
-  finalizing: "결과를 정리하는 중",
-  succeeded: "점검 완료",
-  cancelled: "점검 중지됨",
-  failed: "점검 실패",
-}[stage]);
 
-type IntervalHandle = ReturnType<typeof globalThis.setInterval>;
+function activityLabel(activity: ScanActivity): string {
+  switch (activity.kind) {
+    case "session-started": return "점검 시작";
+    case "finding-confirmed": return `탐지 ${String(activity.findingCount ?? 0)}건`;
+    case "page-failed": return "페이지 확인 실패";
+    case "stage-changed": return scanStatusLabel(activity.stage);
+    case "session-finished": return "점검 완료";
+    case "session-cancelled": return "점검 중지됨";
+    case "session-failed": return "점검 실패";
+  }
+}
 
 export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
   const [progress, setProgress] = useState<ScanProgress>(INITIAL);
   const [notice, setNotice] = useState<string>(
-    "사이트 점검을 시작했습니다.",
+    "점검 준비 중",
   );
-  const [recentPage, setRecentPage] = useState<string | undefined>(undefined);
+  const [entryUrl, setEntryUrl] = useState("");
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const [pollUnavailable, setPollUnavailable] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [cancelError, setCancelError] = useState<string | undefined>(undefined);
   const [finishing, setFinishing] = useState(false);
   const [failed, setFailed] = useState(false);
-  // The host emits one event per page. Only stage / confirmed-count / message
-  // transitions are worth speaking aloud; the per-page counters stay in the
-  // <dl> below, which is not a live region.
-  const lastSpoken = useRef<string | undefined>(undefined);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLDivElement>(null);
 
@@ -48,55 +49,87 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
   }, [confirmCancel]);
 
   useEffect(() => {
-    const onTick = (): void => {
-      void host.getSession(sessionId).then((s) => {
-        if (!s) return;
+    if (cancelError) cancelButtonRef.current?.focus();
+  }, [cancelError]);
+
+  useEffect(() => {
+    let disposed = false;
+    let settled = false;
+    let polling = false;
+    let sequence = -1;
+    let lastSpoken = "";
+    let clock = { base: 0, at: performance.now(), active: true };
+    const acceptProgress = (next: ScanProgress): void => {
+      if (disposed || settled || next.sequence <= sequence) return;
+      sequence = next.sequence;
+      setProgress(next);
+      const now = performance.now();
+      clock = { base: Math.max(next.elapsedSec, clock.base + (clock.active ? (now - clock.at) / 1000 : 0)), at: now,
+        active: !["succeeded", "failed", "cancelled"].includes(next.stage) };
+      setElapsedSec(clock.base);
+      const line = `${scanStatusLabel(next.stage)} · 탐지 ${String(next.confirmedFindings)}건${next.failedPages ? ` · 페이지 실패 ${String(next.failedPages)}개` : ""}`;
+      if (line !== lastSpoken) { lastSpoken = line; setNotice(line); }
+    };
+    const onTick = async (): Promise<void> => {
+      if (polling || disposed || settled) return;
+      polling = true;
+      try {
+        const s = await host.getSession(sessionId);
+        if (disposed || settled) return;
+        if (!s) { setPollUnavailable(true); return; }
+        setPollUnavailable(false);
+        setEntryUrl(s.entryUrl);
+        acceptProgress(s.progress);
         if (s.status === "succeeded") {
+          settled = true;
           setFinishing(true);
           clearInterval(timer);
           onDone();
         } else if (s.status === "failed") {
+          settled = true;
           setFailed(true);
-          setNotice("점검을 완료하지 못했습니다.");
+          setNotice("점검 실패");
           clearInterval(timer);
         } else if (s.status === "cancelled") {
+          settled = true;
           clearInterval(timer);
           onCancel();
         }
-      }).catch(() => undefined);
+      } catch {
+        if (!disposed) setPollUnavailable(true);
+      } finally { polling = false; }
     };
-    const timer: IntervalHandle = setInterval(onTick, 2000);
+    const timer = setInterval(() => { void onTick(); }, 2000);
+    const clockTimer = setInterval(() => {
+      if (clock.active && !settled) setElapsedSec(clock.base + (performance.now() - clock.at) / 1000);
+    }, 1000);
     const stop = host.onScanEvent((event) => {
       if (event.sessionId !== sessionId) return;
-      setProgress(event.progress);
-      if (event.kind === "page-visited" && event.pageUrl) setRecentPage(event.pageUrl);
-      const line = `${stageLabel(event.progress.stage)}. 확인한 페이지 ${String(event.progress.visitedPages)}개, 공식 탐지 ${String(event.progress.confirmedFindings)}건.`;
-      if (["stage-changed", "finding-confirmed", "session-failed"].includes(event.kind) && line !== lastSpoken.current) {
-        lastSpoken.current = line;
-        setNotice(line);
-      }
+      acceptProgress(event.progress);
       // Navigation is poll-driven ONLY: the poll reads the terminal
       // session status and routes (succeeded→result, cancelled→start,
       // failed→stays with error). Reacting to worker events here caused
       // empty-result races (OBSERVED: cancel landed on running/empty).
-      void event;
     });
+    void onTick();
     return () => {
+      disposed = true;
       stop();
       clearInterval(timer);
+      clearInterval(clockTimer);
     };
   }, [host, sessionId, onDone, onCancel]);
 
   async function cancel() {
     setConfirmCancel(false);
+    setCancelError(undefined);
     setCancelling(true);
-    setNotice("점검 중지를 요청했습니다. 종료 상태를 확인하는 중입니다.");
     try {
       await host.cancelScan(sessionId);
       // The session poll owns navigation after the host confirms settlement.
     } catch {
       setCancelling(false);
-      setCancelError("중지 요청을 처리하지 못했습니다. 점검 상태를 확인한 뒤 다시 시도해 주세요.");
+      setCancelError("중지 요청 실패. 다시 시도해 주세요.");
     }
   }
 
@@ -114,12 +147,15 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       <div inert={confirmCancel}>
       <p className="eyebrow">진행 상태</p>
       <h1>사이트 점검</h1>
-      <p role="status" aria-live="polite">
-        {notice}
+      {entryUrl ? <p className="lede">{entryUrl}</p> : null}
+      <p role="status" aria-live="polite" className="scan-status">
+        {elapsedSec >= 1 && !failed && !finishing ? <span className="krds-spinner" aria-hidden="true" /> : null}
+        <span>{cancelling && !failed ? "중지 처리 중" : notice}</span>
       </p>
+      {pollUnavailable ? <p role="alert" className="error">진행 상태 조회 실패. 다시 연결하는 중입니다.</p> : null}
       {failed ? (
         <p role="alert" className="error">
-          이번 점검의 결과 파일을 만들지 못했습니다. 시작 주소와 접속 상태를 확인한 뒤 다시 점검해 주세요.
+          시작 주소와 접속 상태를 확인해 주세요.
         </p>
       ) : null}
       <section aria-label="탐지 현황">
@@ -133,16 +169,27 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
             <dd>{progress.queuedPages}</dd>
           </div>
           <div>
-            <dt>확정된 탐지</dt>
+            <dt>탐지</dt>
             <dd>{progress.confirmedFindings}</dd>
           </div>
           <div>
-            <dt>경과 시간(초)</dt>
-            <dd>{Math.round(progress.elapsedSec)}</dd>
+            <dt>실패한 페이지</dt>
+            <dd>{progress.failedPages}</dd>
           </div>
-          {recentPage ? <div><dt>최근 확인한 페이지</dt><dd>{recentPage}</dd></div> : null}
+          <div><dt>경과 시간</dt><dd>{formatElapsed(elapsedSec)}</dd></div>
         </dl>
       </section>
+      {progress.currentPages.length ? <section aria-label="현재 확인 중">
+        <h2>현재 확인 중</h2>
+        <ul className="progress-pages">{progress.currentPages.map((url) => <li key={url}>{url}</li>)}</ul>
+      </section> : null}
+      {progress.recentActivity.length ? <section aria-label="최근 활동">
+        <h2>최근 활동</h2>
+        <ol className="progress-activity">{progress.recentActivity.map((activity) => <li key={activity.sequence}>
+          <span>{formatElapsed(activity.elapsedSec)} · {activityLabel(activity)}</span>
+          {activity.pageUrl ? <span className="hint">{activity.pageUrl}</span> : null}
+        </li>)}</ol>
+      </section> : null}
       <details className="advanced"><summary>기술 정보</summary>
         <dl className="stats">
           <div><dt>검사한 프레임</dt><dd>{progress.framesInspected}</dd></div>
@@ -168,7 +215,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
           }
         }}>
         <h2 id="cancel-title">점검을 중지할까요?</h2>
-        <p>지금 중지하면 이번 점검의 결과 파일은 생성되지 않습니다.</p>
+        <p>이번 점검의 결과는 저장되지 않습니다.</p>
         <div className="actions"><button type="button" className="secondary" onClick={closeConfirmation}>계속 점검</button>{" "}
           <button type="button" className="primary" onClick={cancel}>점검 중지 확인</button></div>
       </div></div> : null}

@@ -59,6 +59,7 @@ export interface LiveImageResponse {
 }
 
 export interface CrawlEvents {
+  onPageStarted?: (url: string, queuedPages: number) => void;
   onPageVisited?: (snapshot: PageSnapshot, queuedPages: number) => void;
   onPageQueued?: (queued: { url: string; depth: number; pending: number }) => void;
   onExternal?: (external: ObservedExternal) => void;
@@ -216,6 +217,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     const processPage = async (next: QueuedPage & { pageRank: number }): Promise<PageSnapshot | undefined> => {
       if (!deadline.canStartPage()) return undefined;
       queuedPages -= 1;
+      options.events?.onPageStarted?.(next.url, queuedPages);
       const pageStarted = performance.now();
       const page: Page = await activeContext.newPage();
       const pageExternals: ObservedExternal[] = [];

@@ -4,6 +4,33 @@ Status: **partial implementation, release gate open** (2026-10-06). The previous
 five-stage audit is available in Git history; its tests and line references do
 not describe this UI.
 
+### Current progress and layout evidence (2026-10-06)
+
+OBSERVED: the real relocated Node worker and actual Rust session registry
+retained 21 progress events, six attempted pages, one expected failed page,
+five official findings and five JPEG details. Active-page admission, typed
+failure, finalizing snapshot and terminal clearing were checked. The native
+registry tests pass 16/16; the JavaScript suite passes 134/134 after replacing
+wording assertions with progress recovery, stale snapshot, clock, settlement,
+focus and failure behavior checks.
+
+OBSERVED: `npm run smoke:live-progress-ui` ran the actual scanner against the
+six-page fixture with browser IPC replay and deliberately delivered no events.
+Polling displayed current work, `00:02`, failed coverage and the partial result.
+At 360px the document was 360px wide with 17px body type; Escape restored the
+stop control. This validates React recovery, not native Windows IPC.
+
+OBSERVED on the same live-progress path at native Linux Chromium 200% zoom:
+DPR 2, effective 360px viewport, 352px document, no nested overflow, `00:02`
+clock, restored stop focus and reduced-motion text-only feedback. The single
+KRDS indeterminate spinner stays hidden from the speech stream.
+
+OBSERVED: headed Linux Chromium at actual 200% zoom (DPR 2, 360px viewport)
+showed no document or nested overflow in setup, results, extra analysis,
+inspector and save dialog. Inspector/dialog focus and 3px outline/restoration
+passed after the layout token migration. Windows zoom and assistive technology
+remain NOT_RUN for this change while VM input ownership is unresolved.
+
 ## Style track and authority
 
 The product declares KRDS **확장형 (Adaptive)** for a public-institution tool and
@@ -21,7 +48,7 @@ checks.
 | Three-stage shell | [단계 표시기](https://www.krds.go.kr/html/site/component/component_07_01.html) | Setup, scan, results; inspector and export stay in results. | Screen reader stage announcement. |
 | Site URL and validation | [입력 폼](https://www.krds.go.kr/html/site/global/global_08.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Labelled required URL, field error and focus, retained entry. | Packaged host and 200% browser zoom. |
 | Scope | [선택](https://www.krds.go.kr/html/site/component/component_06_01.html), [설정](https://www.krds.go.kr/html/site/global/global_08.html) | Automatic, quick, custom; custom limits disclosed when selected. | Keyboard-only choice and native request. |
-| Scan status | [피드백](https://www.krds.go.kr/html/site/component/component_07_02.html) | Real elapsed time, counts, current page, cancellation settlement. | Live status cadence with assistive technology. |
+| Scan status | [불확정 스피너·피드백](https://www.krds.go.kr/html/site/component/component_07_02.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | One spinner with Korean status after one second; real elapsed time, active pages, failures, five recent activities, poll recovery and cancellation settlement. Reduced-motion preference keeps text only. | Live status cadence with assistive technology and packaged Windows snapshot recovery. |
 | Result collection and category navigation | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | Three peer areas: 공식 탐지, 추가 분석, 점검 범위. 탐지 항목별 and 페이지별 are nested under 공식 탐지. Result counts, list and empty state are visible; the one search/filter remains scoped to official findings. | Packaged Windows operator review and extra-list assistive-technology audit. |
 | Technique filter | [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Immediate visible count and no-match reset. | Keyboard path in packaged app. |
 | Result search | [검색](https://www.krds.go.kr/html/site/service/service_02_03.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | One search field; query/filter retained through inspection. | Search semantics on larger real results. |
@@ -64,6 +91,28 @@ transformed token JSON](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/
 for the light mode. KRDS number and typography `rem` values use a 10 px base;
 the app converts them to its 16 px root so their rendered sizes match. The CSS
 names are local mappings, not an imported package.
+
+The [KRDS layout guide](https://www.krds.go.kr/html/site/style/style_05.html)
+governs the following local dimensions. These are service extensions, not
+claims that KRDS specifies these exact widths. Each passes through primitive,
+semantic and component roles while preserving the existing responsive layout:
+
+| Local primitive | Semantic purpose | Component consumers | Source role and deviation |
+| --- | --- | --- | --- |
+| `layout-reading-width` (52rem) | `reading-width` | `page-max-width`, `steps-max-width` | Layout content width; narrower reading column for URL form, status and long Korean evidence. |
+| `layout-workspace-width` (90rem) | `workspace-width` | `workspace-max-width` | Layout multicolumn content; list/inspector need parallel room on large windows. |
+| `layout-dialog-width` (42rem) | `dialog-width` | `dialog-max-width` | Modal content width; concise confirmation stays bounded and shrinks to available width. |
+| `layout-label-width` (10rem) | `label-width` | `stats-label-width`, `counts-min-width`, `filter-min-width` | Form alignment and selectable-option readability; space for Korean labels and technique names. |
+| `layout-search-width` (16rem) | `search-width` | `search-basis` | Input readable width; preferred flex basis, allowed to shrink at 360px. |
+| `layout-inspector-width` (20rem) | `inspector-width` | `inspector-min-width` | Detail column readability; desktop minimum, removed by the existing narrow-layout switch. |
+| `focus-width` (3px) | `active-indicator-width` | `result-navigation-indicator-width` | KRDS selection/border state cue; shares the documented 3px primitive to keep the active category visible in dense results. |
+| `focus-width` (3px) | `progress-stroke-width` | `spinner-stroke` | KRDS indeterminate spinner path; the same local border extension remains visible during scan/settlement. |
+| `motion-cycle` (1s) | `progress-cycle-duration` | `spinner-cycle-duration` | KRDS continuous indeterminate rotation; local duration gives a readable cycle without a false percentage. Reduced-motion preference uses the adjacent textual status instead of rotation. |
+
+The 64rem desktop media condition is a documented local breakpoint for the
+list/detail split, expressed literally because CSS custom properties cannot
+be evaluated inside media queries. The off-screen 1px screen-reader utility
+is accessibility clipping geometry. Neither is a component spacing token.
 Buttons, inputs, result navigation, badges, result cards and the dialog now
 consume component roles backed by semantic roles. The former flat color and
 radius aliases have been removed. Their regular borders now consume a local

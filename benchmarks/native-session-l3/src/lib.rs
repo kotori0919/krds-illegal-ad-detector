@@ -213,7 +213,26 @@ mod tests {
             .unwrap()
             .iter()
             .any(|event| event["kind"] == "page-visited"));
-        assert_eq!(registry.progress_snapshot(&id).await.pages, 6);
+        let progress = registry.progress_snapshot(&id).await;
+        assert_eq!(progress.pages, 6);
+        assert_eq!(progress.failed_pages, 1);
+        assert_eq!(progress.current_pages, Vec::<String>::new());
+        let active = registry.snapshot(&id).await.unwrap();
+        assert_eq!(active["status"], "finalizing");
+        assert_eq!(active["progress"]["visitedPages"], 6);
+        assert_eq!(active["progress"]["failedPages"], 1);
+        assert_eq!(active["progress"]["recentActivity"], serde_json::json!(progress.recent_activity));
+        let seen = events.lock().unwrap();
+        let started: Vec<&serde_json::Value> = seen.iter().filter(|event| event["kind"] == "page-started").collect();
+        assert_eq!(started.len(), 6);
+        for event in started {
+            assert!(event["progress"]["currentPages"].as_array().unwrap().contains(&event["pageUrl"]));
+        }
+        let failed: Vec<&serde_json::Value> = seen.iter().filter(|event| event["kind"] == "page-failed").collect();
+        assert_eq!(failed.len(), 1);
+        assert!(failed[0]["pageUrl"].as_str().unwrap().ends_with("/missing.html"));
+        assert_eq!(failed[0]["progress"]["failedPages"], 1);
+        drop(seen);
         registry
             .store_result(
                 &id,
@@ -223,7 +242,11 @@ mod tests {
                 chrono::Utc::now().to_rfc3339(),
             )
             .await;
-        assert_eq!(registry.snapshot(&id).await.unwrap()["status"], "succeeded");
+        let terminal = registry.snapshot(&id).await.unwrap();
+        assert_eq!(terminal["status"], "succeeded");
+        assert_eq!(terminal["progress"]["confirmedFindings"], 5);
+        assert_eq!(terminal["progress"]["currentPages"], serde_json::json!([]));
+        assert_eq!(terminal["progress"]["recentActivity"][0]["kind"], "session-finished");
         assert_eq!(
             registry.result_value(&id).await.unwrap()["findings"]
                 .as_array()

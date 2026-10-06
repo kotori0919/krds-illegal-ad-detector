@@ -116,9 +116,7 @@ describe("ScanStart field validation", () => {
     expect(
       screen.getByText("http(s)로 시작하는 올바른 주소를 입력해 주세요."),
     ).toBeTruthy();
-    expect(document.getElementById("limit-timeout-error")?.textContent).toBe(
-      "제한 시간은 60초부터 1750초까지 입력해 주세요.",
-    );
+    expect(document.getElementById("limit-timeout-error")?.getAttribute("role")).toBe("alert");
     expect(byId("limit-timeout").getAttribute("aria-describedby")).toBe(
       "limit-timeout-error",
     );
@@ -186,15 +184,19 @@ describe("ScanStart field validation", () => {
     expect(document.getElementById("scan-form-error")?.textContent).not.toContain("sidecar exploded");
   });
 
-  it("exposes min/max matching the validator bounds on the advanced limits", () => {
-    render(<Harness startScan={ok()} />);
+  it("blocks a duration beyond the configured ceiling and keeps focus on the field", () => {
+    const start = ok();
+    render(<Harness startScan={start} />);
     chooseCustom();
-    expect(byId("limit-pages").getAttribute("min")).toBe("1");
-    expect(byId("limit-pages").getAttribute("max")).toBe("2000");
-    expect(byId("limit-depth").getAttribute("min")).toBe("0");
-    expect(byId("limit-depth").getAttribute("max")).toBe("10");
-    expect(byId("limit-timeout").getAttribute("min")).toBe("60");
-    expect(byId("limit-timeout").getAttribute("max")).toBe("1750");
+    fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
+    fireEvent.change(byId("limit-timeout"), { target: { value: "1501" } });
+    submit();
+    expect(start).not.toHaveBeenCalled();
+    expect(byId("limit-timeout").getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(byId("limit-timeout"));
+    fireEvent.change(byId("limit-timeout"), { target: { value: "1500" } });
+    submit();
+    expect(byId("limit-timeout").hasAttribute("aria-invalid")).toBe(false);
   });
 });
 describe("ScanStart stale-error clearing (CUA-found)", () => {

@@ -111,9 +111,14 @@ pub enum SessionOutcome {
 /// counters (KODEX §36) instead of zeros until completion.
 pub type ProgressSink = std::sync::Arc<dyn Fn(serde_json::Value) + Send + Sync>;
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone)]
 pub struct ProgressSnapshot {
+    pub sequence: u64,
     pub pages: u64,
+    pub failed_pages: u64,
+    pub queued_pages: u64,
+    pub current_pages: Vec<String>,
+    pub recent_activity: Vec<serde_json::Value>,
     pub frames_inspected: u64,
     pub elements_analyzed: u64,
     pub candidates: u64,
@@ -122,10 +127,29 @@ pub struct ProgressSnapshot {
 }
 
 impl ProgressSnapshot {
-    pub fn terminal_value(self, stage: &str) -> serde_json::Value {
+    pub fn terminal_value(&self, stage: &str) -> serde_json::Value {
+        self.value(stage, true)
+    }
+
+    fn value(&self, stage: &str, terminal: bool) -> serde_json::Value {
+        let mut recent_activity = self.recent_activity.clone();
+        if terminal {
+            let kind = match stage {
+                "succeeded" => "session-finished",
+                "cancelled" => "session-cancelled",
+                _ => "session-failed",
+            };
+            recent_activity.insert(0, serde_json::json!({"sequence": self.sequence + 1,
+                "kind": kind, "stage": stage, "elapsedSec": self.elapsed_sec}));
+            recent_activity.truncate(5);
+        }
         serde_json::json!({
+            "sequence": self.sequence + u64::from(terminal),
             "visitedPages": self.pages,
-            "queuedPages": 0,
+            "failedPages": self.failed_pages,
+            "queuedPages": if terminal { 0 } else { self.queued_pages },
+            "currentPages": if terminal { Vec::<String>::new() } else { self.current_pages.clone() },
+            "recentActivity": recent_activity,
             "framesInspected": self.frames_inspected,
             "elementsAnalyzed": self.elements_analyzed,
             "candidates": self.candidates,
@@ -229,6 +253,11 @@ impl SessionRegistry {
             return;
         }
         record.result_json = Some(canonical);
+        if let Some(count) = record.result_json.as_deref()
+            .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok())
+            .and_then(|value| value.get("findings").and_then(serde_json::Value::as_array).map(|items| items.len() as u64)) {
+            record.progress.findings = count;
+        }
         record.detail_json = Some(detail_json);
         record.extra_json = Some(extra_json);
         record.status = SessionStatus::Succeeded;
@@ -260,6 +289,8 @@ impl SessionRegistry {
             "startedAt": record.started_at,
             "finishedAt": record.finished_at,
             "error": record.error,
+            "progress": record.progress.value(record.status.as_str(), matches!(record.status,
+                SessionStatus::Succeeded | SessionStatus::Cancelled | SessionStatus::Failed)),
         }))
     }
 
@@ -300,7 +331,7 @@ impl SessionRegistry {
                     .and_then(serde_json::Value::as_array)
                     .map(|items| items.len() as u64)
             });
-        let mut snapshot = record.progress;
+        let mut snapshot = record.progress.clone();
         if let Some(findings) = validated_findings {
             snapshot.findings = findings;
         }
@@ -315,6 +346,19 @@ impl SessionRegistry {
         }
         let snapshot = &mut record.progress;
         let count = |field: &str| progress.get(field).and_then(serde_json::Value::as_u64);
+        let Some(sequence) = count("sequence") else { return false; };
+        if sequence <= snapshot.sequence { return false; }
+        snapshot.sequence = sequence;
+        if let Some(value) = count("queuedPages") { snapshot.queued_pages = value; }
+        if let Some(value) = count("failedPages") { snapshot.failed_pages = snapshot.failed_pages.max(value); }
+        snapshot.current_pages = progress.get("currentPages").and_then(serde_json::Value::as_array)
+            .map(|items| items.iter().filter_map(serde_json::Value::as_str).take(4).map(str::to_owned).collect())
+            .unwrap_or_default();
+        snapshot.recent_activity = progress.get("recentActivity").and_then(serde_json::Value::as_array)
+            .map(|items| items.iter().take(5).cloned().collect()).unwrap_or_default();
+        if progress.get("stage").and_then(serde_json::Value::as_str) == Some("finalizing") {
+            record.status = SessionStatus::Finalizing;
+        }
         if let Some(value) = count("visitedPages") { snapshot.pages = snapshot.pages.max(value); }
         if let Some(value) = count("framesInspected") { snapshot.frames_inspected = snapshot.frames_inspected.max(value); }
         if let Some(value) = count("elementsAnalyzed") { snapshot.elements_analyzed = snapshot.elements_analyzed.max(value); }
@@ -375,11 +419,7 @@ impl SessionRegistry {
                     if matches!(kind, "session-finished" | "session-failed" | "session-cancelled") {
                         continue;
                     }
-                    let progress = value.get("progress").cloned().unwrap_or(serde_json::json!({
-                        "visitedPages": 0, "queuedPages": 0, "framesInspected": 0,
-                        "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0,
-                        "elapsedSec": 0, "stage": "running",
-                    }));
+                    let Some(progress) = value.get("progress").cloned() else { continue; };
                     if registry.record_progress(&session_owned, &progress).await {
                         on_progress(serde_json::json!({
                             "kind": kind,
@@ -728,7 +768,7 @@ mod tests {
         let id = record.id.clone();
         registry.insert(record).await;
         let canonical = "{\"meta\":{\"topic\":\"t\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[]}\n";
-        registry.record_progress(&id, &serde_json::json!({"visitedPages": 3, "confirmedFindings": 2})).await;
+        registry.record_progress(&id, &serde_json::json!({"sequence": 1, "visitedPages": 3, "confirmedFindings": 2})).await;
         registry
             .store_result(&id, canonical.to_string(), "{}".to_string(), "{}".to_string(), "2026-10-01T00:01:00Z".to_string())
             .await;
@@ -874,8 +914,38 @@ mod progress_pump_tests {
 
     fn event_json(kind: &str, pages: u64, url: &str) -> String {
         format!(
-            "KRDSPROGRESS {{\"kind\":\"{kind}\",\"message\":null,\"pageUrl\":\"{url}\",\"progress\":{{\"visitedPages\":{pages},\"queuedPages\":1,\"framesInspected\":2,\"elementsAnalyzed\":11,\"candidates\":4,\"confirmedFindings\":2,\"elapsedSec\":5,\"stage\":\"running\"}}}}"
+            "KRDSPROGRESS {{\"kind\":\"{kind}\",\"message\":null,\"pageUrl\":\"{url}\",\"progress\":{{\"sequence\":{pages},\"visitedPages\":{pages},\"failedPages\":0,\"queuedPages\":1,\"currentPages\":[],\"recentActivity\":[],\"framesInspected\":2,\"elementsAnalyzed\":11,\"candidates\":4,\"confirmedFindings\":2,\"elapsedSec\":5,\"stage\":\"running\"}}}}"
         )
+    }
+
+    #[tokio::test]
+    async fn polling_recovers_active_work_and_terminal_settlement_clears_it() {
+        let registry = SessionRegistry::shared();
+        let record = new_session("https://example.kr/".to_string(), String::new(), "start".to_string());
+        let id = record.id.clone();
+        registry.insert(record).await;
+        let progress = serde_json::json!({
+            "sequence": 8, "visitedPages": 12, "failedPages": 2, "queuedPages": 6,
+            "currentPages": ["https://example.kr/a", "https://example.kr/b"],
+            "recentActivity": [{"sequence": 8, "kind": "page-failed", "stage": "running", "elapsedSec": 10}],
+            "confirmedFindings": 3, "elapsedSec": 12,
+        });
+        assert!(registry.record_progress(&id, &progress).await);
+        assert!(!registry.record_progress(&id, &serde_json::json!({"sequence": 7, "visitedPages": 1})).await);
+        let session = registry.snapshot(&id).await.unwrap();
+        assert_eq!(session["progress"]["currentPages"], progress["currentPages"]);
+        assert_eq!(session["progress"]["recentActivity"], progress["recentActivity"]);
+        assert_eq!(session["progress"]["visitedPages"], 12);
+        assert_eq!(session["progress"]["failedPages"], 2);
+        assert_eq!(session["progress"]["queuedPages"], 6);
+        registry.cancel(&id, "finish".to_string()).await;
+        let terminal = registry.snapshot(&id).await.unwrap();
+        assert_eq!(terminal["progress"]["sequence"], 9);
+        assert_eq!(terminal["progress"]["visitedPages"], 12);
+        assert_eq!(terminal["progress"]["confirmedFindings"], 3);
+        assert_eq!(terminal["progress"]["currentPages"], serde_json::json!([]));
+        assert_eq!(terminal["progress"]["queuedPages"], 0);
+        assert!(!registry.record_progress(&id, &serde_json::json!({"sequence": 10, "visitedPages": 99})).await);
     }
 
     /// Stderr fragments for the pump child, rendered per platform.

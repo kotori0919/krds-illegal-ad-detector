@@ -1,6 +1,9 @@
 # ADR-0012: KRDS Adaptive patterns and token hierarchy (2026-10-05)
 
-Status: pattern mapping and official light-mode color/spacing/radius token values applied in React 2026-10-06; residual tokens and packaged Windows verification pending. Expands ADR-0010's operator UI decision.
+Status: pattern mapping, official light-mode color/spacing/radius values and
+documented layout extension hierarchy applied in React 2026-10-06; packaged
+Windows and assistive-technology verification pending. Expands ADR-0010's
+operator UI decision.
 
 ## Context
 
@@ -39,3 +42,21 @@ actions, saved path or actionable error. Validation remains an internal gate.
 KRDS 상세 정보 확인 uses stored matched terms, destination, normalized text and
 measured geometry rather than repeating generic technique definitions. This
 decision does not remove unavailable-evidence reasons or recovery actions.
+
+## Amendment 2026-10-06: scan feedback
+
+The scan screen maps to KRDS feedback and error patterns: concise Korean stage,
+elapsed `mm:ss`, active page URLs, completed/failed counts and a bounded recent
+activity list. Per-element output and internal English messages are excluded.
+Announcements occur for meaningful changes rather than each page or clock
+tick. Cancellation confirmation states the actual consequence once; settlement
+keeps its control disabled until the host reaches a terminal state. Polling
+failure has a status message while scanning and cancellation remain available.
+
+Use one KRDS indeterminate spinner beside the Korean scan status after the
+first second, including host cancellation settlement. Discovery has no known
+total, so no percentage is shown. Its 48px size uses the existing KRDS height
+tier, path uses the gray-60 border role, indicator the primary action role and
+3px stroke the documented local border extension. Reduced-motion preference
+replaces rotation with the existing textual status. The spinner is decorative
+to assistive technology; the adjacent polite status carries its meaning.

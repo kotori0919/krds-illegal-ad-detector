@@ -10,6 +10,7 @@ import {
   type ScanSession,
 } from "@krds-detector/contracts";
 import { techniqueLabel } from "../technique-label.js";
+import { formatElapsed, scanStatusLabel } from "../scan-format.js";
 
 interface Props {
   host: HostBridge;
@@ -160,7 +161,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
     <main className="page">
       <p className="eyebrow">결과 검토</p>
       <h1>점검 결과</h1>
-      <p className="lede">{session?.status === "succeeded" ? "점검 완료" : session ? `상태: ${session.status}` : "결과를 불러오는 중"}{result ? ` · 공식 탐지 ${String(result.findings.length)}건` : null}</p>
+      <p className="lede">{session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}</p>
       {demoMode ? <p role="note" className="empty">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다.</p> : null}
       {result ? <p className="hint">탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개` : ""}</p> : null}
       {result && (view === "findings" || view === "pages") ? (

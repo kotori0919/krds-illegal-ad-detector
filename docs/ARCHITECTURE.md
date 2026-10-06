@@ -53,6 +53,13 @@ URL + meaningful preset → monotonic ScanDeadline
 
 The persisted result, coverage, and detail index become readable before the host reports a terminal success. React does not import Tauri APIs; the native host provides session-scoped read commands and safe asset retrieval. Browser replay returns typed fixture data with a visible demo label. The operator's three stages are UI state; worker lifecycle statuses are separate domain state. `succeeded` plus failures yields a partial-completion presentation, not a new official output type.
 
+Contract v0.2 session reads also expose the host's latest progress snapshot:
+sequence, attempted/failed/queued counts, up to four current page URLs and
+five typed recent activities. Worker admission and close drive active work;
+host settlement clears it and reconciles validated official counts. React
+accepts newer snapshots from events or polling and routes only from canonical
+host terminal status. See `SCAN_STATE_MACHINE.md` for timing and retention.
+
 ## Contract ownership and invariants
 
 `result.ts` remains the contest boundary: `OfficialResult` with the four required `OfficialTechnique` values, exact `url`/`location`, original evidence text, identity `(url, location, technique)`, and `result_extra.json` separation. `scan.ts`, `host.ts`, and `evidence.ts` evolve to v0.2 as specified in `DOMAIN_MODEL.md`, `SCAN_STATE_MACHINE.md`, and `EVIDENCE_MODEL.md`. ADR-0003 remains the history of why v0 was frozen; ADR-0010 records why the internal freeze is broken.

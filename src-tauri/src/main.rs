@@ -15,7 +15,7 @@ mod job;
 mod job_fallback;
 mod session;
 
-use session::{SessionOutcome, SessionRegistry, SessionStatus};
+use session::{SessionOutcome, SessionRegistry};
 use std::sync::Arc;
 use tauri::{Emitter, Manager, State, WebviewWindowBuilder};
 
@@ -66,8 +66,8 @@ async fn scan_start(
     if max_depth > 10 {
         return Err("maxDepth must be 0..=10".to_string());
     }
-    if timeout_sec < 60 || timeout_sec > 1750 {
-        return Err("timeoutSec must be 60..=1750".to_string());
+    if timeout_sec < 60 || timeout_sec > 1500 {
+        return Err("timeoutSec must be 60..=1500".to_string());
     }
     let topic = request.topic.clone().unwrap_or_default();
     let started_at = chrono::Utc::now().to_rfc3339();
@@ -159,18 +159,12 @@ async fn scan_start(
             "kind": "session-started",
             "sessionId": session_id,
             "at": started_at,
-            "progress": {"visitedPages": 0, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "running"},
+            "progress": {"sequence": 0, "visitedPages": 0, "failedPages": 0, "queuedPages": 0, "currentPages": [], "recentActivity": [], "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "running"},
             "pageUrl": parsed,
         }),
     )
     .map_err(|e| e.to_string())?;
-    Ok(serde_json::json!({
-        "id": session_id,
-        "entryUrl": parsed,
-        "topic": topic,
-        "status": SessionStatus::Running.as_str(),
-        "startedAt": started_at,
-    }))
+    state.registry.snapshot(&session_id).await.ok_or_else(|| "unknown session".to_string())
 }
 
 /// Sidecar completion: persist validated stdout, mark status, notify the UI.
@@ -467,13 +461,14 @@ async fn scan_cancel(
     if !state.registry.cancel(&session_id, finished_at.clone()).await {
         return Err("unknown session".to_string());
     }
+    let progress = state.registry.progress_snapshot(&session_id).await;
     app.emit(
         "scan-event",
         serde_json::json!({
             "kind": "session-cancelled",
             "sessionId": session_id,
             "at": finished_at,
-            "progress": {"visitedPages": 0, "queuedPages": 0, "framesInspected": 0, "elementsAnalyzed": 0, "candidates": 0, "confirmedFindings": 0, "elapsedSec": 0, "stage": "cancelled"},
+            "progress": progress.terminal_value("cancelled"),
         }),
     )
     .map_err(|e| e.to_string())?;

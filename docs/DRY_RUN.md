@@ -1,5 +1,47 @@
 # Clean-machine dry run (Phase 24 — Windows, release-blocking)
 
+## 2026-10-06: recoverable KRDS progress
+
+OBSERVED on Linux: 134 JavaScript tests passed (24.08s); 16 native registry
+tests passed (5.20s), including the actual relocated Node worker. The worker
+retained six checked pages, one failure, five official findings and five JPEG
+details. `getSession` retained active page URLs, failure count and recent typed
+activities, then cleared active work only at host settlement. A cancellation
+failure focus regression was reproduced and fixed before the full suite.
+
+OBSERVED through browser IPC replay: actual six-page scanner progress recovered
+without delivering any events. The 360px view showed current work and `mm:ss`,
+no horizontal overflow, Escape focus restoration, reduced-motion text feedback,
+and the eventual five-finding partial result. The compact save workflow and
+actual JPEG/normalized text still passed the real-evidence React smoke.
+Headed Linux Chromium 200% zoom passed setup/results/extra/inspector/save reflow
+and focus after layout dimensions moved to documented KRDS token extensions.
+
+OBSERVED: the GNU LLVM Windows release build succeeded with `RC=llvm-rc`.
+Executable SHA-256:
+`60ef21946315cc54f2bfd60036b5a91fb05d471f5ad9fc92225ac186d73695eb`.
+Bundled worker SHA-256:
+`90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`.
+The first cross-build attempt omitted the toolchain; a second attempt using
+the LLVM windres wrapper failed compiler detection. The documented llvm-rc
+configuration resolved the resource build without dependency changes.
+
+NOT_RUN for this build: native Windows progress, maximum-budget rejection,
+latest-worker C1–C4 benchmark, installed export/state/zoom/assistive-technology
+walk. The pending `clean11` input-ownership clarification prevents new VM
+input. Earlier Windows observations below name earlier binary/worker versions
+and must not be presented as execution evidence for these changes.
+
+OBSERVED: the same live-progress replay at native Linux Chromium 200% zoom
+returned DPR 2, 360px viewport, 352px document, no nested overflow, reduced
+motion and restored stop focus. Latest unsigned NSIS bundle was produced:
+119456458 bytes, SHA-256
+`daec5cc5c5d0f5170f250d635af4718f0c4ca0b62d18ea96c614bd5d86998c3c`.
+Archive inspection found both runtime DLLs, LLVM license and the current
+worker. It has not replaced the installed Windows package or live ISO.
+
+## Previous Windows records
+
 Status legend: `[x] PASS` = observed on the named build with listed
 evidence. `[ ] UNVERIFIED (미근거)` = claimed or run elsewhere but NOT
 observed on the current packaged build — must be re-proven, never

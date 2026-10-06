@@ -43,6 +43,7 @@ export class BrowserHost implements HostBridge {
       topic: request.topic ?? "",
       status: "running",
       startedAt: new Date().toISOString(),
+      progress: initialProgress("running"),
     };
     this.sessions.set(session.id, session);
     const demo = demoResult();
@@ -86,6 +87,7 @@ export class BrowserHost implements HostBridge {
     emit("session-started", "미리보기 데모 데이터를 불러왔습니다. 실제 스캔은 데스크톱 앱에서 실행됩니다.");
     emit("stage-changed", "데모: 분석 완료");
     progress.stage = "succeeded";
+    session.progress = progress;
     emit("session-finished", "데모 결과 준비됨");
     return session;
   }
@@ -95,13 +97,15 @@ export class BrowserHost implements HostBridge {
     if (session) {
       session.status = "cancelled";
       session.finishedAt = new Date().toISOString();
+      session.progress = { ...session.progress, sequence: session.progress.sequence + 1,
+        stage: "cancelled", currentPages: [], queuedPages: 0 };
       const at = new Date().toISOString();
       for (const h of this.handlers) {
         h({
           kind: "session-cancelled",
           sessionId,
           at,
-          progress: initialProgress("cancelled"),
+          progress: session.progress,
           message: "취소되었습니다.",
         });
       }

@@ -45,7 +45,8 @@ try {
   assetOrigin = `http://127.0.0.1:${assets.address().port}`;
   await new Promise((done) => site.listen(0, "127.0.0.1", done));
   const entryUrl = `http://127.0.0.1:${site.address().port}/`;
-  const output = await scanSite({ entryUrl, topic: "ad-fixture", crawl: {
+  let progress;
+  const output = await scanSite({ entryUrl, topic: "ad-fixture", onEvent: (event) => { progress = event.progress; }, crawl: {
     concurrency: 2, settleMs: 300, perPageMs: 7000,
     limits: { maxPages: 2, maxDepth: 1, timeoutSec: 45 },
   } });
@@ -55,9 +56,9 @@ try {
   await new Promise((done) => app.listen(0, "127.0.0.1", done));
   browser = await chromium.launch({ args: ["--no-sandbox"] });
   const page = await browser.newPage();
-  await page.addInitScript(({ result, detail, extra, entryUrl }) => {
+  await page.addInitScript(({ result, detail, extra, entryUrl, progress }) => {
     const session = { id: "extra-ui", entryUrl, topic: "ad-fixture", status: "succeeded",
-      startedAt: result.meta.started_at, finishedAt: result.meta.finished_at };
+      startedAt: result.meta.started_at, finishedAt: result.meta.finished_at, progress };
     window.__TAURI_INTERNALS__ = {
       transformCallback: () => 1,
       unregisterCallback: () => {},
@@ -72,7 +73,7 @@ try {
         }
       },
     };
-  }, { result: output.result, detail: output.detailBundle, extra: output.extraResult, entryUrl });
+  }, { result: output.result, detail: output.detailBundle, extra: output.extraResult, entryUrl, progress });
   await page.goto(`http://127.0.0.1:${app.address().port}/`, { waitUntil: "networkidle" });
   await page.getByLabel("점검할 웹사이트").fill(entryUrl);
   await page.getByRole("button", { name: "점검 시작" }).click();

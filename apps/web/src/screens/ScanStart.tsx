@@ -78,8 +78,8 @@ export function ScanStart({ host, onStarted }: Props) {
     if (scopeMode === "custom" && (!Number.isFinite(depth) || depth < 0 || depth > 10)) {
       errors.maxDepth = "탐색 깊이는 0부터 10까지 입력해 주세요.";
     }
-    if (scopeMode === "custom" && (!Number.isFinite(timeout) || timeout < 60 || timeout > 1750)) {
-      errors.timeoutSec = "제한 시간은 60초부터 1750초까지 입력해 주세요.";
+    if (scopeMode === "custom" && (!Number.isFinite(timeout) || timeout < 60 || timeout > 1500)) {
+      errors.timeoutSec = "60~1500초로 입력해 주세요.";
     }
     if (Object.keys(errors).length > 0) {
       setFormError(undefined);
@@ -156,7 +156,7 @@ export function ScanStart({ host, onStarted }: Props) {
           <fieldset className="scope-options">
             <legend>점검 범위</legend>
             <label><input type="radio" name="scope-mode" value="automatic" checked={scopeMode === "automatic"} onChange={() => setScopeMode("automatic")} /> 자동 점검 — 최대 200페이지, 하위 4단계, 25분</label>
-            <label><input type="radio" name="scope-mode" value="quick" checked={scopeMode === "quick"} onChange={() => setScopeMode("quick")} /> 빠른 점검 — 최대 50페이지, 하위 2단계, 10분. 확인 범위가 줄어듭니다.</label>
+            <label><input type="radio" name="scope-mode" value="quick" checked={scopeMode === "quick"} onChange={() => setScopeMode("quick")} /> 빠른 점검 — 최대 50페이지, 하위 2단계, 10분</label>
             <label><input type="radio" name="scope-mode" value="custom" checked={scopeMode === "custom"} onChange={() => setScopeMode("custom")} /> 직접 설정</label>
           </fieldset>
           {scopeMode === "custom" ? <div className="advanced-grid">
@@ -224,7 +224,7 @@ export function ScanStart({ host, onStarted }: Props) {
                 type="number"
                 inputMode="numeric"
                 min={60}
-                max={1750}
+                max={1500}
                 step={1}
                 value={timeoutSec}
                 onChange={(e) => {
