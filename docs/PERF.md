@@ -253,4 +253,5 @@ Windows or max-limit acceptance.
 - [x] Generated 200-page Windows worker wall and total guest memory measured above.
 - [ ] Record native cold start, selective capture/finalization overhead and installed-package process count.
 - [ ] Confirm no orphan Chromium after close/cancel (Job Objects).
-- [ ] Record NSIS install size + cold-start to first paint.
+- [x] GNU LLVM NSIS package generated and installed: 119407387 bytes (113.88 MiB).
+- [ ] Measure cold-start to first paint; observed launch alone is not a latency measurement.

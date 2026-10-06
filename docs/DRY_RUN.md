@@ -79,6 +79,30 @@ was too brief to capture; no timing claim is made for that state.
 The native no-match view showed 0/5, a reset action, and restored 5/5 with the
 query cleared and filter reset (`native-v2-no-match.png`, `native-v2-reset.png`).
 
+The first NSIS package installed but actual launch reported missing
+`libunwind.dll`, then `WebView2Loader.dll`. PE imports confirmed both. The
+GNU LLVM target now has a specific resource configuration that installs both
+DLLs beside the executable and includes the LLVM license. The corrected
+119407387-byte installer SHA-256 is
+`e953e8844a2027940d5710672f3f522a5b5e044df6602c97d9f7bfbb983ba079`.
+It was generated through Tauri CLI 2.12.0 and Ubuntu NSIS 3.09; a temporary
+compiler launcher restored `NSISDIR` for the user-local extracted toolset
+because the Tauri bundler clears that variable. No system package was installed.
+The corrected package reinstalled under
+`C:\Users\cleanval\AppData\Local\불법광고 탐지 도구` and its finish action
+opened the real app with URL focus, replacing both launch errors. This is
+observed GNU LLVM package execution, not a verified MSVC build or a timed
+cold-start measurement. `nsis-v2-first-paint.png`, `nsis-v2-fixed-welcome.png`
+and `nsis-v2-fixed-first-paint.png` record the failure and corrected launch.
+The installed app then completed the six-page scan with five official findings,
+six checked pages and one expected failure (`nsis-v2-fixed-result.png`). Its
+bundled worker SHA-256 is
+`3771770ea3f82b69dd8bd3a0d8fd0f2c3a85864b747592d05b2a3c88fa3cf1bc`.
+Installed-package export/zoom/state checks are still open. Native input was
+stopped when an unrelated Edge window and different pointer movement appeared;
+VM ownership clarification is pending. No subsequent export observation is
+claimed from the foreground browser.
+
 ## A. Release unpack (no dev tooling)
 
 Status 2026-10-02 (Windows 11 VM, gnu-lane exe — NSIS PENDING):

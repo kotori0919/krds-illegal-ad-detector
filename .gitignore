@@ -13,6 +13,8 @@ benchmarks/native-session-l3/target/
 src-tauri/binaries/scanner-worker-*.mjs
 src-tauri/binaries/node.exe
 src-tauri/binaries/node-LICENSE
+src-tauri/binaries/llvm-LICENSE
+src-tauri/binaries/*.dll
 src-tauri/binaries/node_modules/
 src-tauri/binaries/ms-playwright/
 playwright-report/
