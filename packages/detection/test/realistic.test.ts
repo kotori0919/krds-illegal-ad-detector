@@ -28,7 +28,7 @@ beforeAll(async () => {
 
 afterAll(async () => { await new Promise<void>((resolveClose) => server.close(() => resolveClose())); });
 
-interface Truth { positive: { page: string; selector: string; technique: string }[]; expectedCheckedPages: number; expectedFailedPages: number }
+interface Truth { positive: { page: string; selector: string; technique: string }[]; expectedAttemptedPages: number; expectedCheckedPages: number; expectedFailedPages: number }
 const findingKey = (finding: { url: string; location: string; technique: string }) => {
   const path = new URL(finding.url).pathname;
   const boundary = finding.location.lastIndexOf(">>>");
@@ -49,12 +49,12 @@ describe("L2 municipal-style public site", () => {
         crawl: { concurrency, settleMs: 1400, perPageMs: 10000, limits: { maxPages: 6, maxDepth: 2, timeoutSec: 90 } },
       });
       durations.push(Number(((performance.now() - start) / 1000).toFixed(3)));
-      expect(output.pagesVisited).toBe(truth.expectedCheckedPages);
+      expect(output.pagesVisited).toBe(truth.expectedAttemptedPages);
       expect(output.failedPages).toBe(truth.expectedFailedPages);
       expect(output.timedOut).toBe(false);
       expect(validateOfficialResultText(output.json).ok).toBe(true);
       expect(validateScanDetailBundle(output.detailBundle, output.result, output.extraResult).ok).toBe(true);
-      expect(output.detailBundle.coverage.checkedPages).toBe(6);
+      expect(output.detailBundle.coverage.checkedPages).toBe(truth.expectedCheckedPages);
       expect(output.detailBundle.coverage.failedPages.map((page) => new URL(page.url).pathname)).toEqual(["/missing.html"]);
       expect(output.detailBundle.findings.map((detail) => detail.findingId)).toEqual(output.result.findings.map((finding) => finding.id));
       for (const detail of output.detailBundle.findings) {

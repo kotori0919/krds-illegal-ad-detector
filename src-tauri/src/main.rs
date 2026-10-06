@@ -319,6 +319,14 @@ mod validation_tests {
             "coverage": {"checkedPages":1,"failedPages":[],"timedOut":false}
         });
         assert!(validate_detail_bundle(&good_json(), &detail.to_string(), "{\"findings\":[]}").is_ok());
+        let mut partial = detail.clone();
+        partial["coverage"]["failedPages"] = serde_json::json!([
+            {"url":"https://example.kr/missing-a","status":404,"reason":"HTTP 404"},
+            {"url":"https://example.kr/missing-b","status":404,"reason":"HTTP 404"}
+        ]);
+        assert!(validate_detail_bundle(&good_json(), &partial.to_string(), "{\"findings\":[]}").is_ok());
+        partial["coverage"]["checkedPages"] = serde_json::json!(-1);
+        assert!(validate_detail_bundle(&good_json(), &partial.to_string(), "{\"findings\":[]}").is_err());
         let mut wrong = detail;
         wrong["findings"][0]["location"] = serde_json::Value::String("#other".to_string());
         assert!(validate_detail_bundle(&good_json(), &wrong.to_string(), "{\"findings\":[]}").is_err());
@@ -461,8 +469,8 @@ fn validate_detail_bundle(official_text: &str, detail_text: &str, extra_text: &s
     }
     let coverage = detail.get("coverage").ok_or("detail coverage missing")?;
     let checked = coverage["checkedPages"].as_u64().ok_or("detail checkedPages missing")?;
-    let failed = coverage["failedPages"].as_array().ok_or("detail failedPages missing")?;
-    if failed.len() as u64 > checked { return Err("detail failedPages exceeds checkedPages".to_string()); }
+    if checked > 9_007_199_254_740_991 { return Err("detail checkedPages invalid".to_string()); }
+    coverage["failedPages"].as_array().ok_or("detail failedPages missing")?;
     let extra: serde_json::Value = serde_json::from_str(extra_text).map_err(|e| e.to_string())?;
     let extras = extra["findings"].as_array().ok_or("extra findings missing")?;
     let images = detail["creativeImages"].as_array().ok_or("detail creativeImages missing")?;

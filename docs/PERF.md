@@ -10,7 +10,58 @@ cover six pages and a generated 200-page scenario; the latter met the desired
 target. Full native product/performance acceptance remains open. The earlier "parallel only if dry run demands it" stance is
 superseded.
 
-## Current-worker Windows concurrency acceptance (MEASURED 2026-10-06)
+## Coverage correction and current acceptance (2026-10-06)
+
+Current worker `00298fe383b706b5642f9f4beb74e1894b9a3da8b18ac8466aca4db191f5cbd1`
+counts successful pages separately from failed attempts. Its Windows C1-C4
+benchmark, native partial-result/export and paired capture modes passed.
+Earlier raw reports below retain their original
+values: their checked-page counts and throughput counted attempts. For the
+200-page scenario this means 200 attempts, 199 successful pages and one failure;
+the earlier native deadline count62 means61 successful pages and one failure.
+Do not use these earlier reports as proof for the corrected worker.
+
+MEASURED: Windows 4-vCPU/8-GiB, no required GPU, same generated municipal
+scenario with 200 attempts, 199 successful pages and one intended failure.
+All four runs returned TP21/FP0/FN0 and passed official/detail/extra validators.
+Independent parsed-object comparison confirmed identical complete findingSet
+and failedPageSet arrays at C1-C4, including IDs, order and frame chains.
+
+| Workers | Wall s | Successful pages/s | Peak above idle MiB | Peak guest used MiB | Mean CPU % |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 334.756 | 0.594 | 410.6 | 3754.8 | 36.5 |
+| 2 | 170.419 | 1.168 | 443.1 | 3681.8 | 41.0 |
+| 3 | 111.326 | 1.788 | 552.9 | 3747.8 | 42.9 |
+| 4 | 86.184 | 2.309 | 655.8 | 3799.8 | 49.3 |
+
+All wall times meet1200s; the conservative default remains2. This single
+normal-cache VM sweep supports the initial policy, not universal scaling.
+Sampling uses500ms Node/Chromium working sets above idle and1s guest CPU/
+available-memory samples; guest used memory includes OS and idle fixtures.
+Raw report: `/tmp/illegal-ad-toolchain/current-windows-v2-large-bench.json`.
+Terminal log: `/tmp/illegal-ad-toolchain/current-windows-v2-current-bench.log`.
+
+OBSERVED: installed corrected native app with60s configured deadline settled
+in54.1246734s (persisted elapsed53.04s), timedOut=true,62 successful pages,
+one intended404 and five official findings. Native export wrote1,486 bytes,
+passed the official validator and matched the full official object.
+MEASURED process-cold readiness0.85270738s and renderer FP/FCP120ms use CDP
+readiness polling and normal OS caches, not an OS-cold boot stopwatch.
+Raw report: `/tmp/illegal-ad-toolchain/current-native-deadline-current.json`.
+
+OBSERVED: paired C2 capture modes preserve the complete official finding and
+failed-page arrays from the corrected C2 baseline. Both attempted200 pages,
+checked199, failed one, returned TP21/FP0/FN0, and passed all validators.
+Selective capture took167.389s with11 calls/zero failures,123,004 captured
+bytes,498.1MiB peak above idle and39.4% mean CPU. Injected-unavailable capture
+took164.401s with five calls/five failures, zero captured or embedded finding
+image bytes,475.0MiB peak above idle and39.9% mean CPU. Their worker hashes
+match the baseline. This paired observation does not isolate causal capture
+overhead from run-to-run variation.
+Raw reports: `/tmp/illegal-ad-toolchain/current-windows-v2-capture-bench.json`
+and `/tmp/illegal-ad-toolchain/current-windows-v2-capture-unavailable-bench.json`.
+
+## Earlier crop/asset worker Windows acceptance (MEASURED 2026-10-06)
 
 The installed element-region/creative-asset worker
 `309cacb385292865d947134731e0b6c5720caaf608c0a7bd279378cc74c78d81`

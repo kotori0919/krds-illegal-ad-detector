@@ -48,5 +48,5 @@ export async function createLargeMunicipalSite(directory) {
     { page: `/post.html?id=${index + 1}`, selector: "#late-comment", technique: "OFFSCREEN" },
   ]).flat();
   positive.push({ page: "/frame.html", selector: "#frame-ad", technique: "JAMO" });
-  return { pages, truth: { positive, expectedCheckedPages: 200, expectedFailedPages: 1 } };
+  return { pages, truth: { positive, expectedAttemptedPages: 200, expectedCheckedPages: 199, expectedFailedPages: 1 } };
 }

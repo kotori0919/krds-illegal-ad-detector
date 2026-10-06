@@ -32,6 +32,7 @@ export interface FindingDetail {
 }
 
 export interface ScanCoverage {
+  /** Successfully processed pages, excluding every failed page. */
   checkedPages: number;
   failedPages: { url: string; status: number; reason: string }[];
   timedOut: boolean;
@@ -96,7 +97,7 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
         || "dataUrl" in element)) errors.push(`unavailable detail element invalid ${finding.id}`);
     } else if (detail.visual.dataUrl) errors.push(`unavailable detail has image ${finding.id}`);
   }
-  if (bundle.coverage.failedPages.length > bundle.coverage.checkedPages) errors.push("failed pages exceed checked pages");
+  if (!Number.isSafeInteger(bundle.coverage.checkedPages) || bundle.coverage.checkedPages < 0) errors.push("checked pages invalid");
   const creativeIds = new Set<string>();
   let imageCharacters = 0;
   if (!Array.isArray(bundle.creativeImages) || bundle.creativeImages.length > 64) errors.push("creative images invalid");

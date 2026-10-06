@@ -187,7 +187,7 @@ mod tests {
         assert_eq!(actual, expected);
         assert_eq!(findings.len(), 5);
         assert_eq!(detail_findings.len(), 5);
-        assert_eq!(detail["coverage"]["checkedPages"], 6);
+        assert_eq!(detail["coverage"]["checkedPages"], 5);
         assert_eq!(
             detail["coverage"]["failedPages"].as_array().unwrap().len(),
             1
@@ -256,10 +256,10 @@ mod tests {
         );
         assert_eq!(
             registry.detail_value(&id).await.unwrap()["coverage"]["checkedPages"],
-            6
+            5
         );
         assert_eq!(registry.extra_value(&id).await.unwrap(), extra);
-        println!("native L3: 5 official, 5 JPEG detail, 6 checked, 1 failed, {} progress events, persisted succeeded", events.lock().unwrap().len());
+        println!("native L3: 5 official, 5 JPEG detail, 5 checked, 1 failed, {} progress events, persisted succeeded", events.lock().unwrap().len());
         server.abort();
     }
 }

@@ -71,16 +71,16 @@ describe("recoverable scan feedback", () => {
         elapsedSec: 120, pageUrl: "https://example.kr/missing" }] };
     host.setSession({ progress });
     await tick();
-    expect(value("확인한 페이지")).toBe("12");
+    expect(value("확인한 페이지")).toBe("11");
     expect(value("실패한 페이지")).toBe("1");
     expect(within(screen.getByRole("region", { name: "현재 확인 중" })).getAllByRole("listitem").map((item) => item.textContent))
       .toEqual(progress.currentPages);
     expect(within(screen.getByRole("region", { name: "최근 활동" })).getByText(progress.recentActivity[0].pageUrl)).toBeDefined();
     host.emit({ ...progress, sequence: 7, visitedPages: 2, currentPages: [] });
-    expect(value("확인한 페이지")).toBe("12");
+    expect(value("확인한 페이지")).toBe("11");
     host.emit({ ...progress, sequence: 10, visitedPages: 13, currentPages: ["https://example.kr/b"] });
     await tick();
-    expect(value("확인한 페이지")).toBe("13");
+    expect(value("확인한 페이지")).toBe("12");
     expect(within(screen.getByRole("region", { name: "현재 확인 중" })).queryByText("https://example.kr/a")).toBeNull();
   });
 

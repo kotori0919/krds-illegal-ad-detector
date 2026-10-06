@@ -95,10 +95,11 @@ for (const concurrency of [1, 2, 3, 4]) {
   rows.push({
     concurrency,
     wallSec: Number(wallSec.toFixed(3)),
-    pagesPerSec: Number((output.pagesVisited / wallSec).toFixed(3)),
+    pagesPerSec: Number((output.detailBundle.coverage.checkedPages / wallSec).toFixed(3)),
     peakNodeRssMiB: Number((peakNodeRss / 1048576).toFixed(1)),
     nodeCpuPercent: Number((((cpu.user + cpu.system) / 1e6 / wallSec) * 100).toFixed(1)),
-    checkedPages: output.pagesVisited,
+    attemptedPages: output.pagesVisited,
+    checkedPages: output.detailBundle.coverage.checkedPages,
     failedPages: output.failedPages,
     tp,
     fp: got.size - tp,

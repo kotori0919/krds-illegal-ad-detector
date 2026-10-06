@@ -1,5 +1,40 @@
 # Clean-machine dry run (Phase 24 — Windows, release-blocking)
 
+## Current coverage correction acceptance (2026-10-06)
+
+Current source counts successful pages separately from failed attempts.
+Earlier reports below preserve their package scope and original raw counts;
+those old checked counts include failures. Current-worker Windows concurrency
+and native partial-failure/deadline exports passed below. Capture-mode
+invariance also passed. Core gates precede strict KRDS UX.
+
+OBSERVED on the corrected installed package: an actual loopback scan with one
+successful page and two HTTP404 pages returned one TRANSPARENT finding. While
+running, two attempts/one failure displayed one checked page. Native result,
+detail and session reads succeeded; detail validation passed with checked1/
+failed2. Native scan_export wrote466 bytes, passed the official validator and
+matched the entire official object. No fabricated IPC response was used.
+Worker SHA: `00298fe383b706b5642f9f4beb74e1894b9a3da8b18ac8466aca4db191f5cbd1`.
+Installed EXE SHA matches the extracted NSIS payload:
+`22963b2577b2c82c50829e25862bc7272b84de6cd5c36324e062eeb44ccab3b9`.
+NSIS SHA: `84e1a1f2e34c9703bc9464a6e6ebaeb866e09130d01a583b3a13707a21a48efe`.
+Raw native report:
+`/tmp/illegal-ad-toolchain/current-native-coverage-selection-current.json`.
+The corrected C1-C4 full-set sweep also passed; see PERF. Native60s deadline
+settled in54.1246734s, retaining62 successful pages/one failed page and five
+official findings. Its1,486-byte export validated and matched the full object;
+raw report is `/tmp/illegal-ad-toolchain/current-native-deadline-current.json`.
+Paired capture acceptance passed: selective167.389s/11 calls/zero failures,
+injected-unavailable164.401s/five calls/five failures/zero image bytes. Both
+preserved all21 official objects/IDs/order and failed-page identities from
+the corrected full C2 baseline; all validators passed. See PERF for method,
+memory/CPU measurements and report paths.
+
+NOT_RUN: Linux main-host Rust unit tests. The attempted command stopped because
+pkg-config could not find libsoup-3.0. The changed native validator was compiled
+in the Windows release and exercised by the actual checked1/failed2 native
+session and export above. Linux native session L3 and sidecar CLI also passed.
+
 ## 2026-10-06: resumed native core acceptance
 
 VM use is now authorized. Core detection/evidence/export/cancellation and

@@ -6,7 +6,8 @@
     { "page": "/post.html", "selector": "#late-comment", "technique": "OFFSCREEN" },
     { "page": "/frame.html", "selector": "#frame-ad", "technique": "JAMO" }
   ],
-  "expectedCheckedPages": 6,
+  "expectedAttemptedPages": 6,
+  "expectedCheckedPages": 5,
   "expectedFailedPages": 1,
   "negativePages": ["/", "/board.html", "/notice.html", "/report.html"]
 }

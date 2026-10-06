@@ -98,7 +98,7 @@ try {
   const progress = stderr.split(/\r?\n/).filter((line) => line.startsWith("KRDSPROGRESS "))
     .map((line) => JSON.parse(line.slice("KRDSPROGRESS ".length)));
   const finished = progress.findLast((event) => event.kind === "session-finished");
-  if (!finished || finished.progress.visitedPages !== truth.expectedCheckedPages
+  if (!finished || finished.progress.visitedPages !== truth.expectedAttemptedPages
     || finished.progress.confirmedFindings !== expected.length) {
     throw new Error("worker terminal progress differs from validated output");
   }

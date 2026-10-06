@@ -60,3 +60,20 @@ The operator and host accept configured budgets of 60 to 1500 seconds. This
 removes the previous 1750-second promise that exceeded the internal guard.
 Quick retains its existing 50-page/2-depth/600-second limits, now recorded
 consistently in the product spec.
+
+## Amendment 2026-10-06: successful coverage versus attempts
+
+The completion audit found that `checkedPages` included failed snapshots.
+This contradicted the operator's coverage model and DOMAIN_MODEL. Keep
+`visitedPages`/`pagesVisited` as completed attempts, including failures;
+`checkedPages` counts successful navigation and analysis only. Progress shows
+successful checks as attempts minus failures. A valid partial result can have
+more failed than successful pages; neither JS nor native validation may reject
+that relation. Checked counts remain non-negative safe integers.
+
+Fixture admission is unchanged: six attempted pages yield five checked and
+one failed; the large scenario still attempts200 and yields199 checked plus
+one failed. Benchmarks record attempts separately and compute successful-page
+throughput from checked counts. Historical reports retain their measured raw
+counts, labelled as attempts. The corrected worker requires fresh current
+Windows concurrency, partial-result/export and optional-capture acceptance.

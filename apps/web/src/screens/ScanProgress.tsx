@@ -177,7 +177,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
         <dl className="stats">
           <div>
             <dt>확인한 페이지</dt>
-            <dd>{progress.visitedPages}</dd>
+            <dd>{Math.max(0, progress.visitedPages - progress.failedPages)}</dd>
           </div>
           <div>
             <dt>대기 중인 페이지</dt>

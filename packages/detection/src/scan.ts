@@ -324,7 +324,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         };
       }),
       coverage: {
-        checkedPages: summary.pages.length,
+        checkedPages: summary.pages.filter((page) => page.status > 0 && page.status < 400).length,
         failedPages: summary.pages.filter((page) => page.status === 0 || page.status >= 400)
           .map((page) => ({ url: page.url, status: page.status,
             reason: page.status === 0 ? "navigation-or-analysis-failed" : `HTTP ${String(page.status)}` })),

@@ -114,7 +114,7 @@ async function runOne(concurrency, origin, baselineMiB) {
       "--session", `windows-v2-c${concurrency}`,
       "--entry-url", `${origin}/`,
       "--topic", "municipal-style-fixture",
-      "--max-pages", String(truth.expectedCheckedPages), "--max-depth", large ? "4" : "2", "--timeout-sec", String(budgetSec),
+      "--max-pages", String(truth.expectedAttemptedPages), "--max-depth", large ? "4" : "2", "--timeout-sec", String(budgetSec),
       "--settle-ms", large ? "1500" : "1400", "--concurrency", String(concurrency),
       "--out-file", resultFile, "--detail-out-file", detailFile, "--extra-out-file", extraFile,
     ], { env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: browserPath,
@@ -175,6 +175,7 @@ async function runOne(concurrency, origin, baselineMiB) {
       cpuSamples: cpuSamples.length,
       peakGuestUsedMiB: memorySamples.length > 0 ? Number(Math.max(...memorySamples).toFixed(1)) : null,
       timedOut: detail.coverage.timedOut,
+      attemptedPages: detail.coverage.checkedPages + detail.coverage.failedPages.length,
       checkedPages: detail.coverage.checkedPages,
       failedPages: detail.coverage.failedPages.length,
       tp, fp, fn, validator,
@@ -203,7 +204,7 @@ try {
   }
   const same = results.every((item) => JSON.stringify(item.findingSet) === JSON.stringify(results[0].findingSet)
     && JSON.stringify(item.failedPageSet) === JSON.stringify(results[0].failedPageSet));
-  const scenarioPassed = same && results.every((item) => item.checkedPages === truth.expectedCheckedPages
+  const scenarioPassed = same && results.every((item) => item.attemptedPages === truth.expectedAttemptedPages && item.checkedPages === truth.expectedCheckedPages
     && item.failedPages === truth.expectedFailedPages && !item.timedOut
     && item.capture.calls > 0 && (!unavailableCapture || (item.capture.failed === item.capture.calls
       && item.capture.findingBytes.every((finding) => finding.viewport === 0 && finding.element === 0)))
