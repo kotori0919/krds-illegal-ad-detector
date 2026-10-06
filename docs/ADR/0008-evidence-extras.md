@@ -27,3 +27,12 @@ or the 30-minute budget if wired into the official path prematurely.
   scoring risk.
 - A future OCR/VLM slice plugs into `OcrBackend`/`MultimodalFallback`
   without contract churn.
+
+## Amendment 2026-10-06: count observed pages
+
+Infrastructure correlation counts distinct pages that reference a domain,
+including repeated loads of the exact same asset URL. Counting only unique
+resource-to-domain edges missed that case, while counting two resources on one
+page overstated recurrence. Graph edge deduplication and summary traversal use
+indexed sets so this work stays outside the crawl hot path without quadratic
+edge scans.

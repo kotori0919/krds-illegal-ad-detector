@@ -39,9 +39,12 @@ export interface EvidenceGraph {
 export function buildEvidenceGraph(inputs: GraphInput[]): EvidenceGraph {
   const nodes = new Map<string, EvidenceNode>();
   const edges: EvidenceEdge[] = [];
+  const edgeKeys = new Set<string>();
   const link = (from: string, to: string, kind: EvidenceEdgeKind): void => {
     if (from === to) return;
-    if (!edges.some((e) => e.from === from && e.to === to && e.kind === kind)) {
+    const key = `${from}\0${to}\0${kind}`;
+    if (!edgeKeys.has(key)) {
+      edgeKeys.add(key);
       edges.push({ from, to, kind });
     }
   };
@@ -98,15 +101,28 @@ export function buildEvidenceGraph(inputs: GraphInput[]): EvidenceGraph {
 /** Correlated infrastructure summary with disciplined wording. */
 export function summarizeCorrelatedInfrastructure(graph: EvidenceGraph, entryHosts: string[] = []): string[] {
   const entrySet = new Set(entryHosts);
-  const byDomain = new Map<string, number>();
+  const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
+  const domainByReference = new Map<string, string>();
+  const pagesByDomain = new Map<string, Set<string>>();
   for (const node of graph.nodes) {
     if (node.kind !== "Domain") continue;
     if (entrySet.has(node.label)) continue;
-    const refs = graph.edges.filter((e) => e.to === node.id).length;
-    byDomain.set(node.label, refs);
+    pagesByDomain.set(node.label, new Set());
   }
-  return [...byDomain.entries()]
-    .filter(([, refs]) => refs >= 2)
-    .sort((a, b) => b[1] - a[1])
-    .map(([domain, refs]) => `recurring advertisement infrastructure: ${domain} (referenced ${String(refs)} times)`);
+  for (const edge of graph.edges) {
+    const target = nodes.get(edge.to);
+    if (target?.kind === "Domain" && pagesByDomain.has(target.label)) {
+      domainByReference.set(edge.from, target.label);
+    }
+  }
+  for (const edge of graph.edges) {
+    if (nodes.get(edge.from)?.kind !== "Page") continue;
+    const domain = domainByReference.get(edge.to);
+    if (domain) pagesByDomain.get(domain)?.add(edge.from);
+  }
+  return [...pagesByDomain.entries()]
+    .map(([domain, pages]) => [domain, pages.size] as const)
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([domain, count]) => `recurring advertisement infrastructure: ${domain} (observed on ${String(count)} pages)`);
 }

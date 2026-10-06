@@ -54,6 +54,22 @@ describe("evidence graph", () => {
     expect(summaries.length).toBe(1);
     expect(summaries[0]).toMatch(/recurring advertisement infrastructure: ads\.example/);
   });
+
+  it("counts distinct pages even when they load the exact same external asset", () => {
+    const shared = "https://asset.example/banner.webp";
+    const graph = buildEvidenceGraph([
+      { pageUrl: "https://site.example/a", links: [], frames: [], externals: [{ url: shared, kind: "resource" }] },
+      { pageUrl: "https://site.example/b", links: [], frames: [], externals: [{ url: shared, kind: "resource" }] },
+    ]);
+    expect(summarizeCorrelatedInfrastructure(graph, ["site.example"]))
+      .toEqual(["recurring advertisement infrastructure: asset.example (observed on 2 pages)"]);
+
+    const onePage = buildEvidenceGraph([{ pageUrl: "https://site.example/a", links: [], frames: [], externals: [
+      { url: "https://asset.example/one.webp", kind: "resource" },
+      { url: "https://asset.example/two.webp", kind: "resource" },
+    ] }]);
+    expect(summarizeCorrelatedInfrastructure(onePage, ["site.example"])).toEqual([]);
+  });
 });
 
 describe("creative fingerprint", () => {
