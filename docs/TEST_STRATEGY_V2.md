@@ -32,9 +32,12 @@ bytes, six checked pages, one failed page and a terminal progress event with
 six visited pages. Both official and detail validators passed. Temporary
 output files are removed after verification; the Tauri host is not exercised.
 `npm run smoke:sidecar` repeated those checks against the generated esbuild
-`.mjs` file that the Tauri resource map stages. Windows GNU source checking
-passed with that actual resource configuration; installer runtime assets
-and clean-account execution remain unverified.
+`.mjs` file that the Tauri resource map stages. The smoke now relocates the
+worker and `playwright-core` under a temporary `install-dir/binaries/` tree with
+a Unicode path, exercising Node's actual ESM resolution outside the repo.
+The pinned Node v22.19.0, Playwright 1.63.0 and Windows headless shell 1243
+were staged locally; Windows GNU source checking passed with the expanded
+resource map. NSIS output and clean-account execution remain unverified.
 `packages/scanner/test/worker-pool.test.ts` holds live page callbacks at a
 barrier and observes peak callback overlap of 1, 2, 3 and 4 for those selected
 worker counts, with all nine frontier pages requested once. An override of 5

@@ -52,6 +52,23 @@ the executable for the proven portable layout, then always invokes Node.
 process against the realistic site: five official findings, five matching
 details with JPEG evidence, six checked pages, one failed page and valid
 official/detail output. A Windows GNU cross-target `cargo check` passed
-with the real resource mapping. This does not establish NSIS acceptance:
-portable Node, `playwright-core` and the headless shell still need installer
-staging and clean-account runtime verification.
+with the real resource mapping. This did not establish NSIS acceptance:
+portable Node, `playwright-core` and the headless shell still needed installer
+staging and clean-account runtime verification at that point.
+
+## Amendment 2026-10-06: co-locate the runtime with the resource worker
+
+Node resolves the external `playwright-core` import from the `.mjs` worker's
+directory. The installer therefore maps Node v22.19.0, its license,
+`node_modules/playwright-core` 1.63.0, and that version's Windows headless
+shell/FFmpeg under the same `$RESOURCE/binaries/` directory (on Windows,
+`install-dir/binaries/`). The preparation
+script checks Node against the official release SHA-256 and uses Playwright's
+CLI for its pinned browser revision. The host searches worker-adjacent assets
+first; exe-adjacent assets retain the manually proven portable layout.
+
+The relocated Linux worker smoke observed 5 official findings, 5 matching
+details and JPEGs, 6 checked pages, 1 failed page, and valid outputs from a
+temporary `install-dir/binaries/` tree. The full Windows GNU Tauri source check
+passed with the expanded resource map. The actual NSIS installer and clean
+Windows account remain unobserved.

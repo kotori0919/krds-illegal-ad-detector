@@ -8,7 +8,8 @@ so it must not be staged through `externalBin`, which requires a native
 executable and previously led to Windows os error 216.
 
 Runtime lookup (`sidecar_path` in `src-tauri/src/main.rs`) prefers the
-packaged `Resource/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs`,
+packaged `$RESOURCE/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs`
+(Windows `install-dir/binaries/`),
 then checks next to the executable for the portable layout.
 
 ## What the sidecar is
@@ -21,8 +22,8 @@ caller-controlled shell string.
 
 `playwright-core` MUST stay external (`--external:playwright-core`):
 bundling it breaks (`chromium-bidi` CJS require fails at bundle time,
-verified). Its runtime files MUST be shipped next to the app or
-provisioned on first run (see below).
+verified). `npm run prepare:windows-runtime` stages it under the same
+`$RESOURCE/binaries/` directory as the worker, with Node and the browser.
 
 The `--channel` flag is OPT-IN plumbing (default: headless shell).
 `--channel msedge` does NOT work under session-0 on this VM (exit 1002
@@ -48,9 +49,11 @@ npm run build:sidecar
 npm run smoke:sidecar
 ```
 
-The smoke starts the built worker as a separate process and validates the
-official result, detail joins, JPEG evidence and progress on a local realistic
-site. It does not validate Tauri resource placement or the installer.
+The smoke copies the built worker and staged `playwright-core` into a temporary
+`install-dir/binaries/` path, then starts the worker as a separate process. It
+validates real Node module resolution, the official result, detail joins,
+JPEG evidence and progress on a local realistic site. It does not validate
+NSIS content or a Windows launch.
 
 Build the app (gnu lane; needs SYSTEM cargo + MinGW on PATH):
 
@@ -60,6 +63,10 @@ cd C:\work\repo\src-tauri
 cargo +stable-x86_64-pc-windows-gnu build --release --target x86_64-pc-windows-gnu
 ```
 
+This direct Cargo command builds a portable host executable only. Run
+`npm run build:sidecar` and `npm run prepare:windows-runtime` first; use
+`tauri build` to produce an installer with the resource map.
+
 Copy the fresh `target\x86_64-pc-windows-gnu\release\deps\krds_detector-*.exe`
 over `target\x86_64-pc-windows-gnu\release\krds-detector.exe`
 (the top-level exe is a stale hardlink target — link step fails with
@@ -67,9 +74,8 @@ os error 32 while the old app runs; stop it first).
 
 ## Clean-machine install test (no repo, no separate Node install, no cache)
 
-1. Copy ONLY: `krds-detector.exe` + staged sidecar `.mjs` +
-   `node.exe` (portable) + `node_modules/playwright-core` +
-   `ms-playwright/chromium_headless_shell-1243`.
+1. Install the NSIS package containing `install-dir/binaries/` with the `.mjs`,
+   `node.exe`, `node_modules/playwright-core` and `ms-playwright/`.
 2. WITHOUT `C:\work\repo`, `node_modules`, Bun, or a prefilled cache:
    launch, enter the fixture URL, submit.
 3. Expect: progress → result list → evidence → `result.json` export,

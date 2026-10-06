@@ -3,9 +3,9 @@ import { execFile } from "node:child_process";
 import { Buffer } from "node:buffer";
 import { promisify } from "node:util";
 import { createServer } from "node:http";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { cp, copyFile, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateOfficialResultText } from "../packages/contracts/dist/result.js";
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
@@ -14,11 +14,11 @@ const run = promisify(execFile);
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const root = resolve(repoRoot, "fixtures/realistic");
 const bundled = process.argv.includes("--bundled");
-const workerFile = resolve(repoRoot, bundled
+const builtWorker = resolve(repoRoot, bundled
   ? "src-tauri/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs"
   : "packages/detection/dist/worker.js");
 const truth = JSON.parse(await readFile(join(root, "ground-truth.json"), "utf8"));
-const temporary = await mkdtemp(join(tmpdir(), "illegal-ad-worker-"));
+const temporary = await mkdtemp(join(tmpdir(), "illegal-ad-검증 사용자-"));
 const server = createServer((request, response) => {
   const name = new URL(request.url ?? "/", "http://fixture.local").pathname.replace(/^\//, "") || "index.html";
   if (!/^[a-z-]+\.html$/.test(name)) {
@@ -42,6 +42,18 @@ const findingKey = (finding) => {
 };
 
 try {
+  // Exercise Node's real ESM package resolution from the installed resource
+  // path. The worker and playwright-core must share install-dir/binaries/.
+  let workerFile = builtWorker;
+  if (bundled) {
+    const resourceDir = join(temporary, "install-dir", "binaries");
+    const dependencyDir = join(resourceDir, "node_modules", "playwright-core");
+    await mkdir(resourceDir, { recursive: true });
+    workerFile = join(resourceDir, basename(builtWorker));
+    await copyFile(builtWorker, workerFile);
+    await cp(join(repoRoot, "src-tauri", "binaries", "node_modules", "playwright-core"),
+      dependencyDir, { recursive: true });
+  }
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   const origin = `http://127.0.0.1:${server.address().port}`;
   const resultFile = join(temporary, "result.json");

@@ -10,6 +10,10 @@ apps/web/dist/
 packages/*/dist/
 src-tauri/target/
 src-tauri/binaries/scanner-worker-*.mjs
+src-tauri/binaries/node.exe
+src-tauri/binaries/node-LICENSE
+src-tauri/binaries/node_modules/
+src-tauri/binaries/ms-playwright/
 playwright-report/
 test-results/
 result.json

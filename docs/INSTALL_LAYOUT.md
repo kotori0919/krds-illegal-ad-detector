@@ -12,12 +12,24 @@ Total tree ~407 MB (node 85 MB + shell 283 MB); trimmable to
 ## Target installed tree
 
 The proven manual portable tree places these next to the executable
-(`std::env::current_exe` parent — no username, no PATH, no repo). The
-installer currently stages only the worker `.mjs` resource; the other
-runtime assets are an open packaging gate:
+(`std::env::current_exe` parent — no username, no PATH, no repo).
+The NSIS resource map now stages the same relative tree under Tauri's
+`$RESOURCE/binaries/` path, which resolves to `install-dir/binaries/` on
+Windows:
 
 ```
 install-dir/
+  krds-detector.exe
+  binaries/
+    scanner-worker-x86_64-pc-windows-gnu.mjs
+    node.exe                               # pinned Node v22.19.0
+    node-LICENSE
+    node_modules/playwright-core/
+    ms-playwright/
+      chromium_headless_shell-1243/
+      ffmpeg-1011/
+
+portable-dir/
   krds-detector.exe                        # Tauri host (this repo, src-tauri)
   node.exe                                 # portable Node runtime (shipped)
   scanner-worker-x86_64-pc-windows-gnu.mjs # esbuild bundle (this repo)
@@ -39,28 +51,31 @@ No other files are required. In particular the install does NOT need:
 
 ## Resolution order (code: `spawn_sidecar`, `sidecar_path`)
 
-1. **Worker**: Tauri `Resource/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs`
+1. **Worker**: Tauri `$RESOURCE/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs`
    in the installer layout, then exe-adjacent
    `scanner-worker-x86_64-pc-windows-gnu.mjs` in the portable layout.
    No JavaScript file is renamed to `.exe`.
-2. **Node**: exe-adjacent `node.exe` when present, else PATH `node`.
+2. **Node**: worker-adjacent `node.exe`, then exe-adjacent `node.exe`,
+   then PATH `node`.
    Fixed invocation `node <sidecar> <args>` — no caller shell string.
-3. **Browser**: `PLAYWRIGHT_BROWSERS_PATH` when it points at a dir
-   (installer sets it to the shared `ms-playwright/`), else exe-adjacent
-   `ms-playwright/`, else the default per-user cache. Nothing is
+3. **Browser**: `PLAYWRIGHT_BROWSERS_PATH` when it points at a dir,
+   then worker-adjacent `ms-playwright/`, then exe-adjacent
+   `ms-playwright/`, then the default per-user cache. Nothing is
    hard-coded to a username.
 
 ## Provisioning
 
 - Build sidecar: `npm run build:sidecar` (esbuild with external
-  `playwright-core`); `npm run smoke:sidecar` checks the actual bundle.
-- Browsers: `node playwright-core/cli.js install --only-shell
-  --with-deps` once at image time into the shipped `ms-playwright/`
-  (needs network ONCE; scans run offline).
-- NSIS still needs a verified resource mapping for portable `node.exe`,
-  `node_modules/playwright-core/` and `ms-playwright/` in addition to the
-  bundled `.mjs`. Until these are present and exercised on a clean Windows
-  account, the installer is not an accepted distribution.
+  `playwright-core`); `npm run smoke:sidecar` relocates it under a temporary
+  `install-dir/binaries/` tree and checks real Node module resolution and scan.
+- Stage Windows runtime: `npm run prepare:windows-runtime` copies the locked
+  `playwright-core`, downloads Node v22.19.0 with pinned SHA-256 verification,
+  and installs Playwright 1.63.0's Windows headless shell and FFmpeg into the
+  resource tree. Tauri `beforeBuildCommand` runs both steps. The browser
+  download needs network once; scans run offline.
+- The resource map passed a Windows GNU Rust `cargo check` and the relocated
+  sidecar passed a Linux worker smoke. NSIS content, packaged launch, and
+  clean-account behavior still require Windows verification before release.
 
 ## Clean-account validation (UNVERIFIED — pending clean VM)
 

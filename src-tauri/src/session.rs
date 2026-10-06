@@ -536,39 +536,40 @@ impl SessionRegistry {
                 return Err("unknown session".to_string());
             }
         }
-        // Portable runtime resolution (install layout, docs/INSTALL_LAYOUT):
-        // exe-adjacent node.exe first, PATH node second. The worker is always
-        // an .mjs resource invoked by Node; no caller-controlled shell string.
-        let node_bin = std::env::current_exe()
+        // The resource worker resolves npm packages relative to its own path.
+        // Keep Node and its browser beside that worker in installed bundles.
+        // The executable-adjacent layout remains valid for portable runs.
+        #[cfg(windows)]
+        let worker_dir = std::path::Path::new(sidecar_path).parent();
+        #[cfg(windows)]
+        let host_dir = std::env::current_exe()
             .ok()
-            .and_then(|exe| exe.parent().map(|d| d.join("node.exe")))
+            .and_then(|exe| exe.parent().map(std::path::Path::to_path_buf));
+        #[cfg(windows)]
+        let node_bin = worker_dir
+            .map(|dir| dir.join("node.exe"))
             .filter(|p| p.is_file())
+            .or_else(|| host_dir.as_ref().map(|dir| dir.join("node.exe")).filter(|p| p.is_file()))
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|| "node".to_string());
+        #[cfg(not(windows))]
+        let node_bin = "node".to_string();
         let mut cmd = std::process::Command::new(&node_bin);
         cmd.arg(sidecar_path);
-        // Portable browser resolution: prefer the HOST executable's
-        // directory (installed layout: exe + node.exe + ms-playwright/),
-        // NOT the worker's node.exe parent — node may be a system install
-        // elsewhere. Env override wins when it points at a real dir.
+        // Browser resolution follows the worker resource first, then the
+        // portable executable layout, then Playwright's per-user cache.
         // Never hard-code a user profile path.
         #[cfg(windows)]
         {
-            let host_dir = std::env::current_exe().ok().and_then(|exe| {
-                exe.parent().map(|d| d.to_path_buf())
-            });
             let shell_dir = std::env::var_os("PLAYWRIGHT_BROWSERS_PATH")
                 .map(std::path::PathBuf::from)
                 .filter(|p| p.is_dir())
-                .or_else(|| {
-                    host_dir.clone().map(|d| d.join("ms-playwright")).filter(|p| p.is_dir())
-                })
-                .or_else(|| {
-                    host_dir.map(|d| d.join("node.exe")).filter(|p| p.is_file())
-                        .and_then(|n| n.parent().map(|d| d.to_path_buf()))
-                });
+                .or_else(|| worker_dir.map(|d| d.join("ms-playwright")).filter(|p| p.is_dir()))
+                .or_else(|| host_dir.map(|d| d.join("ms-playwright")).filter(|p| p.is_dir()));
             if let Some(dir) = shell_dir {
                 cmd.env("PLAYWRIGHT_BROWSERS_PATH", dir);
+            } else {
+                cmd.env_remove("PLAYWRIGHT_BROWSERS_PATH");
             }
         }
         cmd.args(args)

@@ -18,6 +18,7 @@
     "build": "npm run build -w apps/web",
     "build:scanner": "npm run build -w packages/contracts && npm run build -w packages/synth-eval && npm run build -w packages/scanner && npm run build -w packages/detection",
     "build:sidecar": "esbuild packages/detection/src/worker.ts --bundle --platform=node --format=esm --external:playwright-core --outfile=src-tauri/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs",
+    "prepare:windows-runtime": "node scripts/prepare-windows-runtime.mjs",
     "benchmark:concurrency": "npm run build:scanner && node benchmarks/concurrency.mjs",
     "smoke:worker": "npm run build:scanner && node benchmarks/worker-l3.mjs",
     "smoke:sidecar": "npm run build:sidecar && node benchmarks/worker-l3.mjs --bundled",
