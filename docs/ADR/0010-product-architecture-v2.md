@@ -1,6 +1,6 @@
 # ADR-0010: Product Architecture V2 (2026-10-05)
 
-Status: accepted for design; implementation pending. Supersedes ADR-0003 only where Contract v0 froze product-facing scan, host, and evidence types. Official output, technique values, finding identity, selector serialization, and platform separation remain in force.
+Status: implemented operator workflow and real evidence/review/export observed in the installed Windows app; scanner concurrency/performance acceptance observed. Combined release remains open for the scoped strict UX gates in PRODUCT_V2_ACCEPTANCE.md. Supersedes ADR-0003 only where Contract v0 froze product-facing scan, host, and evidence types. Official output, technique values, finding identity, selector serialization, and platform separation remain in force.
 
 Scope expanded 2026-10-05: Product V2 acceptance also requires the single-pass,
 bounded concurrent scanner and stronger KRDS pattern/token conformance in

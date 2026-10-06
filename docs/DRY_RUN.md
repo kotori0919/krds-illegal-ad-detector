@@ -1453,3 +1453,23 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   privilege blocker bypassed via session URI).
 - [ ] BLOCKED — NSIS installer + uninstall: SDK-gated (MSVC lane needs
   Win11 SDK import libs; approved — pending clean VM).
+
+### Installed Windows deadline and partial export (2026-10-06)
+
+OBSERVED / MEASURED: the installed app (EXE SHA-256
+`70320694da2e504d9bab0891382b1dee4b488a07a6af5870871d9049ec41b1b3`,
+worker `90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`)
+ran the actual 200-page municipal fixture with custom depth4/timeout60 on
+clean11, 4 vCPU/8 GB/no required GPU. Actual UI start to result heading was
+54.12717343 seconds; persisted elapsed_sec was52.665. Coverage retained62
+checked pages and one intended HTTP404, timedOut=true, with5 official findings.
+Real native scan_export wrote1487 bytes to a fresh Documents directory;
+validateOfficialResultText passed and the parsed complete export equaled the
+persisted official result. This is normal deadline settlement and preservation,
+not forced1650-second host-guard exhaustion. Driver used the actual installed
+WebView2 and native IPC, without fabricated responses. Raw report:
+`/tmp/illegal-ad-toolchain/current-native-deadline-current.json`.
+
+Test media initially lacked Joliet filenames and the guest could not locate
+the driver; a distinct Joliet ISO fixed test preparation. No product change
+was needed for this acceptance run.

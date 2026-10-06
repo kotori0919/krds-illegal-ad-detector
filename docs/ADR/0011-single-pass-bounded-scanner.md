@@ -1,6 +1,6 @@
 # ADR-0011: Single-pass bounded scanner and deterministic concurrency (2026-10-05)
 
-Status: implementation, Linux L1/L2 and process/session L3 slices, and a bounded Windows L2 concurrency run observed 2026-10-06; full L3 and Windows release gates pending. Expands ADR-0010 and supersedes the two-pass execution implied by ADR-0007. The official result shape and selector format do not change.
+Status: implementation, Linux L1/L2, actual process/session L3, full-object Windows 200-page C1-C4 acceptance and installed Windows deadline/partial export observed 2026-10-06. Strict product UX release gates remain open in PRODUCT_V2_ACCEPTANCE.md. Expands ADR-0010 and supersedes the two-pass execution implied by ADR-0007. The official result shape and selector format do not change.
 
 ## Context
 

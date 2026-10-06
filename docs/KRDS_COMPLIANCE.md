@@ -88,6 +88,51 @@ directory. The original 1678-byte audit is retained separately as
 `native-live-unthrottled-baseline.json`. Eight scan-feedback tests, typecheck,
 lint and the actual-scanner browser IPC replay smoke also passed.
 
+### Populated extra analysis at native zoom (2026-10-06)
+
+OBSERVED on the installed announcement package: actual two-page image analysis
+returned both extra findings and displayed their Korean list with zero official
+findings. At actual OS zoom DPR 2 / effective 355px, document width was 348px.
+The native VM display showed the category controls, count 2 and the first card
+heading; this capture does not show both complete card bodies. A native-command
+export wrote 246 validated bytes with zero official findings. The same run
+cancelled active workers and observed zero scanner Chromium after settlement.
+Report: `/tmp/illegal-ad-toolchain/current-native-extra-core-current.json`
+(2629 bytes); native display: `native-extra-zoom-visual.png` in the same directory.
+The earlier core report is retained as `native-extra-core-before-zoom.json`.
+
+### Native state reflow batch (2026-10-06)
+
+OBSERVED on the same installed package: initial entry, no-filter-match,
+actual host save failure, successful retry and a fresh one-page zero-finding
+scan all reported DPR 2, effective width 355px and document width 348px.
+Search reset cleared the entered query. The read-only ISO host-write rejection
+displayed the actual Korean save error, and the second export action wrote
+4660 UTF-8/no-BOM bytes validated as the actual 17-finding result. No responses
+were fabricated; only the export directory in native postMessage was changed.
+The fresh negative scan reached the actual empty-result message and official
+count 0. Report: `/tmp/illegal-ad-toolchain/current-native-save-error-current.json`
+(1076 bytes); the earlier report is `native-save-error-before-zoom.json`.
+The native display capture `native-state-zoom-empty-visual.png` shows the zero
+counts and result controls. CDP failure/success captures were blank and do not
+prove their rendered appearance. The metric and behavioral assertions above
+remain separate from visual capture and spoken-output verification.
+
+### Installed keyboard-only workflow (2026-10-06)
+
+OBSERVED: the installed app completed URL entry, expansion of custom scope,
+radio choice with arrows, entry of page/depth/time limits, real scan start,
+search no-match/reset, technique selection, finding inspection/review/return,
+page grouping, save confirmation focus cycle/Escape/return, and restart using
+only Tab, Enter, arrows and text keyboard input. The driver used no pointer
+clicks, forced focus or direct form value assignment. Native OS window setup
+is outside this workflow; WebView2 CDP delivered the actual keyboard events.
+The selected technique was HOMOGLYPH, nine page groups were present, the Save
+outline computed to 3px, and Save/URL focus restoration passed. This walk
+checks confirmation, not native chooser file writing; separate native save
+runs prove the latter. Report:
+`/tmp/illegal-ad-toolchain/current-native-keyboard-current.json` (448 bytes).
+
 ### Current confirmation and result-state evidence (2026-10-06)
 
 OBSERVED: `smoke:ui-states` used actual scanner output (17 official findings
@@ -273,7 +318,7 @@ inspector heading and the restored export trigger.
 | Running | Real counts, elapsed time, page and meaningful live status. | React tests and Rust child-process pump verify retained counters; actual Windows progress observed. Live screen-reader cadence remains open. |
 | Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | Actual Windows result/save paths observed both the six-page/five-finding and 200-page/21-finding scenarios, each with one expected failed page. |
 | Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | OBSERVED: installed Windows app completed a one-page zero-finding scan. Search/filter context persisted through inspection; reset recovered all 21 municipal findings. |
-| Separate extra analysis | Keep the official list/count unchanged; show a Korean summary, item count, loading, empty, unavailable, and technical disclosure states. | OBSERVED: installed Windows app displayed both actual image-based extra findings and saved a validated 246-byte official file containing zero findings. Populated-extra native zoom and assistive-technology review remain open. |
+| Separate extra analysis | Keep the official list/count unchanged; show a Korean summary, item count, loading, empty, unavailable, and technical disclosure states. | OBSERVED: installed Windows app displayed both actual image-based extra findings and saved a validated 246-byte official file containing zero findings. Populated-extra native zoom passed at DPR 2 / 355px; assistive-technology review remains open. |
 | Error, unavailable evidence | Name the failure and next action; no fabricated image. | OBSERVED: installed Windows inspector showed genuine budget-unavailable evidence. A real host write rejection reached the dialog error; retry saved validated bytes. Only the export directory was fault-injected through native postMessage; no response was fabricated. |
 | Disabled | Adjacent explanation and predictable focus. | Coverage and validation gate Save; a pending save disables both actions and keeps Escape/Tab focus inside. Browser replay passed; native controls still need audit. |
 | Cancellation settlement | Confirm before stopping, then await host terminal state. | OBSERVED: installed Windows app cancelled with two page workers active, reached cancelled status, and left zero scanner Chromium processes. A subsequent scan completed. The transient disabled state was not captured natively. |
