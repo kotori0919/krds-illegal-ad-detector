@@ -59,7 +59,7 @@ export interface LiveImageResponse {
 }
 
 export interface CrawlEvents {
-  onPageVisited?: (snapshot: PageSnapshot) => void;
+  onPageVisited?: (snapshot: PageSnapshot, queuedPages: number) => void;
   onPageQueued?: (queued: { url: string; depth: number; pending: number }) => void;
   onExternal?: (external: ObservedExternal) => void;
 }
@@ -184,6 +184,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   let browser: Browser | undefined;
   let context: BrowserContext | undefined;
   let timedOut = false;
+  let queuedPages = 0;
   const launchBudgetMs = deadline.operationTimeoutMs(30_000);
   if (!deadline.canStartPage() || launchBudgetMs < 1) {
     return { entryUrl: options.entryUrl, pages, externals, elapsedMs: performance.now() - t0, timedOut: true };
@@ -214,6 +215,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
 
     const processPage = async (next: QueuedPage & { pageRank: number }): Promise<PageSnapshot | undefined> => {
       if (!deadline.canStartPage()) return undefined;
+      queuedPages -= 1;
       const pageStarted = performance.now();
       const page: Page = await activeContext.newPage();
       const pageExternals: ObservedExternal[] = [];
@@ -252,10 +254,13 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             imageResponses.push({ response: res, url, mediaType });
           }
         }
-        if ((status >= 300 && status < 400) || status >= 400) {
+        // Redirect follow-up requests bypass routes; their final observed
+        // response still contributes its external resource address.
+        if ((status >= 300 && status < 400) || status >= 400 || res.request().redirectedFrom() !== null) {
           try {
             if (new URL(url).host !== entry.host) {
-              observeExternal({ url, from: page.url() || (next?.url ?? entry.href), kind: "redirect" });
+              observeExternal({ url, from: page.url() || (next?.url ?? entry.href),
+                kind: status >= 300 ? "redirect" : "resource" });
             }
           } catch {
             /* ignore */
@@ -410,6 +415,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         await page.close().catch(() => undefined);
       }
       if (!snapshot) throw new Error("page processing did not produce a snapshot");
+      options.events?.onPageVisited?.(snapshot, queuedPages);
       return snapshot;
     };
 
@@ -418,6 +424,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     while (frontier.length > 0 && deadline.canStartPage()) {
       const rankedFrontier = frontier.map((next, index) => ({ ...next, pageRank: admittedPages + index }));
       admittedPages += rankedFrontier.length;
+      queuedPages = rankedFrontier.length;
       const completed = await boundedMap(rankedFrontier, concurrency, processPage);
       // boundedMap preserves frontier order even when worker completion differs.
       for (const snapshot of completed) {
@@ -427,7 +434,6 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         }
         snapshot.duplicateContent = queue.isDuplicateContent(snapshot.html.slice(0, 65536));
         pages.push(snapshot);
-        options.events?.onPageVisited?.(snapshot);
         const added = queue.discover(snapshot.url, snapshot.depth, [...snapshot.links].sort());
         for (const item of added) {
           options.events?.onPageQueued?.({ url: item.url, depth: item.depth, pending: queue.pendingCount });

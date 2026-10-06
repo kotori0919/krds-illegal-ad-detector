@@ -110,11 +110,15 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
   const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
   const visible = findings.filter((f) =>
     (filter === "ALL" || f.technique === filter)
-    && (!normalizedQuery || `${f.url} ${f.location} ${f.evidence_text}`.toLocaleLowerCase("ko-KR").includes(normalizedQuery)),
+    && (!normalizedQuery || `${f.url} ${f.evidence_text}`.toLocaleLowerCase("ko-KR").includes(normalizedQuery)),
   );
   const pageGroups = useMemo(() => {
     const groups = new Map<string, typeof visible>();
-    for (const finding of visible) groups.set(finding.url, [...(groups.get(finding.url) ?? []), finding]);
+    for (const finding of visible) {
+      const group = groups.get(finding.url);
+      if (group) group.push(finding);
+      else groups.set(finding.url, [finding]);
+    }
     return [...groups.entries()];
   }, [visible]);
   const resetFilters = () => { onFilterChange("ALL"); onQueryChange(""); };
@@ -249,6 +253,10 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
               <section key={url} className="page-group" aria-label={`${url} 탐지 ${String(group.length)}건`}>
                 <h2>{url}</h2>
                 <p>탐지 {String(group.length)}건 · 검토 완료 {String(group.filter((finding) => reviewedIds.has(finding.id)).length)}건</p>
+                <p className="hint">{OFFICIAL_TECHNIQUES.map((technique) => {
+                  const count = group.filter((finding) => finding.technique === technique).length;
+                  return count > 0 ? `${techniqueLabel[technique]} ${String(count)}건` : undefined;
+                }).filter(Boolean).join(" · ")}</p>
                 <button type="button" className="secondary" onClick={() => onReviewMany(group.map((finding) => finding.id), !group.every((finding) => reviewedIds.has(finding.id)))}>
                   {group.every((finding) => reviewedIds.has(finding.id)) ? "페이지 검토 취소" : "페이지 항목 모두 검토 완료"}
                 </button>

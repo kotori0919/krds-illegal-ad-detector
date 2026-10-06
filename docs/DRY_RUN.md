@@ -31,10 +31,38 @@ or application process; the one fixture Node process remained. Screenshots
 these bounded observations. The separate
 bundled-worker benchmark produced equal official finding sets and passed
 official/detail/extra validators at concurrency 1–4; timings and memory/CPU
-samples are in `PERF.md`. NSIS,
-full 20-finding operator review, cancellation/cleanup and 200-page deadline
-acceptance remain open. The historical records below describe their named
+samples are in `PERF.md`. NSIS and the full cancellation/restart walk remain open. A
+separate generated 200-page Windows worker run completed at concurrency 1-4
+with 21 TP / 0 FP / 0 FN, one intended 404, identical emitted order/IDs and
+failure identities, and passing official/detail/extra validators. All runs
+were below 1200s; the default two-worker run took 172.875s. Guest memory and
+measurement limits are in `PERF.md`. These worker observations do not finish
+the native product release walk. The historical records below describe their named
 builds only.
+
+Observed subsequent native detail revision on the same VM:
+app SHA-256 `2f73af83fb202b1347b2e27d166e269577c08f079bb05ae895163f21f3fa10ec`,
+worker SHA-256 `f4667224eed9a2862814d9c7e9dbd1dda8b76c7204aeb863fce1a2bf61f2e563`.
+The actual app completed the generated 200-page site with 21 official findings
+and one expected 404. All 21 real findings were opened and marked reviewed:
+pointer opened the first; keyboard activation, inspector focus, review and
+return focus handled the remaining 20. Actual JPEGs, Jamo/fullwidth text
+transformations and OFFSCREEN coordinates were observed. Captures
+`/tmp/illegal-ad-toolchain/native-inspect-2.png` through `native-inspect-21.png`
+and corresponding `native-review-*.png` record the walk.
+The compact 21-finding export dialog showed only the relevant failed-page
+notice. Cancelling native Save As produced no false success/error and restored
+save focus. Saving `C:\Users\cleanval\Documents\result-v2-large.json` produced
+5323 bytes, SHA-256
+`bd2fba75b9282bdb2fe0eb341bd32d0450fe4702bc4ff71e5f676b4707ecd35c`:
+UTF-8, no BOM, official validator pass, 21 TP / 0 FP / 0 FN and nonempty
+selectors. After closing the app, native `Get-Process` showed neither the app
+nor scanner Chromium; only fixture Node PIDs 7684 and 8756 remained.
+`detail-native-save-cancel.png`, `detail-native-saved.png`,
+`native-21-validator.png` and `native-21-cleanup-fixed.png` record these observations. This was a portable
+app run, not an NSIS installation; screen-reader, native zoom, error injection
+and cancellation/restart acceptance remain open. The worker predates the later
+live completion/count correction, which is separately regression-tested.
 
 ## A. Release unpack (no dev tooling)
 

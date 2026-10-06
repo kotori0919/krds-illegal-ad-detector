@@ -9,16 +9,27 @@ import { performance } from "node:perf_hooks";
 import { promisify } from "node:util";
 import { validateExtraResult, validateOfficialResultText } from "../packages/contracts/dist/result.js";
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
+import { createLargeMunicipalSite } from "../fixtures/realistic/large-site.mjs";
 
 const execFileAsync = promisify(execFile);
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const site = join(root, "site");
 const worker = join(root, "scanner-worker-x86_64-pc-windows-gnu.mjs");
 const browserPath = join(root, "ms-playwright");
-const truth = JSON.parse(await readFile(join(site, "ground-truth.json"), "utf8"));
+const large = process.argv.includes("--large");
+const generated = large ? await createLargeMunicipalSite(site) : undefined;
+const truth = generated?.truth ?? JSON.parse(await readFile(join(site, "ground-truth.json"), "utf8"));
+const budgetSec = large ? 1500 : 90;
 const expected = new Set(truth.positive.map((item) => `${item.page}\0${item.selector}\0${item.technique}`));
 const server = createServer((request, response) => {
-  const name = new URL(request.url ?? "/", "http://fixture.local").pathname.slice(1) || "index.html";
+  const url = new URL(request.url ?? "/", "http://fixture.local");
+  if (generated) {
+    const body = generated.pages.get(`${url.pathname}${url.search}`);
+    response.writeHead(body === undefined ? 404 : 200, { "content-type": "text/html; charset=utf-8" });
+    response.end(body ?? "missing");
+    return;
+  }
+  const name = url.pathname.slice(1) || "index.html";
   if (!/^[a-z-]+\.html$/.test(name)) {
     response.writeHead(404);
     response.end("missing");
@@ -34,7 +45,8 @@ const server = createServer((request, response) => {
 });
 
 const findingKey = (finding) => {
-  const path = new URL(finding.url).pathname;
+  const url = new URL(finding.url);
+  const path = `${url.pathname}${url.search}`;
   const boundary = finding.location.lastIndexOf(">>>");
   const selector = boundary < 0 ? finding.location : finding.location.slice(boundary + 3).trim();
   return `${path}\0${selector}\0${finding.technique}`;
@@ -61,8 +73,9 @@ async function runOne(concurrency, origin, baselineMiB) {
   let sampling = false;
   let stderr = "";
   const cpuSamples = [];
+  const memorySamples = [];
   let cpuText = "";
-  const cpu = spawn("typeperf", ["\\Processor(_Total)\\% Processor Time", "-si", "1", "-sc", "90"],
+  const cpu = spawn("typeperf", ["\\Processor(_Total)\\% Processor Time", "\\Memory\\Available MBytes", "-si", "1", "-sc", String(budgetSec + 30)],
     { stdio: ["ignore", "pipe", "ignore"] });
   cpu.once("error", () => undefined);
   cpu.stdout?.setEncoding("utf8");
@@ -71,8 +84,11 @@ async function runOne(concurrency, origin, baselineMiB) {
     const lines = cpuText.split(/\r?\n/);
     cpuText = lines.pop() ?? "";
     for (const line of lines) {
-      const match = /,"(-?[0-9]+(?:\.[0-9]+)?)"\s*$/.exec(line);
-      if (match) cpuSamples.push(Number(match[1]));
+      const match = /,"(-?[0-9]+(?:\.[0-9]+)?)","([0-9]+(?:\.[0-9]+)?)"\s*$/.exec(line);
+      if (match) {
+        cpuSamples.push(Number(match[1]));
+        memorySamples.push(totalmem() / 1024 ** 2 - Number(match[2]));
+      }
     }
   });
   const sample = async () => {
@@ -90,8 +106,8 @@ async function runOne(concurrency, origin, baselineMiB) {
       "--session", `windows-v2-c${concurrency}`,
       "--entry-url", `${origin}/`,
       "--topic", "municipal-style-fixture",
-      "--max-pages", "6", "--max-depth", "2", "--timeout-sec", "90",
-      "--settle-ms", "1400", "--concurrency", String(concurrency),
+      "--max-pages", String(truth.expectedCheckedPages), "--max-depth", large ? "4" : "2", "--timeout-sec", String(budgetSec),
+      "--settle-ms", large ? "1500" : "1400", "--concurrency", String(concurrency),
       "--out-file", resultFile, "--detail-out-file", detailFile, "--extra-out-file", extraFile,
     ], { env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: browserPath }, stdio: ["ignore", "pipe", "pipe"] });
     child.stdout.resume();
@@ -126,6 +142,8 @@ async function runOne(concurrency, origin, baselineMiB) {
         ? Number((cpuSamples.reduce((sum, value) => sum + value, 0) / cpuSamples.length).toFixed(1)) : null,
       cpuPeakPct: cpuSamples.length > 0 ? Number(Math.max(...cpuSamples).toFixed(1)) : null,
       cpuSamples: cpuSamples.length,
+      peakGuestUsedMiB: memorySamples.length > 0 ? Number(Math.max(...memorySamples).toFixed(1)) : null,
+      timedOut: detail.coverage.timedOut,
       checkedPages: detail.coverage.checkedPages,
       failedPages: detail.coverage.failedPages.length,
       tp, fp, fn, validator,
@@ -149,17 +167,20 @@ try {
     results.push(result);
     console.log(`C${concurrency} ${result.wallSec}s ${result.pagesPerSec}p/s `
       + `peak+${result.peakAboveBaselineMiB}MiB cpu=${result.cpuAvgPct ?? "NA"}% `
-      + `${result.checkedPages}/${result.failedPages} pages `
+      + `guestPeak=${result.peakGuestUsedMiB ?? "NA"}MiB ${result.checkedPages}/${result.failedPages} pages `
       + `TP/FP/FN=${result.tp}/${result.fp}/${result.fn} valid=${Object.values(result.validator).every(Boolean)}`);
   }
   const same = results.every((item) => JSON.stringify(item.findingSet) === JSON.stringify(results[0].findingSet)
     && JSON.stringify(item.failedPageSet) === JSON.stringify(results[0].failedPageSet));
-  const scenarioPassed = same && results.every((item) => item.checkedPages === 6 && item.failedPages === 1
-    && item.tp === 5 && item.fp === 0 && item.fn === 0 && Object.values(item.validator).every(Boolean));
-  const report = { machine: { os: platform(), release: release(), node: process.version,
+  const scenarioPassed = same && results.every((item) => item.checkedPages === truth.expectedCheckedPages
+    && item.failedPages === truth.expectedFailedPages && !item.timedOut
+    && item.tp === expected.size && item.fp === 0 && item.fn === 0 && Object.values(item.validator).every(Boolean));
+  const report = { scenario: large ? "municipal-generated-200" : "municipal-six-page", budgetSec,
+    targetMet: results.every((item) => item.wallSec <= 1200),
+    machine: { os: platform(), release: release(), node: process.version,
     logicalCpus: cpus().length, totalMemoryGiB: Number((totalmem() / 1024 ** 3).toFixed(1)) },
     same, scenarioPassed, results };
-  const reportPath = join(homedir(), "Documents", "windows-v2-bench.json");
+  const reportPath = join(homedir(), "Documents", large ? "windows-v2-large-bench.json" : "windows-v2-bench.json");
   await writeFile(reportPath, JSON.stringify(report, null, 2), "utf8");
   console.log(`FindingSet equal=${same}; scenario passed=${scenarioPassed}; report=${reportPath}`);
   if (!scenarioPassed) process.exitCode = 1;

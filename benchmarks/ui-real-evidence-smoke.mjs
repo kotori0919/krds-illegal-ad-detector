@@ -101,6 +101,7 @@ try {
   await page.getByText(`표시 중인 탐지 ${String(result.findings.length)}건 / 전체 ${String(result.findings.length)}건`).waitFor({ timeout: 10000 });
 
   let renderedJpegs = 0;
+  let transformedTexts = 0;
   for (const finding of result.findings) {
     await page.locator(`button[data-finding-id="${finding.id}"]`).click();
     const inspector = page.locator(".result-inspector");
@@ -110,6 +111,14 @@ try {
     }
     const expected = detail.findings.find((item) => item.findingId === finding.id);
     if (!expected || expected.visual.state !== "available") throw new Error(`real JPEG missing for ${finding.id}`);
+    if (["HOMOGLYPH", "JAMO"].includes(finding.technique)
+      && await inspector.locator(".normalized").textContent() !== expected.normalizedText) {
+      throw new Error(`inspector normalized text differs for ${finding.id}`);
+    }
+    if (["HOMOGLYPH", "JAMO"].includes(finding.technique)) transformedTexts += 1;
+    if (finding.technique === "OFFSCREEN") {
+      await inspector.getByText(`가로 ${Math.round(expected.observed.box.x)}px · 세로 ${Math.round(expected.observed.box.y)}px`, { exact: true }).waitFor();
+    }
     const rendered = await inspector.locator(".visual-evidence img").evaluate((image) => ({
       src: image.getAttribute("src"), decoded: image.complete && image.naturalWidth > 0,
     }));
@@ -120,6 +129,9 @@ try {
     await inspector.getByRole("button", { name: "결과 목록으로" }).click();
   }
 
+  await page.getByRole("button", { name: "페이지별", exact: true }).click();
+  const post = page.locator(".page-group").filter({ hasText: "/post.html" });
+  await post.getByText("유사 문자 1건 · 자모 분리 1건 · 투명 처리 1건 · 화면 밖 배치 1건", { exact: true }).waitFor();
   await page.getByRole("button", { name: "점검 범위" }).click();
   await page.getByText(`확인한 페이지 ${String(detail.coverage.checkedPages)}개 · 실패한 페이지 ${String(detail.coverage.failedPages.length)}개`).last().waitFor();
   await page.getByRole("button", { name: "추가 분석" }).click();
@@ -143,7 +155,7 @@ try {
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.activeElement?.id === "export-trigger");
   console.log(JSON.stringify({ fixture: "real scanner to React results via IPC replay",
-    officialFindings: result.findings.length, renderedJpegs,
+    officialFindings: result.findings.length, renderedJpegs, transformedTexts, pageTechniqueCounts: true,
     checkedPages: detail.coverage.checkedPages, failedPages: detail.coverage.failedPages.length,
     extraFindings: output.extraResult.findings.length,
     exportValidationPassed: true, focusRestored: true }, null, 2));

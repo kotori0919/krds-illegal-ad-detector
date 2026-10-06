@@ -51,7 +51,13 @@ export async function collectPageCreatives(
   let bytes = 0;
   for (const observed of responses) {
     if (prints.length >= 8 || bytes >= maxBytes || deadline.operationTimeoutMs(2000) < 500) break;
-    if (!selected.has(observed.url)) continue;
+    let selectedResponse = selected.has(observed.url);
+    let request = observed.response.request().redirectedFrom();
+    for (let hop = 0; !selectedResponse && request && hop < 20; hop += 1) {
+      selectedResponse = selected.has(request.url());
+      request = request.redirectedFrom();
+    }
+    if (!selectedResponse) continue;
     try {
       const body = await within(observed.response.body(), Math.max(1, deadline.operationTimeoutMs(1000)));
       if (body.length === 0 || body.length > 250_000 || bytes + body.length > maxBytes) continue;

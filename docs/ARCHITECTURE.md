@@ -24,9 +24,13 @@ one session transition. Results exposes a separate 추가 분석 list and empty
 state. Graph correlations use observed links, frames and external resources;
 creative fingerprints use bounded image response bytes and a live-page 8×8
 pixel sample after official detection. A five-page ad fixture exercises
+image redirect chains on separate content, asset and landing loopback origins.
+Creative selection joins an observed final response to its selected DOM image
+through at most 20 existing Playwright redirect links; no additional request
+or navigation is made. The fixture also exercises
 duplicate, resized, WebP and slightly changed images and repeated destinations
-at concurrency 1–4. This is one bounded ad-infrastructure L2 slice; broader
-multi-domain scenarios and packaged Windows performance/product acceptance remain
+at concurrency 1–4. This is a bounded multi-domain ad-infrastructure L2 slice;
+public ad-network scenarios and full packaged Windows product acceptance remain
 open. A separate ten-page public-information fixture checks zero official and
 extra findings at concurrency 1–4 across common legitimate interaction patterns.
 

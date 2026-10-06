@@ -17,10 +17,25 @@ let site: Server;
 let assets: Server;
 let siteOrigin = "";
 let assetOrigin = "";
+let redirectOrigin = "";
+let landingOrigin = "";
+let contentOrigins: string[] = [];
+let redirectedImages = false;
 
 beforeAll(async () => {
   assets = createServer((request, response) => {
-    const name = new URL(request.url ?? "/", "http://fixture.local").pathname.slice(1);
+    const path = new URL(request.url ?? "/", "http://fixture.local").pathname;
+    if (path === "/frame.html") {
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      response.end(`<!doctype html><html lang="ko"><body><h1>${request.headers.host} 행사 안내</h1><p>시민 문화 행사 일정입니다.</p></body></html>`);
+      return;
+    }
+    if (path.startsWith("/track/")) {
+      response.writeHead(302, { location: `${assetOrigin}/${path.slice(7)}` });
+      response.end();
+      return;
+    }
+    const name = path.slice(1);
     if (!["creative.png", "resized.png", "reencoded.webp", "modified.png"].includes(name)) {
       response.writeHead(404); response.end(); return;
     }
@@ -33,14 +48,18 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => assets.listen(0, "127.0.0.1", resolve));
   const assetAddress = assets.address();
   if (!assetAddress || typeof assetAddress === "string") throw new Error("asset port unavailable");
-  assetOrigin = `http://127.0.0.1:${String(assetAddress.port)}`;
+  assetOrigin = `http://assets.localhost:${String(assetAddress.port)}`;
+  redirectOrigin = `http://redirect.localhost:${String(assetAddress.port)}`;
+  landingOrigin = `http://landing.localhost:${String(assetAddress.port)}`;
+  contentOrigins = ["content-a", "content-b"].map((name) => `http://${name}.localhost:${String(assetAddress.port)}`);
   site = createServer((request, response) => {
     const name = names[new URL(request.url ?? "/", "http://fixture.local").pathname];
     if (!name) { response.writeHead(404); response.end(); return; }
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(`<!doctype html><html lang="ko"><body>
       <nav><a href="/duplicate">복제</a><a href="/resized">두 번째</a><a href="/webp">세 번째</a><a href="/modified">네 번째</a></nav>
-      <a href="${assetOrigin}/landing"><img alt="광고 배너" src="${assetOrigin}/${name}"></a>
+      <a href="${landingOrigin}/landing"><img alt="광고 배너" src="${redirectedImages ? `${redirectOrigin}/track/${name}` : `${assetOrigin}/${name}`}"></a>
+      ${contentOrigins.map((origin, index) => `<iframe title="행사 ${index + 1}" src="${origin}/frame.html"></iframe>`).join("")}
     </body></html>`);
   });
   await new Promise<void>((resolve) => site.listen(0, "127.0.0.1", resolve));
@@ -55,24 +74,30 @@ afterAll(async () => {
 });
 
 describe("live creative and infrastructure extra result", () => {
-  it("groups duplicate, resized, WebP and modified observed images deterministically", async () => {
+  it.each([false, true])("joins multiple domains with redirected images=%s deterministically", async (redirected) => {
+    redirectedImages = redirected;
     let baseline: unknown;
     for (const concurrency of [1, 2, 3, 4]) {
-      const output = await scanSite({ entryUrl: `${siteOrigin}/`, crawl: {
+      let inspectedFrames = 0;
+      const output = await scanSite({ entryUrl: `${siteOrigin}/`,
+        onEvent: (event) => { inspectedFrames = event.progress.framesInspected; }, crawl: {
         concurrency, settleMs: 700, perPageMs: 7000,
         limits: { maxPages: 5, maxDepth: 1, timeoutSec: 45 },
       } });
       expect(output.pagesVisited).toBe(5);
       expect(output.failedPages).toBe(0);
+      expect(inspectedFrames).toBe(10);
       expect(validateOfficialResultText(output.json).ok).toBe(true);
       expect(validateExtraResult(output.extraResult).ok).toBe(true);
       expect(output.result.findings).toEqual([]);
       const extras = output.extraResult.findings.map(({ id, extra_finding, evidence_text }) => ({ id, extra_finding, evidence_text }));
-      expect(extras.map((item) => item.extra_finding)).toEqual([
-        "REUSED_AD_CREATIVE", "AD_INFRASTRUCTURE_CORRELATION",
-      ]);
-      expect(extras[0]?.evidence_text).toContain("seen 5 times");
-      expect(extras[1]?.evidence_text).toContain("observed on 5 pages");
+      expect(extras.filter((item) => item.extra_finding === "REUSED_AD_CREATIVE")
+        .map((item) => item.evidence_text)).toEqual([expect.stringContaining("seen 5 times")]);
+      const domains = [assetOrigin, ...(redirected ? [redirectOrigin] : []), landingOrigin, ...contentOrigins]
+        .map((origin) => new URL(origin).host).sort();
+      expect(extras.filter((item) => item.extra_finding === "AD_INFRASTRUCTURE_CORRELATION")
+        .map((item) => item.evidence_text).sort()).toEqual(domains
+        .map((domain) => `recurring advertisement infrastructure: ${domain} (observed on 5 pages)`));
       if (baseline) expect(extras).toEqual(baseline);
       baseline = extras;
     }

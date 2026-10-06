@@ -1,6 +1,6 @@
 # ADR-0011: Single-pass bounded scanner and deterministic concurrency (2026-10-05)
 
-Status: initial implementation and Linux L1/L2 benchmark observed 2026-10-06; Contract v0.2, full L3, and Windows gates pending. Expands ADR-0010 and supersedes the two-pass execution implied by ADR-0007. The official result shape and selector format do not change.
+Status: implementation, Linux L1/L2 and process/session L3 slices, and a bounded Windows L2 concurrency run observed 2026-10-06; full L3 and Windows release gates pending. Expands ADR-0010 and supersedes the two-pass execution implied by ADR-0007. The official result shape and selector format do not change.
 
 ## Context
 
@@ -29,3 +29,13 @@ admit a page and preserve finalization time, the crawler returns a timed-out
 empty summary without launching Chromium. An admitted launch uses the remaining
 operation budget as its Playwright launch timeout. The host watchdog remains the
 process-level backstop for stalled browser or worker cleanup.
+
+## Amendment 2026-10-06: live completion feedback
+
+The sorted frontier barrier controls admission and persisted output, while a
+completed page emits its progress event immediately after its live processing
+and close. Waiting for the whole depth to finish makes a large board appear
+stalled. Progress confirmed counts deduplicate the same official identity as
+the final result; repeated live-frame observations still count as candidates.
+Progress event order may differ by worker completion. Finding IDs and output
+order remain assigned only after canonical aggregation.

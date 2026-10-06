@@ -67,6 +67,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
   }
   try {
     const allCandidates: DecidedCandidate[] = [];
+    const confirmedIdentities = new Set<string>();
     const creatives: CreativeFingerprint[] = [];
     let capturedPages = 0;
     let capturedBytes = 0;
@@ -86,8 +87,14 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
           pageCandidates.push(...found);
           allCandidates.push(...found);
           progress.candidates += found.length;
-          progress.confirmedFindings += found.length;
-          if (found.length > 0) emit("finding-confirmed", `${String(found.length)} candidates on ${url}`, url);
+          let added = 0;
+          for (const candidate of found) {
+            const identity = findingIdentityKey({ url: candidate.url, location: candidate.location,
+              technique: candidate.technique.technique });
+            if (!confirmedIdentities.has(identity)) { confirmedIdentities.add(identity); added += 1; }
+          }
+          progress.confirmedFindings = confirmedIdentities.size;
+          if (added > 0) emit("finding-confirmed", `${String(added)} findings on ${url}`, url);
         };
         collect(await detectPageCandidates(page, {
           pageUrl: snapshot.url,
@@ -139,8 +146,9 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         }
       },
       events: {
-        onPageVisited: (snapshot) => {
+        onPageVisited: (snapshot, queuedPages) => {
           progress.visitedPages += 1;
+          progress.queuedPages = queuedPages;
           emit("page-visited", `processed ${String(progress.visitedPages)} pages`, snapshot.url);
         },
         onPageQueued: (queued) => {

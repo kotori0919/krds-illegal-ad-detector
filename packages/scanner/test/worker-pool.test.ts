@@ -25,6 +25,34 @@ beforeAll(async () => {
 afterAll(async () => { await new Promise<void>((resolve) => server.close(() => resolve())); });
 
 describe("bounded live page worker pool", () => {
+  it("reports a finished sibling while another page is still running", async () => {
+    let release!: () => void;
+    let slowFinished = false;
+    let observedBeforeSettlement = false;
+    const gate = new Promise<void>((resolveGate) => { release = resolveGate; });
+    const guard = setTimeout(release, 5000);
+    try {
+      const output = await crawlSite({ entryUrl: `${origin}/`, concurrency: 2, settleMs: 0,
+        limits: { maxPages: 3, maxDepth: 1, timeoutSec: 30 },
+        onLivePage: async (_page, snapshot) => {
+          if (new URL(snapshot.url).pathname === "/p1") {
+            await gate;
+            slowFinished = true;
+          }
+        },
+        events: { onPageVisited: (snapshot, queuedPages) => {
+          if (new URL(snapshot.url).pathname === "/p2") {
+            observedBeforeSettlement = !slowFinished;
+            expect(queuedPages).toBe(0);
+            release();
+          }
+        } },
+      });
+      expect(observedBeforeSettlement).toBe(true);
+      expect(output.pages.map((page) => new URL(page.url).pathname)).toEqual(["/", "/p1", "/p2"]);
+    } finally { clearTimeout(guard); release(); }
+  }, 10_000);
+
   it("runs concurrent page callbacks up to the selected cap without losing the frontier", async () => {
     for (const concurrency of [1, 2, 3, 4]) {
       requests.clear();

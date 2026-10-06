@@ -25,7 +25,7 @@ checks.
 | Result collection and category navigation | [목록 탐색](https://www.krds.go.kr/html/site/global/global_04.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | Three peer areas: 공식 탐지, 추가 분석, 점검 범위. 탐지 항목별 and 페이지별 are nested under 공식 탐지. Result counts, list and empty state are visible; the one search/filter remains scoped to official findings. | Packaged Windows operator review and extra-list assistive-technology audit. |
 | Technique filter | [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Immediate visible count and no-match reset. | Keyboard path in packaged app. |
 | Result search | [검색](https://www.krds.go.kr/html/site/service/service_02_03.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | One search field; query/filter retained through inspection. | Search semantics on larger real results. |
-| Finding inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Plain-language reason, raw text, source, CSS/geometry, actual JPEG when captured, unavailable state, review control, return focus. The list remains mounted in a desktop split view; mobile shows the inspector alone. | Packaged native evidence and assistive-technology review. |
+| Finding inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Recorded matched terms, text transformations, source, CSS/geometry, actual JPEG when captured, unavailable state, review control, return focus. The list remains mounted in a desktop split view; mobile shows the inspector alone. | Actual Windows 21-finding review observed; assistive-technology review remains open. |
 | Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | “결과 저장” shows the official count and only relevant failed-page/time-limit status. Contract validation remains an internal save gate; a failure gets one actionable alert. No successful-check cards, raw JSON, or repeated explanation. Focus is trapped and restored; native save success/failure is reported. | Compact dialog, keyboard focus and actual saved bytes observed on Windows. Save failure injection and full release walk remain open. |
 | Page/scan failure | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Failed page and timeout coverage with retained findings. | Inject failures in packaged app. |
 | Contextual help | [도움](https://www.krds.go.kr/html/site/global/global_02.html) | Short scope help and optional technical explanation. | Keyboard and zoom review. |
@@ -48,6 +48,12 @@ under the inspector's 기술 정보; frame/element/candidate statistics are unde
 the progress view's 기술 정보. Evidence captions show capture time and viewport
 size. Demo labels, unavailable-evidence reasons and actionable errors remain
 because they change how the operator should interpret or act on the result.
+
+The finding inspector uses “탐지 내용” and “판단 근거” labels. Matched terms,
+recorded destinations and HOMOGLYPH/JAMO normalized text replace repeated
+technique definitions. A displayed element rectangle is explicitly relative
+to its own page or frame viewport. This follows the existing 상세 정보 확인
+mapping; raw CSS and the complete selector/frame chain remain in 기술 정보.
 
 ## Token hierarchy and local extensions
 
@@ -111,7 +117,7 @@ inspector heading and the restored export trigger.
 | --- | --- | --- |
 | Initial, loading | URL and scope visible; result/detail loading named and settled. | React tests include missing/rejected export result so the dialog exits loading with a recovery action; browser setup and result path observed. |
 | Running | Real counts, elapsed time, page and meaningful live status. | React tests and Rust child-process pump verify retained counters; actual Windows progress observed. Live screen-reader cadence remains open. |
-| Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | L2 scanner fixture and actual Windows result/save dialog showed five findings, six checked pages and one failure. Larger native result review remains open. |
+| Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | Actual Windows result/save paths observed both the six-page/five-finding and 200-page/21-finding scenarios, each with one expected failed page. |
 | Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React and browser demo checks. |
 | Separate extra analysis | Keep the official list/count unchanged; show a Korean summary, item count, loading, empty, unavailable, and technical disclosure states. | Real image-response scan → Chromium IPC replay observed two extra items with zero official findings; keyboard category switch and 360px reflow passed. Headed Chromium at native 200% zoom showed no overflow in the empty-extra view. Packaged host, populated-extra native zoom, and assistive-technology review open. |
 | Error, unavailable evidence | Name the failure and next action; no fabricated image. | React start/cancel/save rejection paths show Korean recovery actions without raw host errors; native failure injection open. |
@@ -188,5 +194,18 @@ monitor and taskbar. Tauri's `prevent_overflow().center()` now fits the monitor
 work area on creation; the result actions were visibly above the taskbar.
 The revised app SHA-256 and evidence paths are in `DRY_RUN.md`.
 
-**Open:** assistive technology, remaining local layout limits, large-result
-native review and the full Windows release walk.
+The subsequent inspector revision passed both delayed/rejected-detail tests
+and the existing result tests (six tests total), typecheck, lint and build.
+The real-scanner-to-React smoke displayed all three stored text transformations,
+all five JPEGs, the measured OFFSCREEN position and all four page-level
+technique counts. The 20-finding keyboard replay, 360px browser smoke and
+native Chromium 200% zoom smoke passed again with retained/restored focus
+and no horizontal overflow. These browser observations use IPC replay.
+The subsequent actual Windows app reviewed 21 real findings, displayed text
+transformations, measured OFFSCREEN positions and JPEGs, returned keyboard
+focus, cancelled native Save As without a false message, and saved a validated
+21-finding file (21 TP / 0 FP / 0 FN). Exact app/worker and file hashes plus
+captures are in `DRY_RUN.md`. The full release walk remains open.
+
+**Open:** assistive technology, remaining local layout limits, native zoom,
+error injection, cancellation/restart and the full Windows release walk.

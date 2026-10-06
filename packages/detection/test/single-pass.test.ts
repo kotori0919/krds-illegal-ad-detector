@@ -18,7 +18,7 @@ beforeAll(async () => {
     const pages: Record<string, string> = {
       "/": '<a href="/d">D</a><a href="/c">C</a><a href="/b">B</a><a href="/a">A</a>',
       "/a": '<div id="ad-a">Ｃ카지노 가입</div><iframe id="frame-x" src="/redirect-frame"></iframe>',
-      "/b": '<div id="ad-b">Ｂ바카라 가입</div>',
+      "/b": '<div id="ad-b">Ｂ바카라 가입</div><iframe id="frame-x" src="/redirect-frame"></iframe>',
       "/frame": '<div id="ad-frame">Ｄ대출 승인</div>',
       "/c": '<div id="ad-c">Ｅ카지노 가입</div>',
       "/d": '<div id="ad-d">Ｆ카지노 가입</div>',
@@ -44,14 +44,18 @@ describe("single-pass live-page processing", () => {
     const sets: string[][] = [];
     for (const concurrency of [1, 4]) {
       counts.clear();
+      const confirmed: number[] = [];
       const output = await scanSite({
         entryUrl: `${origin}/`,
+        onEvent: (event) => { confirmed.push(event.progress.confirmedFindings); },
         crawl: { concurrency, settleMs: 300, perPageMs: 5000, limits: { maxPages: 3, maxDepth: 1, timeoutSec: 60 } },
       });
       expect(output.pagesVisited).toBe(3);
       expect(output.failedPages).toBe(0);
       expect(output.result.findings).toHaveLength(3);
-      for (const path of ["/", "/a", "/b", "/redirect-frame", "/frame"]) expect(counts.get(path)).toBe(1);
+      for (const path of ["/", "/a", "/b"]) expect(counts.get(path)).toBe(1);
+      for (const path of ["/redirect-frame", "/frame"]) expect(counts.get(path)).toBe(2);
+      expect(Math.max(...confirmed)).toBe(output.result.findings.length);
       expect(counts.has("/c")).toBe(false);
       expect(counts.has("/d")).toBe(false);
       expect(output.result.findings.some((finding) => finding.location.includes(">>>") && finding.url.endsWith("/frame"))).toBe(true);

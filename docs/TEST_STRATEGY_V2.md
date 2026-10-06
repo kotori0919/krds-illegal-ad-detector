@@ -12,8 +12,13 @@ official validation and all five ground-truth pairs. Keyboard confirmation
 focus cycle/return and post-success app/Chromium cleanup were observed.
 `DRY_RUN.md` names the executable hash, file hash and screenshots. These
 observations cover the bounded native command/session/detail/export path;
-20-finding native review, cancellation settlement, failure injection,
-max-page performance and NSIS installation remain separate open gates.
+Cancellation settlement, failure injection and NSIS installation remain
+separate open gates. A subsequent native run reviewed all 21 real findings
+and validated its saved bytes; `DRY_RUN.md` records the exact builds. The
+generated 200-page worker scenario described below subsequently passed C1-C4
+on the Windows VM with 21 TP / 0 FP / 0 FN, one expected failed page, equal
+emitted order/IDs and failure identities, and all validators passing. See
+`PERF.md` for resources and the single-run measurement limits.
 
 Observed Linux L2 slice: `fixtures/realistic` and
 `packages/detection/test/realistic.test.ts` exercise a municipal-style board,
@@ -29,8 +34,10 @@ Its expected official and extra sets are empty; the real scanner and official
 validator run at worker counts 1–4. This is a bounded negative slice of the broader
 false-positive torture plan below, not full coverage of it.
 `packages/detection/test/single-pass.test.ts` instrumented server requests:
-each admitted top-level page and iframe document was fetched once at worker
-counts 1 and 4, including when frontier admission hit `maxPages`. This is a
+each admitted top-level page was fetched once at worker counts 1 and 4,
+including when frontier admission hit `maxPages`. The shared iframe was fetched
+once per live frame instance on each parent, and its repeated finding was
+deduplicated in both live confirmed counts and final output. This is a
 bounded L3 execution slice. A Node worker CLI run on the synthetic site wrote
 an official result (17 findings, validator pass) and a separate detail manifest
 whose 17 IDs joined; 13 entries had JPEG data with the expected magic bytes.
@@ -54,7 +61,10 @@ resource map. The portable ISO was run under `cleanval` on a 4-vCPU/8-GB
 Windows 11 IoT Enterprise LTSC VM; NSIS output remains unverified.
 `packages/scanner/test/worker-pool.test.ts` holds live page callbacks at a
 barrier and observes peak callback overlap of 1, 2, 3 and 4 for those selected
-worker counts, with all nine frontier pages requested once. An override of 5
+worker counts, with all nine frontier pages requested once. A separate held
+sibling test verifies live completion feedback before the slower page settles,
+while the persisted summary retains canonical frontier order. The live queue
+count excludes already started workers. An override of 5
 is rejected before navigation. This checks the live processing cap; Windows
 browser-process working set remains a separate acceptance measurement.
 `packages/detection/test/deadline-scan.test.ts` exercises the real scanner
@@ -131,13 +141,19 @@ the same smoke. This is a Linux browser gate, not Windows L4.
 The production worker writes `result_extra.json`; the host validates matching
 official metadata and stores it with the official/detail bundles. Results has
 a separate 추가 분석 list with empty and unavailable states. The five-page local
-ad fixture (`extra-creatives.test.ts`) serves observed PNG and WebP response
-bytes: an exact duplicate, resized, re-encoded, and slightly modified image,
-plus a repeated click destination. At concurrency 1–4 it yields one recurring
-creative and one related-infrastructure extra with stable IDs and no official
-finding. A second two-page fixture proves that a shared asset URL counts as
-two page observations. These local slices do not yet verify broader
-multi-domain ads, redirect chains, or Windows package behavior.
+ad fixture (`extra-creatives.test.ts`) uses separate content, asset, redirect
+and landing loopback hostnames, with ten live cross-origin frame instances.
+It serves observed PNG and WebP bytes: exact duplicate, resized, re-encoded
+and slightly modified images, plus a repeated destination. Direct and redirected
+image variants run at concurrency 1–4. Each yields one creative observed on
+five pages, four direct or five redirected infrastructure correlations,
+stable extra IDs and no official findings. Redirected images first reproduced
+a missing creative because DOM `currentSrc` retained the original URL; joining
+the observed response's existing redirect chain fixed it without a second
+request. Recording successful redirected responses then fixed the missing
+asset-domain correlation. Both variants pass after these fixes. A second
+two-page fixture checks shared-asset page counts. These bounded multi-domain
+checks do not verify public ad networks or Windows extra-screen behavior.
 `npm run smoke:extra-ui` replays a real two-page scan into the built React app:
 the extra list shows the creative and infrastructure summaries while the
 official list remains empty; keyboard category switching and 360px reflow are
@@ -172,6 +188,19 @@ terminal selector alone.
 On a 4-vCPU/8-GB Windows 11 machine without GPU: install/open; confirm first paint and URL focus; start a real scan at default concurrency 2; observe stage, elapsed time, current page, recent activity and truthful counts; cancel and restart; finish a scan with a failed page; switch official/extra/coverage and finding/page views; filter/search; inspect at least 20 findings with keyboard and pointer while retaining context; inspect a real transparent/offscreen visual and text transform; validate/save `result.json` through native dialog; cancel native dialog; start a second scan; close and inspect child-process cleanup. Record screenshots or CUA observations, exported file hash/validator output, process list, and failures. Run concurrency 1–4 benchmark on the same fixture and compare semantic sets. No “Windows accepted” claim from web browser replay or Rust type-check alone.
 
 ## Performance and accessibility gates
+
+The max-page acceptance scenario extends the served municipal fixture to
+200 distinct attempted top-level pages: one home, ten board pages, 188
+individually numbered posts and one 404, plus a shared live frame on five
+posts. Five posts retain the
+existing four known concealment findings, and the frame retains its JAMO
+finding (21 expected findings). Other posts contain ordinary municipal
+content, reporting, education and legitimate hidden UI. Query values identify
+different posts; each post has distinct visible content to avoid content-hash
+collapse. The real worker uses default 1500ms settle and a 1500s global budget.
+Windows C1-C4 output order/IDs, coverage and failure identities must agree.
+Record total guest memory separately from Node/Chromium working sets. This
+generated local fixture is an L2 scale scenario, not a live public-site crawl.
 
 Measure cold start to first meaningful paint, click-to-scan start latency, total wall time, pages/sec, per-page analysis time, peak memory, CPU utilization where available, screenshot time and bytes per selected finding, total evidence overhead, finalization time, and export latency on the evaluation-class Windows PC. Compare same scenario with and without selective capture; target <=1200 s, keep the 1500 s configured budget, enforce 1650 s internal hard stop, and stay below the 1800 s official ceiling. A capture budget breach must reduce optional evidence, never delay or erase official results. Verify the KRDS V2 state matrix and release gate in `KRDS_COMPLIANCE.md`: 360px and 200% zoom reflow, token lineage, visible/restored focus, mixed-age targets, screen-reader status cadence, dialog focus trap/return, keyboard list-detail navigation, non-color status, and actionable Korean errors. Record observed outputs and any unrun gates separately.
 
