@@ -1,5 +1,46 @@
 # Clean-machine dry run (Phase 24 — Windows, release-blocking)
 
+## 2026-10-06: confirmation and result-state settlement
+
+OBSERVED on Linux: integrated JavaScript suite 139/139 across 28 files
+(24.15s), typecheck and lint passed. In the real React app, the previous
+pending-save path accepted two commands and closed on Escape. The corrected
+path accepted one command, kept the dialog open and disabled both actions.
+Coverage pending previously displayed absence; it now displays loading and
+gates Save until settlement. A rejected result read previously remained in
+loading after 5.5s; it now shows an error with an enabled new-scan action.
+
+OBSERVED: `benchmarks/ui-states-smoke.mjs` scanned the actual synthetic site
+and negative page (17 and zero official findings), validated their artifacts,
+and replayed those exact outputs through the built browser app. Pending save,
+silent cancel, a real Linux filesystem `EACCES`, focused retry and successful
+4680-byte file readback passed. The saved official finding objects were
+unchanged and the validator passed. Pending/missing/rejected coverage,
+rejected result, zero findings, actual budget-unavailable capture, review and
+return focus passed. At 360px document width was 360px; at actual headed Linux
+Chromium 200% zoom DPR was 2, effective viewport 360px and document 352px,
+with no nested horizontal overflow. These are browser IPC replay and Linux
+filesystem checks, not native Windows dialog or ACL evidence.
+
+OBSERVED: GNU LLVM Windows release build completed in 17.91s with six existing
+Rust warnings. Executable SHA-256:
+`3bd7e5d196c0d9db3366063e5b0404be138ce6226f09b3bb6deccdbd0f7dead1`.
+Worker unchanged:
+`90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`.
+Unsigned NSIS installer: 119514809 bytes, SHA-256
+`5c6e86116383b4878fbbc227d346fcd392df7392ed13cf74d99e41968f5991e9`.
+Archive listing contains both runtime DLLs, Node and the current worker.
+Build log: `/tmp/illegal-ad-toolchain/product-v2-state-bundle.log`.
+The installer has not been installed or placed on the live ISO. Reflow/focus
+captures: `/tmp/illegal-ad-toolchain/save-failure-360.png` and
+`save-failure-zoom.png`; the zoom capture uses the isolated Xvfb window because
+Playwright full-page capture clipped physical pixels after native zoom.
+
+NOT_RUN: current native Windows save pending/error/retry, coverage/result
+read errors, zero-findings scan, unavailable evidence, zoom and assistive
+technology. The existing `clean11` input-ownership question has no answer;
+no new VM input or media replacement was performed.
+
 ## 2026-10-06: recoverable KRDS progress
 
 OBSERVED on Linux: 134 JavaScript tests passed (24.08s); 16 native registry

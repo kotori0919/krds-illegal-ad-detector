@@ -25,6 +25,7 @@
     "smoke:native-session": "npm run build:sidecar && cargo test --manifest-path benchmarks/native-session-l3/Cargo.toml --locked --offline real_worker_progress_result_and_evidence_survive_host_persistence -- --nocapture",
     "smoke:real-evidence-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-real-evidence-smoke.mjs",
     "smoke:live-progress-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-live-progress-smoke.mjs",
+    "smoke:ui-states": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-states-smoke.mjs",
     "smoke:extra-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-extra-smoke.mjs",
     "smoke:ui-native-zoom": "xvfb-run -a node benchmarks/ui-native-zoom-smoke.mjs",
     "lint": "eslint .",

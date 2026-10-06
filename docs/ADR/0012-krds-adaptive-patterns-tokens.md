@@ -60,3 +60,19 @@ tier, path uses the gray-60 border role, indicator the primary action role and
 3px stroke the documented local border extension. Reduced-motion preference
 replaces rotation with the existing textual status. The spinner is decorative
 to assistive technology; the adjacent polite status carries its meaning.
+
+## Amendment 2026-10-06: asynchronous save states
+
+KRDS confirmation/error feedback must cover the interval between the operator
+choosing Save and the host settling its dialog/write. One save may be pending
+per dialog. Save/close are disabled and Escape/Tab stay inside the confirmation
+while it settles; the visible status names saving. Native cancellation is a
+silent return to the validated confirmation. Success, failure and cancellation
+restore the Save action's focus after React commits the enabled control.
+Coverage loading must settle before Save enables, so a known partial warning
+cannot arrive after the operator already opened the native file picker.
+A missing coverage record is named once without inventing successful coverage.
+
+Result coverage distinguishes loading, missing and rejected reads. A rejected
+official-result read exits loading with an error and the existing new-scan
+action; it does not keep a failed IPC call in an endless background loop.

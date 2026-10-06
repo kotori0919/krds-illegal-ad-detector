@@ -5,6 +5,28 @@ on 2026-10-06. A portable Windows V2 run covered live UI, evidence, native
 save and a bounded six-page concurrency benchmark; full L3 and L4 release
 gates remain open.
 
+## Current confirmation and result-state slice
+
+`npm run smoke:ui-states` builds the scanner and React app, scans the actual
+synthetic site (17 findings) and negative page (zero findings), and joins those
+validated outputs to the browser UI through IPC replay. It holds native-save
+responses to check duplicate activation, disabled actions, trapped focus,
+silent cancellation and focus after settlement. A real Linux read-only
+directory produces `EACCES`; retry writes the exact scanner JSON and validates
+the bytes and unchanged findings. Coverage pending/missing/rejected, official
+result rejection, zero findings, genuine unavailable visual evidence and new
+scan recovery are exercised. The output names the replay scope explicitly.
+
+`xvfb-run -a node benchmarks/ui-states-smoke.mjs --zoom` uses headed Chromium,
+`xdotool` and ImageMagick `import` for actual 200% browser zoom and a rendered
+window capture. It checks document/nested reflow and focus in these states.
+The plain command checks 360px. These are Linux browser and filesystem
+observations; native Windows dialog/write/ACL and assistive-technology checks
+remain distinct release gates. Latest integrated JavaScript run: 139 tests
+across 28 files passed in 24.15s; typecheck and lint passed.
+
+## Earlier native and scanner records
+
 The actual Windows app on `clean11` completed the municipal scenario,
 displayed real JPEG evidence and saved through the native dialog. Readback
 of the revised UI's exported file passed UTF-8/no-BOM, nonempty selectors,
@@ -12,8 +34,9 @@ official validation and all five ground-truth pairs. Keyboard confirmation
 focus cycle/return and post-success app/Chromium cleanup were observed.
 `DRY_RUN.md` names the executable hash, file hash and screenshots. These
 observations cover the bounded native command/session/detail/export path;
-Cancellation settlement, failure injection and NSIS installation remain
-separate open gates. A subsequent native run reviewed all 21 real findings
+Subsequent native cancellation and NSIS install/launch observations are
+recorded in `DRY_RUN.md`; current-build failure/state verification and the
+full installed release walk remain open. A subsequent native run reviewed all 21 real findings
 and validated its saved bytes; `DRY_RUN.md` records the exact builds. The
 generated 200-page worker scenario described below subsequently passed C1-C4
 on the Windows VM with 21 TP / 0 FP / 0 FN, one expected failed page, equal
@@ -58,7 +81,8 @@ a Unicode path, exercising Node's actual ESM resolution outside the repo.
 The pinned Node v22.19.0, Playwright 1.63.0 and Windows headless shell 1243
 were staged locally; Windows GNU source checking passed with the expanded
 resource map. The portable ISO was run under `cleanval` on a 4-vCPU/8-GB
-Windows 11 IoT Enterprise LTSC VM; NSIS output remains unverified.
+Windows 11 IoT Enterprise LTSC VM. Earlier NSIS install/launch evidence and
+the distinct latest, uninstalled package hashes are recorded in `DRY_RUN.md`.
 `packages/scanner/test/worker-pool.test.ts` holds live page callbacks at a
 barrier and observes peak callback overlap of 1, 2, 3 and 4 for those selected
 worker counts, with all nine frontier pages requested once. A separate held

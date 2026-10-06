@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { ScanResult } from "../src/screens/ScanResult.js";
-import type { HostBridge, OfficialResult } from "@krds-detector/contracts";
+import type { HostBridge, OfficialResult, ScanDetailBundle } from "@krds-detector/contracts";
 
 afterEach(cleanup);
 
@@ -23,14 +23,63 @@ function findingResult(): OfficialResult {
         url: "https://example.kr/a",
         is_violation: true,
         location: "#a",
-        evidence_text: "x",
+        evidence_text: "광고 원문 유지",
         technique: "HOMOGLYPH",
       },
     ],
   };
 }
 
+function renderResultState(getResult: HostBridge["getOfficialResult"], getDetail: HostBridge["getDetailBundle"]) {
+  const host = { getCapabilities: async () => ({ localScan: true }),
+    getSession: async () => ({ id: "s1", status: "succeeded" }),
+    getOfficialResult: getResult, getDetailBundle: getDetail,
+    getExtraResult: async () => undefined } as unknown as HostBridge;
+  function Workspace() {
+    const [view, setView] = useState<"findings" | "pages" | "coverage" | "extra">("coverage");
+    return <ScanResult host={host} sessionId="s1" query="" onQueryChange={() => {}} filter="ALL"
+      onFilterChange={() => {}} view={view} onViewChange={setView} reviewedIds={new Set()}
+      onReviewMany={() => {}} onEvidence={() => {}} onExport={() => {}} onRestart={() => {}} />;
+  }
+  render(<Workspace />);
+}
+
 describe("ScanResult delayed availability", () => {
+  it("distinguishes pending coverage from absence and preserves official findings when coverage settles", async () => {
+    let complete!: (bundle: ScanDetailBundle | undefined) => void;
+    const pending = new Promise<ScanDetailBundle | undefined>((resolve) => { complete = resolve; });
+    renderResultState(async () => findingResult(), () => pending);
+    await screen.findByText(/공식 탐지 1건/);
+    const before = screen.getByRole("status").textContent;
+    await act(async () => complete({ version: 2, findings: [], coverage: {
+      checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: false,
+    } }));
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByText("확인한 페이지 6개 · 실패한 페이지 1개", { exact: true })).toBeDefined();
+    expect(screen.queryByText(before!)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "공식 탐지", exact: true }));
+    expect(screen.getByRole("list", { name: "확정된 탐지 목록" }).textContent).toContain(findingResult().findings[0]!.evidence_text);
+  });
+
+  it("reports a rejected coverage read while keeping the valid official list and save action", async () => {
+    renderResultState(async () => findingResult(), async () => { throw new Error("private coverage error"); });
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).not.toContain("private coverage error");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect((screen.getByRole("button", { name: "결과 저장" }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "공식 탐지", exact: true }));
+    expect(screen.getByRole("list", { name: "확정된 탐지 목록" }).textContent).toContain(findingResult().findings[0]!.evidence_text);
+  });
+
+  it("settles rejected result reads with an error, blocked save and an enabled new-scan action", async () => {
+    renderResultState(async () => { throw new Error("private result error"); }, async () => undefined);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).not.toContain("private result error");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect((screen.getByRole("button", { name: "결과 저장" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "새로 검사하기" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("updates result count for search and filter, with a clear reset action", async () => {
     const host = {
       getCapabilities: vi.fn(async () => ({ localScan: true })),

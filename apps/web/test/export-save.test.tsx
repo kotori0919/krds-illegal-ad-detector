@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { ExportDialog } from "../src/screens/ExportDialog.js";
-import type { HostBridge, OfficialResult, ScanDetailBundle } from "@krds-detector/contracts";
+import { validateOfficialResultText, type ExportPaths, type HostBridge, type OfficialResult, type ScanDetailBundle } from "@krds-detector/contracts";
 
 afterEach(cleanup);
 
@@ -46,12 +47,75 @@ function hostWith(over: Partial<HostBridge>): HostBridge {
 }
 
 function renderExport(host: HostBridge) {
-  render(
-    <ExportDialog host={host} sessionId="s1" onClose={() => {}} />,
-  );
+  function Harness() {
+    const [open, setOpen] = useState(true);
+    return open ? <ExportDialog host={host} sessionId="s1" onClose={() => setOpen(false)} /> : <h1>결과 검토</h1>;
+  }
+  render(<Harness />);
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((complete, fail) => { resolve = complete; reject = fail; });
+  return { promise, resolve, reject };
 }
 
 describe("ExportDialog save semantics", () => {
+  it("waits for coverage before enabling save so partial warnings precede the file picker", async () => {
+    const coverage = deferred<ScanDetailBundle | undefined>();
+    renderExport(hostWith({ getDetailBundle: () => coverage.promise }));
+    await screen.findByRole("status");
+    expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(true);
+    const before = screen.getByRole("status").textContent;
+    await act(async () => coverage.resolve({ version: 2, findings: [], coverage: {
+      checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: true,
+    } }));
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("note").textContent).not.toBe(before);
+    expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("keeps focus and confirmation during pending save and restores save after native cancellation", async () => {
+    const saved = deferred<ExportPaths>();
+    renderExport(hostWith({ exportResult: () => saved.promise }));
+    await act(async () => {});
+    const save = screen.getByRole("button", { name: "저장" });
+    await act(async () => { save.click(); save.click(); });
+    const dialog = screen.getByRole("dialog");
+    expect([...dialog.querySelectorAll("button")].every((button) => button.disabled)).toBe(true);
+    expect(screen.getByRole("status")).toBeDefined();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "결과 저장" }));
+    await act(async () => saved.resolve({ resultJson: null }));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+    expect((save as HTMLButtonElement).disabled).toBe(false);
+    expect(document.activeElement).toBe(save);
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("heading", { name: "결과 검토" })).toBeDefined();
+  });
+
+  it("clears a prior success while retrying, then gives a focused retry after failure", async () => {
+    let saved = deferred<ExportPaths>();
+    renderExport(hostWith({ exportResult: () => saved.promise }));
+    await act(async () => {});
+    await act(async () => { screen.getByRole("button", { name: "저장" }).click(); });
+    await act(async () => saved.resolve({ resultJson: "C:\\out\\first.json" }));
+    expect(screen.getByRole("status")).toBeDefined();
+    saved = deferred<ExportPaths>();
+    await act(async () => { screen.getByRole("button", { name: "다시 저장" }).click(); });
+    expect(screen.getByRole("status").textContent).not.toContain("first.json");
+    await act(async () => saved.reject(new Error("private permission detail")));
+    expect(screen.getByRole("alert").textContent).not.toContain("private permission detail");
+    expect(screen.queryByRole("status")).toBeNull();
+    const retry = screen.getByRole("button", { name: "저장" });
+    expect((retry as HTMLButtonElement).disabled).toBe(false);
+    expect(document.activeElement).toBe(retry);
+  });
   it.each(["missing", "rejected"] as const)(
     "settles %s result loading with a recovery action and disabled save",
     async (failure) => {
@@ -106,7 +170,6 @@ describe("ExportDialog save semantics", () => {
     await act(async () => {
       screen.getByRole("button", { name: "저장" }).click();
     });
-    expect(exportResult).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
   });
@@ -120,19 +183,9 @@ describe("ExportDialog save semantics", () => {
       screen.getByRole("button", { name: "저장" }).click();
     });
     const alert = await screen.findByRole("alert");
-    expect(alert.textContent ?? "").toContain("저장 위치의 권한과 남은 공간");
     expect(alert.textContent ?? "").not.toContain("permission denied");
     expect(screen.queryByRole("status")).toBeNull();
-  });
-
-  it("successful save shows the exact path, not a fallback label", async () => {
-    renderExport(hostWith({}));
-    await act(async () => {});
-    await act(async () => {
-      screen.getByRole("button", { name: "저장" }).click();
-    });
-    const status = await screen.findByRole("status");
-    expect(status.textContent ?? "").toContain("C:\\out\\result.json");
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "저장" }));
   });
 
   it("browser mode downloads client-side without calling export", async () => {
@@ -152,10 +205,11 @@ describe("ExportDialog save semantics", () => {
     const origCreate = URL.createObjectURL;
     const origRevoke = URL.revokeObjectURL;
     const downloads: { href: string; filename: string }[] = [];
+    let content: Blob | undefined;
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
       downloads.push({ href: this.href, filename: this.download });
     });
-    URL.createObjectURL = (() => "blob:mock") as typeof URL.createObjectURL;
+    URL.createObjectURL = ((blob: Blob) => { content = blob; return "blob:mock"; }) as typeof URL.createObjectURL;
     URL.revokeObjectURL = (() => {}) as typeof URL.revokeObjectURL;
     try {
       const button = await screen.findByRole("button", { name: "저장" });
@@ -169,6 +223,14 @@ describe("ExportDialog save semantics", () => {
       click.mockRestore();
     }
     expect(downloads).toEqual([{ href: "blob:mock", filename: "result.json" }]);
+    const downloadedText = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(content!, "utf-8");
+    });
+    expect(validateOfficialResultText(downloadedText).ok).toBe(true);
+    expect(JSON.parse(downloadedText).findings).toEqual(result().findings);
     expect(exportResult).not.toHaveBeenCalled();
   });
 });

@@ -54,6 +54,8 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
   const [result, setResult] = useState<OfficialResult | undefined>(undefined);
   const [detailBundle, setDetailBundle] = useState<ScanDetailBundle | undefined>(undefined);
+  const [detailLoaded, setDetailLoaded] = useState(false);
+  const [detailLoadError, setDetailLoadError] = useState(false);
   const [extraResult, setExtraResult] = useState<ExtraResult | undefined>(undefined);
   const [extraLoaded, setExtraLoaded] = useState(false);
   const [extraLoadError, setExtraLoadError] = useState(false);
@@ -81,7 +83,9 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
         if (!alive) return;
         if (r) {
           setResult(r);
-          void host.getDetailBundle(sessionId).then((bundle) => { if (alive) setDetailBundle(bundle); }).catch(() => undefined);
+          void host.getDetailBundle(sessionId).then((bundle) => { if (alive) setDetailBundle(bundle); })
+            .catch(() => { if (alive) setDetailLoadError(true); })
+            .finally(() => { if (alive) setDetailLoaded(true); });
           void host.getExtraResult(sessionId).then((extra) => {
             if (alive) { setExtraResult(extra); setExtraLoaded(true); }
           }).catch(() => { if (alive) { setExtraLoadError(true); setExtraLoaded(true); } });
@@ -91,7 +95,10 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
           setLoadComplete(true);
           globalThis.clearInterval(timer);
         }
-      }).catch(() => undefined);
+      }).catch(() => {
+        if (alive) setLoadComplete(true);
+        globalThis.clearInterval(timer);
+      });
     }, 500);
     return () => {
       alive = false;
@@ -232,12 +239,14 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
           </div>
         ) : view === "coverage" ? (
           <div className="coverage-summary">
-            {detailBundle ? <>
+            {!detailLoaded ? <p role="status">점검 범위를 불러오는 중입니다.</p>
+              : detailLoadError ? <p role="alert" className="error">점검 범위를 불러오지 못했습니다.</p>
+                : detailBundle ? <>
               <p>확인한 페이지 {String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 {String(detailBundle.coverage.failedPages.length)}개</p>
               {detailBundle.coverage.timedOut ? <p role="status">제한 시간에 도달해 일부 페이지를 확인하지 못했습니다.</p> : null}
               {detailBundle.coverage.failedPages.length > 0 ? <ul>{detailBundle.coverage.failedPages.map((page) => <li key={page.url}>{page.url} — {page.status === 0 ? "연결 또는 분석 실패" : `접근 실패 (HTTP ${String(page.status)})`}</li>)}</ul>
                 : <p>확인에 실패한 페이지가 없습니다.</p>}
-            </> : <p className="empty">이 세션에는 페이지별 점검 기록이 없습니다.</p>}
+            </> : <p role="status" className="empty">점검 범위 기록 없음</p>}
           </div>
         ) : findings.length === 0 ? (
           <p role="status" className="empty">

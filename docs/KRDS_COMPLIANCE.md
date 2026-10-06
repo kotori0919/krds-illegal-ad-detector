@@ -4,6 +4,26 @@ Status: **partial implementation, release gate open** (2026-10-06). The previous
 five-stage audit is available in Git history; its tests and line references do
 not describe this UI.
 
+### Current confirmation and result-state evidence (2026-10-06)
+
+OBSERVED: `smoke:ui-states` used actual scanner output (17 official findings
+and a separate zero-finding scan) in the built React app through browser IPC
+replay. Two immediate Save activations produced one pending host request;
+Escape/Tab stayed inside the confirmation. Cancellation returned focus to
+the enabled Save action. An actual Linux filesystem `EACCES` became a Korean
+alert without exposing its path, and retry saved 4680 bytes with unchanged
+findings and a passing official validator. Coverage loading blocked Save;
+missing/rejected coverage retained valid findings. A rejected result read
+exited loading and allowed a new scan. A genuine capture-budget omission
+showed no fabricated image while retaining the raw evidence and review action.
+
+OBSERVED: the save-error state had no document or nested overflow at 360px;
+headed Linux Chromium at actual 200% zoom reported DPR 2, effective 360px
+viewport and 352px document. Pending, error, retry and inspector-return focus
+checks passed. The integrated JavaScript suite passed 139/139. This browser
+replay and Linux file write do not verify the native Windows save dialog,
+Windows ACLs, screen-reader announcements or the installed package.
+
 ### Current progress and layout evidence (2026-10-06)
 
 OBSERVED: the real relocated Node worker and actual Rust session registry
@@ -53,7 +73,7 @@ checks.
 | Technique filter | [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Immediate visible count and no-match reset. | Keyboard path in packaged app. |
 | Result search | [검색](https://www.krds.go.kr/html/site/service/service_02_03.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | One search field; query/filter retained through inspection. | Search semantics on larger real results. |
 | Finding inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Recorded matched terms, text transformations, source, CSS/geometry, actual JPEG when captured, unavailable state, review control, return focus. The list remains mounted in a desktop split view; mobile shows the inspector alone. | Actual Windows 21-finding review observed; assistive-technology review remains open. |
-| Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | “결과 저장” shows the official count and only relevant failed-page/time-limit status. Contract validation remains an internal save gate; a failure gets one actionable alert. No successful-check cards, raw JSON, or repeated explanation. Focus is trapped and restored; native save success/failure is reported. | Compact dialog, keyboard focus and actual saved bytes observed on Windows. Save failure injection and full release walk remain open. |
+| Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | “결과 저장” shows the official count and only relevant failed-page/time-limit status. Internal validation and coverage settlement gate Save. One pending save disables both actions and retains dialog focus; settlement restores Save focus. Failure gets one actionable alert. No successful-check cards, raw JSON, or repeated explanation. | Earlier native Windows success/cancel and saved bytes observed. Current pending/retry/read states passed browser IPC replay with real scanner data and Linux EACCES; native Windows failure/state and full release walk remain open. |
 | Page/scan failure | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Failed page and timeout coverage with retained findings. | Inject failures in packaged app. |
 | Contextual help | [도움](https://www.krds.go.kr/html/site/global/global_02.html) | Short scope help and optional technical explanation. | Keyboard and zoom review. |
 
@@ -164,15 +184,15 @@ inspector heading and the restored export trigger.
 
 | State | Required behavior | Current evidence or gap |
 | --- | --- | --- |
-| Initial, loading | URL and scope visible; result/detail loading named and settled. | React tests include missing/rejected export result so the dialog exits loading with a recovery action; browser setup and result path observed. |
+| Initial, loading | URL and scope visible; result/detail loading named and settled. | Result/coverage pending, absent and rejected reads exercised through React tests and actual-scanner browser replay. A rejected result exits loading; Save waits for coverage settlement. Native Windows read failures remain open. |
 | Running | Real counts, elapsed time, page and meaningful live status. | React tests and Rust child-process pump verify retained counters; actual Windows progress observed. Live screen-reader cadence remains open. |
 | Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | Actual Windows result/save paths observed both the six-page/five-finding and 200-page/21-finding scenarios, each with one expected failed page. |
-| Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React/browser checks plus native Windows no-match count 0/5 and reset to 5/5. Zero-finding native scan remains open. |
+| Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | Actual zero-finding scanner output reached the browser workspace and new-scan focus. Earlier native Windows no-match count 0/5 and reset to 5/5 passed. Zero-finding native scan remains open. |
 | Separate extra analysis | Keep the official list/count unchanged; show a Korean summary, item count, loading, empty, unavailable, and technical disclosure states. | Real image-response scan → Chromium IPC replay observed two extra items with zero official findings; keyboard category switch and 360px reflow passed. Headed Chromium at native 200% zoom showed no overflow in the empty-extra view. Packaged host, populated-extra native zoom, and assistive-technology review open. |
-| Error, unavailable evidence | Name the failure and next action; no fabricated image. | React start/cancel/save rejection paths show Korean recovery actions without raw host errors; native failure injection open. |
-| Disabled | Adjacent explanation and predictable focus. | Export disabled until validation; native controls still need audit. |
+| Error, unavailable evidence | Name the failure and next action; no fabricated image. | Actual capture-budget omission retained raw text/review without an image in browser replay; real Linux EACCES showed a sanitized save error with focused retry. Native failure injection open. |
+| Disabled | Adjacent explanation and predictable focus. | Coverage and validation gate Save; a pending save disables both actions and keeps Escape/Tab focus inside. Browser replay passed; native controls still need audit. |
 | Cancellation settlement | Confirm before stopping, then await host terminal state. | React test and actual Windows cancellation/escape/restart observed. The transient disabled state was not captured natively. |
-| Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | React and browser checks; Windows native save and file-byte validation observed on the five-finding scenario. Save failure injection and full release walk remain open. |
+| Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | Browser replay checked pending, silent cancellation, EACCES, retry and validated file readback at 360px and actual 200% Linux Chromium zoom. Earlier Windows native save/file bytes passed; current native Windows failure and full release walk remain open. |
 
 ## Release gate and evidence
 
