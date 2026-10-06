@@ -60,10 +60,9 @@ describe("ExportDialog save semantics", () => {
         return undefined;
       });
       renderExport(hostWith({ getOfficialResult }));
-      const alert = await screen.findByRole("alert");
-      expect(alert.textContent).toContain("창을 닫고 다시 시도해 주세요");
-      expect(screen.queryByText("검증할 결과를 불러오는 중입니다.")).toBeNull();
-      expect((screen.getByRole("button", { name: "파일 저장" }) as HTMLButtonElement).disabled).toBe(true);
+      await screen.findByRole("alert");
+      expect(screen.queryByRole("status")).toBeNull();
+      expect((screen.getByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(true);
       expect(screen.getByRole("button", { name: "취소" })).toBeDefined();
     },
   );
@@ -82,9 +81,22 @@ describe("ExportDialog save semantics", () => {
     };
     renderExport(hostWith({ getDetailBundle: vi.fn(async () => bundle) }));
     const note = await screen.findByRole("note");
-    expect(note.textContent).toContain("확인한 페이지 6개 중 실패 1개");
-    expect(note.textContent).toContain("점검 시간 제한 도달");
-    expect((await screen.findByRole("button", { name: "파일 저장" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(note.textContent).toContain("확인 실패 1페이지");
+    expect(note.textContent).toContain("점검 시간 초과");
+    expect((await screen.findByRole("button", { name: "저장" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it.each(["duplicate", "blank-location"] as const)("blocks %s output before opening a save dialog", async (failure) => {
+    const invalid = result();
+    if (failure === "duplicate") invalid.findings.push({ ...invalid.findings[0]!, id: "f2" });
+    else invalid.findings[0]!.location = " ";
+    const exportResult = vi.fn(async () => ({ resultJson: "C:\\out\\result.json" }));
+    renderExport(hostWith({ getOfficialResult: vi.fn(async () => invalid), exportResult }));
+    await screen.findByRole("alert");
+    const save = screen.getByRole("button", { name: "저장" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    save.click();
+    expect(exportResult).not.toHaveBeenCalled();
   });
 
   it("cancel is a silent no-op: no file, no error, no download", async () => {
@@ -92,11 +104,11 @@ describe("ExportDialog save semantics", () => {
     renderExport(hostWith({ exportResult }));
     await act(async () => {});
     await act(async () => {
-      screen.getByRole("button", { name: "파일 저장" }).click();
+      screen.getByRole("button", { name: "저장" }).click();
     });
     expect(exportResult).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.queryByText(/저장됨/)).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
   it("write failure gives a recovery action without a false saved message", async () => {
     const exportResult = vi.fn(async () => {
@@ -105,19 +117,19 @@ describe("ExportDialog save semantics", () => {
     renderExport(hostWith({ exportResult }));
     await act(async () => {});
     await act(async () => {
-      screen.getByRole("button", { name: "파일 저장" }).click();
+      screen.getByRole("button", { name: "저장" }).click();
     });
     const alert = await screen.findByRole("alert");
     expect(alert.textContent ?? "").toContain("저장 위치의 권한과 남은 공간");
     expect(alert.textContent ?? "").not.toContain("permission denied");
-    expect(screen.queryByText(/저장됨/)).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("successful save shows the exact path, not a fallback label", async () => {
     renderExport(hostWith({}));
     await act(async () => {});
     await act(async () => {
-      screen.getByRole("button", { name: "파일 저장" }).click();
+      screen.getByRole("button", { name: "저장" }).click();
     });
     const status = await screen.findByRole("status");
     expect(status.textContent ?? "").toContain("C:\\out\\result.json");
@@ -146,7 +158,7 @@ describe("ExportDialog save semantics", () => {
     URL.createObjectURL = (() => "blob:mock") as typeof URL.createObjectURL;
     URL.revokeObjectURL = (() => {}) as typeof URL.revokeObjectURL;
     try {
-      const button = await screen.findByRole("button", { name: "파일 저장" });
+      const button = await screen.findByRole("button", { name: "저장" });
       await act(async () => {
         button.click();
         await new Promise((resolve) => setTimeout(resolve, 100));

@@ -17,6 +17,7 @@ interface WorkerArgs {
   maxDepth: number;
   timeoutSec: number;
   settleMs: number;
+  concurrency?: number;
   executablePath?: string;
   channel?: string;
   outFile?: string;
@@ -37,6 +38,7 @@ function parseArgs(argv: string[]): WorkerArgs {
     maxDepth: Number(get("--max-depth") ?? 4),
     timeoutSec: Number(get("--timeout-sec") ?? 1500),
     settleMs: Number(get("--settle-ms") ?? 1500),
+    concurrency: get("--concurrency") === undefined ? undefined : Number(get("--concurrency")),
     executablePath: get("--executable-path"),
     channel: get("--channel"),
     outFile: get("--out-file"),
@@ -52,6 +54,11 @@ async function main(): Promise<void> {
     process.exitCode = 2;
     return;
   }
+  if (args.concurrency !== undefined && (!Number.isInteger(args.concurrency) || args.concurrency < 1 || args.concurrency > 4)) {
+    console.error("--concurrency must be an integer from 1 to 4");
+    process.exitCode = 2;
+    return;
+  }
   // scanSite owns crawl → live-page detection → validated result.json
   // (the same seam the 17/17 e2e test exercises). Progress events stay on
   // stderr so stdout remains result.json only.
@@ -62,6 +69,7 @@ async function main(): Promise<void> {
     crawl: {
       limits: { maxPages: args.maxPages, maxDepth: args.maxDepth, timeoutSec: args.timeoutSec },
       settleMs: args.settleMs,
+      concurrency: args.concurrency,
       channel: args.channel,
       executablePath: args.executablePath,
     },

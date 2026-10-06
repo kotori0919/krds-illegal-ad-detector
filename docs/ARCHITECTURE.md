@@ -7,7 +7,7 @@ schema/validator, selector identity, and React/host separation remain stable.
 
 ## Current implementation (observed in source)
 
-React + TypeScript + Vite (`apps/web`) → `HostBridge` (`packages/contracts/src/host.ts`) → BrowserHost replay or TauriHost → Rust Tauri supervisor → Playwright worker → crawler/detection/result engine. React has three operator stages and a results workspace with official finding/page views, coverage, contextual inspector, and export dialog. The inspector reads session detail, computed CSS/geometry, and real bounded JPEG evidence. The Linux native session smoke has exercised worker progress, result/detail persistence, and readback. The packaged Windows UI and native save dialog remain unverified.
+React + TypeScript + Vite (`apps/web`) → `HostBridge` (`packages/contracts/src/host.ts`) → BrowserHost replay or TauriHost → Rust Tauri supervisor → Playwright worker → crawler/detection/result engine. React has three operator stages and a results workspace with official finding/page views, coverage, contextual inspector, and export dialog. The inspector reads session detail, computed CSS/geometry, and real bounded JPEG evidence. The Linux native session smoke has exercised worker progress, result/detail persistence, and readback. A portable Windows V2 run showed real JPEG evidence and completed a native save dialog on the six-page fixture; NSIS packaging and the full operator release walk remain unverified.
 
 The scanner shares one monotonic deadline across a single live-page crawl and
 detection pass, uses bounded concurrency 1–4, inspects available live frames,
@@ -26,8 +26,9 @@ creative fingerprints use bounded image response bytes and a live-page 8×8
 pixel sample after official detection. A five-page ad fixture exercises
 duplicate, resized, WebP and slightly changed images and repeated destinations
 at concurrency 1–4. This is one bounded ad-infrastructure L2 slice; broader
-multi-domain and false-positive scenarios, packaged Windows performance, and
-product acceptance remain open.
+multi-domain scenarios and packaged Windows performance/product acceptance remain
+open. A separate ten-page public-information fixture checks zero official and
+extra findings at concurrency 1–4 across common legitimate interaction patterns.
 
 ## V2 target data flow
 

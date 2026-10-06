@@ -26,7 +26,7 @@ checks.
 | Technique filter | [필터링·정렬](https://www.krds.go.kr/html/site/global/global_10.html) | Immediate visible count and no-match reset. | Keyboard path in packaged app. |
 | Result search | [검색](https://www.krds.go.kr/html/site/service/service_02_03.html), [검색 결과 확인](https://www.krds.go.kr/html/site/service/service_02_04.html) | One search field; query/filter retained through inspection. | Search semantics on larger real results. |
 | Finding inspector | [상세 정보 확인](https://www.krds.go.kr/html/site/global/global_06.html) | Plain-language reason, raw text, source, CSS/geometry, actual JPEG when captured, unavailable state, review control, return focus. The list remains mounted in a desktop split view; mobile shows the inspector alone. | Packaged native evidence and assistive-technology review. |
-| Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html) | Result-embedded validation, technical disclosure, partial-coverage warning, focus trap and return, save outcomes. | Native save/cancel on Windows. |
+| Export dialog | [확인](https://www.krds.go.kr/html/site/global/global_11.html), [모달](https://www.krds.go.kr/html/site/component/component_04_05.html), [오류](https://www.krds.go.kr/html/site/global/global_07.html) | “결과 저장” shows the official count and only relevant failed-page/time-limit status. Contract validation remains an internal save gate; a failure gets one actionable alert. No successful-check cards, raw JSON, or repeated explanation. Focus is trapped and restored; native save success/failure is reported. | Compact dialog, keyboard focus and actual saved bytes observed on Windows. Save failure injection and full release walk remain open. |
 | Page/scan failure | [오류](https://www.krds.go.kr/html/site/global/global_07.html) | Failed page and timeout coverage with retained findings. | Inject failures in packaged app. |
 | Contextual help | [도움](https://www.krds.go.kr/html/site/global/global_02.html) | Short scope help and optional technical explanation. | Keyboard and zoom review. |
 
@@ -34,6 +34,20 @@ The KRDS result pattern motivates a visible count, category navigation, one
 search field, a result list, a no-result message, and a recovery action. Scan
 status is a progress/status interaction; the KRDS **사용자 피드백** pattern is for
 collecting a user's opinion and is not the scanner's status pattern.
+
+## Operator copy and disclosure
+
+The [confirmation pattern](https://www.krds.go.kr/html/site/global/global_11.html)
+calls for concise context and action labels. Normal operation shows the facts
+needed to act: counts, coverage, current work, saved path, or an error with a
+recovery step. Successful validation is internal; six technical check cards,
+JSON preview, repeated scope/purpose paragraphs, explanations of progress
+implementation, and generic export narration have been removed. The finding
+list shows type, page, detected text and review state. CSS selectors remain
+under the inspector's 기술 정보; frame/element/candidate statistics are under
+the progress view's 기술 정보. Evidence captions show capture time and viewport
+size. Demo labels, unavailable-evidence reasons and actionable errors remain
+because they change how the operator should interpret or act on the result.
 
 ## Token hierarchy and local extensions
 
@@ -66,10 +80,11 @@ packaged Windows review, so **full token conformance is not yet proven**.
 | `number-5/6/7/8` → `padding-3/4/5/6` → button/input padding | `semantic.padding.3/4/5/6` | Control and result workspace spacing | Rem values are converted to preserve the official pixel scale. |
 | `number-16` → `size-control` → button/input minimum height | `semantic.size-height.7` | 48 px button and input targets for mixed-age operators | Local component role selects the KRDS 48 px size tier. |
 | `border-width-regular` → `border-width` → input/button/navigation/badge/card/dialog borders | `mode-light.border-width.static-regular` in the [transformed tokens](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json) | Shared 1 px regular border across controls and result surfaces | Converted from KRDS's 10px rem base to the app's 16px root; rendered width remains 1 px. |
-| local `focus-width` → `focus-width` → keyboard focus rings on buttons, inputs, links, summaries, preview and inspector heading | `mode-light.border-width.variable-medium` (2 px) | 3 px outline remains distinct at 200% zoom and on dense result cards | One extra pixel for a clearer keyboard target; the light KRDS focus color remains unchanged. |
-| `number-2/3/4` → `focus-offset` / `underline-offset` / `status-edge-width` → focus ring, step marker and pass/fail checks | `primitive.number.2/3/4` | 2 px focus gap, 4 px underline gap, 6 px non-color status edge | Local semantic names express each consumer's role; the rendered numeric values are unchanged. |
+| local `focus-width` → `focus-width` → keyboard focus rings on buttons, inputs, links, summaries and inspector heading | `mode-light.border-width.variable-medium` (2 px) | 3 px outline remains distinct at 200% zoom and on dense result cards | One extra pixel for a clearer keyboard target; the light KRDS focus color remains unchanged. |
+| `number-2/3` → `focus-offset` / `underline-offset` → focus ring and step marker | `primitive.number.2/3` | 2 px focus gap and 4 px underline gap | Local semantic names express each consumer's role; the rendered numeric values are unchanged. |
 | `alpha-black-75` → `overlay-scrim` → `dialog-scrim` | `mode-light.color.background.dim` | Export dialog backdrop (`#000000bf`) | None. |
-| 13/15/17/19/24/32px type values → `font-body-*` / `font-heading-*` → badge, step, card title, check detail and preview | `responsive-pc.font-size.body` / `heading` in the [transformed tokens](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json) | Body, hints, headings, result and dialog text | Numeric rem values are converted from KRDS's 10px base to this app's 16px root; rendered sizes preserve KRDS roles without changing the user's root font setting. |
+| local `viewport-height` → `dialog-max-height` → `dialog-max-height` | [KRDS modal dialog](https://www.krds.go.kr/html/site/component/component_04_05.html) containment role | Constrain the dialog to the live viewport minus KRDS `padding.8`; allow scrolling when necessary | Viewport extent has no numeric KRDS token. Its 100dvh primitive is reduced by the existing KRDS spacing role. The native window separately fits the monitor work area. |
+| 13/15/17/19/24/32px type values → `font-body-*` / `font-heading-*` → badge, step and card title | `responsive-pc.font-size.body` / `heading` in the [transformed tokens](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json) | Body, hints, headings, result and dialog text | Numeric rem values are converted from KRDS's 10px base to this app's 16px root; rendered sizes preserve KRDS roles without changing the user's root font setting. |
 | `Pretendard GOV Variable` → `font-family` → body text | `primitive.typo.font` | All product text | Bundled font file replaces a network-dependent font source. |
 
 Before adding a custom token, record its exact KRDS source role, semantic
@@ -95,14 +110,14 @@ inspector heading and the restored export trigger.
 | State | Required behavior | Current evidence or gap |
 | --- | --- | --- |
 | Initial, loading | URL and scope visible; result/detail loading named and settled. | React tests include missing/rejected export result so the dialog exits loading with a recovery action; browser setup and result path observed. |
-| Running | Real counts, elapsed time, page and meaningful live status. | React tests and Rust child-process pump verify that terminal status retains the latest real counters; live screen-reader cadence and packaged host open. |
-| Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | L2 scanner fixture, result coverage view, and synthetic browser export dialog; packaged host open. |
+| Running | Real counts, elapsed time, page and meaningful live status. | React tests and Rust child-process pump verify retained counters; actual Windows progress observed. Live screen-reader cadence remains open. |
+| Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | L2 scanner fixture and actual Windows result/save dialog showed five findings, six checked pages and one failure. Larger native result review remains open. |
 | Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React and browser demo checks. |
 | Separate extra analysis | Keep the official list/count unchanged; show a Korean summary, item count, loading, empty, unavailable, and technical disclosure states. | Real image-response scan → Chromium IPC replay observed two extra items with zero official findings; keyboard category switch and 360px reflow passed. Headed Chromium at native 200% zoom showed no overflow in the empty-extra view. Packaged host, populated-extra native zoom, and assistive-technology review open. |
 | Error, unavailable evidence | Name the failure and next action; no fabricated image. | React start/cancel/save rejection paths show Korean recovery actions without raw host errors; native failure injection open. |
 | Disabled | Adjacent explanation and predictable focus. | Export disabled until validation; native controls still need audit. |
 | Cancellation settlement | Confirm before stopping, then await host terminal state. | React test; packaged host open. |
-| Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | React and browser dialog checks; native save open. |
+| Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | React and browser checks; Windows native save and file-byte validation observed on the five-finding scenario. Save failure injection and full release walk remain open. |
 
 ## Release gate and evidence
 
@@ -149,10 +164,29 @@ focused its heading; the dialog received focus and returned it to export on
 Escape. Visual inspection exposed an unusable wide result table despite a
 passing document-width check. The result view now uses one semantic list of
 cards at every width, with page, location, raw evidence, technique, review
-state and a 48 px evidence action. The JSON preview wraps long lines. The
+state and a 48 px evidence action. The export dialog now omits the JSON preview and technical validation cards. The
 same native zoom smoke passed again after both changes; `ui-smoke` and the
 20-finding keyboard review replay also passed. This is a Linux Chromium
 operator slice, not a packaged Windows or assistive-technology audit.
 
-**Open:** assistive technology, local layout limit audit, large-result native
-review, and packaged Windows acceptance.
+**Observed operator-copy revision 2026-10-06:** all 134 tests passed before the
+final empty-selector regression was added; the two changed web suites then
+passed 21 tests, including both duplicate and blank-selector save blocking.
+The final integrated run passed all 135 tests across 27 files.
+Typecheck, lint, build, the 20-finding keyboard replay and native Chromium
+200% zoom smoke passed after the revision. At effective 360 CSS px the entry,
+result list, extra view, inspector and save dialog had no document or nested
+horizontal overflow. The real-scanner-to-React smoke showed five actual JPEGs,
+truthful coverage, an enabled valid-result export gate and restored focus.
+
+On `clean11` Windows, the actual native app showed the compact confirmation,
+kept both actions visible, trapped Tab and restored export focus on Escape.
+Native save created a 1466-byte UTF-8/no-BOM JSON file with five known findings
+and no FP/FN; file readback passed the official validator. The first native
+review also exposed an initial 860px content height exceeding the 800px
+monitor and taskbar. Tauri's `prevent_overflow().center()` now fits the monitor
+work area on creation; the result actions were visibly above the taskbar.
+The revised app SHA-256 and evidence paths are in `DRY_RUN.md`.
+
+**Open:** assistive technology, remaining local layout limits, large-result
+native review and the full Windows release walk.

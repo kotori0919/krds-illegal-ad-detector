@@ -70,7 +70,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       if (event.sessionId !== sessionId) return;
       setProgress(event.progress);
       if (event.kind === "page-visited" && event.pageUrl) setRecentPage(event.pageUrl);
-      const line = `${stageLabel(event.progress.stage)}. 확인한 페이지 ${String(event.progress.visitedPages)}개, 탐지 후보 ${String(event.progress.confirmedFindings)}건.`;
+      const line = `${stageLabel(event.progress.stage)}. 확인한 페이지 ${String(event.progress.visitedPages)}개, 공식 탐지 ${String(event.progress.confirmedFindings)}건.`;
       if (["stage-changed", "finding-confirmed", "session-failed"].includes(event.kind) && line !== lastSpoken.current) {
         lastSpoken.current = line;
         setNotice(line);
@@ -122,15 +122,8 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
           이번 점검의 결과 파일을 만들지 못했습니다. 시작 주소와 접속 상태를 확인한 뒤 다시 점검해 주세요.
         </p>
       ) : null}
-      <section aria-label="탐지 현황" aria-describedby="progress-hint">
-        <p id="progress-hint" className="hint">
-          전체 작업량을 미리 알 수 없어 백분율 대신 실제 개수를 표시합니다.
-        </p>
+      <section aria-label="탐지 현황">
         <dl className="stats">
-          <div>
-            <dt>현재 단계</dt>
-            <dd>{stageLabel(progress.stage)}</dd>
-          </div>
           <div>
             <dt>확인한 페이지</dt>
             <dd>{progress.visitedPages}</dd>
@@ -138,18 +131,6 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
           <div>
             <dt>대기 중인 페이지</dt>
             <dd>{progress.queuedPages}</dd>
-          </div>
-          <div>
-            <dt>검사한 프레임</dt>
-            <dd>{progress.framesInspected}</dd>
-          </div>
-          <div>
-            <dt>분석한 요소</dt>
-            <dd>{progress.elementsAnalyzed}</dd>
-          </div>
-          <div>
-            <dt>후보</dt>
-            <dd>{progress.candidates}</dd>
           </div>
           <div>
             <dt>확정된 탐지</dt>
@@ -162,6 +143,13 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
           {recentPage ? <div><dt>최근 확인한 페이지</dt><dd>{recentPage}</dd></div> : null}
         </dl>
       </section>
+      <details className="advanced"><summary>기술 정보</summary>
+        <dl className="stats">
+          <div><dt>검사한 프레임</dt><dd>{progress.framesInspected}</dd></div>
+          <div><dt>분석한 요소</dt><dd>{progress.elementsAnalyzed}</dd></div>
+          <div><dt>탐지 후보</dt><dd>{progress.candidates}</dd></div>
+        </dl>
+      </details>
       <div className="actions">
         {cancelError ? <p role="alert" className="error">{cancelError}</p> : null}
         {failed ? <button type="button" onClick={onCancel} className="primary">새로 검사하기</button>

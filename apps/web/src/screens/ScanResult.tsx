@@ -207,7 +207,6 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
         ) : view === "extra" ? (
           <div className="coverage-summary">
             <h2>추가 분석</h2>
-            <p>공식 탐지 결과와 별도로 제공하는 참고 정보입니다.</p>
             {extraLoadError ? <p role="alert" className="empty">추가 분석 결과를 불러오지 못했습니다.</p>
               : !extraLoaded ? <p role="status" className="empty">추가 분석 결과를 불러오는 중입니다.</p>
                 : !extraResult ? <p role="status" className="empty">이 세션에는 추가 분석 결과가 없습니다.</p>
@@ -269,8 +268,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                   </div>
                   <dl>
                     <div><dt>페이지</dt><dd>{f.url}</dd></div>
-                    <div><dt>위치</dt><dd><code>{f.location}</code></dd></div>
-                    <div><dt>증거 원문</dt><dd>{f.evidence_text}</dd></div>
+                    <div><dt>확인된 문구</dt><dd>{f.evidence_text}</dd></div>
                   </dl>
                   <button type="button" onClick={() => onEvidence(f.id)} className="secondary" data-finding-id={f.id}>
                     근거 보기
@@ -283,7 +281,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
       </section>
       <div className="actions">
         <button id="export-trigger" type="button" onClick={onExport} className="primary" disabled={!result}>
-          결과 파일 생성
+          결과 저장
         </button>{" "}
         <button type="button" onClick={onRestart} className="secondary">
           새로 검사하기

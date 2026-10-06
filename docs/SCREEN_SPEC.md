@@ -14,7 +14,7 @@ Header: “공공 웹사이트 불법광고 탐지”, 도움말, and the curren
 
 ## A. 점검 설정
 
-Main heading “공공 웹사이트 점검”; one-sentence purpose. Label “점검할 웹사이트”, URL input with `https://` example and initial focus, inline help and error. A simple scope summary names 하위 페이지 자동 확인, 게시글·댓글 포함, iframe 포함, 최대 점검 시간 약 25분 이내. Primary button “점검 시작”. Below it, `상세 설정` discloses automatic/quick/custom mode and the three numeric limits only for custom. The quick mode describes reduced coverage before selection. No primary “주제” field. Host unavailable state says that browser mode is a demonstration and where real scan runs; it never implies that replay data came from the entered URL.
+Main heading “공공 웹사이트 점검”. Label “점검할 웹사이트”, URL input with an `https://` example and initial focus, one scope/time hint and inline error. Primary button “점검 시작”. `상세 설정` discloses automatic/quick/custom mode and the three numeric limits only for custom. The quick mode describes reduced coverage before selection. No primary “주제” field. Repeated purpose/scope paragraphs and internal timeout explanations are omitted. Browser replay is labelled as a demonstration; it never implies that replay data came from the entered URL.
 
 ## B. 사이트 점검
 
@@ -36,7 +36,7 @@ Page groups show page path, count, and a breakdown by the four Korean technique 
 
 ## C3. Result file dialog
 
-“result.json 생성” stays in the results action area, available even for a valid zero-finding result. Dialog title “결과 파일 생성”; show six checks with pass/fail words (JSON 형식, 필수 필드, 공식 탐지 유형, 위치 정보, 중복 검사, 고유 ID), finding count, and partial-coverage statement. Primary “파일 저장” is enabled only if validation passes. Secondary “취소” closes dialog and restores focus. Native save-dialog cancellation is a no-op. Success names the saved file; failure states a recovery step. Raw JSON preview is behind 기술 정보.
+“결과 저장” stays in the results action area, available even for a valid zero-finding result. The dialog shows the official finding count and, only when present, failed-page/time-limit status. The official serializer and validator still gate “저장” internally; an invalid result shows one actionable error and disables save. Validation checklists and raw JSON do not occupy the operator dialog. “취소” closes it and restores focus. Native save-dialog cancellation is a no-op. Success names the saved file; failure states a recovery step.
 
 ## States to design explicitly
 

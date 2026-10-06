@@ -5,9 +5,39 @@ historical. ADR-0011 now requires single-pass live-page processing, one global
 monotonic deadline, bounded concurrency (initial 2/3/4 by logical CPUs; hard
 max 4), deterministic output, and a 1–4 worker benchmark on 4-vCPU/8-GB
 Windows without GPU. Desired acceptance <=1200 s, normal budget 1500 s,
-internal guard 1650 s, official ceiling 1800 s. Windows V2 numbers have not
-been measured yet. The earlier "parallel only if dry run demands it" stance is
+internal guard 1650 s, official ceiling 1800 s. The bounded Windows L2
+measurement below covers six pages; the 200-page deadline target still needs
+an acceptance run. The earlier "parallel only if dry run demands it" stance is
 superseded.
+
+## Product V2 Windows 4-vCPU/8-GB realistic concurrency (MEASURED 2026-10-06)
+
+`clean11` Windows 11 IoT Enterprise LTSC Evaluation VM, 4 vCPU, 8 GiB RAM,
+no GPU. The portable V2 bundle was mounted as an ISO, without a development
+checkout in the guest. `node.exe benchmarks\\windows-v2-bench.mjs` started the
+real bundled worker against the same served municipal fixture for C1–C4.
+The script checks official, detail, and extra validators, the complete
+official finding set in emitted order including IDs/evidence text, failed-page
+identities, and ground truth. Machine fields are read from the guest runtime. The
+report is `C:\\Users\\cleanval\\Documents\\windows-v2-bench.json` in the VM.
+
+Memory is the sampled peak of `node.exe` plus `chrome-headless-shell.exe`
+working sets from Windows `tasklist` every 500 ms, less each run's idle
+baseline. This includes the benchmark and fixture Node processes, and is not
+total VM memory. CPU is mean total Windows processor utilization from
+`typeperf` one-second samples during each run; it includes OS work. The C1
+cold run and sampling overhead make these small-site times unsuitable for
+extrapolating the 1200-second target.
+
+| Workers | Wall s | Pages/s | Peak above idle MiB | Mean CPU % | Checked | Failed | TP/FP/FN | Official/detail/extra validators | Full set equal |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 1 | 16.721 | 0.359 | 320.8 | 36.8 | 6 | 1 | 5/0/0 | PASS | yes |
+| 2 | 7.455 | 0.805 | 377.9 | 39.1 | 6 | 1 | 5/0/0 | PASS | yes |
+| 3 | 6.180 | 0.971 | 443.1 | 41.5 | 6 | 1 | 5/0/0 | PASS | yes |
+| 4 | 5.943 | 1.010 | 445.3 | 38.7 | 6 | 1 | 5/0/0 | PASS | yes |
+
+The six-page benchmark supports retaining the 4-vCPU default of two workers.
+The C3 gain and C4 plateau need a larger-site run before changing that policy.
 
 ## Product V2 L1 concurrency correctness (MEASURED 2026-10-06, Linux)
 
@@ -16,7 +46,8 @@ superseded.
 limits. These L1 rows predate ADR-0013 visual capture; the L2 rows below
 include it. Each run scanned the same synthetic site. Peak RSS and CPU columns
 measure the **Node driver process only**, excluding Chromium and other host
-processes; the Windows memory/CPU acceptance measurement remains open.
+processes. The separate bounded Windows L2 working-set/CPU run is above;
+max-page and total-VM-memory acceptance remain open.
 
 | Workers | Wall s | Pages/s | Peak Node RSS MiB | Node CPU % | Checked | Failed | TP/FP/FN | Validator |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
@@ -28,8 +59,8 @@ processes; the Windows memory/CPU acceptance measurement remains open.
 The official finding set **including assigned IDs** was byte-for-byte
 identical at all four worker counts after excluding run-specific metadata.
 This L1 run proves concurrency equivalence on synthetic fixtures. The L2 run
-below adds realistic page content. Full L3, 4-vCPU/8-GB Windows,
-browser-process peak memory/CPU, and the 1200 s target remain unverified.
+below adds realistic page content. Full L3, max-page Windows resource use,
+and the 1200 s target remain unverified.
 
 ## Product V2 L2 realistic concurrency (MEASURED 2026-10-06, Linux)
 
@@ -52,7 +83,8 @@ These rows include the bounded real JPEG capture added in ADR-0013. The
 official finding set, evidence text, order, and IDs matched at all four
 settings. Throughput plateaued at 3–4 workers on this six-page scenario;
 these numbers do not justify raising the 4-vCPU Windows default above 2.
-L3 persistence/detail/export and Windows memory/performance still need proof.
+The native persistence/detail seam and bounded Windows L2 export/working-set
+slices were subsequently exercised; full L3 and max-page performance remain open.
 
 After ADR-0014 moved the settle interval to DOM readiness, the same Linux L2
 benchmark was rerun with `npm run benchmark:concurrency -- --realistic`. This
@@ -61,8 +93,8 @@ the benchmark rejects stale emitted files. An earlier rerun was withdrawn
 because `npm run typecheck` left scanner/detection `dist` older than their
 source, so it did not measure ADR-0014. The fixture has no late navigation
 load, so this fresh run does not estimate worst-case settle overhead. Peak
-memory and CPU are still Node-driver-only; Chromium and Windows acceptance
-remain unmeasured.
+memory and CPU are still Node-driver-only; the separate Windows L2 run above
+includes Chromium working sets.
 
 | Workers | Wall s | Pages/s | Peak Node RSS MiB | Node CPU % | Checked | Failed | TP/FP/FN | Validator |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
@@ -179,6 +211,7 @@ Windows or max-limit acceptance.
   slower hardware still pending (DRY_RUN §G).
   Interactive idle peak RSS re-confirmed 27 MB (PID 4640), zero
   chromium, fixture LISTEN.
-- [ ] Re-measure full-scan wall + peak RSS + process count on clean Windows 11.
+- [x] Bounded six-page Windows concurrency 1–4 wall/working-set/CPU run above.
+- [ ] Re-measure max-page wall, total VM memory, and process count on clean Windows 11.
 - [ ] Confirm no orphan Chromium after close/cancel (Job Objects).
 - [ ] Record NSIS install size + cold-start to first paint.

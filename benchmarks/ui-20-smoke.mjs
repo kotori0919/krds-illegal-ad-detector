@@ -86,12 +86,12 @@ try {
     || await page.getByLabel("기법 필터").inputValue() !== "JAMO") {
     throw new Error("search/filter context lost after twenty-finding review");
   }
-  await page.getByRole("button", { name: "결과 파일 생성" }).click();
+  await page.getByRole("button", { name: "결과 저장" }).click();
   const partialNote = await page.getByRole("dialog").getByRole("note").textContent();
-  if (!partialNote?.includes("확인한 페이지 6개 중 실패 1개") || !partialNote.includes("점검 시간 제한 도달")) {
+  if (!partialNote?.includes("확인 실패 1페이지") || !partialNote.includes("점검 시간 초과")) {
     throw new Error(`partial export warning missing: ${partialNote}`);
   }
-  if (await page.getByRole("dialog").getByRole("button", { name: "파일 저장" }).isDisabled()) {
+  if (await page.getByRole("dialog").getByRole("button", { name: "저장" }).isDisabled()) {
     throw new Error("valid partial result unexpectedly blocked from saving");
   }
   await page.keyboard.press("Escape");

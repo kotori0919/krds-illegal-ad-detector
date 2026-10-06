@@ -114,10 +114,6 @@ export function ScanStart({ host, onStarted }: Props) {
     <main className="page">
       <p className="eyebrow">공공 웹사이트 불법광고 탐지</p>
       <h1>공공 웹사이트 점검</h1>
-      <p className="lede">
-        검사할 웹사이트 첫 주소를 입력하면 관련 하위 페이지를 수집하고
-        게시글·댓글·iframe 내용을 검사하여 4가지 공식 은폐 기법을 판별합니다.
-      </p>
       <form onSubmit={onSubmit} aria-label="탐지 시작" noValidate>
         <div className="field">
           <label htmlFor="entry-url">점검할 웹사이트 <span className="required">필수</span></label>
@@ -140,17 +136,13 @@ export function ScanStart({ host, onStarted }: Props) {
             aria-describedby={fieldErrors.url ? "entry-url-error" : "scan-hint"}
             required
           />
-          <p id="scan-hint" className="hint">
-            하나의 시작 주소만 입력합니다. 같은 사이트 안의 하위 페이지는
-            도구가 자동으로 수집합니다.
-          </p>
+          <p id="scan-hint" className="hint">같은 사이트의 하위 페이지도 확인합니다. 기본 점검은 최대 25분입니다.</p>
           {fieldErrors.url ? (
             <p id="entry-url-error" role="alert" className="error">
               {fieldErrors.url}
             </p>
           ) : null}
         </div>
-        <p className="hint">하위 페이지와 게시글·댓글, iframe을 확인합니다. 기본 점검은 최대 약 25분입니다.</p>
         {formError ? (
           <p id="scan-form-error" role="alert" className="error">
             {formError}
@@ -259,10 +251,6 @@ export function ScanStart({ host, onStarted }: Props) {
               onChange={(e) => { setTopic(e.target.value); if (formError) setFormError(undefined); }}
               placeholder="예: 정기 점검" />
           </div>
-          <p className="hint">
-            공식 제한 30분 안에 끝나도록 기본값은 1500초입니다. 브라우저
-            미리보기에서는 실제 스캔을 수행하지 않습니다.
-          </p>
         </details>
       </form>
     </main>

@@ -10,14 +10,31 @@ Run on the cleanest available Windows 11 environment. Record each line
 PASS/FAIL with evidence (commit SHA, exe hash, OS/toolchain versions,
 command, input, expected/actual, original log or artifact path).
 
-Current Product V2 gate (2026-10-06): NSIS content, clean-account operator
-flow and Windows concurrency 1–4 measurements remain **UNVERIFIED**. The
-locally staged Node/Playwright runtime and Windows GNU `cargo check` do not
-replace those checks. `virsh domstate clean11` reports `shut off`, while
-QEMU PID 1252614 is still live with its VNC port open; a read-only VNC
-capture showed a black frame. The existing VM disk is held by that process.
-No termination, resume or disk mutation was performed. The historical
-records below describe their named builds only.
+Current Product V2 gate (2026-10-06): with the user's QEMU cleanup approval,
+the orphaned `clean11` process was stopped after confirming the domain was
+shut off. The 4-vCPU/8-GB/no-GPU Windows 11 IoT Enterprise LTSC VM then booted
+and ran the portable V2 ISO under `cleanval`, without a development checkout.
+The actual app reached 5 official findings, 6 checked pages and 1 failed page;
+real JPEG evidence rendered, the native Save As dialog opened, and the app
+reported `C:\Users\cleanval\Documents\result.json` saved. The revised
+operator build (`f778c12c56b862e3d917230da7a207f33a23a3ae5fc9b56ec57bb28ad109d69a`)
+then fit the Windows work area, kept both result/dialog actions above the
+taskbar, cycled dialog focus with Tab and restored it to export on Escape.
+Native save produced `C:\Users\cleanval\Documents\result-v2-copy.json`;
+the actual bytes passed UTF-8/no-BOM and the official validator: 1466 bytes,
+5 TP / 0 FP / 0 FN, nonempty selectors, SHA-256
+`063b291edfeeee0d03e97ebe07aa7b14139888fbdc6728e5cfa02e6dd25b04c4`.
+After success and app close, Windows `Get-Process` showed no scanner Chromium
+or application process; the one fixture Node process remained. Screenshots
+`/tmp/illegal-ad-toolchain/window-fit-dialog.png`, `window-fit-saved.png`,
+`window-fit-export-verified.png` and `window-fit-close-processes.png` record
+these bounded observations. The separate
+bundled-worker benchmark produced equal official finding sets and passed
+official/detail/extra validators at concurrency 1–4; timings and memory/CPU
+samples are in `PERF.md`. NSIS,
+full 20-finding operator review, cancellation/cleanup and 200-page deadline
+acceptance remain open. The historical records below describe their named
+builds only.
 
 ## A. Release unpack (no dev tooling)
 

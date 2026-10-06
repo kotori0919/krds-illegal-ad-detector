@@ -67,7 +67,8 @@
   --krds-semantic-focus-width: var(--krds-primitive-focus-width);
   --krds-semantic-focus-offset: var(--krds-primitive-number-2);
   --krds-semantic-underline-offset: var(--krds-primitive-number-3);
-  --krds-semantic-status-edge-width: var(--krds-primitive-number-4);
+  --krds-primitive-viewport-height: 100dvh;
+  --krds-semantic-dialog-max-height: calc(var(--krds-primitive-viewport-height) - var(--krds-semantic-padding-8));
   --krds-semantic-error: var(--krds-primitive-danger-60);
   --krds-semantic-success: var(--krds-primitive-success-60);
   --krds-semantic-border: var(--krds-primitive-gray-60);
@@ -98,6 +99,7 @@
   --krds-component-result-card-border: var(--krds-semantic-border-subtle);
   --krds-component-filter-radius: var(--krds-semantic-radius-control);
   --krds-component-dialog-scrim: var(--krds-semantic-overlay-scrim);
+  --krds-component-dialog-max-height: var(--krds-semantic-dialog-max-height);
   --krds-component-button-padding-y: var(--krds-semantic-padding-control-y);
   --krds-component-button-padding-x: var(--krds-semantic-padding-control-x);
   --krds-component-button-min-height: var(--krds-semantic-size-control);
@@ -123,8 +125,6 @@
   --krds-component-badge-font-size: var(--krds-semantic-font-body-xsmall);
   --krds-component-step-font-size: var(--krds-semantic-font-body-small);
   --krds-component-result-card-title-font-size: var(--krds-semantic-font-heading-small);
-  --krds-component-check-detail-font-size: var(--krds-semantic-font-body-small);
-  --krds-component-preview-font-size: var(--krds-semantic-font-body-xsmall);
   --krds-component-result-navigation-border: var(--krds-semantic-border);
   --krds-component-result-navigation-surface: var(--krds-semantic-surface);
   --krds-component-result-navigation-text: var(--krds-semantic-text);
@@ -577,47 +577,6 @@ code {
   border: 0;
 }
 
-.checks {
-  list-style: none;
-  padding: 0;
-}
-
-.checks li {
-  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
-  border-radius: var(--krds-semantic-radius-control);
-  padding: var(--krds-semantic-padding-3) var(--krds-semantic-padding-4);
-  margin-bottom: var(--krds-semantic-padding-3);
-}
-
-.checks li strong {
-  display: block;
-}
-
-.checks li.pass {
-  border-left: var(--krds-semantic-status-edge-width) solid var(--krds-semantic-success);
-}
-
-.checks li.fail {
-  border-left: var(--krds-semantic-status-edge-width) solid var(--krds-semantic-error);
-}
-
-.checks li span {
-  color: var(--krds-semantic-text-secondary);
-  font-size: var(--krds-component-check-detail-font-size);
-}
-
-.preview {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  background: var(--krds-semantic-surface-subtle);
-  border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle);
-  border-radius: var(--krds-semantic-radius-control);
-  padding: var(--krds-semantic-padding-4);
-  max-height: 24rem;
-  overflow: auto;
-  font-size: var(--krds-component-preview-font-size);
-}
-
 .visual-evidence {
   margin: var(--krds-semantic-padding-4) 0;
 }
@@ -646,7 +605,8 @@ code {
 
 .modal-panel {
   width: min(100%, 42rem);
-  max-height: calc(100vh - var(--krds-semantic-padding-8));
+  min-height: 0;
+  max-height: var(--krds-component-dialog-max-height);
   overflow: auto;
   padding: var(--krds-semantic-padding-6);
   border-radius: var(--krds-semantic-radius-control);

@@ -81,7 +81,7 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
             <h2>실제 화면</h2>
             {detail?.visual.state === "available" && detail.visual.dataUrl ? (
               <figure className="visual-evidence"><img src={detail.visual.dataUrl} alt="탐지 당시 페이지의 실제 화면" />
-                <figcaption>점검 당시 페이지 화면 · {detail.visual.capturedAt} · 화면 크기 {detail.visual.viewport?.width}×{detail.visual.viewport?.height}. 숨겨진 글자는 화면에 보이지 않을 수 있으며 위치와 CSS 수치를 함께 확인해야 합니다.</figcaption></figure>
+                <figcaption>촬영 시각 {detail.visual.capturedAt} · 화면 크기 {detail.visual.viewport?.width}×{detail.visual.viewport?.height}</figcaption></figure>
             ) : <p className="empty">이 결과에는 화면 캡처가 없습니다{detail?.visual.reason === "budget" ? " (시간 또는 용량 제한)" : detail?.visual.reason === "capture-error" ? " (캡처 실패)" : ""}. 원문과 위치 정보로 확인해 주세요.</p>}
           </section>
           <details className="advanced"><summary>기술 정보</summary>

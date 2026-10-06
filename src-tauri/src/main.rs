@@ -695,6 +695,8 @@ fn main() {
             )
             .title("불법광고 탐지 도구")
             .inner_size(1200.0, 860.0)
+            .prevent_overflow()
+            .center()
             .data_directory(dir)
             .visible(true)
             .focused(true)

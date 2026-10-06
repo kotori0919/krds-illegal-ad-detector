@@ -1,19 +1,32 @@
 # Test strategy V2
 
-Status: L2 measured and scanner, process/session L3 slices exercised on Linux
-on 2026-10-06; full Tauri-command/export L3 and packaged Windows L4 remain open.
+Status: L2 measured and scanner/process/session L3 slices exercised on Linux
+on 2026-10-06. A portable Windows V2 run covered live UI, evidence, native
+save and a bounded six-page concurrency benchmark; full L3 and L4 release
+gates remain open.
+
+The actual Windows app on `clean11` completed the municipal scenario,
+displayed real JPEG evidence and saved through the native dialog. Readback
+of the revised UI's exported file passed UTF-8/no-BOM, nonempty selectors,
+official validation and all five ground-truth pairs. Keyboard confirmation
+focus cycle/return and post-success app/Chromium cleanup were observed.
+`DRY_RUN.md` names the executable hash, file hash and screenshots. These
+observations cover the bounded native command/session/detail/export path;
+20-finding native review, cancellation settlement, failure injection,
+max-page performance and NSIS installation remain separate open gates.
 
 Observed Linux L2 slice: `fixtures/realistic` and
 `packages/detection/test/realistic.test.ts` exercise a municipal-style board,
 comments, live iframe, delayed element, ordinary notice/report text, and one
 404 page. At concurrency 1–4, each run produced 5 TP / 0 FP / 0 FN, 6 checked
 pages, 1 failed page, and identical official IDs. See `PERF.md` for timings.
-The served five-page public-information negative scenario in
+The served ten-page public-information negative scenario in
 `packages/detection/test/false-positive-site.test.ts` exercises hidden
-accessibility help, reporting/statistics, multilingual/Jamo education and
+accessibility help, reporting/statistics, multilingual/Jamo education,
+dialog, tabs, carousel, SVG chart, adult-content blocking guidance and
 prevention copy, including a hidden link to a topic-specific public route.
-Its expected official set is empty; the real scanner and official validator
-run at worker counts 1–4. This is a bounded negative slice of the broader
+Its expected official and extra sets are empty; the real scanner and official
+validator run at worker counts 1–4. This is a bounded negative slice of the broader
 false-positive torture plan below, not full coverage of it.
 `packages/detection/test/single-pass.test.ts` instrumented server requests:
 each admitted top-level page and iframe document was fetched once at worker
@@ -37,7 +50,8 @@ worker and `playwright-core` under a temporary `install-dir/binaries/` tree with
 a Unicode path, exercising Node's actual ESM resolution outside the repo.
 The pinned Node v22.19.0, Playwright 1.63.0 and Windows headless shell 1243
 were staged locally; Windows GNU source checking passed with the expanded
-resource map. NSIS output and clean-account execution remain unverified.
+resource map. The portable ISO was run under `cleanval` on a 4-vCPU/8-GB
+Windows 11 IoT Enterprise LTSC VM; NSIS output remains unverified.
 `packages/scanner/test/worker-pool.test.ts` holds live page callbacks at a
 barrier and observes peak callback overlap of 1, 2, 3 and 4 for those selected
 worker counts, with all nine frontier pages requested once. An override of 5
@@ -63,9 +77,10 @@ official and detail JSON in the registry. Against the municipal-style site it
 observed the 5 ground-truth official findings, 5 joined JPEG detail records,
 6 checked pages, 1 failed page, 15 forwarded progress events, terminal
 visited-page count 6, and persisted `succeeded` status. This verifies the
-native process/session seam without GTK/WebKit development libraries; the
-actual Tauri command validation, native export dialog and packaged Windows
-session remain open.
+native process/session seam without GTK/WebKit development libraries;
+that Linux harness does not exercise Tauri commands or native save. The
+subsequent bounded Windows run above exercised the actual session and save;
+the full packaged release walk remains open.
 The Rust session module was compiled independently on Linux with its existing
 unit tests (14 passed). A real child stderr pump reproduced a host terminal
 event reporting zero visited pages after a three-page progress event; the
@@ -74,7 +89,8 @@ counters and lets a validated result override the provisional finding count.
 The Windows GNU Tauri source then passed an offline cross-target `cargo check`
 using LLVM `rc`/`clang` and a check-only `TAURI_CONFIG` override that clears
 `bundle.externalBin`. This does not stage the real sidecar or produce a
-package; packaged runtime verification remains open.
+package. The subsequent portable Windows run above exercised the actual
+runtime; NSIS install and the full release walk remain open.
 `benchmarks/ui-20-smoke.mjs` exercises the real React results workspace with a
 20-finding synthetic IPC fixture in Chromium: all 20 are opened and marked
 reviewed, then search/filter and fallback focus are checked. It is a UI replay,
@@ -83,17 +99,18 @@ not an L3 native-host or L4 operator result.
 site, validates its five ground-truth findings and detail bundle, then serves
 the built React app with those exact outputs through a Tauri IPC replay. In
 Chromium, all five inspector images decoded and matched the scanner's actual
-JPEG data, the 6-checked/1-failed coverage appeared, the export preview
-matched the official JSON, and dialog focus returned on Escape. This joins
-real scan data to the product UI; the IPC transport and native save dialog are
-still replayed or unexercised, so packaged Windows acceptance remains open.
+JPEG data, the 6-checked/1-failed coverage appeared, the export gate enabled
+for valid official JSON, and dialog focus returned on Escape. This joins
+real scan data to the product UI through replayed IPC. Native save is outside
+this browser harness and was subsequently exercised in the bounded Windows
+run above. Full packaged Windows acceptance remains open.
 With Vite running on `127.0.0.1:5173`, `npm run smoke:ui-native-zoom` uses
 headed Chromium and OS key events under Xvfb to reach actual 200% browser
 zoom. At an effective 360 CSS px it checks
 entry, result list, inspector and export dialog for document and nested
 horizontal overflow, inspector focus, dialog focus and Escape focus return.
 The wide result table failed visual review despite an outer-width pass; its
-single responsive card-list replacement and the wrapped JSON preview passed
+single responsive card-list replacement passed
 the same smoke. This is a Linux browser gate, not Windows L4.
 
 ## Layers and evidence

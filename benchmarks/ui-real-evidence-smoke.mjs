@@ -129,27 +129,24 @@ try {
     await page.getByText(`추가 분석 ${String(output.extraResult.findings.length)}건`).waitFor();
   }
   await page.getByRole("button", { name: "공식 탐지" }).click();
-  await page.getByRole("button", { name: "결과 파일 생성" }).click();
-  const dialog = page.getByRole("dialog", { name: "결과 파일 생성" });
-  await dialog.getByRole("button", { name: "파일 저장" }).waitFor();
-  if (await dialog.getByRole("button", { name: "파일 저장" }).isDisabled()) {
+  await page.getByRole("button", { name: "결과 저장" }).click();
+  const dialog = page.getByRole("dialog", { name: "결과 저장" });
+  await dialog.getByRole("button", { name: "저장" }).waitFor();
+  if (await dialog.getByRole("button", { name: "저장" }).isDisabled()) {
     throw new Error("valid real result blocked from export");
   }
-  await dialog.getByText(`저장할 공식 탐지: ${String(result.findings.length)}건`).waitFor();
+  await dialog.getByText(`공식 탐지 ${String(result.findings.length)}건`).waitFor();
   const partial = await dialog.getByRole("note").textContent();
-  if (!partial?.includes(`실패 ${String(detail.coverage.failedPages.length)}개`)) {
+  if (!partial?.includes(`확인 실패 ${String(detail.coverage.failedPages.length)}페이지`)) {
     throw new Error("real failed-page warning missing from export dialog");
   }
-  await dialog.getByText("기술 정보: JSON 미리보기").click();
-  const preview = await dialog.getByLabel("result.json 미리보기").textContent();
-  if (preview !== output.json.slice(0, 4000)) throw new Error("export preview differs from real official JSON");
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.activeElement?.id === "export-trigger");
   console.log(JSON.stringify({ fixture: "real scanner to React results via IPC replay",
     officialFindings: result.findings.length, renderedJpegs,
     checkedPages: detail.coverage.checkedPages, failedPages: detail.coverage.failedPages.length,
     extraFindings: output.extraResult.findings.length,
-    exportPreviewMatchesOfficial: true, focusRestored: true }, null, 2));
+    exportValidationPassed: true, focusRestored: true }, null, 2));
 } finally {
   await browser?.close();
   if (appServer.listening) await new Promise((done) => appServer.close(done));

@@ -123,7 +123,7 @@ describe("ScanProgress live region", () => {
       }),
     );
     expect(statusLine()).toContain("페이지를 찾고 콘텐츠를 분석하는 중");
-    expect(statusLine()).toContain("탐지 후보 2건");
+    expect(statusLine()).toContain("공식 탐지 2건");
   });
 
   it("does not re-announce identical lines while per-page counters still update", () => {
