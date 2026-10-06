@@ -1,12 +1,30 @@
 # Architecture — current engine and Product V2 target
 
-Status: 2026-10-05. ADR-0010 supersedes the product-facing portion of Contract v0's freeze. `packages/contracts/src` remains v0 until Phase B implementation. The four official techniques, official output schema/validator, selector identity, and React/host separation remain stable.
+Status: partial Product V2 implementation, 2026-10-06. ADR-0010 supersedes
+the product-facing portion of Contract v0's freeze. Contract v0.2 detail and
+coverage types are implemented. The four official techniques, official output
+schema/validator, selector identity, and React/host separation remain stable.
 
 ## Current implementation (observed in source)
 
-React + TypeScript + Vite (`apps/web`) → `HostBridge` (`packages/contracts/src/host.ts`) → BrowserHost replay or TauriHost → Rust Tauri supervisor → Playwright worker → crawler/detection/result engine. Evidence Graph and creative fingerprint modules exist but the UI's `EvidenceView` reads only `OfficialFinding`. `ScanResult` shows session ID, raw status, selector, and raw enum. Five top-level steps are hard-coded in `steps.ts`. `ExportView` validates and saves the official JSON in its own step.
+React + TypeScript + Vite (`apps/web`) → `HostBridge` (`packages/contracts/src/host.ts`) → BrowserHost replay or TauriHost → Rust Tauri supervisor → Playwright worker → crawler/detection/result engine. React has three operator stages and a results workspace with official finding/page views, coverage, contextual inspector, and export dialog. The inspector reads session detail, computed CSS/geometry, and real bounded JPEG evidence. The Linux native session smoke has exercised worker progress, result/detail persistence, and readback. The packaged Windows UI and native save dialog remain unverified.
 
-The scanner runs cheap semantic/technique checks on live pages and outputs validated official findings. Today `crawlSite` visits one page at a time and closes it; `scanSite` then navigates those URLs again for detection and opens new Pages for frame URLs. Its crawl timeout does not govern that second pass. `buildOfficialResult` gives IDs in candidate arrival order. It currently extracts ID-bearing text elements, so realistic non-ID content needs verification. `ScanOutput` contains result, JSON, and page count, but no persisted page-failure list or finding details. The `ScanProgress` elements-analyzed counter currently counts found candidates, not all elements. Visual screenshots/crops are not yet captured for findings. BrowserHost replays demo data; it is not a real scan. Existing Windows evidence in `DRY_RUN.md` verifies several packaged paths on a synthetic fixture, but clean-install acceptance and Product V2 UI remain open.
+The scanner shares one monotonic deadline across a single live-page crawl and
+detection pass, uses bounded concurrency 1–4, inspects available live frames,
+and assigns official IDs after deterministic aggregation. Realistic Linux L2
+scans preserve the same five official findings and one failed page at every
+worker count. The worker writes validated official and detail JSON. Optional
+visual capture is bounded to six pages and 2 MB of embedded JPEG data. The
+bundled Node process and React UI each consumed those outputs in separate
+Linux integration smokes.
+
+The extra-analysis path remains incomplete: `packages/evidence` contains graph
+and creative-fingerprint algorithms, but the worker does not emit a session
+`result_extra.json`, `scan_get_extra_result` returns `None`, and the results
+workspace has no separate 추가 분석 area. The realistic ad-infrastructure L2
+scenario must exercise that integrated path. The public-site L2 fixture and a
+bounded false-positive site run through the real scanner; the full three-scenario
+L2 gate, packaged Windows performance, and product acceptance remain open.
 
 ## V2 target data flow
 
@@ -20,6 +38,7 @@ URL + meaningful preset → monotonic ScanDeadline
   → deterministic candidate dedup/sort → stable OfficialFinding IDs
   → typed page/frame failures + Evidence Graph references
   → persisted session manifest: OfficialResult, ScanCoverage, FindingDetail index
+  → separate validated extra analysis from observed infrastructure/creatives
   → HostBridge reads for Results workspace
   → existing official validator/serializer → result.json
 ```
