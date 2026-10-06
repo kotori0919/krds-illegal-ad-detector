@@ -118,6 +118,11 @@ Run the **same** realistic L2 public-site scenario at concurrency 1, 2, 3, and 4
 Use `npm run benchmark:concurrency -- --realistic` so all scanner packages are
 rebuilt before measurement. Direct `node benchmarks/concurrency.mjs` invocation
 rejects stale emitted JavaScript; a typecheck alone does not rebuild it.
+The benchmark emits each worker count's ordered official set, including the
+normalized site URL, full frame location, technique, raw evidence text and
+assigned ID. Only the fixture's varying loopback origin is replaced with
+`<site>`; a changed finding can no longer pass equality through a matching
+terminal selector alone.
 
 ## L4 operator walk
 

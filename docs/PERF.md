@@ -74,6 +74,36 @@ remain unmeasured.
 All four runs had the same official finding IDs and set, 5 TP / 0 FP / 0 FN,
 and valid official output.
 
+## Product V2 full official-set comparison (MEASURED 2026-10-06, Linux)
+
+The benchmark now compares each ordered official finding's ID, site-normalized
+URL, full frame location, technique and unmodified evidence text. The earlier
+benchmark compared only the terminal selector and technique beside the ID,
+which could miss a frame-path or evidence-text difference. Both scenarios were
+rerun after this correction. The metric process is still Node alone, excluding
+Chromium, so these rows do not satisfy Windows resource acceptance.
+
+| Scenario | Workers | Wall s | Pages/s | Peak Node RSS MiB | Node CPU % | Checked | Failed | TP/FP/FN | Validator | Full set equal |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| L1 synthetic | 1 | 27.567 | 0.544 | 149.8 | 1.2 | 15 | 0 | 17/0/0 | PASS | yes |
+| L1 synthetic | 2 | 16.655 | 0.901 | 151.1 | 1.6 | 15 | 0 | 17/0/0 | PASS | yes |
+| L1 synthetic | 3 | 13.036 | 1.151 | 152.0 | 2.5 | 15 | 0 | 17/0/0 | PASS | yes |
+| L1 synthetic | 4 | 11.132 | 1.348 | 167.8 | 1.7 | 15 | 0 | 17/0/0 | PASS | yes |
+| L2 realistic | 1 | 8.808 | 0.681 | 146.1 | 3.3 | 6 | 1 | 5/0/0 | PASS | yes |
+| L2 realistic | 2 | 5.866 | 1.023 | 148.7 | 2.2 | 6 | 1 | 5/0/0 | PASS | yes |
+| L2 realistic | 3 | 4.416 | 1.359 | 149.8 | 2.5 | 6 | 1 | 5/0/0 | PASS | yes |
+| L2 realistic | 4 | 4.450 | 1.348 | 150.1 | 2.0 | 6 | 1 | 5/0/0 | PASS | yes |
+
+The L2 official set, identical at all four worker counts, was:
+
+| ID | URL | Full location | Technique | Evidence text |
+| --- | --- | --- | --- | --- |
+| f1 | `<site>/frame.html` | `iframe[src="<site>/frame.html"] >>> #frame-ad` | JAMO | ㅋㅏㅈㅣㄴㅗ 첫충전 이벤트 |
+| f2 | `<site>/post.html` | `#comment-ad` | HOMOGLYPH | Ｃ카지노 신규 가입 보너스 |
+| f3 | `<site>/post.html` | `#hidden-ad` | TRANSPARENT | 무직자 대출 당일 승인 |
+| f4 | `<site>/post.html` | `#late-comment` | JAMO | 대출 무서류 당일 승인 |
+| f5 | `<site>/post.html` | `#late-comment` | OFFSCREEN | 대출 무서류 당일 승인 |
+
 Environment: 16 cores, 30 GB RAM, Node 26, headless Chromium. This is NOT
 the conservative baseline (Win11, i6-class, 4–6 cores, 8 GB, no GPU) — it
 bounds the architecture, not the submission hardware. Windows numbers must

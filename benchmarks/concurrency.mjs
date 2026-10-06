@@ -55,11 +55,21 @@ const identity = (finding) => {
   const selector = frameBoundary >= 0 ? finding.location.slice(frameBoundary + 3).trim() : finding.location;
   return `${url.pathname}${url.search}\0${selector}\0${finding.technique}`;
 };
-const official = (finding) => `${finding.id}\0${identity(finding)}`;
+const official = (finding, siteOrigin) => {
+  const url = new URL(finding.url);
+  return {
+    id: finding.id,
+    url: url.origin === siteOrigin ? `<site>${url.pathname}${url.search}` : url.href,
+    location: finding.location.replaceAll(siteOrigin, "<site>"),
+    technique: finding.technique,
+    evidenceText: finding.evidence_text,
+  };
+};
 const rows = [];
 
 try {
 for (const concurrency of [1, 2, 3, 4]) {
+  const siteOrigin = realistic ? origin : `http://127.0.0.1:${4200 + concurrency}`;
   const cpuStart = process.cpuUsage();
   const start = performance.now();
   let peakNodeRss = 0;
@@ -94,16 +104,15 @@ for (const concurrency of [1, 2, 3, 4]) {
     fp: got.size - tp,
     fn: expected.size - tp,
     validator: validateOfficialResultText(output.json).ok,
-    findingSet: output.result.findings.map(official).sort(),
+    officialFindingSet: output.result.findings.map((finding) => official(finding, siteOrigin)),
   });
 }
 } finally {
   if (server) await new Promise((resolveClose) => server.close(() => resolveClose()));
 }
 
-const base = JSON.stringify(rows[0].findingSet);
-const equal = rows.every((row) => JSON.stringify(row.findingSet) === base);
-for (const row of rows) delete row.findingSet;
+const base = JSON.stringify(rows[0].officialFindingSet);
+const equal = rows.every((row) => JSON.stringify(row.officialFindingSet) === base);
 console.log(JSON.stringify({ scenario: realistic ? "L2 realistic" : "L1 synthetic", environment: { platform: process.platform, arch: process.arch, node: process.version }, rows, findingSetsEqual: equal }, null, 2));
 const expectedFailedPages = realistic ? truth.expectedFailedPages : 0;
 if (!equal || rows.some((row) => row.fp || row.fn || !row.validator || row.failedPages !== expectedFailedPages)) process.exitCode = 1;
