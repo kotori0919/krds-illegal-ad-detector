@@ -27,6 +27,8 @@ interface Props {
   reviewedIds: ReadonlySet<string>;
   onReviewMany: (ids: string[], reviewed: boolean) => void;
   restoreFindingId?: string;
+  selectedFindingId?: string;
+  onSelectionHidden: () => void;
   onFocusRestored?: () => void;
 }
 
@@ -50,7 +52,8 @@ function extraSummary(finding: ExtraFinding): string {
   return "광고 문구에 보이지 않는 글자가 포함되었습니다.";
 }
 
-export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, restoreFindingId, onFocusRestored }: Props) {
+export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
+  const [selectionNotice, setSelectionNotice] = useState(false);
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
   const [result, setResult] = useState<OfficialResult | undefined>(undefined);
   const [detailBundle, setDetailBundle] = useState<ScanDetailBundle | undefined>(undefined);
@@ -129,7 +132,15 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
     }
     return [...groups.entries()];
   }, [visible]);
-  const resetFilters = () => { onFilterChange("ALL"); onQueryChange(""); };
+  const resetFilters = () => { setSelectionNotice(false); onFilterChange("ALL"); onQueryChange(""); };
+  const selectedVisible = visible.some((finding) => finding.id === selectedFindingId);
+  useEffect(() => {
+    if (!result || !selectedFindingId) return;
+    if ((view !== "findings" && view !== "pages") || !selectedVisible) {
+      setSelectionNotice(view === "findings" || view === "pages");
+      onSelectionHidden();
+    } else setSelectionNotice(false);
+  }, [result, selectedFindingId, selectedVisible, view, onSelectionHidden]);
 
   useEffect(() => {
     if (!result || !restoreFindingId) return;
@@ -195,13 +206,13 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
         {(view === "findings" || view === "pages") ? <div className="toolbar">
           <div className="result-search">
             <label htmlFor="result-search">결과 검색</label>
-            <input id="result-search" type="search" value={query} onChange={(e) => onQueryChange(e.target.value)} placeholder="원문 또는 페이지 주소" />
+            <input id="result-search" type="search" value={query} onChange={(e) => { setSelectionNotice(false); onQueryChange(e.target.value); }} placeholder="원문 또는 페이지 주소" />
           </div>
           <label htmlFor="technique-filter">기법 필터</label>
           <select
             id="technique-filter"
             value={filter}
-            onChange={(e) => onFilterChange(e.target.value as TechniqueFilter)}
+            onChange={(e) => { setSelectionNotice(false); onFilterChange(e.target.value as TechniqueFilter); }}
           >
             <option value="ALL">전체</option>
             {OFFICIAL_TECHNIQUES.map((t) => (
@@ -211,7 +222,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
             ))}
           </select>
         </div> : null}
-        {result && (view === "findings" || view === "pages") ? <p role="status" aria-live="polite" className="result-count">표시 중인 탐지 {String(visible.length)}건 / 전체 {String(findings.length)}건</p> : null}
+        {result && (view === "findings" || view === "pages") ? <p role="status" aria-live="polite" className="result-count">표시 중인 탐지 {String(visible.length)}건 / 전체 {String(findings.length)}건{selectionNotice ? " · 조건에 맞지 않아 근거를 닫았습니다." : ""}</p> : null}
         {!result && !loadComplete ? (
           <p role="status" className="empty">결과를 불러오는 중입니다.</p>
         ) : !result ? (
@@ -278,7 +289,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                 <button type="button" className="secondary" onClick={() => onReviewMany(group.map((finding) => finding.id), !group.every((finding) => reviewedIds.has(finding.id)))}>
                   {group.every((finding) => reviewedIds.has(finding.id)) ? "페이지 검토 취소" : "페이지 항목 모두 검토 완료"}
                 </button>
-                <ul>{group.map((f) => <li key={f.id}>{techniqueLabel[f.technique]} · {f.evidence_text} · {reviewedIds.has(f.id) ? "검토 완료" : "검토 전"} <button type="button" className="linklike" data-finding-id={f.id} onClick={() => onEvidence(f.id)}>근거 보기</button></li>)}</ul>
+                <ul>{group.map((f) => <li key={f.id}>{techniqueLabel[f.technique]} · {f.evidence_text} · {f.id === selectedFindingId ? "확인 중 · " : ""}{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"} <button type="button" className="linklike" data-finding-id={f.id} aria-current={f.id === selectedFindingId ? "true" : undefined} onClick={() => onEvidence(f.id)}>근거 보기</button></li>)}</ul>
               </section>
             ))}
           </div>
@@ -290,13 +301,14 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                 <li key={f.id} className="finding-card">
                   <div className="finding-card-head">
                     <span className="badge">{techniqueLabel[f.technique]}</span>
-                    <span>{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"}</span>
+                    <span>{f.id === selectedFindingId ? "확인 중 · " : ""}{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"}</span>
                   </div>
                   <dl>
                     <div><dt>페이지</dt><dd>{f.url}</dd></div>
                     <div><dt>확인된 문구</dt><dd>{f.evidence_text}</dd></div>
                   </dl>
-                  <button type="button" onClick={() => onEvidence(f.id)} className="secondary" data-finding-id={f.id}>
+                  <button type="button" onClick={() => onEvidence(f.id)} className="secondary" data-finding-id={f.id}
+                    aria-current={f.id === selectedFindingId ? "true" : undefined}>
                     근거 보기
                   </button>
                 </li>

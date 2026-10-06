@@ -39,7 +39,7 @@ function renderResultState(getResult: HostBridge["getOfficialResult"], getDetail
     const [view, setView] = useState<"findings" | "pages" | "coverage" | "extra">("coverage");
     return <ScanResult host={host} sessionId="s1" query="" onQueryChange={() => {}} filter="ALL"
       onFilterChange={() => {}} view={view} onViewChange={setView} reviewedIds={new Set()}
-      onReviewMany={() => {}} onEvidence={() => {}} onExport={() => {}} onRestart={() => {}} />;
+      onSelectionHidden={() => {}} onReviewMany={() => {}} onEvidence={() => {}} onExport={() => {}} onRestart={() => {}} />;
   }
   render(<Workspace />);
 }
@@ -93,7 +93,7 @@ describe("ScanResult delayed availability", () => {
       const [view, setView] = useState<"findings" | "pages" | "coverage">("findings");
       return <ScanResult host={host} sessionId="s1" query={query} onQueryChange={setQuery}
         filter={filter} onFilterChange={(value) => setFilter(value as typeof filter)}
-        view={view} onViewChange={setView} reviewedIds={new Set()} onReviewMany={() => {}} onEvidence={() => {}} onExport={() => {}} onRestart={() => {}} />;
+        view={view} onViewChange={setView} reviewedIds={new Set()} onSelectionHidden={() => {}} onReviewMany={() => {}} onEvidence={() => {}} onExport={() => {}} onRestart={() => {}} />;
     }
     render(<Workspace />);
     expect(await screen.findByText("표시 중인 탐지 1건 / 전체 1건")).toBeDefined();
@@ -131,7 +131,7 @@ describe("ScanResult delayed availability", () => {
         view="findings"
         onViewChange={() => {}}
         reviewedIds={new Set()}
-        onReviewMany={() => {}}
+        onSelectionHidden={() => {}} onReviewMany={() => {}}
         onEvidence={() => {}}
         onExport={() => {}}
         onRestart={() => {}}
@@ -160,7 +160,7 @@ describe("ScanResult delayed availability", () => {
           view="findings"
           onViewChange={() => {}}
           reviewedIds={new Set()}
-          onReviewMany={() => {}}
+          onSelectionHidden={() => {}} onReviewMany={() => {}}
           onEvidence={() => {}}
           onExport={() => {}}
           onRestart={() => {}}
@@ -193,7 +193,7 @@ describe("ScanResult delayed availability", () => {
         view="findings"
         onViewChange={() => {}}
         reviewedIds={new Set()}
-        onReviewMany={() => {}}
+        onSelectionHidden={() => {}} onReviewMany={() => {}}
         onEvidence={() => {}}
         onExport={() => {}}
         onRestart={() => {}}

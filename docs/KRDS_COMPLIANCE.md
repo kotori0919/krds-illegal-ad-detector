@@ -5,6 +5,28 @@ Status: **implemented with scoped native evidence; combined V2 audit open**
 five-stage audit is available in Git history; its tests and line references do
 not describe this UI.
 
+### Completion-audit corrections and remaining native UX check
+
+The 목록 탐색 / 상세 정보 확인 interaction now marks the inspected finding
+with `aria-current` and the visible Korean state “확인 중” in both list and
+page views. If search/filter excludes it, the inspector closes with a concise
+live status and leaves focus on the changed control. Changing to extra or
+coverage also closes the inspector. Existing text/button tokens are reused;
+no new visual token or undocumented pattern is introduced.
+
+The 20-finding built-React IPC replay reproduced the stale-inspector defect
+before rebuilding and passed afterward:22 Enter activations, correct current
+finding in list/page views, excluded/category inspector closure, retained
+query/filter and filter focus, and valid partial export confirmation.
+Windows verification of this correction remains pending. Separately, successful
+page counts now exclude failures; historical “checked” counts in the raw
+benchmark reports were attempted counts. ADR-0011 records the correction and
+fresh worker acceptance. Current Windows C1-C4 full-set, paired capture modes
+and native partial-failure/deadline export passed; PERF and DRY_RUN record the
+corrected worker and installed package hashes. The141-test source suite and
+20-finding replay passed; native verification of the selection correction
+remains pending. Core gates precede remaining strict UX checks.
+
 ### Resumed native core evidence (2026-10-06)
 
 VM use is authorized. Per the user's ordering, core acceptance precedes the

@@ -70,6 +70,9 @@ try {
     await page.locator(`button[data-finding-id="${finding.id}"]`).focus();
     await page.keyboard.press("Enter");
     await page.locator(".result-inspector .raw").getByText(finding.evidence_text).waitFor();
+    if (await page.locator('button[data-finding-id][aria-current="true"]').getAttribute("data-finding-id") !== finding.id) {
+      throw new Error("list current-finding state does not match the inspector");
+    }
     if (finding.id === "f1") await page.screenshot({ path: "/tmp/illegal-ad-v2-inspector-desktop.png" });
     await page.getByRole("button", { name: "검토 완료로 표시" }).click();
   }
@@ -82,13 +85,27 @@ try {
   await page.getByText("표시 중인 탐지 1건 / 전체 20건").waitFor();
   await page.locator('button[data-finding-id="f1"]').focus();
   await page.keyboard.press("Enter");
-  await page.getByLabel("기법 필터").selectOption("JAMO");
-  await page.getByRole("button", { name: "결과 목록으로" }).click();
-  await page.waitForFunction(() => document.activeElement?.id === "result-search");
+  const filter = page.getByLabel("기법 필터");
+  await filter.focus();
+  await filter.selectOption("JAMO");
+  await page.waitForFunction(() => !document.querySelector(".result-inspector"));
+  if (!await filter.evaluate((element) => element === document.activeElement)) {
+    throw new Error("closing an excluded finding moved focus away from its filter");
+  }
+  await page.getByText(/조건에 맞지 않아 근거를 닫았습니다/).waitFor();
   if (await page.getByLabel("결과 검색").inputValue() !== "post/1"
     || await page.getByLabel("기법 필터").inputValue() !== "JAMO") {
     throw new Error("search/filter context lost after twenty-finding review");
   }
+  await page.getByRole("button", { name: "페이지별", exact: true }).click();
+  await page.locator('button[data-finding-id="f2"]').focus();
+  await page.keyboard.press("Enter");
+  await page.locator(".result-inspector .raw").getByText(findings[1].evidence_text).waitFor();
+  if (await page.locator('button[data-finding-id][aria-current="true"]').getAttribute("data-finding-id") !== "f2") {
+    throw new Error("page view did not expose the current finding");
+  }
+  await page.getByRole("button", { name: "점검 범위", exact: true }).click();
+  await page.waitForFunction(() => !document.querySelector(".result-inspector"));
   await page.getByRole("button", { name: "결과 저장" }).click();
   const partialNote = await page.getByRole("dialog").getByRole("note").textContent();
   if (!partialNote?.includes("확인 실패 1페이지") || !partialNote.includes("점검 시간 초과")) {
@@ -99,8 +116,9 @@ try {
   }
   await page.keyboard.press("Escape");
   console.log(JSON.stringify({ fixture: "synthetic Tauri IPC browser replay", findings: 20,
-    reviewed, keyboardActivated: 21, retainedSearch: "post/1", retainedFilter: "JAMO",
-    fallbackFocus: "result-search", partialExportWarning: true }, null, 2));
+    reviewed, keyboardActivated: 22, retainedSearch: "post/1", retainedFilter: "JAMO",
+    selectedFindingState: true, pageSelectionState: true, categoryClosedInspector: true,
+    excludedInspectorClosed: true, retainedFilterFocus: true, partialExportWarning: true }, null, 2));
 } finally {
   await browser.close();
 }

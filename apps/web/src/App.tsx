@@ -52,6 +52,10 @@ export function App() {
   }, []);
 
   const goResult = useCallback(() => go("result"), [go]);
+  const closeHiddenSelection = useCallback(() => {
+    setFindingId(undefined);
+    go("result");
+  }, [go]);
   const goResultFromEvidence = useCallback(() => {
     setRestoreFindingId(findingId);
     go("result");
@@ -125,6 +129,8 @@ export function App() {
             return next;
           })}
           restoreFindingId={restoreFindingId}
+          selectedFindingId={phase === "evidence" ? findingId : undefined}
+          onSelectionHidden={closeHiddenSelection}
           onFocusRestored={() => setRestoreFindingId(undefined)}
           onEvidence={(id) => {
             if (phase === "result" && narrowInspector()) resultScrollY.current = window.scrollY;
