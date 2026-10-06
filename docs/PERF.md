@@ -10,9 +10,64 @@ cover six pages and a generated 200-page scenario; the latter met the desired
 target. Full native product/performance acceptance remains open. The earlier "parallel only if dry run demands it" stance is
 superseded.
 
-## Coverage correction and current acceptance (2026-10-06)
+## Integrated candidate Windows C1-C4 (MEASURED 2026-10-07)
 
-Current worker `00298fe383b706b5642f9f4beb74e1894b9a3da8b18ac8466aca4db191f5cbd1`
+Source `1b0611d`, bundled worker SHA-256
+`fe6a095f8cbed3d4c4ab7569dd971274d9721a5e9d467f194e16560f392b391e`.
+The fresh staged Node/worker/dependencies ran on clean11: Windows10.0.26100,
+Node22.19.0,4 logical CPUs,8GiB, no GPU. Browser files were reused from the
+existing mounted Chromium headless1243 runtime. This measures the actual
+packaged worker, not an installed Tauri UI or the full host working set.
+
+| Concurrency | Wall seconds | Peak working set above baseline MiB | Mean guest CPU % | Peak total guest used MiB |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 347.131 | 425.4 | 37.7 | 3134.8 |
+| 2 | 174.271 | 433.1 | 41.5 | 3159.8 |
+| 3 | 112.477 | 537.5 | 44.2 | 3214.8 |
+| 4 | 87.849 | 781.9 | 51.0 | 3267.8 |
+
+OBSERVED: all runs checked199/failed1, TP21/FP0/FN0, timedOut=false and passed
+all canonical official/detail/extra validators. Complete official objects
+(IDs, ordering, URL/frame chain and source text) and failure arrays were
+identical across C1-C4. All runs met the1200s target with1500s configured
+budget. No old successful benchmark was rerun.
+
+Method: `benchmarks/windows-v2-bench.mjs --large`, generated200-page municipal
+fixture, depth4, settle1500ms, normal selective captures. One run per C, no
+paired old-worker baseline or statistical speedup claim. Working sets sum
+all node.exe/chrome-headless-shell.exe processes via tasklist every500ms and
+subtract each run's immediately preceding baseline; they include the driver.
+typeperf samples total guest CPU and available RAM each second. Host load and
+OS cache were not controlled. Raw report:
+`/tmp/illegal-ad-v2-windows-large-report.json`.
+
+## Integrated candidate correctness sweep (2026-10-07, Linux)
+
+Candidate source `1b0611d`, bundled worker SHA-256
+`fe6a095f8cbed3d4c4ab7569dd971274d9721a5e9d467f194e16560f392b391e`.
+OBSERVED: one actual bundled-worker run for each C1-C4 on the unchanged
+generated municipal 200-page scenario. All runs checked199/failed1, returned
+TP21/FP0/FN0, passed official/detail/extra validators and stored200 PageOutcomes.
+Complete official finding objects (including IDs, source, order and frame
+chains), PageOutcomes and failed-page arrays were exactly equal. The request
+log also checked one main-document request per URL; repeated frame-instance
+requests were kept separate from that invariant.
+
+Single-run wall observations: C1 307.238s, C2 156.946s, C3 104.667s,
+C4 78.826s. These are diagnostic execution durations, not a comparative
+speedup claim or Windows performance acceptance. Environment: Linux
+7.0.0-34-generic, Node26.8.1,16 logical CPUs,30.456GiB memory; competing host
+load and OS cache were not controlled. No old-worker baseline was rerun.
+Each child used max-pages200, max-depth4, timeout1500s, settle1500ms and its
+explicit concurrency. Normal optional evidence remained enabled.
+Raw report: `/tmp/illegal-ad-v2-large-linux-report.json`.
+
+The Windows observations below belong to earlier hashes. Installed native
+acceptance remains separate from the current packaged-worker observations.
+
+## Historical coverage correction acceptance (2026-10-06)
+
+Historical worker `00298fe383b706b5642f9f4beb74e1894b9a3da8b18ac8466aca4db191f5cbd1`
 counts successful pages separately from failed attempts. Its Windows C1-C4
 benchmark, native partial-result/export and paired capture modes passed.
 Earlier raw reports below retain their original

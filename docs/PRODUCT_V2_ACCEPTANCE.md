@@ -23,25 +23,63 @@ freeze or whole-product audit is required before connecting features.
   remain active. Cooperative cancellation preserves completed-page artifacts;
   the UI routes only after terminal state and confirmed hasResult.
 - The KRDS three-step UI includes search, filters, page outcomes, evidence,
-  image analysis and official file saving. Real scanner output was exercised
-  in Chromium through explicitly marked IPC replay; replay is not a native
-  Tauri UI observation.
+  image analysis and official file saving. The current NSIS-installed Windows
+  app exercised the real Tauri bridge; the earlier 360px Chromium observation
+  used explicitly marked IPC replay and retains that narrower scope.
 
 OBSERVED: live served Chromium text/selector/zero-width/OCR/cancel regressions,
 the packaged Node worker's complete and cancelled scans, native Rust worker
 launch -> validated persistence -> retrieval/export, UI behavior and scoped
 type/lint checks. The Korean image fixture produced the expected phrase with
 0.96 confidence. This is one fixture, not a broad OCR accuracy measurement.
-The full suite passed 166 tests before the additional OCR shutdown regression;
-that later regression and its scoped OCR suite passed separately.
+Current-head remote CI passed all 167 tests, type checking, lint and builds.
 
-NOT_RUN: current-candidate installed Windows A-F, long C1-C4 and strict native
-UX acceptance. Windows-target host checking passed, but the VM GUI control
-could not deliver a verified command: foreground_unavailable reported that
-the window manager had not set _NET_ACTIVE_WINDOW. Background/persistent-focus
-and bounded desktop attempts also failed readback. No Windows runtime success
-is inferred from cross-compilation. Historical Windows evidence below retains
-its original executable/worker hashes and does not close these new gates.
+OBSERVED: current packaged Node/worker/OCR dependencies executed on Windows
+10.0.26100.9457, Node v22.19.0. The served non-ID text produced one official
+TRANSPARENT finding and one ZERO_WIDTH_OBFUSCATION auxiliary finding. Real
+offline Korean image OCR returned the expected phrase with 0.96 confidence.
+Cooperative cancellation during a second, hanging navigation retained the
+checked page, official/detail/extra artifacts and completed OCR. All six
+tracked worker/browser process IDs were absent after worker settlement.
+This is packaged-worker evidence, not installed Tauri UI or JobObject proof.
+
+OBSERVED: current-worker Linux 200-page C1-C4 sweep retained identical complete
+official objects and PageOutcome arrays: 21 true positives, zero false
+positives/negatives, 199 checked and one intended failed page in every run.
+Each main-document URL was requested once. See PERF for scope and timings.
+
+OBSERVED/MEASURED: current-candidate packaged Windows C1-C4 and worker A-F
+cases. The200-page benchmark passed all validators and full-object equality,
+TP21/FP0/FN0,199 checked/one intended failure; wall seconds were
+347.131/174.271/112.477/87.849 (4-vCPU/8-GiB). The additional
+`benchmarks/windows-v2-boundaries.mjs` executes the actual worker: capped
+admission requested only root/a/b once at C1/C4, cross-origin outer/inner
+frames once with complete selector chains, exact official/PageOutcome
+equality, and a hanging navigation settled under the shared12s deadline in
+11.207s while preserving the completed finding. These worker observations
+do not prove the installed host's JobObject backstop or strict native UX.
+
+OBSERVED: the fresh NSIS candidate installed and ran on the same Windows VM.
+Installed host, scanner and OCR worker hashes matched the candidate report.
+The actual UI -> Tauri commands -> installed worker -> artifact persistence
+-> ResultsWorkspace path returned one TRANSPARENT finding, one zero-width
+extra finding and offline OCR text/confidence0.96/rule decision2/2. Search,
+filter and evidence-panel context survived review; actual CSS opacity0,
+coordinates, viewport/crop and analysis-position evidence were displayed.
+The page view distinguished a checked zero-finding page from HTTP404.
+Cancellation stayed on progress while settling, then displayed the retained
+one-finding result with checked1/failed8 and an explicit partial-result banner.
+Native Save As exported the complete and cancelled official results; canonical
+validation passed for482 and498 bytes respectively, including literal TOPIC
+and exact original text. The installed host remained alive while its Node,
+OCR and browser processes were absent after settlement. Raw final-file/hash/
+process report: `/tmp/illegal-ad-v2-windows-native-export.json`.
+
+NOT_RUN: current-candidate strict native UX matrix, native60s deadline/export
+and forced long-duration host-guard exhaustion. Normal worker deadline and
+cooperative process settlement do not prove that forced backstop. Native
+control was recovered without changing Windows execution policy. Historical
+evidence below retains its original hashes and does not close these gates.
 
 ## Historical package observations (2026-10-06)
 
@@ -96,7 +134,7 @@ exact package and execution scopes.
 | L: strict UX release gate | Keyboard-only workflow, focus/return, 360 reflow/200% zoom, non-color state, dialogs, live status, Korean copy and target sizes | Native narrow zoom, confirmation focus cycle, Korean UIAutomation live events and complete keyboard-only workflow passed. Installed WebView2 accessibility roles/labels/modal isolation and 48px targets were observed; the extra disclosure's27px defect was reproduced and corrected to48px in the installed package. Reconcile remaining scoped rows; no spoken-output claim from this audio-less VM. |
 | M: combined definition of done | Product workflow/evidence/review/export plus scanner deadline/single-pass/concurrency/determinism/realistic Windows acceptance | OPEN while any applicable release gate lacks evidence; do not infer completion from core benchmark success. |
 
-## Current installed build and evidence
+## Historical installed build and evidence
 
 Worker SHA-256:
 `00298fe383b706b5642f9f4beb74e1894b9a3da8b18ac8466aca4db191f5cbd1`.
@@ -135,12 +173,11 @@ the current crop/asset worker now passed a fresh full sweep and paired capture
 comparison. Raw reports are named
 in those records; report replacement does not retroactively change old proof.
 
-## Remaining acceptance checks
+## Remaining release checks
 
-1. Verify the selection correction in the installed Windows app: list/page
-   current state, filter exclusion closure, retained context and focus. Apply
-   remaining strict UX gates after the core work, per the user's priority.
-2. Finish the combined original-steering/A-M completion audit against actual
-   source and scoped runtime records. Earlier accessibility/read/zoom records
-   retain their original package scope. Normal Windows deadline settlement
-   does not prove forced long-duration host-guard exhaustion.
+Apply remaining strict native UX gates to the integrated candidate. Earlier
+accessibility/read/zoom records retain their original package scope. Native
+deadline/export and forced long-duration host-guard exhaustion remain separate
+from the current worker deadline and cooperative cancellation observations.
+No new Product Freeze or whole-product re-audit is a prerequisite for feature
+integration.
