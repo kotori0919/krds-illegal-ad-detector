@@ -1,7 +1,7 @@
 # Test strategy V2
 
-Status: L2 measured and scanner-only L3 slices exercised on Linux on
-2026-10-06; persisted native-host L3 and packaged Windows L4 remain open.
+Status: L2 measured and scanner, process/session L3 slices exercised on Linux
+on 2026-10-06; full Tauri-command/export L3 and packaged Windows L4 remain open.
 
 Observed Linux L2 slice: `fixtures/realistic` and
 `packages/detection/test/realistic.test.ts` exercise a municipal-style board,
@@ -52,8 +52,16 @@ pages fail instead of exporting an empty success result; a valid zero-finding
 site with successfully checked pages still succeeds.
 It proves that settlement path for a short local fixture, not the long-running
 Windows watchdog or app cancellation behavior.
-The Tauri session store and native export have not run inside a packaged app,
-so L3 persisted-detail/export acceptance remains open.
+`npm run smoke:native-session` compiles the actual `SessionRegistry` source in
+a small Linux harness, starts the generated Node worker through its real
+`spawn_sidecar`/Job lifecycle, consumes live progress, and stores the resulting
+official and detail JSON in the registry. Against the municipal-style site it
+observed the 5 ground-truth official findings, 5 joined JPEG detail records,
+6 checked pages, 1 failed page, 15 forwarded progress events, terminal
+visited-page count 6, and persisted `succeeded` status. This verifies the
+native process/session seam without GTK/WebKit development libraries; the
+actual Tauri command validation, native export dialog and packaged Windows
+session remain open.
 The Rust session module was compiled independently on Linux with its existing
 unit tests (14 passed). A real child stderr pump reproduced a host terminal
 event reporting zero visited pages after a three-page progress event; the

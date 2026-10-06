@@ -22,6 +22,7 @@
     "benchmark:concurrency": "npm run build:scanner && node benchmarks/concurrency.mjs",
     "smoke:worker": "npm run build:scanner && node benchmarks/worker-l3.mjs",
     "smoke:sidecar": "npm run build:sidecar && node benchmarks/worker-l3.mjs --bundled",
+    "smoke:native-session": "npm run build:sidecar && cargo test --manifest-path benchmarks/native-session-l3/Cargo.toml --locked --offline real_worker_progress_result_and_evidence_survive_host_persistence -- --nocapture",
     "smoke:ui-native-zoom": "xvfb-run -a node benchmarks/ui-native-zoom-smoke.mjs",
     "lint": "eslint .",
     "clean": "rm -rf packages/contracts/dist apps/web/dist packages/synth-eval/dist packages/scanner/dist packages/detection/dist packages/evidence/dist"

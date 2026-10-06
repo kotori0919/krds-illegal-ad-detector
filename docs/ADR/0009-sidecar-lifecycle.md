@@ -72,3 +72,15 @@ details and JPEGs, 6 checked pages, 1 failed page, and valid outputs from a
 temporary `install-dir/binaries/` tree. The full Windows GNU Tauri source check
 passed with the expanded resource map. The actual NSIS installer and clean
 Windows account remain unobserved.
+
+## Amendment 2026-10-06: realistic native session smoke
+
+The Linux `smoke:native-session` harness imports the production session and
+fallback Job modules, relocates the real bundled worker with `playwright-core`,
+and serves the municipal-style fixture. It exercises child spawn, progress
+pump, natural exit, result/detail persistence and session readback. The observed
+result was 5 known official findings, 5 matching JPEG detail records, 6 checked
+pages, 1 failed page and 15 forwarded progress events. This closes the Linux
+native process/session integration slice. Tauri command validation, the native
+save dialog, NSIS contents and clean-account process cleanup still require a
+packaged Windows run.
