@@ -52,7 +52,10 @@ unit tests (14 passed). A real child stderr pump reproduced a host terminal
 event reporting zero visited pages after a three-page progress event; the
 registry now retains the latest page, frame, element, candidate and elapsed
 counters and lets a validated result override the provisional finding count.
-Full Tauri compilation and packaged runtime verification are still open.
+The Windows GNU Tauri source then passed an offline cross-target `cargo check`
+using LLVM `rc`/`clang` and a check-only `TAURI_CONFIG` override that clears
+`bundle.externalBin`. This does not stage the real sidecar or produce a
+package; packaged runtime verification remains open.
 `benchmarks/ui-20-smoke.mjs` exercises the real React results workspace with a
 20-finding synthetic IPC fixture in Chromium: all 20 are opened and marked
 reviewed, then search/filter and fallback focus are checked. It is a UI replay,
