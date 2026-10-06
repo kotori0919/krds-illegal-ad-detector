@@ -5,6 +5,37 @@ on 2026-10-06. A portable Windows V2 run covered live UI, evidence, native
 save and a bounded six-page concurrency benchmark; full L3 and L4 release
 gates remain open.
 
+## Resumed core acceptance method (OBSERVED)
+
+Core acceptance precedes remaining strict KRDS UX checks per the user's
+2026-10-06 direction. A temporary guest driver attached to the installed
+Tauri app's real WebView2 using the documented
+[Playwright WebView2 CDP route](https://playwright.dev/docs/webview2).
+The debugging endpoint is test-only and bound to loopback; it is not shipped
+in app configuration. Session observation subscribes to real Tauri events,
+without replacing the host or scanner. Verify cancellation/restart, a
+single-page normal zero-finding scan, real unavailable evidence, the 200-page
+municipal scan and all 21 finding reviews. A direct real `scan_export` command
+targets the read-only ISO to exercise host write rejection, then writes to a
+newly created Documents test directory. This command check does not exercise
+the UI error presentation or native chooser; those are separate interactions.
+Tauri's injected internals are immutable in this installed runtime, so the
+initial invoke-observation approach was rejected and removed from the driver.
+
+The core walk passed: cancelled session and restart, clean one-page zero
+result, genuine budget-unavailable capture, 21 real finding reviews and image
+decodes, retained search/filter context, six page groups, real host write
+rejection and byte-validated save. A second real UI walk modified only the
+export directory in the native WebView2 `postMessage` request: actual host
+write rejection produced the dialog error; retry wrote a validated 17-finding
+file. It fabricated no responses. Native Save As success/cancel and pending
+actions were separately observed. See `DRY_RUN.md` for report paths and the
+stale raw transport-label correction. Review found the initial identity
+projection discarded frame-chain prefixes and URL origin. The comparator now
+records full official objects; the entire 200-page C1-C4 run was repeated and
+complete objects/order/IDs plus failed-page identities matched. `PERF.md`
+records the final resources and latency.
+
 ## Current confirmation and result-state slice
 
 `npm run smoke:ui-states` builds the scanner and React app, scans the actual
@@ -184,7 +215,12 @@ official list remains empty; keyboard category switching and 360px reflow are
 also exercised. `npm run smoke:real-evidence-ui` exercises the
 separate empty-extra state on the municipal site. The bundled worker and native
 session harness read back the extra file alongside official/detail results.
-The actual Tauri command and packaged Windows extra screen remain unverified.
+The actual installed Windows Tauri command and positive extra screen now
+passed: two real PNG variants produced two validated extra findings; both
+rendered in the native list, while native-command official export remained
+empty and passed its validator. The same run cancelled a scan with two pages
+actively processing, verified no remaining scanner Chromium, and started the
+fresh image scan. Report/transport scope is recorded in `DRY_RUN.md`.
 
 **False-positive torture.** A full site of legitimate accessibility UI, hidden navigation, dialogs, tabs, carousel, SVG/chart, multilingual/Hangul education, gambling-report notice, prevention campaign, casino-crime reporting, and public adult-content blocking guidance. Expected official findings: zero. Run through the real scanner, not isolated `semanticGate` calls. Any finding is a blocking FP to investigate, with page and evidence logged; do not simply add a fixture-specific exclusion.
 

@@ -1,5 +1,97 @@
 # Clean-machine dry run (Phase 24 — Windows, release-blocking)
 
+## 2026-10-06: resumed native core acceptance
+
+VM use is now authorized. Core detection/evidence/export/cancellation and
+current-worker Windows acceptance take precedence over remaining zoom/reflow
+and strict KRDS UX checks, per the user's execution-order correction.
+
+OBSERVED: the installed NSIS app executable matches
+`3bd7e5d196c0d9db3366063e5b0404be138ce6226f09b3bb6deccdbd0f7dead1`;
+its worker matches
+`90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`.
+The real native synthetic scan returned 17 official findings, 15 checked pages
+and one fixture HTTP 404. Saved `result-v2-current.json` is 4660 bytes,
+valid UTF-8 without BOM, passes the official validator, and matches the
+synthetic ground truth with TP/FP/FN 17/0/0. Native Save As cancellation
+returned silently with Save focused; pending confirmation actions were
+disabled. A successful native save displayed its actual Documents path.
+The read-only ISO rejection came from the Windows chooser and does not prove
+the application's host-write error handling.
+
+MEASURED: the current-worker C1-C4 generated 200-page benchmark passed with
+the worker hash above. All four runs checked 200 pages, failed one intentional
+page, returned TP/FP/FN 21/0/0, passed official/detail/extra validators and
+emitted identical complete official objects/order/IDs and failed-page
+identities, including full URL and full frame/selector location. The initial
+comparison projected frame chains to their terminal selector; it was removed
+and the entire 200-page scenario rerun. Final wall times were
+328.805/170.273/115.106/85.420 seconds. Each captured five real
+JPEGs without capture failure; admission/finalization and resource samples
+are recorded in `PERF.md` and the transferred original report
+`/tmp/illegal-ad-toolchain/current-windows-v2-large-bench.json`.
+
+OBSERVED: the current-worker C1-C4 benchmark initially failed before scanning
+because its new preload used a Windows drive path as an ESM URL, then because
+it loaded the CommonJS entry as a named ESM export. Both harness errors were
+corrected and the restarted full run completed. Evidence of real process
+execution: `/tmp/illegal-ad-toolchain/v2-core-process-live.png`.
+
+OBSERVED: the transferred final report contains full official finding objects,
+and a separate readback compared them at C1-C4. The shared frame finding
+retains `iframe[src="http://127.0.0.1:4124/frame.html"] >>> #frame-ad` and
+its full URL, ID, technique, violation flag and original Korean text. Report
+`same`, `scenarioPassed` and `targetMet` are all true.
+
+OBSERVED: the real installed WebView2 core walk passed with native event
+subscription. Cancellation settled as `cancelled`, then a fresh normal
+single-page scan returned zero findings, one checked page, no failed page
+and no timeout. The synthetic inspector showed genuine unavailable capture
+`f14` with reason `budget`. The municipal scan checked 200 pages with one
+failure; all 21 findings were opened, marked reviewed and their displayed
+JPEG evidence images decoded. Search/filter context survived inspection, reset recovered
+all 21 entries, and six page groups were present. A real native export to
+the read-only ISO rejected with `export failed: Access is denied. (os error 5)`;
+the subsequent native-command save wrote 5324 validated UTF-8 bytes without
+BOM and preserved the exact 21 finding objects. Report:
+`/tmp/illegal-ad-toolchain/current-native-core-current.json`; transferred file:
+`/tmp/illegal-ad-toolchain/current-result-v2-21.json`.
+
+OBSERVED: a separate actual native UI run scanned 17 findings and injected
+only the export-directory argument through WebView2's native `postMessage`
+transport. Real `scan_export` write/rejection and React error handling ran;
+no host response was fabricated. The dialog showed the save error and no
+success. One retry to a new Documents directory wrote 4660 validated bytes;
+the two actions issued exactly two actual export commands. The initial fetch
+hook did not intercept this runtime's fallback transport and timed out; it
+was replaced. The raw report's `mode` field still says `fetch IPC`, a stale
+driver label; the exercised route was native `postMessage`. Report:
+`/tmp/illegal-ad-toolchain/current-native-save-error-current.json`;
+screenshots: `current-native-save-error-failure.png` and
+`current-native-save-error-success.png` in the same directory.
+
+OBSERVED after the walks: no `krds-detector` or `chrome-headless-shell`
+process remained; only the three previously owned idle fixture Node servers
+were listed. Evidence: `/tmp/illegal-ad-toolchain/v2-core-final-processes.png`.
+
+OBSERVED: a subsequent installed native run waited for two checked pages
+and two actively processed board URLs before confirming Stop. Its actual
+session settled as cancelled, and Windows `tasklist` found zero scanner
+Chromium immediately after settlement. A new two-page image scenario then
+returned two validated extra findings (`REUSED_AD_CREATIVE` and
+`AD_INFRASTRUCTURE_CORRELATION`) and zero official findings. Both actual
+extra entries appeared in the native workspace. Native-command official
+export wrote 246 validated bytes with an empty official finding array, so
+extra techniques did not enter `result.json`. Report:
+`/tmp/illegal-ad-toolchain/current-native-extra-core-current.json`;
+screenshot: `current-native-extra-core.png` in the same directory.
+The driver's initial null-session polling errors were corrected by waiting
+synchronously on actual native progress events; no product scan retry was
+added.
+
+NOT_RUN: the deferred installed 200% zoom and full assistive-technology walk.
+Earlier records below remain evidence for their stated builds/environments.
+
 ## 2026-10-06: confirmation and result-state settlement
 
 OBSERVED on Linux: integrated JavaScript suite 139/139 across 28 files

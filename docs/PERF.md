@@ -10,6 +10,64 @@ cover six pages and a generated 200-page scenario; the latter met the desired
 target. Full native product/performance acceptance remains open. The earlier "parallel only if dry run demands it" stance is
 superseded.
 
+## Current-build Windows acceptance (MEASURED 2026-10-06)
+
+User-directed execution priority: close core scanner and native product
+acceptance first. Defer window sizing, zoom and strict KRDS UX verification
+until detection, evidence, export, cancellation and current-worker Windows
+C1-C4 semantics/performance checks are settled. Those UX gates remain part
+of V2 acceptance; they are not removed by this ordering change.
+
+The real current bundled worker ran the generated municipal 200-page scenario
+on `clean11`: Windows 10.0.26100 as reported by Node, Node v22.19.0,
+4 logical CPUs, 8 GiB RAM, no required GPU, 1500s budget, 1500ms settle.
+Worker SHA-256:
+`90aed157e13c8a3d32cba551a271edb47915f3afdd632ef80ec53768a0889013`.
+
+| Workers | Wall s | Pages/s | Peak above idle MiB | Peak guest used MiB | Mean CPU % | First page s | Finalization tail s | JPEG calls / failed | JPEG sum / max ms |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| 1 | 328.805 | 0.608 | 362.5 | 3238.8 | 39.5 | 5.505 | 0.026 | 5 / 0 | 131.0 / 40.9 |
+| 2 | 170.273 | 1.175 | 470.1 | 3034.8 | 45.4 | 1.247 | 0.028 | 5 / 0 | 6487.8 / 3211.3 |
+| 3 | 115.106 | 1.738 | 578.6 | 3080.8 | 48.9 | 1.233 | 0.023 | 5 / 0 | 9559.7 / 3173.2 |
+| 4 | 85.420 | 2.341 | 629.9 | 3065.8 | 51.4 | 1.242 | 0.026 | 5 / 0 | 139.3 / 44.4 |
+
+All runs checked 200 pages with one intentional HTTP failure, TP/FP/FN
+21/0/0, no timeout, and passed official/detail/extra validators. Full emitted
+official finding objects were equal at C1-C4: full URL, complete serialized
+frame/selector location, ID, violation flag, technique and evidence text,
+including order. Failed-page identities also matched. `same`, `scenarioPassed`
+and `targetMet` are all true. Review found the initial comparator discarded
+URL origin and frame-chain prefixes; it was replaced by complete official
+objects, and the full 200-page benchmark was rerun to produce these rows.
+The initial projected report is preserved separately as
+`/tmp/illegal-ad-toolchain/windows-v2-initial-projected-bench.json`.
+The default remains two workers.
+
+The benchmark-only preload timed real selective JPEG calls without changing
+their arguments or result. First-page and finalization values timestamp real
+progress arrival; first-page latency includes process/browser admission,
+not application first paint. JPEG sums can overlap across workers and are
+not wall-time overhead; the observed multi-second C2/C3 capture latency
+does not change the official set. These are process-cold single runs in
+C1-C4 order with normal OS caches, not cache-flushed or statistically
+controlled speed estimates. No parallel build or app scan ran during them.
+Working-set/CPU sampling uses the method documented below; guest used memory
+includes OS and pre-existing idle test servers. Original report:
+`/tmp/illegal-ad-toolchain/current-windows-v2-large-bench.json`.
+Screenshot: `/tmp/illegal-ad-toolchain/v2-full-set-final-poll.png`.
+This generated local scenario does not establish live public-site throughput.
+
+MEASURED installed native process-cold launch: 0.901 s from spawning the real
+app to observing its URL control through WebView2 CDP; renderer first paint
+and first contentful paint were 136 ms from navigation. This is a single
+instrumented launch with normal OS caches and endpoint polling, not an OS
+cold boot or a human-observed paint stopwatch. Native-command export and
+validated readback took 0.285 s for 5324 bytes/21 findings. After the native
+walk, actual process inspection found zero app and scanner Chromium processes
+(three pre-existing fixture servers remained). Evidence:
+`/tmp/illegal-ad-toolchain/current-native-core-current.json` and
+`v2-core-final-processes.png` in the same directory.
+
 ## Product V2 Windows 4-vCPU/8-GB realistic concurrency (MEASURED 2026-10-06)
 
 ### Max-page generated municipal scenario
@@ -251,7 +309,7 @@ Windows or max-limit acceptance.
   chromium, fixture LISTEN.
 - [x] Bounded six-page Windows concurrency 1–4 wall/working-set/CPU run above.
 - [x] Generated 200-page Windows worker wall and total guest memory measured above.
-- [ ] Record native cold start, selective capture/finalization overhead and installed-package process count.
-- [ ] Confirm no orphan Chromium after close/cancel (Job Objects).
+- [x] Record instrumented native process-cold readiness/paint, selective capture/finalization durations and installed-package process count (current-build rows above; normal OS caches).
+- [x] Confirm no orphan scanner Chromium after the current native cancellation/restart/close walk (process snapshot above).
 - [x] GNU LLVM NSIS package generated and installed: 119407387 bytes (113.88 MiB).
-- [ ] Measure cold-start to first paint; observed launch alone is not a latency measurement.
+- [x] Measure instrumented native process-cold readiness and renderer first paint; OS-cold boot remains outside this single-run measurement.

@@ -4,8 +4,9 @@ import { spawn, execFile } from "node:child_process";
 import { readFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir, homedir, cpus, totalmem, platform, release } from "node:os";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
+import { createHash } from "node:crypto";
 import { promisify } from "node:util";
 import { validateExtraResult, validateOfficialResultText } from "../packages/contracts/dist/result.js";
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
@@ -72,6 +73,10 @@ async function runOne(concurrency, origin, baselineMiB) {
   let peakMiB = baselineMiB;
   let sampling = false;
   let stderr = "";
+  let progressText = "";
+  let firstPageStartedWallSec = null;
+  let finalizingWallSec = null;
+  const captures = [];
   const cpuSamples = [];
   const memorySamples = [];
   let cpuText = "";
@@ -102,7 +107,7 @@ async function runOne(concurrency, origin, baselineMiB) {
   const start = performance.now();
   try {
     await sample();
-    const child = spawn(process.execPath, [worker,
+    const child = spawn(process.execPath, ["--import", pathToFileURL(join(root, "benchmarks", "capture-probe.mjs")).href, worker,
       "--session", `windows-v2-c${concurrency}`,
       "--entry-url", `${origin}/`,
       "--topic", "municipal-style-fixture",
@@ -112,7 +117,20 @@ async function runOne(concurrency, origin, baselineMiB) {
     ], { env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: browserPath }, stdio: ["ignore", "pipe", "pipe"] });
     child.stdout.resume();
     child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+      progressText += chunk;
+      const lines = progressText.split(/\r?\n/);
+      progressText = lines.pop() ?? "";
+      for (const line of lines) {
+        if (line.startsWith("KRDSCAPTURE ")) captures.push(JSON.parse(line.slice("KRDSCAPTURE ".length)));
+        if (!line.startsWith("KRDSPROGRESS ")) continue;
+        const event = JSON.parse(line.slice("KRDSPROGRESS ".length));
+        const elapsed = Number(((performance.now() - start) / 1000).toFixed(3));
+        if (event.kind === "page-started" && firstPageStartedWallSec === null) firstPageStartedWallSec = elapsed;
+        if (event.progress.stage === "finalizing" && finalizingWallSec === null) finalizingWallSec = elapsed;
+      }
+    });
     const code = await new Promise((done, fail) => {
       child.once("error", fail);
       child.once("exit", done);
@@ -135,6 +153,11 @@ async function runOne(concurrency, origin, baselineMiB) {
     const fn = [...expected].filter((key) => !actual.has(key)).length;
     return {
       concurrency, wallSec,
+      firstPageStartedWallSec,
+      finalizationTailSec: finalizingWallSec === null ? null : Number((wallSec - finalizingWallSec).toFixed(3)),
+      capture: { calls: captures.length, failed: captures.filter((capture) => !capture.ok).length,
+        sumMs: Number(captures.reduce((sum, capture) => sum + capture.durationMs, 0).toFixed(1)),
+        maxMs: captures.length ? Number(Math.max(...captures.map((capture) => capture.durationMs)).toFixed(1)) : 0 },
       pagesPerSec: Number((detail.coverage.checkedPages / wallSec).toFixed(3)),
       baselineMiB, peakMiB: Number(peakMiB.toFixed(1)),
       peakAboveBaselineMiB: Number((peakMiB - baselineMiB).toFixed(1)),
@@ -147,7 +170,7 @@ async function runOne(concurrency, origin, baselineMiB) {
       checkedPages: detail.coverage.checkedPages,
       failedPages: detail.coverage.failedPages.length,
       tp, fp, fn, validator,
-      findingSet: official.findings.map((finding) => [finding.id, findingKey(finding), finding.evidence_text]),
+      findingSet: official.findings,
       failedPageSet: detail.coverage.failedPages.map((page) => [page.url, page.status, page.reason]).sort(),
     };
   } finally {
@@ -174,8 +197,10 @@ try {
     && JSON.stringify(item.failedPageSet) === JSON.stringify(results[0].failedPageSet));
   const scenarioPassed = same && results.every((item) => item.checkedPages === truth.expectedCheckedPages
     && item.failedPages === truth.expectedFailedPages && !item.timedOut
+    && item.capture.calls > 0
     && item.tp === expected.size && item.fp === 0 && item.fn === 0 && Object.values(item.validator).every(Boolean));
   const report = { scenario: large ? "municipal-generated-200" : "municipal-six-page", budgetSec,
+    workerSha256: createHash("sha256").update(await readFile(worker)).digest("hex"),
     targetMet: results.every((item) => item.wallSec <= 1200),
     machine: { os: platform(), release: release(), node: process.version,
     logicalCpus: cpus().length, totalMemoryGiB: Number((totalmem() / 1024 ** 3).toFixed(1)) },

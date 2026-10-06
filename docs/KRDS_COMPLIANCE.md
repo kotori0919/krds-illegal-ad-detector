@@ -4,6 +4,26 @@ Status: **partial implementation, release gate open** (2026-10-06). The previous
 five-stage audit is available in Git history; its tests and line references do
 not describe this UI.
 
+### Resumed native core evidence (2026-10-06)
+
+VM use is authorized. Per the user's ordering, core acceptance precedes the
+remaining strict KRDS layout/zoom/assistive-technology checks. The installed
+app passed actual cancellation/restart, a clean one-page zero result,
+genuine unavailable evidence, all 21 municipal finding reviews and image
+decodes, retained search/filter context and six page groups. Native Save As
+success/cancellation and disabled pending actions were observed. A real host
+write failure reached the actual dialog error; retry saved validated bytes.
+The latter used only an export-directory fault injected through native
+WebView2 postMessage and did not fabricate a response. Reports and exact
+installed app/worker identity are in `DRY_RUN.md`.
+
+Complete official-object equality at C1-C4 has also passed. A subsequent
+native run cancelled two active page workers, verified zero remaining
+scanner Chromium, then displayed both actual image-based extra findings and
+saved an empty validated official file. Strict KRDS/assistive-technology
+gates remain separate; these core observations do not declare the overall
+release gate complete.
+
 ### Current confirmation and result-state evidence (2026-10-06)
 
 OBSERVED: `smoke:ui-states` used actual scanner output (17 official findings
@@ -49,7 +69,8 @@ OBSERVED: headed Linux Chromium at actual 200% zoom (DPR 2, 360px viewport)
 showed no document or nested overflow in setup, results, extra analysis,
 inspector and save dialog. Inspector/dialog focus and 3px outline/restoration
 passed after the layout token migration. Windows zoom and assistive technology
-remain NOT_RUN for this change while VM input ownership is unresolved.
+remain NOT_RUN for this change; VM use is now authorized, and the user
+explicitly deferred these strict UX checks until core acceptance is settled.
 
 ## Style track and authority
 
