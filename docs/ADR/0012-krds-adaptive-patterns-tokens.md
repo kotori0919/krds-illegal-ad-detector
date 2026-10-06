@@ -24,8 +24,18 @@ Native Chromium 200% zoom exposed a horizontally scrolling six-column result
 table that visually hid most finding content while leaving the outer document
 width within the viewport. The result collection now uses a single semantic
 list of cards for both narrow and wide layouts. This maps to KRDS 목록 탐색 and
-keeps the page, selector, technique, raw evidence, review state and evidence
-action together without horizontal navigation. The export JSON preview wraps
-long lines. A headed Chromium smoke checks the entry, results, inspector and
+keeps the page, technique, raw evidence, review state and evidence
+action together without horizontal navigation. Selectors remain under the
+inspector's technical disclosure. A headed Chromium smoke checks entry, results, inspector and
 export dialog at native 200% zoom, including nested overflow and focus return.
 Windows packaging and assistive-technology verification remain release gates.
+
+## Amendment 2026-10-06: confirmation and factual detail
+
+The user's operator-copy correction removes repeated purpose explanations,
+technical validation-success cards and raw JSON preview from export. This
+maps to KRDS 확인: show the count, relevant partial-coverage notice, specific
+actions, saved path or actionable error. Validation remains an internal gate.
+KRDS 상세 정보 확인 uses stored matched terms, destination, normalized text and
+measured geometry rather than repeating generic technique definitions. This
+decision does not remove unavailable-evidence reasons or recovery actions.

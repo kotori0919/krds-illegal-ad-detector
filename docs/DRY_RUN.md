@@ -64,6 +64,21 @@ app run, not an NSIS installation; screen-reader, native zoom, error injection
 and cancellation/restart acceptance remain open. The worker predates the later
 live completion/count correction, which is separately regression-tested.
 
+The same native app subsequently confirmed cancellation during the 200-page
+scan: Escape returned focus to the stop trigger; confirmation returned to the
+URL field after settlement. A new six-page scan then finished with the expected
+five findings and one failed page. Native search `post` plus the JAMO filter
+showed one result, stayed intact during inspection, and returned focus to its
+evidence action. Captures `native-v2-cancel-confirm.png`,
+`native-v2-cancel-return.png`, `native-v2-cancel-settled.png`,
+`native-v2-restart-result-fixed.png`, `native-v2-filter-inspect-open.png` and
+`native-v2-filter-return.png` record these transitions. After app close,
+`native-v2-current.png` again showed only fixture Node PIDs 7684 and 8756,
+with no app or scanner Chromium. The intermediate cancelling-disabled state
+was too brief to capture; no timing claim is made for that state.
+The native no-match view showed 0/5, a reset action, and restored 5/5 with the
+query cleared and filter reset (`native-v2-no-match.png`, `native-v2-reset.png`).
+
 ## A. Release unpack (no dev tooling)
 
 Status 2026-10-02 (Windows 11 VM, gnu-lane exe — NSIS PENDING):

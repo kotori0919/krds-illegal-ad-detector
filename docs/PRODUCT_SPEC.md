@@ -1,6 +1,6 @@
 # Product spec V2 — operator workflow
 
-Status: design freeze, 2026-10-05. Implementation status is tracked in `ARCHITECTURE.md` and PR #2; this document is the target behavior.
+Status: target behavior, revised 2026-10-06 for concise operator copy. Implementation and remaining acceptance evidence are tracked in `ARCHITECTURE.md`, `KRDS_COMPLIANCE.md` and `DRY_RUN.md`.
 
 ## User, job, success
 
@@ -19,7 +19,7 @@ Product V2 acceptance has **two inseparable tracks**. The operator track include
 | Review findings | Official count, affected-page count, checked-page count, duration, failures, and extra count. Filter/search and finding/page views share one result set. | Operator can inspect 20 findings in sequence without losing filter, selected row, or scroll context. |
 | Judge evidence | Type, raw content, page, plain-language cause, actual visual evidence when available, text transformation, and collapsed technical details. | Each inspector states what was observed and why; absent assets say why they are absent. |
 | Assess coverage | Successes and failures are separate, including page address and reason. A few failures do not erase successful findings. | Partial completion is explicit in summary and save dialog; failed pages can be opened as a list. |
-| Save | Results workspace opens a short validation dialog; official file uses existing serializer and native save dialog. | Six checks are visible as pass/fail text; save is disabled on invalid result; cancel leaves results intact. |
+| Save | Results workspace opens a concise confirmation with official count and relevant coverage failure; official file uses the validated serializer and native save dialog. | Internal validation blocks an invalid result with one actionable error; native cancellation leaves results intact; success names the saved path. |
 | Repeat | New scan action returns to URL input. | Previous filters do not contaminate the next session. |
 | Finish within bounds | Shared deadline and adaptive bounded pool; optional evidence yields before official detection. | On 4-vCPU/8-GB Windows without GPU, default concurrency starts at 2; wall time, memory, CPU and semantic equivalence are recorded at 1–4 workers. |
 
@@ -47,4 +47,4 @@ The user-facing normal budget is 1500 s (about 25 minutes); internal hard stop 1
 
 External pages and destinations are untrusted. Do not auto-open advertisement links. Page URL opening must require an explicit operator action and use safe `http(s)` navigation; copy is safer default. Visual assets come from the scan and are loaded through session-scoped host access, not arbitrary file paths supplied by a page. Keep the cheap-first pipeline: no screenshots for every element, OCR for every image, VLM for every candidate, or graph work in the crawl hot path.
 
-Current implementation gaps are not accepted behavior: five-step navigation, `OfficialFinding`-only evidence, raw selectors in primary list, no persisted coverage/failure list, and no visual capture. Phase B–G migration and acceptance are specified in `TEST_STRATEGY_V2.md`.
+The three-stage implementation now provides recorded details, selective actual JPEGs, collapsed selectors and persisted coverage. Remaining acceptance gates are recorded in `TEST_STRATEGY_V2.md`; these implemented slices alone do not establish full V2 release readiness.

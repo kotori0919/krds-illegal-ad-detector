@@ -118,11 +118,11 @@ inspector heading and the restored export trigger.
 | Initial, loading | URL and scope visible; result/detail loading named and settled. | React tests include missing/rejected export result so the dialog exits loading with a recovery action; browser setup and result path observed. |
 | Running | Real counts, elapsed time, page and meaningful live status. | React tests and Rust child-process pump verify retained counters; actual Windows progress observed. Live screen-reader cadence remains open. |
 | Partial, success | Valid findings retained; checked/failed pages shown; export warns of omitted coverage. | Actual Windows result/save paths observed both the six-page/five-finding and 200-page/21-finding scenarios, each with one expected failed page. |
-| Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React and browser demo checks. |
+| Empty, no filter match | Distinguish zero findings from a filter miss; reset action. | React/browser checks plus native Windows no-match count 0/5 and reset to 5/5. Zero-finding native scan remains open. |
 | Separate extra analysis | Keep the official list/count unchanged; show a Korean summary, item count, loading, empty, unavailable, and technical disclosure states. | Real image-response scan → Chromium IPC replay observed two extra items with zero official findings; keyboard category switch and 360px reflow passed. Headed Chromium at native 200% zoom showed no overflow in the empty-extra view. Packaged host, populated-extra native zoom, and assistive-technology review open. |
 | Error, unavailable evidence | Name the failure and next action; no fabricated image. | React start/cancel/save rejection paths show Korean recovery actions without raw host errors; native failure injection open. |
 | Disabled | Adjacent explanation and predictable focus. | Export disabled until validation; native controls still need audit. |
-| Cancellation settlement | Confirm before stopping, then await host terminal state. | React test; packaged host open. |
+| Cancellation settlement | Confirm before stopping, then await host terminal state. | React test and actual Windows cancellation/escape/restart observed. The transient disabled state was not captured natively. |
 | Confirmation, save success, save failure | Modal focus, validation, path/error, return focus. | React and browser checks; Windows native save and file-byte validation observed on the five-finding scenario. Save failure injection and full release walk remain open. |
 
 ## Release gate and evidence
@@ -208,4 +208,5 @@ focus, cancelled native Save As without a false message, and saved a validated
 captures are in `DRY_RUN.md`. The full release walk remains open.
 
 **Open:** assistive technology, remaining local layout limits, native zoom,
-error injection, cancellation/restart and the full Windows release walk.
+error injection and the full Windows release walk. Actual native cancellation,
+restart and retained search/filter inspector focus are recorded in `DRY_RUN.md`.
