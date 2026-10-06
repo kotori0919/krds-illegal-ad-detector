@@ -50,6 +50,10 @@ finding from a completed page remains in valid official and detail output.
 The same test checks that an all-404 scan and a scan whose deadline admits no
 pages fail instead of exporting an empty success result; a valid zero-finding
 site with successfully checked pages still succeeds.
+The scanner deadline test additionally reproduced a browser launch attempt
+after page admission had closed, then verified that the crawler returns a
+timed-out empty summary without starting Chromium. Browser launch now receives
+the shared deadline's remaining operation budget as its timeout.
 It proves that settlement path for a short local fixture, not the long-running
 Windows watchdog or app cancellation behavior.
 `npm run smoke:native-session` compiles the actual `SessionRegistry` source in

@@ -21,3 +21,11 @@ Status: initial implementation and Linux L1/L2 benchmark observed 2026-10-06; Co
 - A page failure does not discard successful pages. Deadline, cancellation, and host process supervision coordinate so neither worker nor Chromium remains after terminal state. A host watchdog enforces the 1650 s internal guard if the worker stalls; 1800 s is never approached as a normal operating target.
 - Benchmark the same realistic L2 scenario at concurrency 1, 2, 3, 4. Record wall time, pages/sec, peak memory, CPU where available, checked/failed pages, TP/FP/FN, official finding set, and output validator. Repeat the delayed-injection case to protect the 1500 ms settle evidence; no speedup is accepted if semantics change.
 - The desired acceptance target is 1200 s, configured normal budget 1500 s, internal hard stop 1650 s, official ceiling 1800 s. The internal guard is engineering detail, not ordinary operator copy. `docs/SCAN_STATE_MACHINE.md` owns terminal behavior and `docs/TEST_STRATEGY_V2.md` owns proof.
+
+## Amendment 2026-10-06: browser admission
+
+Browser startup consumes the same scan budget. When the remaining budget cannot
+admit a page and preserve finalization time, the crawler returns a timed-out
+empty summary without launching Chromium. An admitted launch uses the remaining
+operation budget as its Playwright launch timeout. The host watchdog remains the
+process-level backstop for stalled browser or worker cleanup.

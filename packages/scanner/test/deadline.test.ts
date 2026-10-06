@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ScanDeadline, pageConcurrency } from "../src/deadline.js";
+import { crawlSite } from "../src/crawl.js";
 
 describe("shared scan deadline", () => {
   it("caps the internal budget and stops admitting work before finalization reserve", () => {
@@ -24,5 +25,15 @@ describe("shared scan deadline", () => {
 
   it("starts conservatively on four CPUs and never exceeds four workers", () => {
     expect([1, 4, 5, 8, 9, 64].map(pageConcurrency)).toEqual([2, 2, 3, 3, 4, 4]);
+  });
+
+  it("settles without launching a browser when the shared deadline cannot admit a page", async () => {
+    const summary = await crawlSite({
+      entryUrl: "http://127.0.0.1:9/",
+      deadline: new ScanDeadline(1),
+      executablePath: "/no-browser-should-start",
+    });
+    expect(summary.pages).toEqual([]);
+    expect(summary.timedOut).toBe(true);
   });
 });

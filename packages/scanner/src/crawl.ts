@@ -178,8 +178,17 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   let browser: Browser | undefined;
   let context: BrowserContext | undefined;
   let timedOut = false;
+  const launchBudgetMs = deadline.operationTimeoutMs(30_000);
+  if (!deadline.canStartPage() || launchBudgetMs < 1) {
+    return { entryUrl: options.entryUrl, pages, externals, elapsedMs: performance.now() - t0, timedOut: true };
+  }
   try {
-    browser = await chromium.launch({ executablePath: options.executablePath, channel: options.channel, args: ["--no-sandbox"] });
+    browser = await chromium.launch({
+      executablePath: options.executablePath,
+      channel: options.channel,
+      args: ["--no-sandbox"],
+      timeout: launchBudgetMs,
+    });
     context = await browser.newContext({
       acceptDownloads: false,
       bypassCSP: false,
