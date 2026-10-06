@@ -18,6 +18,7 @@
     "build": "npm run build -w apps/web",
     "build:scanner": "npm run build -w packages/contracts && npm run build -w packages/synth-eval && npm run build -w packages/scanner && npm run build -w packages/detection",
     "benchmark:concurrency": "npm run build:scanner && node benchmarks/concurrency.mjs",
+    "smoke:worker": "npm run build:scanner && node benchmarks/worker-l3.mjs",
     "lint": "eslint .",
     "clean": "rm -rf packages/contracts/dist apps/web/dist packages/synth-eval/dist packages/scanner/dist packages/detection/dist packages/evidence/dist"
   },

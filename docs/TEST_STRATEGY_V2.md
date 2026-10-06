@@ -25,6 +25,12 @@ whose 17 IDs joined; 13 entries had JPEG data with the expected magic bytes.
 on different loopback origins. The real scanner requests each nested frame
 document once, emits absolute `>>>` chains for both depths, and drops the inner
 finding when `maxFrameDepth` is 1 without crawling the frame origin as a page.
+`npm run smoke:worker` rebuilds the scanner and starts the real worker as a
+separate Node process against the municipal-style site. It observed five
+ground-truth official findings, five matching detail records with valid JPEG
+bytes, six checked pages, one failed page and a terminal progress event with
+six visited pages. Both official and detail validators passed. Temporary
+output files are removed after verification; the Tauri host is not exercised.
 `packages/scanner/test/worker-pool.test.ts` holds live page callbacks at a
 barrier and observes peak callback overlap of 1, 2, 3 and 4 for those selected
 worker counts, with all nine frontier pages requested once. An override of 5
