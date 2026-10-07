@@ -1,5 +1,11 @@
 # Clean-machine dry run (Phase 24 — Windows, release-blocking)
 
+Current verdict (2026-10-08): [RELEASE_CANDIDATE.md](RELEASE_CANDIDATE.md)
+is the authoritative Gate A/B/C record for `rc-5e44feb-20261008`.
+The dated records below refer to their named earlier candidates. Their PASS,
+OPEN, SDK-gated MSVC and NOT_RUN statements are historical and do not replace
+the current installer verdict. GNU LLVM evidence does not establish MSVC link acceptance.
+
 ## Current coverage correction acceptance (2026-10-06)
 
 Current source counts successful pages separately from failed attempts.

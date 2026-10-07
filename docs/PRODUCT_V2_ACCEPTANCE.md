@@ -1,11 +1,20 @@
 # Product V2 integration and release acceptance
 
-## Current integration (2026-10-07)
+## Current release candidate (2026-10-08)
+
+P1 integration at `5e44feb718b30d635ea08c615a1c15a5feb49672` is accepted.
+[RELEASE_CANDIDATE.md](RELEASE_CANDIDATE.md) contains the one current Gate A/B/C
+verdict for the complete NSIS candidate `rc-5e44feb-20261008`. Records below
+retain their original candidate and scope; historical PASS or OPEN statements
+do not determine this candidate's release verdict. The accepted features,
+bounded OCR coverage, disabled learned VLM and default concurrency are unchanged.
+
+## Integration history (2026-10-07)
 
 The current source replaces the historical package described below. No new
 freeze or whole-product audit is required before connecting features.
 
-**Feature integration incomplete**
+**Historical status at this checkpoint: feature integration incomplete**
 
 - Optional learned VLM inference remains disabled; no accuracy or CPU/package
   value has been demonstrated for the remaining difficult cases.

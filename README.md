@@ -11,7 +11,9 @@ stored additional analysis, and validated export. Offline Korean/English CPU
 OCR analyzes selected advertisement images; cooperative cancellation preserves
 validated completed results. Browser preview is explicitly a replay; Tauri
 uses the real worker and session artifacts. Release acceptance remains scoped
-to the candidate build; see `docs/PRODUCT_V2_ACCEPTANCE.md`.
+to the candidate build; see [`docs/RELEASE_CANDIDATE.md`](./docs/RELEASE_CANDIDATE.md)
+for the current complete NSIS artifact and Gate A/B/C verdict. Earlier component
+acceptance is retained in `docs/PRODUCT_V2_ACCEPTANCE.md`.
 
 - Submission deadline: 2026-10-23 18:00 KST
 - Constitution: [`KODEX.md`](./KODEX.md) (wins over temporary tasks)
@@ -52,6 +54,7 @@ platform adapters — all native capability goes through `HostBridge`.
 
 ## Docs
 
+- Current release candidate: [`docs/RELEASE_CANDIDATE.md`](./docs/RELEASE_CANDIDATE.md) · Installed resources: [`docs/INSTALL_LAYOUT.md`](./docs/INSTALL_LAYOUT.md)
 - Build: [`docs/BUILD_MANUAL.md`](./docs/BUILD_MANUAL.md) · Use: [`docs/USER_MANUAL.md`](./docs/USER_MANUAL.md)
 - Submission plan: [`docs/PLANNING_DOC.md`](./docs/PLANNING_DOC.md) · Dry run: [`docs/DRY_RUN.md`](./docs/DRY_RUN.md)
 - Detection: [`docs/DETECTION.md`](./docs/DETECTION.md) · [`docs/DETECTORS.md`](./docs/DETECTORS.md) · [`docs/ADVERSARIAL.md`](./docs/ADVERSARIAL.md)
