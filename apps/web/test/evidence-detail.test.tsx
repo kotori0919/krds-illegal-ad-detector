@@ -44,7 +44,9 @@ describe("finding evidence presentation", () => {
   it("settles a rejected detail without losing the official original text or review action", async () => {
     renderInspector(finding, async () => { throw new Error("private host failure"); });
     expect(await screen.findByText(finding.evidence_text)).toBeDefined();
-    await screen.findByRole("region", { name: "실제 화면" });
+    await screen.findByRole("alert");
+    expect(screen.getByRole("button", { name: "판단 근거 다시 불러오기" })).toBeDefined();
+    expect(screen.queryByRole("region", { name: "실제 화면" })).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
     expect(screen.queryByText("private host failure")).toBeNull();
     expect((screen.getByRole("button", { name: "검토 완료로 표시" }) as HTMLButtonElement).disabled).toBe(false);

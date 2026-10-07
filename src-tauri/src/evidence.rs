@@ -103,6 +103,35 @@ pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), Strin
         }
     }
     if detail.get("analysisIssues").is_some_and(|value|!strings(value)) { return Err("analysis issues invalid".into()); }
+    if let Some(c) = detail.get("visualAnalysisCoverage") {
+        let number = |key: &str| c[key].as_u64().filter(|value| *value <= 9_007_199_254_740_991);
+        let counts = ["pagesConsidered", "pagesNotConsidered", "candidatesObserved", "imagesAcquired",
+            "imageAnalysisRecords", "ocrImagesAttempted", "ocrImagesCompleted", "ocrImagesUnavailable"];
+        let limit_keys = ["pages", "candidatesPerDocument", "elementsPerDocument", "bytesPerPage", "distinctOcrImages"];
+        let limits = ["page-limit", "candidate-limit", "element-limit", "byte-limit", "ocr-image-limit", "deadline"];
+        let reasons = ["page-limit", "candidate-limit", "element-limit", "byte-limit", "ocr-image-limit", "deadline",
+            "cancelled", "capture-error", "document-unavailable", "image-unavailable", "target-unavailable"];
+        if counts.iter().any(|key| number(key).is_none()) || c.get("candidateTotal") != Some(&Value::Null)
+            || limit_keys.iter().any(|key| c["limits"][*key].as_u64().is_none_or(|value| value == 0 || value > 9_007_199_254_740_991))
+            || c["limitsReached"].as_array().is_none_or(|items| {
+                let mut seen = HashSet::new();
+                items.iter().any(|value| value.as_str().is_none_or(|value| !limits.contains(&value) || !seen.insert(value)))
+            })
+            || c["skips"].as_array().is_none_or(|items| items.iter().any(|skip|
+                skip["reason"].as_str().is_none_or(|value| !reasons.contains(&value))
+                || !matches!(skip["unit"].as_str(), Some("page"|"document"|"candidate"|"image"))
+                || skip["count"].as_u64().is_none_or(|value| value == 0 || value > 9_007_199_254_740_991))) {
+            return Err("visual analysis coverage invalid".into());
+        }
+        if number("pagesConsidered").unwrap() > c["limits"]["pages"].as_u64().unwrap()
+            || number("imagesAcquired") > number("candidatesObserved")
+            || number("imageAnalysisRecords") > number("imagesAcquired")
+            || number("ocrImagesAttempted") > number("imageAnalysisRecords")
+            || number("ocrImagesAttempted").unwrap() > c["limits"]["distinctOcrImages"].as_u64().unwrap()
+            || number("ocrImagesCompleted").unwrap() + number("ocrImagesUnavailable").unwrap() != number("ocrImagesAttempted").unwrap() {
+            return Err("visual analysis coverage counts inconsistent".into());
+        }
+    }
     Ok(())
 }
 
@@ -169,10 +198,13 @@ impl SessionEvidence {
         let graph_available = detail.get("evidenceGraph").is_some();
         let graph = if graph_available { take(&mut detail,"evidenceGraph") } else { json!({"nodes":[],"edges":[]}) };
         let observed = graph["nodes"].as_array().map_or(0, |nodes| nodes.iter().filter(|n|n["kind"]=="Domain").count());
-        let summary = json!({"observedDomainCount":observed,"graphAvailable":graph_available,
+        let mut summary = json!({"observedDomainCount":observed,"graphAvailable":graph_available,
             "analysisIssues":take_array(&mut detail,"analysisIssues"),
             "infrastructure":take_array(&mut detail,"infrastructure"),
             "imageAnalysisCount":images.len(),"creativeImages":creative_images});
+        if detail.get("visualAnalysisCoverage").is_some() {
+            summary["visualAnalysisCoverage"] = take(&mut detail,"visualAnalysisCoverage");
+        }
         Ok(Self {coverage, findings, images, assets, summary, graph})
     }
 
@@ -257,6 +289,25 @@ impl SessionEvidence {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn measured_visual_coverage_survives_selected_reads_and_rejects_invented_totals() {
+        let coverage = json!({"pagesConsidered":8,"pagesNotConsidered":1,"candidatesObserved":7,
+            "candidateTotal":null,"imagesAcquired":7,"imageAnalysisRecords":7,
+            "ocrImagesAttempted":6,"ocrImagesCompleted":5,"ocrImagesUnavailable":1,
+            "limits":{"pages":8,"candidatesPerDocument":8,"elementsPerDocument":10000,"bytesPerPage":250000,"distinctOcrImages":6},
+            "limitsReached":["page-limit","ocr-image-limit"],
+            "skips":[{"reason":"page-limit","unit":"page","count":1},{"reason":"ocr-image-limit","unit":"image","count":1}]});
+        let detail = json!({"findings":[],"creativeImages":[],"coverage":{},"visualAnalysisCoverage":coverage});
+        assert!(validate_extensions(&detail,&[]).is_ok());
+        let index = SessionEvidence::from_json(&detail.to_string()).unwrap();
+        assert_eq!(index.summary()["visualAnalysisCoverage"],coverage);
+        for (key,value) in [("candidateTotal",50),("pagesConsidered",9),("ocrImagesCompleted",7),("ocrImagesAttempted",7),("imagesAcquired",8)] {
+            let mut invalid = detail.clone();
+            invalid["visualAnalysisCoverage"][key] = json!(value);
+            assert!(validate_extensions(&invalid,&[]).is_err(),"accepted {key}");
+        }
+    }
 
     #[test]
     fn selected_detail_contains_only_opaque_assets_and_legacy_data_is_lazy() {

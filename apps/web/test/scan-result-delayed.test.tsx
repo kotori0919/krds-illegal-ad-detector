@@ -51,11 +51,11 @@ describe("ScanResult delayed availability", () => {
     const pending = new Promise<ScanCoverageView | undefined>((resolve) => { complete = resolve; });
     renderResultState(async () => findingResult(), () => pending);
     await screen.findByText(/공식 탐지 1건/);
-    const before = screen.getByRole("status").textContent;
+    const before = screen.getByText("점검 범위를 불러오는 중입니다.").textContent;
     await act(async () => complete({ pageOutcomes: [], coverage: {
       checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: false,
     } }));
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText("점검 범위를 불러오는 중입니다.")).toBeNull();
     expect(screen.getByText("확인한 페이지 6개 · 실패한 페이지 1개", { exact: true })).toBeDefined();
     expect(screen.queryByText(before!)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "공식 탐지", exact: true }));
@@ -66,7 +66,7 @@ describe("ScanResult delayed availability", () => {
     renderResultState(async () => findingResult(), async () => { throw new Error("private coverage error"); });
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).not.toContain("private coverage error");
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText("점검 범위를 불러오는 중입니다.")).toBeNull();
     expect((screen.getByRole("button", { name: "결과 저장" }) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "공식 탐지", exact: true }));
     expect(screen.getByRole("list", { name: "확정된 탐지 목록" }).textContent).toContain(findingResult().findings[0]!.evidence_text);

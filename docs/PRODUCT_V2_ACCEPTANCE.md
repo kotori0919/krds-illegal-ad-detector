@@ -22,6 +22,18 @@ freeze or whole-product audit is required before connecting features.
   CDN, analytics, font and logo resources remain observed-only. Optional
   classifier failure is disclosed and preserves the official result.
 - The unused operator topic has been removed from UI, DTO and worker CLI.
+- Measured visual scope is persisted separately from page-scan coverage:
+  considered/known-unconsidered pages, observed candidates, acquired images,
+  stored analyses, distinct OCR attempts/completions/unavailable results and
+  reasoned skips. Candidate totals remain unknown. Attained limits are reported
+  even when no additional excluded candidate was observed.
+- Summary/detail/image/asset/graph reads expose recovery states and retry only
+  the selected failed read. Scoped response guards preserve the current session
+  and selection. Relations use Korean names/reasons with exact identities in
+  technical disclosure; extracted link targets are not final landing claims.
+- Operator review marks are temporary in-memory reading state, lost on a new
+  scan or app reload. They do not confirm a violation, complete remediation,
+  change official classification or change the exported official JSON.
 - General text owners, independent-child exclusion, inline CSS sources and
   unique round-trip selectors run in the live single-pass scanner.
 - Official and extra metadata use literal TOPIC. PageOutcome, FindingDetail,
@@ -58,8 +70,22 @@ comparative runtime overhead are NOT_RUN. The existing first-eight-page,
 250-KB/page acquisition, six-distinct-image OCR and shared deadline limits
 remain active. OCR fidelity and skipped/unavailable bounded acquisitions are
 still limitations; these fixtures do not establish broad classification accuracy.
-P1 remains a separate product-polish milestone, including readable relationship
-node labels and the remaining ResultsWorkspace/KRDS interaction review.
+OBSERVED for P1: real browser/OCR fixtures distinguish checked pages from visual
+scope, positive/no-evidence images, exact attained limits and known exclusions;
+an OCR failure retains valid official findings. The focused real-scan-output
+IPC replay exercises isolated summary retry, rapid selection, readable bounded
+relations, review/export immutability, focus return and narrow reflow. Its export
+writes canonical worker JSON through an explicitly replayed transport; a
+separate BrowserHost/ExportDialog test checks actual download Blob bytes.
+Normal integration tests retain all assertions; file concurrency is bounded
+to two because each file can launch multiple real browser/OCR processes.
+The oversized-original fixture waits for actual image decode before checking
+the already-declared response size. Final-candidate Windows observations and
+exact artifact hashes are recorded in PR #2, separately from earlier binaries.
+Remaining release checks are final installation/uninstallation, native
+deadline/export and forced process-backstop acceptance. Historical evidence
+keeps its original artifact scope; documentation-only changes do not invalidate
+unchanged component observations. Learned VLM remains disabled.
 
 ## Earlier baseline observations
 

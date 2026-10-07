@@ -1,0 +1,75 @@
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { expect, it, vi } from "vitest";
+import { LocalOcrBackend } from "@krds-detector/evidence";
+import { scanSite } from "../src/scan.js";
+
+it.each([{pages:9,imageCount:7},{pages:8,imageCount:6}])("reports reached capacities separately from known exclusions: %j", async ({pages,imageCount}) => {
+  const banner = await readFile("fixtures/ocr/banner.png");
+  const normal = await readFile("fixtures/realistic/ads/creative.png");
+  // PNG decoders accept trailing bytes; different bounded response bytes must
+  // exercise distinct OCR work without manufacturing new image dependencies.
+  const images = [banner, normal, ...Array.from({length:imageCount-2},(_,index)=>Buffer.concat([normal,Buffer.from(`coverage-${index}`)]))];
+  const server = createServer((request,response)=>{
+    const imageMatch = request.url?.match(/^\/image-(\d+)\.png$/);
+    if (imageMatch) {
+      const image=images[Number(imageMatch[1])]!;
+      response.writeHead(200,{"content-type":"image/png","content-length":image.length});response.end(image);
+    } else {
+      response.setHeader("content-type","text/html; charset=utf-8");
+      response.end(request.url === "/"
+        ? images.map((_,index)=>`<img class="ad" src="/image-${index}.png">`).join("")
+          +Array.from({length:pages-1},(_,index)=>`<a href="/page-${index}">Page ${index}</a>`).join("")
+        : '<img class="ad" src="/image-0.png">');
+    }
+  });
+  await new Promise<void>((done)=>server.listen(0,"127.0.0.1",done));
+  const address=server.address();
+  if (!address || typeof address === "string") throw new Error("fixture address unavailable");
+  try {
+    const output=await scanSite({entryUrl:`http://127.0.0.1:${address.port}/`,
+      crawl:{concurrency:1,settleMs:20,limits:{maxPages:pages,timeoutSec:60}}});
+    expect(output.result.findings).toEqual([]);
+    expect(output.detailBundle.coverage.checkedPages).toBe(pages);
+    const coverage=output.detailBundle.visualAnalysisCoverage!;
+    expect(coverage).toMatchObject({pagesConsidered:8,pagesNotConsidered:pages-8,candidatesObserved:imageCount+7,candidateTotal:null,
+      imagesAcquired:imageCount+7,imageAnalysisRecords:imageCount+7,ocrImagesAttempted:6,ocrImagesCompleted:6,ocrImagesUnavailable:0,
+      limits:{pages:8,candidatesPerDocument:8,elementsPerDocument:10_000,bytesPerPage:250_000,distinctOcrImages:6},
+      limitsReached:["ocr-image-limit","page-limit"],
+      skips:pages===9 ? [{reason:"ocr-image-limit",unit:"image",count:1},{reason:"page-limit",unit:"page",count:1}] : []});
+    const analyses=output.detailBundle.imageAnalysis!;
+    expect(analyses.find((item)=>item.sourceUrl.endsWith("image-0.png"))?.extraFindingId).toBeDefined();
+    expect(analyses.find((item)=>item.sourceUrl.endsWith("image-1.png"))).toMatchObject({ocr:{state:"available"},decision:{passed:false}});
+    if (imageCount === 7) expect(analyses.find((item)=>item.sourceUrl.endsWith("image-6.png"))).toMatchObject({ocr:{state:"unavailable",reason:"budget"}});
+  } finally {
+    server.closeAllConnections();await new Promise<void>((done)=>server.close(()=>done()));
+  }
+},65_000);
+
+it("keeps a failed OCR attempt separate from completed OCR and preserves official output", async () => {
+  const image=await readFile("fixtures/ocr/banner.png");
+  const server=createServer((request,response)=>{
+    if (request.url === "/banner.png") {
+      response.writeHead(200,{"content-type":"image/png","content-length":image.length});response.end(image);
+    } else {
+      response.setHeader("content-type","text/html; charset=utf-8");
+      response.end('<p style="opacity:0">카지노 가입 보너스 지급</p><img class="ad" src="/banner.png">');
+    }
+  });
+  await new Promise<void>((done)=>server.listen(0,"127.0.0.1",done));
+  const address=server.address();
+  if (!address || typeof address === "string") throw new Error("fixture address unavailable");
+  const failure=vi.spyOn(LocalOcrBackend.prototype,"recognize").mockRejectedValue(new Error("offline OCR unavailable"));
+  try {
+    const output=await scanSite({entryUrl:`http://127.0.0.1:${address.port}/`,
+      crawl:{settleMs:20,limits:{maxPages:1,timeoutSec:20}}});
+    expect(output.result.findings.map((finding)=>finding.technique)).toEqual(["TRANSPARENT"]);
+    expect(output.detailBundle.visualAnalysisCoverage).toMatchObject({pagesConsidered:1,candidatesObserved:1,
+      imagesAcquired:1,imageAnalysisRecords:1,ocrImagesAttempted:1,ocrImagesCompleted:0,ocrImagesUnavailable:1,
+      limitsReached:[],skips:[{reason:"image-unavailable",unit:"image",count:1}]});
+    expect(output.detailBundle.imageAnalysis![0]).toMatchObject({ocr:{state:"unavailable",reason:"recognition-error"},decision:{passed:false}});
+    expect(output.extraResult.findings).toEqual([]);
+  } finally {
+    failure.mockRestore();server.closeAllConnections();await new Promise<void>((done)=>server.close(()=>done()));
+  }
+},25_000);

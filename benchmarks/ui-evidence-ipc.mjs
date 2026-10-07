@@ -27,16 +27,20 @@ export function evidenceRead(detail, command, args = {}) {
   }
 }
 
-export async function installResultReplay(page, { result, detail, extra, session }) {
+export async function installResultReplay(page, { result, detail, extra, session, beforeRead, exportReplay }) {
   const reads = [];
-  await page.exposeFunction("resultReplayInvoke", (command, args) => {
+  await page.exposeFunction("resultReplayInvoke", async (command, args) => {
     reads.push({ command, args });
+    await beforeRead?.(command, args);
     switch (command) {
       case "plugin:event|listen": return 1;
       case "plugin:event|unlisten": return;
       case "scan_start": case "scan_get_session": return session;
       case "scan_get_result": return result;
       case "scan_get_extra_result": return extra;
+      case "scan_export":
+        if (!exportReplay) throw new Error("export replay not configured");
+        return exportReplay(args);
       default: return evidenceRead(detail, command, args);
     }
   });

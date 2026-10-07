@@ -66,6 +66,27 @@ it("captures gated IMG, background, SVG and canvas candidates with visible DOM p
   }
 }, 20_000);
 
+it("reports the inspected-element bound without guessing candidates beyond it", async () => {
+  const server=createServer((_request,response)=>{
+    response.setHeader("content-type","text/html; charset=utf-8");
+    response.end('<!doctype html>'+"<div></div>".repeat(10_000)+'<canvas class="ad" width="40" height="40"></canvas>');
+  });
+  await new Promise<void>((done)=>server.listen(0,"127.0.0.1",done));
+  const address=server.address();
+  if (!address || typeof address === "string") throw new Error("fixture address unavailable");
+  let captured: Awaited<ReturnType<typeof collectPageCreatives>> | undefined;
+  try {
+    const deadline=new ScanDeadline(20);
+    await crawlSite({entryUrl:`http://127.0.0.1:${address.port}/`,concurrency:1,settleMs:20,deadline,
+      limits:{maxPages:1,timeoutSec:20},onLivePage:async(page,_snapshot,frames,responses)=>{
+        captured=await collectPageCreatives(page,frames,responses,deadline,250_000);
+      }});
+    expect(captured!.images).toEqual([]);
+    expect(captured!.coverage).toEqual({candidatesObserved:0,limitsReached:["element-limit"],
+      skips:[{reason:"element-limit",unit:"document",count:1}]});
+  } finally {server.closeAllConnections();await new Promise<void>((done)=>server.close(()=>done()));}
+},20_000);
+
 it("does not bypass declared oversized original assets through screenshots", async () => {
   const source = await readFile("fixtures/ocr/banner.png");
   const bytes = Buffer.alloc(250_001); source.copy(bytes);
@@ -86,10 +107,12 @@ it("does not bypass declared oversized original assets through screenshots", asy
     const deadline = new ScanDeadline(20);
     const summary = await crawlSite({ entryUrl: `http://127.0.0.1:${address.port}/`, concurrency: 1, settleMs: 20, deadline,
       limits: { maxPages: 1, timeoutSec: 20 }, onLivePage: async (page, _snapshot, frames, responses) => {
+        await page.locator("img").evaluate((element) => (element as HTMLImageElement).decode());
         captured = await collectPageCreatives(page, frames, responses, deadline, 250_000);
       } });
     expect(summary.pages.map((page) => page.status)).toEqual([200]);
-    expect(captured).toEqual({ images: [], prints: [], bytes: 0 });
+    expect(captured).toMatchObject({ images: [], prints: [], bytes: 0,
+      coverage: { candidatesObserved: 1, limitsReached: ["byte-limit"], skips: [{reason:"byte-limit",unit:"candidate",count:1}] } });
   } finally { await new Promise<void>((resolve) => server.close(() => resolve())); }
 }, 20_000);
 
@@ -117,6 +140,8 @@ it("preserves full frame selectors and stops at candidate, byte and abort bounds
     expect(summary.pages.map((page) => page.status)).toEqual([200]);
     const [captured, unavailable, cancelled] = outputs;
     expect(captured!.images).toHaveLength(8);
+    expect(captured!.coverage.candidatesObserved).toBe(8);
+    expect(captured!.coverage.skips).toContainEqual({reason:"candidate-limit",unit:"document",count:1});
     expect(captured!.images[0]!.candidate.location).toBe(`iframe[src="${url}outer"] >>> iframe[src="${url}inner"] >>> #banner-0`);
     expect(captured!.images[0]!.candidate.frameUrl).toBe(`${url}inner`);
     expect(captured!.images[0]!.sourceUrl).toBe(url);
@@ -124,5 +149,6 @@ it("preserves full frame selectors and stops at candidate, byte and abort bounds
     expect(unavailable!.bytes).toBe(0);
     expect(cancelled!.images).toEqual([]);
     expect(cancelled!.bytes).toBe(0);
+    expect(cancelled!.coverage.skips).toEqual([{reason:"cancelled",unit:"document",count:1}]);
   } finally { await new Promise<void>((resolve) => server.close(() => resolve())); }
 }, 20_000);

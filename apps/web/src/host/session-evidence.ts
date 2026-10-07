@@ -35,6 +35,7 @@ export function indexSessionEvidence(bundle: ScanDetailBundle) {
       : creativeImages.find((image) => image.sourceUrl === analysis.sourceUrl)?.assetId,
   }));
   const summary: EvidenceSummary = {
+    visualAnalysisCoverage: bundle.visualAnalysisCoverage,
     observedDomainCount: bundle.evidenceGraph?.nodes.filter((node) => node.kind === "Domain").length ?? 0,
     infrastructure: bundle.infrastructure ?? [], imageAnalysisCount: analyses.length, creativeImages,
     graphAvailable: bundle.evidenceGraph !== undefined,

@@ -1,7 +1,7 @@
 import type { Frame, Page } from "playwright-core";
 import { createSelectorEngine, type LiveFrame, type LiveImageResponse, type ScanDeadline } from "@krds-detector/scanner";
 import { blockAverageHash, sha256Hex, type CreativeFingerprint } from "@krds-detector/evidence";
-import { normalizeFrameSrc, serializeFramePath, type CreativeImage } from "@krds-detector/contracts";
+import { normalizeFrameSrc, serializeFramePath, type CreativeImage, type VisualAnalysisCoverage, type VisualAnalysisReason, type VisualAnalysisLimit } from "@krds-detector/contracts";
 import { semanticGate } from "./semantic.js";
 
 export interface VisualCandidate {
@@ -26,7 +26,7 @@ interface BrowserCandidate {
 }
 
 /** Trusted browser source; page-controlled values only enter as data. */
-function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { candidates: BrowserCandidate[]; visibleTexts: string[] } {
+function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { candidates: BrowserCandidate[]; visibleTexts: string[]; candidateLimit: boolean; elementLimit: boolean } {
   const hint = /(?:^|[^a-z])(ad|ads|banner)(?:$|[^a-z])|광고|배너/i;
   const candidates: BrowserCandidate[] = [];
   const textOwners = new Map<Element, string[]>();
@@ -42,7 +42,9 @@ function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { ca
   // Marker and link checks precede background/style work. Traversal and
   // retained candidates are bounded even on very large documents.
   const elements = document.querySelectorAll("*");
+  let inspectedElements = 0;
   for (let index = 0; index < Math.min(elements.length, 10_000) && candidates.length < 8; index += 1) {
+    inspectedElements += 1;
     const el = elements[index]!;
     if (el.parentElement?.closest("svg,canvas")) continue;
     const parent = el.parentElement;
@@ -102,7 +104,8 @@ function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { ca
       if (fragments) fragments.push(node.textContent); else textOwners.set(owner, [node.textContent]);
     }
   }
-  return { candidates, visibleTexts: [...textOwners.values()].map((fragments) => fragments.join("")) };
+  return { candidates, visibleTexts: [...textOwners.values()].map((fragments) => fragments.join("")),
+    candidateLimit: candidates.length === 8, elementLimit: inspectedElements === 10_000 };
 }
 
 async function within<T>(promise: Promise<T>, ms: number, signal?: AbortSignal): Promise<T> {
@@ -151,12 +154,27 @@ export async function collectPageCreatives(
   deadline: ScanDeadline,
   maxBytes: number,
   signal?: AbortSignal,
-): Promise<{ prints: CreativeFingerprint[]; images: CapturedVisualImage[]; bytes: number }> {
+): Promise<{ prints: CreativeFingerprint[]; images: CapturedVisualImage[]; bytes: number;
+  coverage: Pick<VisualAnalysisCoverage, "candidatesObserved" | "skips" | "limitsReached"> }> {
   const prints: CreativeFingerprint[] = [];
   const images: CapturedVisualImage[] = [];
   let bytes = 0;
+  const coverage: Pick<VisualAnalysisCoverage, "candidatesObserved" | "skips" | "limitsReached"> = {
+    candidatesObserved: 0, skips: [], limitsReached: [],
+  };
+  const skip = (reason: VisualAnalysisReason, unit: "document" | "candidate", count = 1): void => {
+    if (count <= 0) return;
+    const prior = coverage.skips.find((item) => item.reason === reason && item.unit === unit);
+    if (prior) prior.count += count; else coverage.skips.push({ reason, unit, count });
+    if (["candidate-limit", "element-limit", "byte-limit", "deadline"].includes(reason)
+      && !coverage.limitsReached.includes(reason as VisualAnalysisLimit)) coverage.limitsReached.push(reason as VisualAnalysisLimit);
+  };
+  const unavailableReason = (): VisualAnalysisReason => signal?.aborted ? "cancelled" : !enoughTime() ? "deadline" : "capture-error";
   const enoughTime = (): boolean => !signal?.aborted && deadline.operationTimeoutMs(2000) >= 500;
-  if (!enoughTime() || maxBytes <= 0) return { prints, images, bytes };
+  if (!enoughTime() || maxBytes <= 0) {
+    skip(maxBytes <= 0 ? "byte-limit" : unavailableReason(), "document");
+    return { prints, images, bytes, coverage };
+  }
   const scopes: { frame: Frame; path: { src: string; selector: string }[] }[] = [{ frame: page.mainFrame(), path: [] },
     ...frames.map((entry) => ({ frame: entry.frame,
       path: entry.srcChain.map((src, index) => ({ src: normalizeFrameSrc(src, page.url()), selector: entry.selectorChain[index]! })) }))];
@@ -164,24 +182,32 @@ export async function collectPageCreatives(
   const pageTexts = new Set<string>();
   // Collect visible text once across all inspected documents before admitting
   // assets: reaching the asset cap must not hide an equivalent iframe caption.
-  for (const { frame, path } of scopes) {
-    if (!enoughTime()) break;
+  for (const [index, { frame, path }] of scopes.entries()) {
+    if (!enoughTime()) { skip(unavailableReason(), "document", scopes.length - index); break; }
     try {
-      if (!await frameIsVisible(frame, deadline, signal)) continue;
+      if (!await frameIsVisible(frame, deadline, signal)) { skip(!enoughTime() ? unavailableReason() : "target-unavailable", "document"); continue; }
       const selected = await within(frame.evaluate(`(${selectVisuals.toString()})(${createSelectorEngine.toString()}())`) as Promise<ReturnType<typeof selectVisuals>>,
         Math.max(1, deadline.operationTimeoutMs(500)), signal);
       for (const text of selected.visibleTexts) if (semanticGate(text).passed) pageTexts.add(text);
+      coverage.candidatesObserved += selected.candidates.length;
+      if (selected.candidateLimit) skip("candidate-limit", "document");
+      if (selected.elementLimit) skip("element-limit", "document");
       selectedScopes.push({ frame, path, selected });
     } catch {
+      skip(!enoughTime() ? unavailableReason() : "document-unavailable", "document");
       // Detached or unavailable frames cannot corroborate visible DOM text.
     }
   }
   const visibleDomAdTexts = [...pageTexts];
   for (const { frame, path, selected } of selectedScopes) {
-    if (prints.length >= 8 || bytes >= maxBytes || !enoughTime()) break;
+    if (prints.length >= 8 || bytes >= maxBytes || !enoughTime()) {
+      skip(prints.length >= 8 ? "candidate-limit" : bytes >= maxBytes ? "byte-limit" : unavailableReason(), "candidate", selected.candidates.length); continue;
+    }
     try {
-      for (const selectedCandidate of selected.candidates) {
-        if (prints.length >= 8 || bytes >= maxBytes || !enoughTime()) break;
+      for (const [index, selectedCandidate] of selected.candidates.entries()) {
+        if (prints.length >= 8 || bytes >= maxBytes || !enoughTime()) {
+          skip(prints.length >= 8 ? "candidate-limit" : bytes >= maxBytes ? "byte-limit" : unavailableReason(), "candidate", selected.candidates.length - index); break;
+        }
         const candidate: VisualCandidate = { sourceKind: selectedCandidate.sourceKind, pageUrl: page.url(), frameUrl: frame.url(),
           location: serializeFramePath({ framePath: path, selector: selectedCandidate.selector }),
           resourceUrl: selectedCandidate.resourceUrl, destinationUrl: selectedCandidate.destinationUrl,
@@ -202,28 +228,30 @@ export async function collectPageCreatives(
           if (observed) {
             mediaType = observed.mediaType; sourceUrl = observed.url;
             const declaredBytes = Number(observed.response.headers()["content-length"] ?? 0);
-            if (declaredBytes > 250_000 || declaredBytes > maxBytes - bytes) continue;
+            if (declaredBytes > 250_000 || declaredBytes > maxBytes - bytes) { skip("byte-limit", "candidate"); continue; }
             if (mediaType === "image/svg+xml" && candidate.sourceKind === "img") candidate.sourceKind = "svg";
             if (declaredBytes > 0 && mediaType !== "image/svg+xml") {
               body = await within(observed.response.body(), Math.max(1, deadline.operationTimeoutMs(1000)), signal);
-              if (!body.length || body.length > 250_000 || bytes + body.length > maxBytes) continue;
+              if (!body.length || body.length > 250_000 || bytes + body.length > maxBytes) { skip(body.length ? "byte-limit" : "image-unavailable", "candidate"); continue; }
             }
           }
           // Rasterize only candidates already admitted by marker/link/geometry
           // checks when reusable bounded original bytes are unavailable.
           if (!body) {
-            if (!enoughTime()) continue;
+            if (!enoughTime()) { skip(unavailableReason(), "candidate"); continue; }
             const locator = frame.locator(selectedCandidate.selector);
-            if (await locator.count() !== 1) continue;
+            if (await locator.count() !== 1) { skip("target-unavailable", "candidate"); continue; }
             await locator.scrollIntoViewIfNeeded({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
             const box = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
-            if (!box || box.width < 8 || box.height < 8 || box.width * box.height > 4_000_000) continue;
+            if (!box || box.width < 8 || box.height < 8 || box.width * box.height > 4_000_000) { skip("target-unavailable", "candidate"); continue; }
             body = await locator.screenshot({ type: "png", timeout: Math.max(1, deadline.operationTimeoutMs(1000)), animations: "disabled" });
             mediaType = "image/png";
             const after = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
-            if (!after || after.x !== box.x || after.y !== box.y || after.width !== box.width || after.height !== box.height) continue;
+            if (!after || after.x !== box.x || after.y !== box.y || after.width !== box.width || after.height !== box.height) { skip("target-unavailable", "candidate"); continue; }
           }
-          if (!enoughTime() || !body.length || body.length > 250_000 || bytes + body.length > maxBytes) continue;
+          if (!enoughTime() || !body.length || body.length > 250_000 || bytes + body.length > maxBytes) {
+            skip(!enoughTime() ? unavailableReason() : body.length ? "byte-limit" : "image-unavailable", "candidate"); continue;
+          }
           const decoded = await within(page.evaluate(async ({ imageBytes, type }) => {
             const bitmap = await createImageBitmap(new Blob([new Uint8Array(imageBytes)], { type }));
             try {
@@ -235,8 +263,9 @@ export async function collectPageCreatives(
               return { width: bitmap.width, height: bitmap.height, rgba: Array.from(context.getImageData(0, 0, 8, 8).data) };
             } finally { bitmap.close(); }
           }, { imageBytes: Array.from(body), type: mediaType }), Math.max(1, deadline.operationTimeoutMs(1000)), signal);
-          if (!decoded || signal?.aborted) continue;
+          if (!decoded || signal?.aborted) { skip(signal?.aborted ? "cancelled" : "image-unavailable", "candidate"); continue; }
           bytes += body.length;
+          if (bytes === maxBytes && !coverage.limitsReached.includes("byte-limit")) coverage.limitsReached.push("byte-limit");
           const sha256 = sha256Hex(body);
           prints.push({ sha256, perceptualHash: blockAverageHash(new Uint8Array(decoded.rgba), 8, 8),
             width: decoded.width, height: decoded.height, mediaType, sourceUrl, sourceHost: new URL(sourceUrl).host });
@@ -244,12 +273,14 @@ export async function collectPageCreatives(
             sourceUrl, sha256, mimeType: mediaType, dataUrl: `data:${mediaType};base64,${body.toString("base64")}`,
             width: decoded.width, height: decoded.height, capturedAt: new Date().toISOString(), candidate });
         } catch {
+          skip(unavailableReason(), "candidate");
           // Failed optional visual evidence never changes official findings.
         }
       }
     } catch {
+      skip(unavailableReason(), "document");
       // Detached frames and exhausted capture budgets retain earlier evidence.
     }
   }
-  return { prints, images, bytes };
+  return { prints, images, bytes, coverage };
 }

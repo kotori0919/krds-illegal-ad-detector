@@ -49,6 +49,9 @@ it("calls real OCR for all gated visual sources and preserves an empty official 
       expect(analysis.assetId).toBeDefined();
     }
     expect(analyses.find((image)=>image.sourceUrl.endsWith("/normal.png"))?.extraFindingId).toBeUndefined();
+    expect(output.detailBundle.visualAnalysisCoverage).toMatchObject({pagesConsidered:1,pagesNotConsidered:0,
+      candidatesObserved:6,candidateTotal:null,imagesAcquired:6,imageAnalysisRecords:6,ocrImagesAttempted:2,
+      ocrImagesCompleted:2,ocrImagesUnavailable:0,limitsReached:[],skips:[]});
     expect(output.extraResult.findings.map((finding)=>finding.extra_finding)).toEqual(Array(5).fill("IMAGE_ONLY_ILLEGAL_AD"));
     expect(validateExtraResult(output.extraResult)).toEqual({ok:true,errors:[]});
     expect(validateScanDetailBundle(output.detailBundle,output.result,output.extraResult)).toEqual({ok:true,errors:[]});
@@ -68,6 +71,8 @@ it("preserves valid official findings when extended classification fails", async
     expect(output.extraResult).toEqual({meta:output.result.meta,findings:[]});
     expect(output.detailBundle.analysisIssues).toContain("extra-analysis-unavailable");
     expect(output.detailBundle.coverage.checkedPages).toBe(1);
+    expect(output.detailBundle.visualAnalysisCoverage).toMatchObject({pagesConsidered:1,candidatesObserved:0,
+      candidateTotal:null,ocrImagesAttempted:0,ocrImagesCompleted:0,limitsReached:[],skips:[]});
     expect(validateScanDetailBundle(output.detailBundle,output.result,output.extraResult)).toEqual({ok:true,errors:[]});
   } finally {failure.mockRestore();await close(server);}
 },20_000);

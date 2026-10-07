@@ -3,6 +3,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   esbuild: { jsx: "automatic" },
   test: {
+    // Each integration file can launch several real Chromium/OCR workers.
+    // Bound file concurrency so unrelated tests do not consume capture deadlines.
+    maxWorkers: 2,
     projects: [
       {
         extends: true,

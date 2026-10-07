@@ -56,7 +56,7 @@ beforeAll(async () => {
       <link rel="stylesheet" href="${cdnOrigin}/styles.css">
       <script src="${cdnOrigin}/framework.js"></script><script src="${analyticsOrigin}/analytics.js"></script>
       </head><body><h1>기관 소식</h1><a href="${secondPath}">다음 소식</a>
-      <a href="${documentationOrigin}/docs"><img alt="기관 상징" src="${cdnOrigin}/logo.png"></a>
+      <a href="${documentationOrigin}/docs"><img alt="기관 상징" width="${logoBytes.readUInt32BE(16)}" height="${logoBytes.readUInt32BE(20)}" src="${cdnOrigin}/logo.png"></a>
       ${positive ? `<a id="offer" style="opacity:0" href="${destinationOrigin}/casino/join">카지노 신규가입</a>` : ""}
     </body></html>`);
   });
@@ -87,7 +87,10 @@ describe("live extra infrastructure result", () => {
     const domains = output.detailBundle.evidenceGraph!.nodes.filter((node) => node.kind === "Domain").map((node) => node.label);
     for (const origin of [cdnOrigin, analyticsOrigin, fontOrigin, documentationOrigin]) expect(domains).toContain(new URL(origin).host);
     const logos = output.detailBundle.imageAnalysis!.filter((analysis) => analysis.sourceUrl === `${cdnOrigin}/logo.png`);
-    expect([...new Set(logos.flatMap((analysis) => analysis.pageUrls))].sort())
+    const visualDiagnostics=JSON.stringify({coverage:output.detailBundle.visualAnalysisCoverage,
+      issues:output.detailBundle.analysisIssues,
+      observations:output.detailBundle.imageAnalysis?.map((analysis)=>({sourceUrl:analysis.sourceUrl,pageUrls:analysis.pageUrls,ocr:analysis.ocr.state}))});
+    expect([...new Set(logos.flatMap((analysis) => analysis.pageUrls))].sort(), visualDiagnostics)
       .toEqual([`${siteOrigin}/negative`, `${siteOrigin}/negative-second`]);
     for (const analysis of logos) {
       expect(analysis.candidateEvidence).toEqual(["external-destination"]);

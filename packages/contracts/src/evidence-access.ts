@@ -4,6 +4,26 @@ import type { EvidenceEdge, EvidenceNode } from "./evidence.js";
 
 export type VisualSourceKind = "img" | "background-image" | "svg" | "canvas";
 
+export type VisualAnalysisLimit = "page-limit" | "candidate-limit" | "element-limit" | "byte-limit" | "ocr-image-limit" | "deadline";
+export type VisualAnalysisReason = VisualAnalysisLimit | "cancelled" | "capture-error" | "document-unavailable" | "image-unavailable" | "target-unavailable";
+
+/** Counts of observed work only; uninspected candidate totals remain unknown. */
+export interface VisualAnalysisCoverage {
+  pagesConsidered: number;
+  pagesNotConsidered: number;
+  candidatesObserved: number;
+  candidateTotal: null;
+  imagesAcquired: number;
+  imageAnalysisRecords: number;
+  ocrImagesAttempted: number;
+  ocrImagesCompleted: number;
+  ocrImagesUnavailable: number;
+  limits: { pages: number; candidatesPerDocument: number; elementsPerDocument: number;
+    bytesPerPage: number; distinctOcrImages: number };
+  limitsReached: VisualAnalysisLimit[];
+  skips: { reason: VisualAnalysisReason; unit: "page" | "document" | "candidate" | "image"; count: number }[];
+}
+
 export interface EvidenceAsset {
   assetId: string;
   mimeType: "image/png" | "image/jpeg" | "image/webp";
@@ -37,6 +57,7 @@ export interface InfrastructureRelation {
 }
 
 export interface EvidenceSummary {
+  visualAnalysisCoverage?: VisualAnalysisCoverage;
   graphAvailable?: boolean;
   analysisIssues?: string[];
   observedDomainCount: number;

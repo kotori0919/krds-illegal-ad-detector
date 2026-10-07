@@ -13,6 +13,24 @@ function bundle(): ScanDetailBundle {
       normalizedText: "카지노가입", decision: { rule: "structured", score: 2, threshold: 2, passed: true, detail: "ad semantics and image text" } }] };
 }
 
+it("keeps measured visual coverage distinct and rejects invented or inconsistent totals", () => {
+  const data = bundle();
+  data.visualAnalysisCoverage = { pagesConsidered: 8, pagesNotConsidered: 1, candidatesObserved: 7,
+    candidateTotal: null, imagesAcquired: 7, imageAnalysisRecords: 7, ocrImagesAttempted: 6,
+    ocrImagesCompleted: 5, ocrImagesUnavailable: 1,
+    limits: { pages: 8, candidatesPerDocument: 8, elementsPerDocument: 10_000, bytesPerPage: 250_000, distinctOcrImages: 6 },
+    limitsReached: ["page-limit", "ocr-image-limit"],
+    skips: [{ reason: "page-limit", unit: "page", count: 1 }, { reason: "ocr-image-limit", unit: "image", count: 1 }] };
+  expect(validateScanDetailBundle(data, result, extra).ok).toBe(true);
+  for (const changes of [{ candidateTotal: 50 }, { ocrImagesCompleted: 7 }, { ocrImagesAttempted: 7 },
+    { pagesConsidered: 9 }, { imageAnalysisRecords: 8 }, { candidatesObserved: 6 }]) {
+    const invalid = { ...data, visualAnalysisCoverage: { ...data.visualAnalysisCoverage, ...changes } } as ScanDetailBundle;
+    expect(validateScanDetailBundle(invalid, result, extra).ok).toBe(false);
+  }
+  data.visualAnalysisCoverage.skips[0]!.count = -1;
+  expect(validateScanDetailBundle(data, result, extra).ok).toBe(false);
+});
+
 it("rejects page outcomes that overstate successfully checked coverage", () => {
   const data = bundle();
   data.pageOutcomes![0]!.status = 404;

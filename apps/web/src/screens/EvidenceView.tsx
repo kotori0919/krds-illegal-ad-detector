@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import type { FindingDetailView, HostBridge, OfficialFinding } from "@krds-detector/contracts";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { HostBridge } from "@krds-detector/contracts";
 import { techniqueLabel } from "../technique-label.js";
 import { AssetImage } from "./AssetImage.js";
 import { EvidenceRelations } from "./EvidenceRelations.js";
+import { useEvidenceRead } from "./evidence-read.js";
 
 interface Props {
   host: HostBridge;
@@ -14,30 +15,28 @@ interface Props {
 }
 
 /** Result-stage inspector backed by the official finding's observed fields. */
-export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onReviewChange }: Props) {
-  const [finding, setFinding] = useState<OfficialFinding | undefined>(undefined);
-  const [detail, setDetail] = useState<FindingDetailView | undefined>(undefined);
-  const [detailLoaded, setDetailLoaded] = useState(false);
-  const [missing, setMissing] = useState(false);
+export function EvidenceView(props: Props) {
+  return <EvidenceInspector key={`${props.sessionId}\0${props.findingId}`} {...props} />;
+}
+
+function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onReviewChange }: Props) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const readFinding = useCallback(async () => (await host.getOfficialResult(sessionId))?.findings.find((finding) => finding.id === findingId), [host, sessionId, findingId]);
+  const readDetail = useCallback(() => host.getFindingDetail(sessionId, findingId), [host, sessionId, findingId]);
+  const findingRead = useEvidenceRead(`${sessionId}\0${findingId}`, readFinding, true, headingRef);
+  const detailRead = useEvidenceRead(`${sessionId}\0${findingId}`, readDetail, true, headingRef);
+  const finding = findingRead.value;
+  const detail = detailRead.value;
+  const detailLoaded = detailRead.state !== "loading";
+  const missing = findingRead.state === "unavailable";
   const [demoMode, setDemoMode] = useState(false);
   const [showPosition, setShowPosition] = useState(false);
-  const headingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => { headingRef.current?.focus(); setShowPosition(false); }, [findingId]);
 
   useEffect(() => {
     let alive = true;
-    setFinding(undefined); setDetail(undefined); setDetailLoaded(false); setMissing(false);
     void host.getCapabilities().then((caps) => { if (alive) setDemoMode(!caps.localScan); }).catch(() => undefined);
-    host.getOfficialResult(sessionId).then((r) => {
-      if (!alive) return;
-      const found = r?.findings.find((f) => f.id === findingId);
-      if (found) setFinding(found);
-      else setMissing(true);
-    }).catch(() => { if (alive) setMissing(true); });
-    host.getFindingDetail(sessionId, findingId).then((record) => {
-      if (alive) setDetail(record);
-    }).catch(() => undefined).finally(() => { if (alive) setDetailLoaded(true); });
     return () => {
       alive = false;
     };
@@ -48,7 +47,7 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
       <p className="eyebrow">결과 검토</p>
       <h1 ref={headingRef} tabIndex={-1}>탐지 상세</h1>
       {demoMode ? <p role="note" className="empty">브라우저 미리보기의 예시 근거입니다. 실제 사이트 점검 결과가 아닙니다.</p> : null}
-      {missing ? (
+      {findingRead.state === "error" ? <div><p role="alert">탐지 내용을 불러오지 못했습니다.</p><button type="button" className="secondary" onClick={findingRead.retry}>탐지 내용 다시 불러오기</button></div> : missing ? (
         <p role="alert" className="error">
           해당 탐지를 찾을 수 없습니다. 결과 목록으로 돌아가 다시 선택해
           주세요.
@@ -78,7 +77,7 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
           </section>
           <section aria-label="판단 근거">
             <h2>판단 근거</h2>
-            {!detailLoaded ? <p role="status">판단 근거를 불러오는 중입니다.</p> : detail ? <dl className="evidence">
+            {!detailLoaded ? <p role="status">판단 근거를 불러오는 중입니다.</p> : detailRead.state === "error" ? <div><p role="alert">저장된 판단 근거를 불러오지 못했습니다. 공식 탐지 내용은 유지됩니다.</p><button type="button" className="secondary" onClick={detailRead.retry}>판단 근거 다시 불러오기</button></div> : detail ? <dl className="evidence">
               {detail.matchedTerms.length > 0 ? <div><dt>광고 표현</dt><dd>{detail.matchedTerms.join(", ")}</dd></div> : null}
               {detail.destinationUrl ? <div><dt>연결 주소</dt><dd>{detail.destinationUrl}</dd></div> : null}
               {finding.technique === "HOMOGLYPH" || finding.technique === "JAMO" ?
@@ -87,9 +86,9 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
                 <dt>{finding.location.includes(">>>") ? "프레임 화면 기준 위치" : "페이지 화면 기준 위치"}</dt>
                 <dd>가로 {String(Math.round(detail.observed.box.x))}px · 세로 {String(Math.round(detail.observed.box.y))}px</dd>
               </div> : null}
-            </dl> : <p className="empty">상세 판단 기록 없음</p>}
+            </dl> : <div><p className="empty">이 세션의 상세 판단 기록을 사용할 수 없습니다.</p><button type="button" className="secondary" onClick={detailRead.retry}>판단 근거 다시 불러오기</button></div>}
           </section>
-          {detailLoaded ? <section aria-label="실제 화면">
+          {detail ? <section aria-label="실제 화면">
             <h2>실제 화면</h2>
             {detail?.visual.state === "available" && detail.visual.assetId ? (
               <>
@@ -137,6 +136,7 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
           결과 목록으로
         </button>
       </div>
+      <p className="hint">검토 완료는 항목을 읽고 검토했다는 표시입니다. 위반 확정이나 조치 완료를 뜻하지 않으며 공식 탐지와 저장 파일을 바꾸지 않습니다. 이 표시는 현재 화면의 메모리에만 보관되어 새 점검이나 앱 새로고침 시 사라집니다.</p>
     </aside>
   );
 }

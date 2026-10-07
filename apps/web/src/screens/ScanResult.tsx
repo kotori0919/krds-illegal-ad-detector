@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   OFFICIAL_TECHNIQUES,
-  type ExtraResult,
   type ExtraFinding,
   type CreativeImageView,
   type ImageAnalysis,
@@ -9,15 +8,14 @@ import {
   type OfficialResult,
   type OfficialTechnique,
   type PageOutcome,
-  type ScanCoverageView,
-  type EvidenceSummary,
-  type ImageAnalysisPage,
   type ScanSession,
 } from "@krds-detector/contracts";
 import { techniqueLabel } from "../technique-label.js";
 import { formatElapsed, scanStatusLabel } from "../scan-format.js";
 import { AssetImage } from "./AssetImage.js";
 import { EvidenceRelations } from "./EvidenceRelations.js";
+import { useEvidenceRead } from "./evidence-read.js";
+import { VisualCoverage } from "./VisualCoverage.js";
 
 interface Props {
   host: HostBridge;
@@ -95,45 +93,69 @@ function ImageAnalysisView({ analysis, image, host, sessionId, displayAsset = !a
 }
 
 function ImageOnlyEvidence({ findingId, host, sessionId }: { findingId: string; host: HostBridge; sessionId: string }) {
-  const [analysis, setAnalysis] = useState<ImageAnalysis>();
-  const [state, setState] = useState<"closed" | "loading" | "open" | "missing" | "error">("closed");
-  async function show() {
-    if (state === "open") { setState("closed"); return; }
-    if (analysis) { setState("open"); return; }
-    setState("loading");
-    try {
-      const page = await host.getImageAnalysis(sessionId, { extraFindingId: findingId, limit: 1 });
-      const selected = page?.items[0];
-      setAnalysis(selected);
-      setState(selected ? "open" : "missing");
-    } catch { setState("error"); }
-  }
+  const [open, setOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const read = useCallback(() => host.getImageAnalysis(sessionId, { extraFindingId: findingId, limit: 1 }), [host, sessionId, findingId]);
+  const result = useEvidenceRead(`${sessionId}\0${findingId}`, read, open, toggleRef);
+  const analysis = result.value?.items[0];
   return <div>
-    <button type="button" className="secondary" disabled={state === "loading"} aria-expanded={state === "open"} onClick={() => void show()}>{state === "open" ? "이미지 근거 닫기" : "이미지 근거 보기"}</button>
-    {state === "loading" ? <p role="status">이미지 근거를 불러오는 중입니다.</p>
-      : state === "error" ? <p role="alert">이미지 근거를 불러오지 못했습니다. 다시 시도해 주세요.</p>
-        : state === "missing" ? <p>이 세션의 이미지 근거 기록을 사용할 수 없습니다.</p>
-          : state === "open" && analysis ? <ul className="finding-list"><ImageAnalysisView analysis={analysis} host={host} sessionId={sessionId} displayAsset /></ul> : null}
+    <button ref={toggleRef} type="button" className="secondary" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "이미지 근거 닫기" : "이미지 근거 보기"}</button>
+    {open ? result.state === "loading" ? <p role="status">이미지 근거를 불러오는 중입니다.</p>
+      : result.state === "error" ? <div><p role="alert">이미지 근거를 불러오지 못했습니다.</p><button className="secondary" type="button" onClick={result.retry}>이미지 근거 다시 불러오기</button></div>
+        : result.state === "unavailable" ? <div><p>이 세션의 이미지 근거 기록을 사용할 수 없습니다.</p><button className="secondary" type="button" onClick={result.retry}>이미지 근거 다시 불러오기</button></div>
+          : !analysis ? <p>이 탐지에 연결된 이미지 분석 기록이 없습니다.</p>
+          : <ul className="finding-list"><ImageAnalysisView analysis={analysis} host={host} sessionId={sessionId} displayAsset /></ul> : null}
   </div>;
 }
 
-export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
+function ImageAnalysisList({ host, sessionId, images }: { host: HostBridge; sessionId: string; images: CreativeImageView[] }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const [cursor, setCursor] = useState(0);
+  const [previous, setPrevious] = useState<ImageAnalysis[]>([]);
+  const read = useCallback(() => host.getImageAnalysis(sessionId, { cursor, limit: 12 }), [host, sessionId, cursor]);
+  const page = useEvidenceRead(`${sessionId}\0${cursor}`, read, true, headingRef);
+  const items = [...previous, ...(page.value?.items ?? [])];
+  return <section aria-label="이미지 문자 분석">
+    <h2 ref={headingRef} tabIndex={-1}>이미지 문자 분석{page.value ? ` (${String(page.value.total)}건)` : ""}</h2>
+    {items.length ? <ol className="finding-list">{items.map((analysis, index) => <ImageAnalysisView key={analysis.analysisId ?? `${analysis.sourceUrl}-${index}`}
+      analysis={analysis} host={host} sessionId={sessionId} image={images.find((image) => image.sourceUrl === analysis.sourceUrl)} />)}</ol> : null}
+    {page.state === "loading" ? <p role="status">이미지 문자 분석을 불러오는 중입니다.</p>
+      : page.state === "error" ? <p role="alert">저장된 이미지 문자 분석을 불러오지 못했습니다. 공식 탐지는 유지됩니다.</p>
+        : page.state === "unavailable" ? <p role="status">이 세션의 이미지 문자 분석 기록을 사용할 수 없습니다.</p>
+          : !items.length ? <p className="hint">저장된 문자 분석 이미지가 없습니다. 미분석 사유는 이미지 분석 범위를 확인해 주세요.</p> : null}
+    {page.state === "error" || page.state === "unavailable" ? <button type="button" className="secondary" onClick={page.retry}>이미지 문자 분석 다시 불러오기</button> : null}
+    {page.value?.nextCursor !== undefined ? <>
+      <p role="status">전체 {String(page.value.total)}건 중 {String(items.length)}건 표시 · 나머지는 더 보기를 눌러 조회합니다.</p>
+      <button type="button" className="secondary" onClick={() => { setPrevious(items); setCursor(page.value!.nextCursor!); }}>이미지 분석 더 보기</button>
+    </> : null}
+  </section>;
+}
+
+export function ScanResult(props: Props) {
+  return <SessionResults key={props.sessionId} {...props} />;
+}
+
+function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
+  const summaryHeading = useRef<HTMLHeadingElement>(null);
+  const resultHeading = useRef<HTMLHeadingElement>(null);
   const [selectionNotice, setSelectionNotice] = useState(false);
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
   const [result, setResult] = useState<OfficialResult | undefined>(undefined);
-  const [detailBundle, setDetailBundle] = useState<ScanCoverageView | undefined>(undefined);
-  const [evidenceSummary, setEvidenceSummary] = useState<EvidenceSummary>();
-  const [imagePage, setImagePage] = useState<ImageAnalysisPage>();
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-  const [imageLoadError, setImageLoadError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(false);
-  const [detailLoaded, setDetailLoaded] = useState(false);
-  const [detailLoadError, setDetailLoadError] = useState(false);
-  const [extraResult, setExtraResult] = useState<ExtraResult | undefined>(undefined);
-  const [extraLoaded, setExtraLoaded] = useState(false);
-  const [extraLoadError, setExtraLoadError] = useState(false);
   const [loadComplete, setLoadComplete] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const readCoverage = useCallback(() => host.getScanCoverage(sessionId), [host, sessionId]);
+  const readSummary = useCallback(() => host.getEvidenceSummary(sessionId), [host, sessionId]);
+  const readExtra = useCallback(() => host.getExtraResult(sessionId), [host, sessionId]);
+  const coverageRead = useEvidenceRead(sessionId, readCoverage, !!result, resultHeading);
+  const summaryRead = useEvidenceRead(sessionId, readSummary, !!result, summaryHeading);
+  const extraRead = useEvidenceRead(sessionId, readExtra, !!result && view === "extra", resultHeading);
+  const detailBundle = coverageRead.value;
+  const evidenceSummary = summaryRead.value;
+  const extraResult = extraRead.value;
+  const detailLoaded = coverageRead.state !== "loading";
+  const detailLoadError = coverageRead.state === "error";
+  const extraLoaded = extraRead.state !== "loading";
+  const extraLoadError = extraRead.state === "error";
 
   useEffect(() => {
     let alive = true;
@@ -154,10 +176,6 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
         if (!alive) return;
         if (r) {
           setResult(r);
-          void host.getScanCoverage(sessionId).then((bundle) => { if (alive) setDetailBundle(bundle); })
-            .catch(() => { if (alive) setDetailLoadError(true); })
-            .finally(() => { if (alive) setDetailLoaded(true); });
-          void host.getEvidenceSummary(sessionId).then((summary) => { if (alive) setEvidenceSummary(summary); }).catch(() => undefined);
           setLoadComplete(true);
           globalThis.clearInterval(timer);
         } else if (attempts >= 10) {
@@ -174,33 +192,6 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
       globalThis.clearInterval(timer);
     };
   }, [host, sessionId]);
-
-  useEffect(() => {
-    if (view !== "extra" || !result) return;
-    let alive = true;
-    if (!extraLoaded) void host.getExtraResult(sessionId).then((extra) => {
-      if (alive) setExtraResult(extra);
-    }).catch(() => { if (alive) setExtraLoadError(true); }).finally(() => { if (alive) setExtraLoaded(true); });
-    if (!imagesLoaded) {
-      setImageLoading(true);
-      void host.getImageAnalysis(sessionId, { cursor: 0, limit: 12 }).then((page) => {
-        if (alive) setImagePage(page);
-      }).catch(() => { if (alive) setImageLoadError(true); }).finally(() => {
-        if (alive) { setImagesLoaded(true); setImageLoading(false); }
-      });
-    }
-    return () => { alive = false; };
-  }, [host, sessionId, view, result]);
-
-  async function loadMoreImages() {
-    if (imagePage?.nextCursor === undefined || imageLoading) return;
-    setImageLoading(true); setImageLoadError(false);
-    try {
-      const next = await host.getImageAnalysis(sessionId, { cursor: imagePage.nextCursor, limit: 12 });
-      if (next) setImagePage((previous) => ({ ...next, items: [...(previous?.items ?? []), ...next.items] }));
-    } catch { setImageLoadError(true); }
-    finally { setImageLoading(false); }
-  }
 
   // Hooks stay above the conditional return: the cancelled branch must not
   // change the hook count between renders (React "fewer hooks" crash).
@@ -282,12 +273,19 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
   return (
     <main className="page">
       <p className="eyebrow">결과 검토</p>
-      <h1>점검 결과</h1>
+      <h1 ref={resultHeading} tabIndex={-1}>점검 결과</h1>
       <p className="lede">{session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}</p>
       {session?.status === "cancelled" || detailBundle?.coverage.cancelled ? <p role="note" className="empty">점검이 중지되었습니다. 완료된 페이지의 결과를 표시합니다.</p>
         : session?.status === "failed" && session.hasResult === true ? <p role="note" className="empty">점검이 실패했습니다. 완료된 페이지의 결과를 표시합니다.</p> : null}
       {demoMode ? <p role="note" className="empty">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다.</p> : null}
       {result ? <p className="hint">탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개` : ""}</p> : null}
+      {result ? <section aria-label="이미지 분석 범위">
+        <h2 ref={summaryHeading} tabIndex={-1}>이미지 분석 범위</h2>
+        {summaryRead.state === "loading" ? <p role="status">근거 요약을 불러오는 중입니다.</p>
+          : summaryRead.state === "error" ? <div><p role="alert">저장된 근거 요약을 불러오지 못했습니다. 공식 탐지와 저장은 유지됩니다.</p><button type="button" className="secondary" onClick={summaryRead.retry}>근거 요약 다시 불러오기</button></div>
+            : summaryRead.state === "unavailable" ? <div><p role="status">이 세션의 근거 요약을 사용할 수 없습니다. 이미지 분석 범위는 알 수 없습니다.</p><button type="button" className="secondary" onClick={summaryRead.retry}>근거 요약 다시 불러오기</button></div>
+              : <VisualCoverage coverage={evidenceSummary?.visualAnalysisCoverage} />}
+      </section> : null}
       {result && (view === "findings" || view === "pages") ? (
         <section aria-label="기법별 건수">
           <ul className="counts">
@@ -347,9 +345,9 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                 {evidenceSummary.analysisIssues?.length ? <ul>{evidenceSummary.analysisIssues.map((issue, index) => <li key={index}>{issue}</li>)}</ul> : null}
               </details>
             </section> : null}
-            {extraLoadError ? <p role="alert" className="empty">추가 분석 결과를 불러오지 못했습니다.</p>
+            {extraLoadError ? <div><p role="alert" className="empty">추가 분석 결과를 불러오지 못했습니다.</p><button type="button" className="secondary" onClick={extraRead.retry}>추가 분석 다시 불러오기</button></div>
               : !extraLoaded ? <p role="status" className="empty">추가 분석 결과를 불러오는 중입니다.</p>
-                : !extraResult ? <p role="status" className="empty">{evidenceSummary?.imageAnalysisCount ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "이 세션에는 추가 분석 결과가 없습니다."}</p>
+                : !extraResult ? <div><p role="status" className="empty">이 세션의 추가 탐지 기록을 사용할 수 없습니다. 이미지 문자 분석 기록은 별도로 확인할 수 있습니다.</p><button type="button" className="secondary" onClick={extraRead.retry}>추가 분석 다시 불러오기</button></div>
                 : extraResult.findings.length === 0 ? <p role="status" className="empty">{evidenceSummary?.imageAnalysisCount ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "추가 분석에서 확인된 항목이 없습니다."}</p>
                   : <>
                     <p role="status" aria-live="polite">추가 분석 {String(extraResult.findings.length)}건</p>
@@ -379,31 +377,25 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
                       </li>; })}
                     </ol>
                   </>}
-            {!imagesLoaded ? <p role="status" className="empty">이미지 문자 분석을 불러오는 중입니다.</p>
-              : imagePage?.items.length ? <section aria-label="이미지 문자 분석">
-                  <h2>이미지 문자 분석 ({String(imagePage.total)}건)</h2>
-                  <ol className="finding-list">{imagePage.items.map((analysis, index) =>
-                    <ImageAnalysisView key={analysis.analysisId ?? `${analysis.sourceUrl}-${index}`} analysis={analysis} host={host} sessionId={sessionId}
-                      image={evidenceSummary?.creativeImages.find((image) => image.sourceUrl === analysis.sourceUrl)} />)}</ol>
-                  {imagePage.nextCursor !== undefined ? <button type="button" className="secondary" disabled={imageLoading} onClick={() => void loadMoreImages()}>{imageLoading ? "불러오는 중" : "이미지 분석 더 보기"}</button> : null}
-                </section> : !imageLoadError ? <p className="hint">문자 분석 대상 이미지가 없습니다.</p> : null}
-            {imageLoadError ? <p role="alert" className="error">이미지 문자 분석을 불러오지 못했습니다.</p> : null}
+            <ImageAnalysisList host={host} sessionId={sessionId} images={evidenceSummary?.creativeImages ?? []} />
           </div>
         ) : view === "coverage" ? (
           <div className="coverage-summary">
             {!detailLoaded ? <p role="status">점검 범위를 불러오는 중입니다.</p>
-              : detailLoadError ? <p role="alert" className="error">점검 범위를 불러오지 못했습니다.</p>
+              : detailLoadError ? <div><p role="alert" className="error">점검 범위를 불러오지 못했습니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div>
                 : detailBundle ? <>
               <p>확인한 페이지 {String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 {String(detailBundle.coverage.failedPages.length)}개</p>
               {detailBundle.coverage.timedOut ? <p role="status">제한 시간에 도달해 일부 페이지를 확인하지 못했습니다.</p> : null}
               {detailBundle.coverage.failedPages.length > 0 ? <ul>{detailBundle.coverage.failedPages.map((page) => <li key={page.url}>{page.url} — {page.status === 0 ? "연결 또는 분석 실패" : `접근 실패 (HTTP ${String(page.status)})`}</li>)}</ul>
                 : <p>확인에 실패한 페이지가 없습니다.</p>}
-            </> : <p role="status" className="empty">점검 범위 기록 없음</p>}
+            </> : <div><p role="status" className="empty">점검 범위 기록을 사용할 수 없습니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div>}
           </div>
         ) : view === "pages" && !detailLoaded ? (
           <p role="status" className="empty">페이지별 점검 기록을 불러오는 중입니다.</p>
         ) : view === "pages" && pageGroups.length > 0 ? (
           <div className="page-groups">
+            {detailLoadError ? <div><p role="alert">페이지 점검 기록을 불러오지 못했습니다. 공식 탐지가 있는 페이지를 표시합니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div>
+              : !detailBundle ? <div><p role="status">페이지 점검 기록을 사용할 수 없습니다. 공식 탐지가 있는 페이지를 표시합니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div> : null}
             {pageGroups.map(([url, { findings: group, outcome }]) => (
               <section key={url} className="page-group" aria-label={`${url} 탐지 ${String(group.length)}건`}>
                 <h2>{url}</h2>
@@ -460,6 +452,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
           </div>
         )}
       </section>
+      {result ? <p className="hint">검토 완료는 항목을 읽고 검토했다는 표시이며 위반 확정이나 조치 완료가 아닙니다. 공식 탐지와 저장 파일은 바뀌지 않습니다. 검토 표시는 현재 화면 메모리에만 보관되어 새 점검이나 앱 새로고침 시 사라집니다.</p> : null}
       <div className="actions">
         <button id="export-trigger" type="button" onClick={onExport} className="primary" disabled={!result}>
           결과 저장

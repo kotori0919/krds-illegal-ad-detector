@@ -2,7 +2,7 @@
 import type { OfficialTechnique } from "./technique.js";
 import type { DecisionEvidence } from "./detection.js";
 import type { ExtraResult, OfficialResult, ValidationOutcome } from "./result.js";
-import type { EvidenceAsset, EvidenceGraph, InfrastructureRelation, VisualSourceKind } from "./evidence-access.js";
+import type { EvidenceAsset, EvidenceGraph, InfrastructureRelation, VisualSourceKind, VisualAnalysisCoverage } from "./evidence-access.js";
 
 export interface FindingDetail {
   findingId: string;
@@ -90,6 +90,7 @@ export interface ScanDetailBundle {
   coverage: ScanCoverage;
   pageOutcomes?: PageOutcome[];
   imageAnalysis?: ImageAnalysis[];
+  visualAnalysisCoverage?: VisualAnalysisCoverage;
   visualAssets?: EvidenceAsset[];
   evidenceGraph?: EvidenceGraph;
   infrastructure?: InfrastructureRelation[];
@@ -236,5 +237,26 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
       || relation.evidenceKinds.some((kind)=>typeof kind!=="string" || !kind)))) errors.push("infrastructure summary invalid");
   if (bundle.analysisIssues!==undefined && (!Array.isArray(bundle.analysisIssues)
     || bundle.analysisIssues.some((issue)=>typeof issue!=="string" || !issue))) errors.push("analysis issues invalid");
+  if (bundle.visualAnalysisCoverage !== undefined) {
+    const c = bundle.visualAnalysisCoverage;
+    const integer = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+    const limits = ["page-limit", "candidate-limit", "element-limit", "byte-limit", "ocr-image-limit", "deadline"];
+    const reasons = [...limits, "cancelled", "capture-error", "document-unavailable", "image-unavailable", "target-unavailable"];
+    if (!c || ![c.pagesConsidered, c.pagesNotConsidered, c.candidatesObserved, c.imagesAcquired,
+      c.imageAnalysisRecords, c.ocrImagesAttempted, c.ocrImagesCompleted, c.ocrImagesUnavailable].every(integer)
+      || c.candidateTotal !== null || !c.limits
+      || ![c.limits.pages, c.limits.candidatesPerDocument, c.limits.elementsPerDocument,
+        c.limits.bytesPerPage, c.limits.distinctOcrImages].every((value) => integer(value) && value > 0)
+      || c.pagesConsidered > c.limits.pages || c.imagesAcquired > c.candidatesObserved
+      || c.imageAnalysisRecords > c.imagesAcquired || c.ocrImagesAttempted > c.imageAnalysisRecords
+      || c.ocrImagesAttempted > c.limits.distinctOcrImages
+      || c.ocrImagesCompleted + c.ocrImagesUnavailable !== c.ocrImagesAttempted
+      || !Array.isArray(c.limitsReached) || new Set(c.limitsReached).size !== c.limitsReached.length
+      || c.limitsReached.some((reason) => !limits.includes(reason))
+      || !Array.isArray(c.skips) || c.skips.some((skip) => !skip || !reasons.includes(skip.reason)
+        || !["page", "document", "candidate", "image"].includes(skip.unit) || !integer(skip.count) || skip.count === 0)) {
+      errors.push("visual analysis coverage invalid");
+    }
+  }
   return { ok: errors.length === 0, errors };
 }
