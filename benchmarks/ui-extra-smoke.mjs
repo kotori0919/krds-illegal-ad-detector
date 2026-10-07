@@ -6,6 +6,7 @@ import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import { scanSite } from "../packages/detection/dist/scan.js";
+import { installResultReplay } from "./ui-evidence-ipc.mjs";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const assetRoot = resolve(root, "fixtures/realistic/ads");
@@ -47,7 +48,7 @@ try {
   await new Promise((done) => site.listen(0, "127.0.0.1", done));
   const entryUrl = `http://127.0.0.1:${site.address().port}/`;
   let progress;
-  const output = await scanSite({ entryUrl, topic: "ad-fixture", onEvent: (event) => { progress = event.progress; }, crawl: {
+  const output = await scanSite({ entryUrl, onEvent: (event) => { progress = event.progress; }, crawl: {
     concurrency: 2, settleMs: 300, perPageMs: 7000,
     limits: { maxPages: 2, maxDepth: 1, timeoutSec: 45 },
   } });
@@ -57,24 +58,9 @@ try {
   await new Promise((done) => app.listen(0, "127.0.0.1", done));
   browser = await chromium.launch({ args: ["--no-sandbox"] });
   const page = await browser.newPage();
-  await page.addInitScript(({ result, detail, extra, entryUrl, progress }) => {
-    const session = { id: "extra-ui", entryUrl, topic: "ad-fixture", status: "succeeded",
-      startedAt: result.meta.started_at, finishedAt: result.meta.finished_at, progress };
-    window.__TAURI_INTERNALS__ = {
-      transformCallback: () => 1,
-      unregisterCallback: () => {},
-      invoke: async (command) => {
-        switch (command) {
-          case "plugin:event|listen": return 1;
-          case "scan_start": case "scan_get_session": return session;
-          case "scan_get_result": return result;
-          case "scan_get_detail_bundle": return detail;
-          case "scan_get_extra_result": return extra;
-          default: throw new Error(`unexpected IPC command ${command}`);
-        }
-      },
-    };
-  }, { result: output.result, detail: output.detailBundle, extra: output.extraResult, entryUrl, progress });
+  await installResultReplay(page, { result: output.result, detail: output.detailBundle, extra: output.extraResult,
+    session: { id: "extra-ui", entryUrl, status: "succeeded", startedAt: output.result.meta.started_at,
+      finishedAt: output.result.meta.finished_at, progress } });
   await page.goto(`http://127.0.0.1:${app.address().port}/`, { waitUntil: "networkidle" });
   await page.getByLabel("점검할 웹사이트").fill(entryUrl);
   await page.getByRole("button", { name: "점검 시작" }).click();
@@ -87,7 +73,7 @@ try {
   await page.getByRole("heading", { name: "연관 광고 인프라" }).waitFor();
   const storedImage = output.detailBundle.creativeImages[0];
   if (!storedImage) throw new Error("scan omitted the observed creative asset");
-  const image = page.getByRole("img", { name: "수집한 반복 광고 이미지" });
+  const image = page.getByRole("img", { name: "수집한 광고 이미지" });
   await image.waitFor();
   if (await image.getAttribute("src") !== storedImage.dataUrl) throw new Error("creative display differs from stored bytes");
   const dimensions = await image.evaluate(async (item) => {

@@ -1,6 +1,7 @@
 /** Twenty-finding React operator walk with a synthetic Tauri IPC fixture. */
 import { chromium } from "playwright-core";
 import { initialProgress } from "../packages/contracts/dist/scan.js";
+import { installResultReplay } from "./ui-evidence-ipc.mjs";
 
 const findings = Array.from({ length: 20 }, (_, index) => {
   const number = index + 1;
@@ -42,25 +43,11 @@ const detail = {
 const browser = await chromium.launch({ args: ["--no-sandbox"] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 try {
-  await page.addInitScript(({ result, detail, progress }) => {
-    const session = { id: "synthetic-20", entryUrl: "https://example.kr/", topic: "",
-      status: "succeeded", startedAt: result.meta.started_at, finishedAt: result.meta.finished_at, progress };
-    window.__TAURI_INTERNALS__ = {
-      transformCallback: () => 1,
-      unregisterCallback: () => {},
-      invoke: async (command) => {
-        switch (command) {
-          case "plugin:event|listen": return 1;
-          case "scan_start": case "scan_get_session": return session;
-          case "scan_get_result": return result;
-          case "scan_get_detail_bundle": return detail;
-          case "scan_get_extra_result": return undefined;
-          default: throw new Error(`unexpected IPC command ${command}`);
-        }
-      },
-    };
-  }, { result, detail, progress: { ...initialProgress("succeeded"), visitedPages: detail.coverage.checkedPages,
-    confirmedFindings: result.findings.length, elapsedSec: result.meta.elapsed_sec } });
+  await installResultReplay(page, { result, detail,
+    session: { id: "synthetic-20", entryUrl: "https://example.kr/", status: "succeeded",
+      startedAt: result.meta.started_at, finishedAt: result.meta.finished_at,
+      progress: { ...initialProgress("succeeded"), visitedPages: detail.coverage.checkedPages,
+        confirmedFindings: result.findings.length, elapsedSec: result.meta.elapsed_sec } } });
   await page.goto("http://127.0.0.1:5173/", { waitUntil: "networkidle" });
   await page.getByLabel("점검할 웹사이트").fill("https://example.kr/");
   await page.getByRole("button", { name: "점검 시작" }).click();

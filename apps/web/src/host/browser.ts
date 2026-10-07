@@ -4,7 +4,7 @@
  * No local scanning, no filesystem, no Tauri APIs. Serves the deterministic
  * demo result (apps/web/src/demo/findings.ts) so the KRDS flow — filters,
  * evidence, export validation — exercises against stable data. The banner in
- * ScanProgress and the demo topic label make clear these are not live scan
+ * ScanProgress and the preview banner make clear these are not live scan
  * results. The Tauri host runs the real scanner and validates its artifacts.
  */
 import {
@@ -16,6 +16,8 @@ import {
   type HostCapabilities,
   type OfficialResult,
   type ScanDetailBundle,
+  type ImageAnalysisQuery,
+  type EvidenceGraphQuery,
   type ScanEventHandler,
   type ScanProgress,
   type ScanRequest,
@@ -23,12 +25,16 @@ import {
   type Unsubscribe,
 } from "@krds-detector/contracts";
 import { DEMO_ENTRY_URL, demoResult } from "../demo/findings.js";
+import { indexSessionEvidence } from "./session-evidence.js";
+import { sliceEvidenceGraph } from "@krds-detector/evidence/graph";
 
 let counter = 0;
 
 export class BrowserHost implements HostBridge {
   private sessions = new Map<string, ScanSession>();
   private results = new Map<string, OfficialResult>();
+  private extraResults = new Map<string, ExtraResult>();
+  private evidence = new Map<string, ReturnType<typeof indexSessionEvidence>>();
   private handlers = new Set<ScanEventHandler>();
 
   async getCapabilities(): Promise<HostCapabilities> {
@@ -40,7 +46,6 @@ export class BrowserHost implements HostBridge {
     const session: ScanSession = {
       id: `browser-demo-${counter}`,
       entryUrl: request.entryUrl,
-      topic: request.topic ?? "",
       status: "running",
       startedAt: new Date().toISOString(),
       progress: initialProgress("running"),
@@ -133,13 +138,25 @@ export class BrowserHost implements HostBridge {
   }
 
   async getExtraResult(sessionId: string): Promise<ExtraResult | undefined> {
-    void sessionId;
-    return undefined;
+    return this.extraResults.get(sessionId);
   }
 
-  async getDetailBundle(sessionId: string): Promise<ScanDetailBundle | undefined> {
-    void sessionId;
-    return undefined;
+  /** Install validated replay data; the same lazy boundary serves demo review. */
+  setReplayResult(session: ScanSession, result: OfficialResult, detail: ScanDetailBundle, extra?: ExtraResult): void {
+    this.sessions.set(session.id, session);
+    this.results.set(session.id, result);
+    this.evidence.set(session.id, indexSessionEvidence(detail));
+    if (extra) this.extraResults.set(session.id, extra);
+  }
+
+  async getScanCoverage(sessionId: string) { return this.evidence.get(sessionId)?.coverage; }
+  async getFindingDetail(sessionId: string, findingId: string) { return this.evidence.get(sessionId)?.findings.get(findingId); }
+  async getImageAnalysis(sessionId: string, query?: ImageAnalysisQuery) { return this.evidence.get(sessionId)?.imagePage(query); }
+  async getEvidenceAsset(sessionId: string, assetId: string) { return this.evidence.get(sessionId)?.assets.get(assetId); }
+  async getEvidenceSummary(sessionId: string) { return this.evidence.get(sessionId)?.summary; }
+  async getEvidenceGraphSlice(sessionId: string, query: EvidenceGraphQuery) {
+    const graph = this.evidence.get(sessionId)?.graph;
+    return graph ? sliceEvidenceGraph(graph, query) : undefined;
   }
 
   async exportResult(sessionId: string, directory: string): Promise<ExportPaths> {

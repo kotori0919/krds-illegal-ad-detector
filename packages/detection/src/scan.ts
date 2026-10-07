@@ -24,15 +24,15 @@ import {
 import { crawlSite, ScanDeadline, type CrawlOptions } from "@krds-detector/scanner";
 import { DEFAULT_SCAN_LIMITS } from "@krds-detector/contracts";
 import { startFixtureServer } from "@krds-detector/synth-eval/serve.js";
-import { buildEvidenceGraph, buildExtraResult, LocalOcrBackend, RuleDecisionModel, type CreativeFingerprint } from "@krds-detector/evidence";
+import { buildEvidenceGraph, buildExtraResult, groupSimilarCreatives, summarizeInfrastructure, LocalOcrBackend, type CreativeFingerprint, type GraphInput } from "@krds-detector/evidence";
 import { semanticGate } from "./semantic.js";
-import { collectPageCreatives } from "./creative.js";
+import { collectPageCreatives, type CapturedVisualImage } from "./creative.js";
+import { decideVisualImage } from "./visual-decision.js";
 import { detectPageCandidates, type DecidedCandidate } from "./pipeline.js";
 import { buildOfficialResult, serializeValidatedResult } from "./result-engine.js";
 
 export interface ScanInput {
   entryUrl: string;
-  topic?: string;
   crawl?: Omit<CrawlOptions, "entryUrl" | "events" | "deadline" | "onLivePage">;
   /** Serve fixtures in-process when set (tests / local eval). */
   fixturePort?: number;
@@ -82,10 +82,12 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     const allCandidates: DecidedCandidate[] = [];
     const adTextSources: { url: string; location: string; evidenceText: string; analysisText: string }[] = [];
     const confirmedIdentities = new Set<string>();
-    const creatives: CreativeFingerprint[] = [];
+    const creativeOccurrences: { print: CreativeFingerprint; pageUrl: string; image: CapturedVisualImage }[] = [];
     const creativeImages = new Map<string, Omit<CreativeImage, "findingId">>();
     const recognizedImages = new Map<string, Promise<ImageAnalysis["ocr"]>>();
-    const observedImages = new Map<string, { image: Omit<CreativeImage, "findingId">; pages: Set<string> }>();
+    const observedImages = new Map<string, { image: CapturedVisualImage; pages: Set<string> }>();
+    const candidatePages = new Map<DecidedCandidate, string>();
+    const analysisIssues: string[] = [];
     let capturedPages = 0;
     let capturedBytes = 0;
     let capturedElements = 0;
@@ -107,6 +109,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
           let groups = candidateGroups.get(scope);
           if (!groups) { groups = new Map(); candidateGroups.set(scope, groups); }
           for (const candidate of found) {
+            candidatePages.set(candidate,snapshot.url);
             const targetKey = `${candidate.selector}\0${candidate.evidenceSelector ?? candidate.selector}`;
             const group = groups.get(targetKey);
             if (group) group.push(candidate); else groups.set(targetKey, [candidate]);
@@ -248,12 +251,15 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
           }
         }
         if (pageRank < 8 && !input.signal?.aborted) {
-          const captured = await collectPageCreatives(page, liveFrames.map((live) => live.frame), images,
-            deadline, 250_000);
-          creatives.push(...captured.prints);
+          let captured: Awaited<ReturnType<typeof collectPageCreatives>>;
+          try { captured = await collectPageCreatives(page, liveFrames, images, deadline,250_000,input.signal); }
+          catch { analysisIssues.push("visual-capture-unavailable"); return; }
           for (const image of captured.images) {
-            const key = `${image.sourceUrl}\0${image.sha256}`;
-            creativeImages.set(key, image);
+            const print = captured.prints.find((item)=>item.sha256===image.sha256 && item.sourceUrl===image.sourceUrl);
+            if (print) creativeOccurrences.push({print,pageUrl:snapshot.url,image});
+            const {candidate,...assetImage} = image;
+            creativeImages.set(`${image.sourceUrl}\0${image.sha256}`, assetImage);
+            const key = `${snapshot.url}\0${candidate.frameUrl}\0${candidate.sourceKind}\0${candidate.location}\0${image.sha256}`;
             const prior = observedImages.get(key);
             if (prior) prior.pages.add(snapshot.url);
             else observedImages.set(key, { image, pages: new Set([snapshot.url]) });
@@ -301,7 +307,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     // OCR started only for bounded image candidates while pages were live.
     // Its own deadline/abort closes the worker; await it before timestamps
     // and terminal state so no analysis outlives the preserved session.
-    await Promise.all(recognizedImages.values());
+    const recognitions = new Map(await Promise.all([...recognizedImages].map(async ([sha,result])=>[sha,await result] as const)));
     const cancelled = summary.cancelled || (input.signal?.aborted ?? false);
     const finishedAt = new Date().toISOString();
     progress.stage = "finalizing";
@@ -311,41 +317,90 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       allCandidates,
     );
     const json = serializeValidatedResult(result);
-    const graph = buildEvidenceGraph(summary.pages.map((page) => ({
-      pageUrl: page.url,
-      links: page.links,
-      frames: page.frames.map((frame) => ({ url: frame.url })),
-      externals: page.externals.map((external) => ({ url: external.url, kind: external.kind })),
-    })));
+    const observations = [...observedImages.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([,value])=>value);
+    const eligible = creativeOccurrences.filter(({image}) => image.candidate.candidateEvidence.includes("ad-marker"));
+    // Repetition needs advertisement context and distinct observed pages.
+    // External-linked logos alone remain observed resources.
+    for (const occurrence of creativeOccurrences) {
+      const recognition = recognitions.get(occurrence.image.sha256);
+      if (!eligible.includes(occurrence) && recognition?.state === "available" && semanticGate(recognition.text).passed) eligible.push(occurrence);
+    }
+    eligible.sort((a,b)=>`${a.print.sourceUrl}\0${a.print.sha256}\0${a.pageUrl}`.localeCompare(`${b.print.sourceUrl}\0${b.print.sha256}\0${b.pageUrl}`));
+    const occurrenceByPrint = new Map(eligible.map((entry)=>[entry.print,entry]));
+    const recurringGroups = groupSimilarCreatives(eligible.map((entry)=>entry.print)).filter((group)=>
+      new Set(group.map((print)=>occurrenceByPrint.get(print)?.pageUrl)).size >= 2);
+    const creatives = recurringGroups.flat();
+    const recurringShas = new Set(creatives.map((print)=>print.sha256));
+    const imageAnalysis = await Promise.all(observations.map(async ({image,pages},index): Promise<ImageAnalysis> => {
+      const recognition = recognitions.get(image.sha256)
+        ?? {state:"unavailable",backend:ocr.name,reason:"budget"};
+      const verdict = decideVisualImage(image.candidate,recognition,recurringShas.has(image.sha256));
+      return { analysisId:`image-${String(index+1)}`,assetId:`visual-${image.sha256}`,
+        sourceKind:image.candidate.sourceKind,sourceUrl:image.sourceUrl,frameUrl:image.candidate.frameUrl,pageUrls:[...pages].sort(),
+        location:image.candidate.location,destinationUrl:image.candidate.destinationUrl,
+        candidateEvidence:image.candidate.candidateEvidence,visibleDomEquivalent:verdict.visibleDomEquivalent,
+        ocr:recognition,matchedTerms:verdict.gate.matchedTerms,normalizedText:verdict.gate.normalizedText,decision:verdict.decision };
+    }));
+    const imageOnlyCases = imageAnalysis.flatMap((analysis,index)=> analysis.decision.passed && analysis.ocr.state==="available"
+      ? [{url:observations[index]!.image.candidate.frameUrl,location:analysis.location!,evidenceText:analysis.ocr.text}] : []);
+    const adEvidence = new Map<string, NonNullable<GraphInput["adEvidence"]>>();
+    const witness = (pageUrl:string,evidence:NonNullable<GraphInput["adEvidence"]>[number]):void => {
+      const items=adEvidence.get(pageUrl) ?? []; items.push(evidence);adEvidence.set(pageUrl,items);
+    };
+    const candidatesByIdentity = new Map<string, DecidedCandidate>();
+    for (const candidate of allCandidates) {
+      const key = `${findingIdentityKey({ url: candidate.url, location: candidate.location, technique: candidate.technique.technique })}\0${candidate.technique.rawText}`;
+      if (!candidatesByIdentity.has(key)) candidatesByIdentity.set(key,candidate);
+    }
+    for (const finding of result.findings) {
+      const candidate=candidatesByIdentity.get(`${findingIdentityKey(finding)}\0${finding.evidence_text}`);
+      if (candidate) witness(candidatePages.get(candidate) ?? candidate.url,{findingId:finding.id,location:finding.location,
+        destinationUrl:candidate.illegalAd.destinationUrl,reason:"official-finding"});
+    }
+    for (const [index,analysis] of imageAnalysis.entries()) {
+      const image=observations[index]!.image;
+      const positive=analysis.ocr.state==="available" && semanticGate(analysis.ocr.text).passed;
+      if (!positive && !recurringShas.has(image.sha256)) continue;
+      for (const pageUrl of analysis.pageUrls) witness(pageUrl,{location:image.candidate.location,
+        resourceUrl:image.candidate.resourceUrl ?? (image.sourceUrl!==image.candidate.pageUrl ? image.sourceUrl : undefined),
+        destinationUrl:image.candidate.destinationUrl,creativeId:image.sha256,
+        reason:positive ? "ocr-positive-ad-creative" : "repeated-ad-creative"});
+      if (image.candidate.resourceUrl && image.sourceUrl!==image.candidate.resourceUrl) {
+        for (const pageUrl of analysis.pageUrls) witness(pageUrl,{location:image.candidate.location,
+          resourceUrl:image.sourceUrl,creativeId:image.sha256,reason:"ad-candidate-resource-redirect"});
+      }
+    }
+    let graph: ReturnType<typeof buildEvidenceGraph> | undefined;
+    let infrastructure: ReturnType<typeof summarizeInfrastructure> = [];
+    try {
+      graph=buildEvidenceGraph(summary.pages.map((page)=>({pageUrl:page.url,links:page.links,
+        frames:page.frames.map((frame)=>({url:frame.url})),
+        externals:page.externals.map((external)=>({url:external.url,kind:external.kind})),adEvidence:adEvidence.get(page.url)})));
+      infrastructure=summarizeInfrastructure(graph,[new URL(entryUrl).host]);
+    } catch { analysisIssues.push("graph-analysis-unavailable"); }
     const zeroWidthCases = [...new Map(adTextSources.filter((source) => /[\u200B-\u200D\uFEFF]/.test(source.analysisText)).map((source) => [
       `${source.url}\0${source.location}\0${source.evidenceText}`,
       source,
     ])).values()].sort((a, b) => `${a.url}\0${a.location}\0${a.evidenceText}`.localeCompare(`${b.url}\0${b.location}\0${b.evidenceText}`));
-    const extraResult = buildExtraResult({
-      topic: "TOPIC", entryUrl: input.entryUrl, startedAt, finishedAt,
-      creatives: creatives.sort((a, b) => a.sourceUrl.localeCompare(b.sourceUrl) || a.sha256.localeCompare(b.sha256)),
-      graph, zeroWidthCases,
-    });
-    const extraJson = `${JSON.stringify(extraResult, null, 2)}\n`;
-    const candidatesByIdentity = new Map<string, DecidedCandidate>();
-    for (const candidate of allCandidates) {
-      const key = `${findingIdentityKey({ url: candidate.url, location: candidate.location, technique: candidate.technique.technique })}\0${candidate.technique.rawText}`;
-      if (!candidatesByIdentity.has(key)) candidatesByIdentity.set(key, candidate);
+    let extraResult: ReturnType<typeof buildExtraResult>;
+    try {
+      extraResult = buildExtraResult({
+        topic: "TOPIC", entryUrl: input.entryUrl, startedAt, finishedAt,
+        creatives: creatives.sort((a, b) => a.sourceUrl.localeCompare(b.sourceUrl) || a.sha256.localeCompare(b.sha256)),
+        graph:graph ?? {nodes:[],edges:[]},zeroWidthCases,imageOnlyCases,
+      });
+    } catch {
+      analysisIssues.push("extra-analysis-unavailable");
+      extraResult = {meta:result.meta,findings:[]};
     }
+    for (const [index,analysis] of imageAnalysis.entries()) {
+      analysis.extraFindingId=extraResult.findings.find((finding)=>finding.extra_finding==="IMAGE_ONLY_ILLEGAL_AD"
+        && finding.url===observations[index]!.image.candidate.frameUrl && finding.location===analysis.location)?.id;
+    }
+    const extraJson = `${JSON.stringify(extraResult, null, 2)}\n`;
     const detailBundle: ScanDetailBundle = {
       version: 2,
-      imageAnalysis: await Promise.all([...observedImages.values()].sort((a, b) => a.image.sourceUrl.localeCompare(b.image.sourceUrl))
-        .map(async ({ image, pages }): Promise<ImageAnalysis> => {
-          const recognition = await recognizedImages.get(image.sha256)
-            ?? { state: "unavailable", backend: ocr.name, reason: "budget" };
-          const gate = semanticGate(recognition.state === "available" ? recognition.text : "");
-          const decision = new RuleDecisionModel().resolveAmbiguity({ rawText: "", normalizedText: gate.normalizedText,
-            ocrText: recognition.state === "available" && gate.passed ? recognition.text : undefined,
-            technique: "image-ocr", infrastructureRefs: pages.size, creativeSimilarity: pages.size >= 2 ? 0 : -1,
-            semanticMatch: gate.passed });
-          return { sourceUrl: image.sourceUrl, pageUrls: [...pages].sort(), ocr: recognition,
-            matchedTerms: gate.matchedTerms, normalizedText: gate.normalizedText, decision };
-        })),
+      imageAnalysis,evidenceGraph:graph,infrastructure,
       pageOutcomes: summary.pages.map((page) => ({ url: page.url, finalUrl: page.finalUrl,
         depth: page.depth, status: page.status,
         outcome: page.status > 0 && page.status < 400 ? "checked" : "failed",
@@ -355,7 +410,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         const print = creatives.find((item) => item.sourceUrl === finding.url
           && finding.evidence_text.includes(item.perceptualHash));
         const image = print && creativeImages.get(`${print.sourceUrl}\0${print.sha256}`);
-        return image ? [{ ...image, findingId: finding.id }] : [];
+        return image ? [{ ...image, findingId: finding.id,assetId:`visual-${image.sha256}` }] : [];
       }),
       findings: result.findings.map((finding) => {
         const key = `${findingIdentityKey(finding)}\0${finding.evidence_text}`;
@@ -381,6 +436,19 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         cancelled,
       },
     };
+    const creativeShas=new Set(detailBundle.creativeImages.map((image)=>image.sha256));
+    const assets=new Map(observations.filter(({image})=>!creativeShas.has(image.sha256)).map(({image})=>
+      [image.sha256,{assetId:`visual-${image.sha256}`,mimeType:image.mimeType,dataUrl:image.dataUrl}] as const));
+    detailBundle.visualAssets=[...assets.values()];
+    detailBundle.analysisIssues=analysisIssues;
+    const manifestBytes=():number=>Buffer.byteLength(JSON.stringify(detailBundle),"utf8");
+    if (graph && manifestBytes()>8_000_000) {
+      const edges=graph.edges.filter((edge)=>edge.adRelated);
+      const ids=new Set(edges.flatMap((edge)=>[edge.from,edge.to]));
+      detailBundle.evidenceGraph={nodes:graph.nodes.filter((node)=>node.adRelated || ids.has(node.id)),edges};
+      analysisIssues.push("observed-graph-omitted-budget");
+      if (manifestBytes()>8_000_000) { delete detailBundle.evidenceGraph; analysisIssues.push("graph-unavailable-budget"); }
+    }
     const detailVerdict = validateScanDetailBundle(detailBundle, result, extraResult);
     if (!detailVerdict.ok) throw new Error(`detail validation failed: ${detailVerdict.errors.join("; ")}`);
     progress.stage = cancelled ? "cancelled" : "succeeded";

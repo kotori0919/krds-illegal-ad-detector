@@ -37,3 +37,29 @@ it("rejects invalid OCR confidence and inconsistent structured decisions", () =>
   data.imageAnalysis![0]!.decision.passed = true;
   expect(validateScanDetailBundle(data, result, extra).ok).toBe(true);
 });
+
+it("requires an image-only finding to join its exact OCR source and opaque asset", () => {
+  const data=bundle();
+  const image=data.imageAnalysis![0]!;
+  Object.assign(image,{assetId:"visual-1",sourceKind:"canvas",frameUrl:result.meta.entry_url,
+    location:"canvas.ad",extraFindingId:"x1",visibleDomEquivalent:false});
+  data.visualAssets=[{assetId:"visual-1",mimeType:"image/png",dataUrl:"data:image/png;base64,YQ=="}];
+  const extras:ExtraResult={meta:result.meta,findings:[{id:"x1",url:result.meta.entry_url,location:"canvas.ad",
+    technique:"ETC",extra_finding:"IMAGE_ONLY_ILLEGAL_AD",is_violation:true,evidence_text:"카지노 가입"}]};
+  expect(validateScanDetailBundle(data,result,extras)).toEqual({ok:true,errors:[]});
+  image.visibleDomEquivalent=true;
+  expect(validateScanDetailBundle(data,result,extras).errors).toContain("image-only identity invalid");
+  image.visibleDomEquivalent=false;image.assetId="missing";
+  expect(validateScanDetailBundle(data,result,extras).errors).toContain("image asset missing");
+  image.assetId="visual-1";extras.findings[0]!.url="https://other.kr/";
+  expect(validateScanDetailBundle(data,result,extras).errors).toContain("image-only identity invalid");
+});
+
+it("rejects local-path assets and dangling graph edges", () => {
+  const data=bundle();
+  data.visualAssets=[{assetId:"visual-1",mimeType:"image/png",dataUrl:"file:///private/image.png"}];
+  expect(validateScanDetailBundle(data,result,extra).errors).toContain("visual asset representation invalid");
+  data.visualAssets=[];
+  data.evidenceGraph={nodes:[{id:"p",kind:"Page",label:"page"}],edges:[{from:"p",to:"missing",kind:"LOADS"}]};
+  expect(validateScanDetailBundle(data,result,extra).errors).toContain("evidence graph invalid");
+});

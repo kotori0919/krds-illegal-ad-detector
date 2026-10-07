@@ -6,4 +6,5 @@ export * from "./host.js";
 export * from "./detection.js";
 export * from "./evidence.js";
 export * from "./detail.js";
+export * from "./evidence-access.js";
 export * from "./selector.js";

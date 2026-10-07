@@ -5,6 +5,8 @@
 mod job_fallback;
 #[path = "../../../src-tauri/src/session.rs"]
 mod session;
+#[path = "../../../src-tauri/src/evidence.rs"]
+mod evidence;
 
 #[cfg(test)]
 mod tests {
@@ -81,14 +83,14 @@ mod tests {
             }
         });
         let registry = SessionRegistry::shared();
-        let record = new_session(entry.clone(), "cancellation-fixture".to_string(), chrono::Utc::now().to_rfc3339());
+        let record = new_session(entry.clone(), chrono::Utc::now().to_rfc3339());
         let id = record.id.clone();
         registry.insert(record).await;
         let result_file = temporary.0.join("result.json");
         let detail_file = temporary.0.join("detail.json");
         let extra_file = temporary.0.join("result_extra.json");
         let args = vec!["--session".to_string(), id.clone(), "--entry-url".to_string(), entry.clone(),
-            "--topic".to_string(), "cancellation-fixture".to_string(), "--max-pages".to_string(), "2".to_string(),
+            "--max-pages".to_string(), "2".to_string(),
             "--max-depth".to_string(), "1".to_string(), "--timeout-sec".to_string(), "90".to_string(),
             "--concurrency".to_string(), "1".to_string(), "--settle-ms".to_string(), "50".to_string(),
             "--out-file".to_string(), result_file.to_string_lossy().into_owned(),
@@ -127,13 +129,15 @@ mod tests {
         assert_eq!(official["findings"].as_array().unwrap().len(), 1);
         assert_eq!(official["findings"][0]["technique"], "HOMOGLYPH");
         assert_eq!(official["findings"][0]["location"], "#retained");
-        let detail = registry.detail_value(&id).await.unwrap();
+        let detail = registry.coverage_value(&id).await.unwrap();
         assert_eq!(detail["coverage"]["checkedPages"], 1);
         assert_eq!(detail["coverage"]["cancelled"], true);
         assert_eq!(detail["pageOutcomes"][0]["outcome"], "checked");
         assert_eq!(detail["pageOutcomes"][1]["outcome"], "failed");
-        assert_eq!(detail["findings"][0]["findingId"], official["findings"][0]["id"]);
-        assert_eq!(detail["findings"][0]["visual"]["state"], "available");
+        let selected = registry.finding_detail_value(&id, official["findings"][0]["id"].as_str().unwrap()).await.unwrap();
+        assert_eq!(selected["findingId"], official["findings"][0]["id"]);
+        assert_eq!(selected["visual"]["state"], "available");
+        assert!(!selected.to_string().contains("data:image/"));
         assert_eq!(registry.extra_value(&id).await.unwrap()["meta"], official["meta"]);
         let export = registry.validated_export_text(&id).await.unwrap();
         let exported_file = temporary.0.join("exported-result.json");
@@ -201,7 +205,6 @@ mod tests {
         let registry = SessionRegistry::shared();
         let record = new_session(
             entry.clone(),
-            "municipal-style-fixture".to_string(),
             chrono::Utc::now().to_rfc3339(),
         );
         let id = record.id.clone();
@@ -217,8 +220,6 @@ mod tests {
             id.as_str(),
             "--entry-url",
             entry.as_str(),
-            "--topic",
-            "municipal-style-fixture",
             "--max-pages",
             "6",
             "--max-depth",
@@ -360,11 +361,23 @@ mod tests {
             5
         );
         assert_eq!(
-            registry.detail_value(&id).await.unwrap()["coverage"]["checkedPages"],
+            registry.coverage_value(&id).await.unwrap()["coverage"]["checkedPages"],
             5
         );
         assert_eq!(registry.extra_value(&id).await.unwrap(), extra);
-        println!("native L3: 5 official, 5 JPEG detail, 5 checked, 1 failed, {} progress events, persisted succeeded", events.lock().unwrap().len());
+        let selected = registry.finding_detail_value(&id, "f1").await.unwrap();
+        assert!(!selected.to_string().contains("data:image/"));
+        let asset_id = selected["visual"]["assetId"].as_str().unwrap();
+        let asset = registry.evidence_asset_value(&id, asset_id).await.unwrap();
+        assert!(asset["dataUrl"].as_str().unwrap().starts_with("data:image/jpeg;base64,/9j/"));
+        assert!(registry.evidence_asset_value("another-session", asset_id).await.is_none());
+        assert!(registry.evidence_asset_value(&id, "../../result.json").await.is_none());
+        let summary = registry.evidence_summary_value(&id).await.unwrap();
+        assert!(!summary.to_string().contains("data:image/"));
+        let analyses = registry.image_analysis_value(&id, &serde_json::json!({"limit":1})).await.unwrap().unwrap();
+        assert!(!analyses.to_string().contains("data:image/"));
+        assert_eq!(registry.result_value(&id).await.unwrap(), official);
+        println!("native L3: official unchanged; selected metadata has no bytes; session-scoped JPEG loaded; foreign/path asset denied; {} progress events", events.lock().unwrap().len());
         server.abort();
     }
 }

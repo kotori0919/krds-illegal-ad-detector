@@ -47,8 +47,10 @@ describe("evidence graph", () => {
 
   it("summarizes recurring infrastructure with disciplined wording", () => {
     const graph = buildEvidenceGraph([
-      { pageUrl: "https://example.kr/a", links: [], frames: [], externals: [{ url: "https://ads.example/1", kind: "resource" }] },
-      { pageUrl: "https://example.kr/b", links: [], frames: [], externals: [{ url: "https://ads.example/2", kind: "resource" }] },
+      { pageUrl: "https://example.kr/a", links: [], frames: [], externals: [{ url: "https://ads.example/1", kind: "resource" }],
+        adEvidence: [{ location: "#ad", resourceUrl: "https://ads.example/1", reason: "official-finding" }] },
+      { pageUrl: "https://example.kr/b", links: [], frames: [], externals: [{ url: "https://ads.example/2", kind: "resource" }],
+        adEvidence: [{ location: "#ad", resourceUrl: "https://ads.example/2", reason: "official-finding" }] },
     ]);
     const summaries = summarizeCorrelatedInfrastructure(graph, ["example.kr"]);
     expect(summaries.length).toBe(1);
@@ -58,8 +60,10 @@ describe("evidence graph", () => {
   it("counts distinct pages even when they load the exact same external asset", () => {
     const shared = "https://asset.example/banner.webp";
     const graph = buildEvidenceGraph([
-      { pageUrl: "https://site.example/a", links: [], frames: [], externals: [{ url: shared, kind: "resource" }] },
-      { pageUrl: "https://site.example/b", links: [], frames: [], externals: [{ url: shared, kind: "resource" }] },
+      { pageUrl: "https://site.example/a", links: [], frames: [], externals: [{ url: shared, kind: "resource" }],
+        adEvidence: [{ location: "#ad", resourceUrl: shared, reason: "repeated-creative" }] },
+      { pageUrl: "https://site.example/b", links: [], frames: [], externals: [{ url: shared, kind: "resource" }],
+        adEvidence: [{ location: "#ad", resourceUrl: shared, reason: "repeated-creative" }] },
     ]);
     expect(summarizeCorrelatedInfrastructure(graph, ["site.example"]))
       .toEqual(["recurring advertisement infrastructure: asset.example (observed on 2 pages)"]);
@@ -120,8 +124,10 @@ describe("extra results", () => {
 
   it("builds validated result_extra.json with ETC + extra_finding", () => {
     const graph = buildEvidenceGraph([
-      { pageUrl: "https://example.kr/a", links: [], frames: [], externals: [{ url: "https://ads.example/1", kind: "resource" }] },
-      { pageUrl: "https://example.kr/b", links: [], frames: [], externals: [{ url: "https://ads.example/2", kind: "resource" }] },
+      { pageUrl: "https://example.kr/a", links: [], frames: [], externals: [{ url: "https://ads.example/1", kind: "resource" }],
+        adEvidence: [{ location: "#ad", resourceUrl: "https://ads.example/1", reason: "official-finding" }] },
+      { pageUrl: "https://example.kr/b", links: [], frames: [], externals: [{ url: "https://ads.example/2", kind: "resource" }],
+        adEvidence: [{ location: "#ad", resourceUrl: "https://ads.example/2", reason: "official-finding" }] },
     ]);
     const bytes = solidRgba(16, 16, 100);
     const result = buildExtraResult({
@@ -145,6 +151,24 @@ describe("extra results", () => {
     expect(types).toEqual(
       new Set(["REUSED_AD_CREATIVE", "AD_INFRASTRUCTURE_CORRELATION", "ZERO_WIDTH_OBFUSCATION"]),
     );
+  });
+  it("serializes image-only decisions once with stable IDs independent of input order", () => {
+    const input = { topic: "TOPIC", entryUrl: "https://example.kr/",
+      startedAt: "2026-10-01T00:00:00.000Z", finishedAt: "2026-10-01T00:01:00.000Z",
+      creatives: [], graph: { nodes: [], edges: [] }, zeroWidthCases: [],
+      imageOnlyCases: [
+        { url: "https://example.kr/b", location: "#canvas", evidenceText: "카지노 가입" },
+        { url: "https://example.kr/a", location: "#banner", evidenceText: "가입 보너스 지급" },
+        { url: "https://example.kr/b", location: "#canvas", evidenceText: "카지노 가입" },
+      ],
+    };
+    const result = buildExtraResult(input);
+    expect(result.findings.map(({ id, url, location, extra_finding, technique }) => ({ id, url, location, extra_finding, technique }))).toEqual([
+      { id: "x1", url: "https://example.kr/a", location: "#banner", extra_finding: "IMAGE_ONLY_ILLEGAL_AD", technique: "ETC" },
+      { id: "x2", url: "https://example.kr/b", location: "#canvas", extra_finding: "IMAGE_ONLY_ILLEGAL_AD", technique: "ETC" },
+    ]);
+    expect(buildExtraResult({ ...input, imageOnlyCases: [...input.imageOnlyCases].reverse() })).toEqual(result);
+    expect(buildExtraResult({ ...input, imageOnlyCases: [] }).findings).toEqual([]);
   });
 });
 

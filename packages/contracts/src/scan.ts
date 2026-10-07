@@ -25,7 +25,6 @@ export const DEFAULT_SCAN_LIMITS: ScanLimits = {
 
 export interface ScanRequest {
   entryUrl: string;
-  topic?: string;
   limits?: Partial<ScanLimits>;
 }
 
@@ -40,7 +39,6 @@ export type ScanStatus =
 export interface ScanSession {
   id: string;
   entryUrl: string;
-  topic: string;
   status: ScanStatus;
   startedAt: string;
   finishedAt?: string;

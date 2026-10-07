@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { ScanResult } from "../src/screens/ScanResult.js";
-import type { HostBridge, OfficialResult, ScanDetailBundle } from "@krds-detector/contracts";
+import type { HostBridge, OfficialResult, ScanCoverageView } from "@krds-detector/contracts";
+import { evidenceHost } from "./evidence-host.js";
 
 afterEach(cleanup);
 
@@ -30,10 +31,10 @@ function findingResult(): OfficialResult {
   };
 }
 
-function renderResultState(getResult: HostBridge["getOfficialResult"], getDetail: HostBridge["getDetailBundle"]) {
+function renderResultState(getResult: HostBridge["getOfficialResult"], getCoverage: HostBridge["getScanCoverage"]) {
   const host = { getCapabilities: async () => ({ localScan: true }),
     getSession: async () => ({ id: "s1", status: "succeeded" }),
-    getOfficialResult: getResult, getDetailBundle: getDetail,
+    ...evidenceHost(), getOfficialResult: getResult, getScanCoverage: getCoverage,
     getExtraResult: async () => undefined } as unknown as HostBridge;
   function Workspace() {
     const [view, setView] = useState<"findings" | "pages" | "coverage" | "extra">("coverage");
@@ -46,12 +47,12 @@ function renderResultState(getResult: HostBridge["getOfficialResult"], getDetail
 
 describe("ScanResult delayed availability", () => {
   it("distinguishes pending coverage from absence and preserves official findings when coverage settles", async () => {
-    let complete!: (bundle: ScanDetailBundle | undefined) => void;
-    const pending = new Promise<ScanDetailBundle | undefined>((resolve) => { complete = resolve; });
+    let complete!: (bundle: ScanCoverageView | undefined) => void;
+    const pending = new Promise<ScanCoverageView | undefined>((resolve) => { complete = resolve; });
     renderResultState(async () => findingResult(), () => pending);
     await screen.findByText(/공식 탐지 1건/);
     const before = screen.getByRole("status").textContent;
-    await act(async () => complete({ version: 2, findings: [], creativeImages: [], coverage: {
+    await act(async () => complete({ pageOutcomes: [], coverage: {
       checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: false,
     } }));
     expect(screen.queryByRole("status")).toBeNull();
@@ -85,7 +86,7 @@ describe("ScanResult delayed availability", () => {
       getCapabilities: vi.fn(async () => ({ localScan: true })),
       getSession: vi.fn(async () => ({ id: "s1", status: "succeeded" })),
       getOfficialResult: vi.fn(async () => findingResult()),
-      getDetailBundle: vi.fn(async () => undefined),
+      ...evidenceHost(),
     } as unknown as HostBridge;
     function Workspace() {
       const [query, setQuery] = useState("");
@@ -118,7 +119,7 @@ describe("ScanResult delayed availability", () => {
         calls += 1;
         return calls >= 3 ? findingResult() : undefined;
       }),
-      getDetailBundle: vi.fn(async () => undefined),
+      ...evidenceHost(),
     } as unknown as HostBridge;
     render(
       <ScanResult
@@ -147,7 +148,7 @@ describe("ScanResult delayed availability", () => {
         getCapabilities: vi.fn(async () => ({ localScan: true })),
         getSession: vi.fn(async () => ({ id: "s1", status: "succeeded" })),
         getOfficialResult: vi.fn(async () => undefined),
-        getDetailBundle: vi.fn(async () => undefined),
+        ...evidenceHost(),
       } as unknown as HostBridge;
       render(
         <ScanResult
@@ -180,7 +181,7 @@ describe("ScanResult delayed availability", () => {
       getCapabilities: vi.fn(async () => ({ localScan: true })),
       getSession: vi.fn(async () => ({ id: "s1", status: "cancelled" })),
       getOfficialResult: vi.fn(async () => undefined),
-      getDetailBundle: vi.fn(async () => undefined),
+      ...evidenceHost(),
     } as unknown as HostBridge;
     render(
       <ScanResult

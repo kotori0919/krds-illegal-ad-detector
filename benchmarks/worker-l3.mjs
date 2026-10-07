@@ -63,7 +63,6 @@ try {
     workerFile,
     "--session", "l3-worker-smoke",
     "--entry-url", `${origin}/`,
-    "--topic", "municipal-style-fixture",
     "--max-pages", "6",
     "--max-depth", "2",
     "--timeout-sec", "90",

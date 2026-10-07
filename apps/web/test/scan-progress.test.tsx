@@ -10,7 +10,7 @@ afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 function setup() {
   let handler: ((event: ScanEvent) => void) | undefined;
-  let session: ScanSession = { id: "s1", entryUrl: "https://example.kr/", topic: "", status: "running",
+  let session: ScanSession = { id: "s1", entryUrl: "https://example.kr/", status: "running",
     startedAt: "2026-10-06T00:00:00Z", progress: initialProgress("running") };
   let lookupFailed = false;
   let cancelFailed = false;

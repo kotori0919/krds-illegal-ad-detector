@@ -7,13 +7,21 @@ freeze or whole-product audit is required before connecting features.
 
 **Feature integration incomplete**
 
-- Learned VLM inference remains disabled. The active image decision is the
-  deterministic RuleDecisionModel; it is not a learned model.
-- OCR currently consumes bounded captured image-response bytes. Canvas, SVG
-  and CSS background rasterization are not connected to this OCR path.
+- Optional learned VLM inference remains disabled; no accuracy or CPU/package
+  value has been demonstrated for the remaining difficult cases.
 
 **Feature integration complete, release verification incomplete**
 
+- Session-scoped selected-detail, paged image metadata and opaque asset reads
+  replace full-bundle React transfer. Graph summary and bounded click-only
+  finding/page/creative/domain slices use the same native session index.
+- Gated IMG, computed CSS backgrounds, selected SVG and canvas feed the real
+  offline OCR backend. IMAGE_ONLY_ILLEGAL_AD requires semantic evidence,
+  independent corroboration and absence of equivalent visible DOM text.
+- Advertisement witnesses qualify infrastructure relations; repeated normal
+  CDN, analytics, font and logo resources remain observed-only. Optional
+  classifier failure is disclosed and preserves the official result.
+- The unused operator topic has been removed from UI, DTO and worker CLI.
 - General text owners, independent-child exclusion, inline CSS sources and
   unique round-trip selectors run in the live single-pass scanner.
 - Official and extra metadata use literal TOPIC. PageOutcome, FindingDetail,
@@ -23,16 +31,47 @@ freeze or whole-product audit is required before connecting features.
   remain active. Cooperative cancellation preserves completed-page artifacts;
   the UI routes only after terminal state and confirmed hasResult.
 - The KRDS three-step UI includes search, filters, page outcomes, evidence,
-  image analysis and official file saving. The current NSIS-installed Windows
-  app exercised the real Tauri bridge; the earlier 360px Chromium observation
+  image analysis and official file saving. The baseline 5bfdd56 NSIS-installed
+  Windows app exercised the real Tauri bridge; the earlier 360px Chromium observation
   used explicitly marked IPC replay and retains that narrower scope.
+
+OBSERVED for the P0 changes: a rebuilt portable Windows app scanned two served
+pages through the native Tauri bridge. IMG, background, SVG and canvas produced
+eight validated IMAGE_ONLY_ILLEGAL_AD findings, one reused creative and one
+ad-related infrastructure relation; the official result retained its separate
+TRANSPARENT finding. Results showed the domain with its two related pages,
+click-only relationships and selected image/official inspector assets.
+Read-only queries against that completed native session returned image-free
+metadata (543-byte summary), selected JPEG bytes and bounded graph endpoints;
+foreign-session/file-path access and oversized graph queries were rejected.
+The throwaway observer's attempt to replace immutable native invoke failed;
+these observations came from subsequent direct queries, not that observer.
+The Windows smoke preceded the final frame-text and graph-collision fixes;
+those fixes have real browser/OCR and exact-key collision regressions on Linux.
+The complete native session suite, typecheck, lint and current source builds
+pass. No installer cycle, 200-page sweep or full release audit was repeated.
+
+MEASURED binary sizes: the rebuilt host is 18,751,488 bytes (+282,624 versus
+the baseline installed host); bundled scanner JS is 119,070 bytes (+22,029).
+No new external runtime/model dependency was added. Full installer size and
+comparative runtime overhead are NOT_RUN. The existing first-eight-page,
+250-KB/page acquisition, six-distinct-image OCR and shared deadline limits
+remain active. OCR fidelity and skipped/unavailable bounded acquisitions are
+still limitations; these fixtures do not establish broad classification accuracy.
+P1 remains a separate product-polish milestone, including readable relationship
+node labels and the remaining ResultsWorkspace/KRDS interaction review.
+
+## Earlier baseline observations
+
+The observations below predate the P0 changes; they are not a current-build
+release verdict.
 
 OBSERVED: live served Chromium text/selector/zero-width/OCR/cancel regressions,
 the packaged Node worker's complete and cancelled scans, native Rust worker
 launch -> validated persistence -> retrieval/export, UI behavior and scoped
 type/lint checks. The Korean image fixture produced the expected phrase with
 0.96 confidence. This is one fixture, not a broad OCR accuracy measurement.
-Current-head remote CI passed all 167 tests, type checking, lint and builds.
+Baseline 5bfdd56 remote CI passed type checking, lint, tests and builds.
 
 OBSERVED: current packaged Node/worker/OCR dependencies executed on Windows
 10.0.26100.9457, Node v22.19.0. The served non-ID text produced one official

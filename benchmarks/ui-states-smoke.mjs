@@ -14,6 +14,7 @@ import { scanSite } from "../packages/detection/dist/scan.js";
 import { resolveFixturePath } from "../packages/synth-eval/dist/serve.js";
 import { validateOfficialResultText, validateExtraResult } from "../packages/contracts/dist/result.js";
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
+import { evidenceRead } from "./ui-evidence-ipc.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const nativeZoom = process.argv.includes("--zoom");
@@ -42,7 +43,7 @@ try {
   const origin = `http://127.0.0.1:${fixture.address().port}`;
   async function scan(entryUrl, maxPages, settleMs) {
     let progress;
-    const output = await scanSite({ entryUrl, topic: "state-gate",
+    const output = await scanSite({ entryUrl,
       crawl: { concurrency: 2, settleMs, perPageMs: 20000, limits: { maxPages, maxDepth: 4, timeoutSec: 300 } },
       onEvent: (event) => { progress = event.progress; },
     });
@@ -63,29 +64,29 @@ try {
   let pendingSave;
   browser = await chromium.launch({ headless: !nativeZoom, args: ["--no-sandbox"] });
   const page = await browser.newPage({ viewport: { width: nativeZoom ? 720 : 360, height: 800 } });
-  await page.exposeFunction("stateSmokeInvoke", (command) => {
+  await page.exposeFunction("stateSmokeInvoke", (command, args) => {
     switch (command) {
       case "plugin:event|listen": return 1;
       case "plugin:event|unlisten": return;
       case "scan_start": case "scan_get_session": return { id: "states", entryUrl: output.result.meta.entry_url,
-        topic: "", status: "succeeded", startedAt: output.result.meta.started_at,
+        status: "succeeded", startedAt: output.result.meta.started_at,
         finishedAt: output.result.meta.finished_at, progress: output.progress };
       case "scan_get_result": if (resultRejected) throw new Error("private result read error"); return output.result;
-      case "scan_get_detail_bundle":
+      case "scan_get_coverage":
         if (coverageMode === "hold") return new Promise((complete) => coverageWaiters.push(complete));
         if (coverageMode === "reject") throw new Error("private coverage read error");
         if (coverageMode === "missing") return undefined;
-        return output.detailBundle;
+        return evidenceRead(output.detailBundle, command, args);
       case "scan_get_extra_result": return output.extraResult;
       case "scan_export":
         exportCalls += 1;
         return new Promise((resolve, reject) => { pendingSave = { resolve, reject }; });
-      default: throw new Error(`unexpected IPC command ${command}`);
+      default: return evidenceRead(output.detailBundle, command, args);
     }
   });
   await page.addInitScript(() => {
     window.__TAURI_INTERNALS__ = { transformCallback: () => 1, unregisterCallback: () => {},
-      invoke: (command) => window.stateSmokeInvoke(command) };
+      invoke: (command, args) => window.stateSmokeInvoke(command, args) };
   });
   const appUrl = `http://127.0.0.1:${app.address().port}/`;
   async function start() {
@@ -120,7 +121,7 @@ try {
   await dialog.getByText("공식 탐지 17건", { exact: true }).waitFor();
   if (await dialog.getByRole("button", { name: "저장", exact: true }).isEnabled()) throw new Error("save enabled before coverage");
   coverageMode = "normal";
-  for (const complete of coverageWaiters.splice(0)) complete(output.detailBundle);
+  for (const complete of coverageWaiters.splice(0)) complete(evidenceRead(output.detailBundle, "scan_get_coverage"));
   await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] button')].some((button) => button.textContent === "저장" && !button.disabled));
   async function beginSave() {
     const before = exportCalls;

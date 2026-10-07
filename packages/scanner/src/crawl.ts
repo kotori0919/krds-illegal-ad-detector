@@ -261,9 +261,9 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         const status = res.status();
         if (res.request().resourceType() === "image" && status >= 200 && status < 300 && imageResponses.length < 16) {
           const mediaType = (res.headers()["content-type"] ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
-          const declaredBytes = Number(res.headers()["content-length"] ?? 0);
-          if (["image/png", "image/jpeg", "image/webp"].includes(mediaType)
-            && Number.isInteger(declaredBytes) && declaredBytes > 0 && declaredBytes <= 250_000) {
+          // Retain descriptors, never response bodies. The gated collector
+          // rejects declared oversized assets and rasterizes missing-length ones.
+          if (["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(mediaType)) {
             imageResponses.push({ response: res, url, mediaType });
           }
         }

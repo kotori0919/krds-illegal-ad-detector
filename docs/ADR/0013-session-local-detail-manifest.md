@@ -26,18 +26,30 @@ After stable official IDs are assigned, join each selected candidate to its
 v0.2 `ScanDetailBundle` to a separate worker file. Keep the official output
 unchanged. The Tauri host validates version, count, ID join, exact exported
 fields, coverage bounds, and a bounded JPEG data URL before atomically storing
-the official and detail results for a succeeded session. The React inspector
-requests that bundle through `HostBridge`; the browser replay explicitly has
-no real detail bundle.
+the official and detail results for a succeeded session. The persisted bundle
+is a worker/host boundary; React requests selected metadata and opaque assets
+through the session-scoped HostBridge methods described below. Browser replay
+uses an explicitly labelled projection of supplied evidence.
 
 ## Tradeoff and acceptance
 
 An in-memory data URL avoids a routable file endpoint, arbitrary paths, and
 orphaned evidence files. Repeating the same image for several findings can
-increase manifest size, so the host caps the full manifest at 8 MB. If the
-4-vCPU/8-GB Windows benchmark shows unacceptable memory or transfer cost,
-replace this representation with session-owned opaque asset IDs and validated
-local files without changing `result.json`.
+increase manifest size, so the host caps the full manifest at 8 MB. The host
+indexes persisted bytes once and deduplicates session-owned opaque asset IDs
+without changing `result.json`; no filesystem path is exposed to React.
+
+## Amendment: lazy operator evidence (2026-10-07)
+
+Results opening retrieves official findings, coverage/page outcomes and a
+small evidence summary. `getFindingDetail` returns one finding's CSS, geometry,
+normalization and asset IDs. `getImageAnalysis` pages metadata (default12,
+maximum24) and supports page/extra-finding filters. `getEvidenceAsset` returns
+only the requested session-owned image; failed/missing reads remain retryable,
+and successful native reads are cached for repeated review.
+`getEvidenceGraphSlice` is click-only, with default100nodes/200edges, hard
+250/500 and depth2. Legacy records without a graph or new assets retain their
+available evidence and disclose missing analysis. No old full-bundle IPC remains.
 
 The initial L2 scanner test and Node worker CLI observed a real JPEG,
 CSS/geometry, detail-to-official ID join and failed-page coverage. Later

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { initialProgress, type ExtraResult, type HostBridge, type OfficialResult, type ScanDetailBundle, type ScanSession } from "@krds-detector/contracts";
+import { evidenceHost } from "./evidence-host.js";
 import { ScanResult } from "../src/screens/ScanResult.js";
 import { ScanProgressView } from "../src/screens/ScanProgress.js";
 import { BrowserHost } from "../src/host/browser.js";
@@ -19,10 +20,10 @@ const bundle: ScanDetailBundle = { version: 2, findings: [], creativeImages: [],
 
 async function renderResult(detail: ScanDetailBundle, options: { status?: ScanSession["status"]; view?: "extra" | "pages" | "coverage"; extra?: ExtraResult; official?: OfficialResult } = {}) {
   vi.useFakeTimers();
-  const session: ScanSession = { id: "s1", entryUrl: result.meta.entry_url, topic: "", status: options.status ?? "succeeded",
+  const session: ScanSession = { id: "s1", entryUrl: result.meta.entry_url, status: options.status ?? "succeeded",
     startedAt: result.meta.started_at, hasResult: true, progress: initialProgress(options.status ?? "succeeded") };
   const host = { getCapabilities: async () => ({ localScan: true }), getSession: async () => session,
-    getOfficialResult: async () => options.official ?? result, getDetailBundle: async () => detail,
+    ...evidenceHost(detail), getOfficialResult: async () => options.official ?? result,
     getExtraResult: async () => options.extra } as unknown as HostBridge;
   function Workspace() {
     const [view, setView] = useState<"findings" | "extra" | "pages" | "coverage">(options.view ?? "extra");
@@ -40,10 +41,10 @@ describe("stored OCR and partial coverage presentation", () => {
     await renderResult(bundle);
     const analysis = screen.getByRole("region", { name: "이미지 문자 분석" });
     expect(within(analysis).getByText("카지노 가입 이벤트")).toBeDefined();
-    expect(within(analysis).getByText("94%")).toBeDefined();
+    expect(within(analysis).getByText(/문자 인식 신뢰도: 94%/).closest("details")?.open).toBe(false);
     expect(within(analysis).getByText("카지노")).toBeDefined();
-    expect(within(analysis).getByText(decision.rule)).toBeDefined();
-    expect(within(analysis).getByText("0.8 / 0.7")).toBeDefined();
+    expect(within(analysis).getByText(`판단 규칙: ${decision.rule}`).closest("details")?.open).toBe(false);
+    expect(within(analysis).getByText("판단 점수 / 기준: 0.8 / 0.7").closest("details")?.open).toBe(false);
     expect(within(analysis).getByText("광고 표현 확인")).toBeDefined();
     expect(screen.getByText("https://example.kr/clean")).toBeDefined();
     expect(screen.queryByText("확정된 탐지 목록")).toBeNull();
@@ -71,6 +72,23 @@ describe("stored OCR and partial coverage presentation", () => {
     expect(within(analysis).getByRole("img").getAttribute("src")).toBe("data:image/png;base64,YQ==");
     expect(within(analysis).getByText("카지노 가입 이벤트")).toBeDefined();
     expect(screen.getByRole("heading", { name: "반복 광고 소재" })).toBeDefined();
+  });
+
+  it("preserves positive advertisement wording when visible DOM text prevents an image-only finding", async () => {
+    await renderResult({ ...bundle, imageAnalysis: [{ ...bundle.imageAnalysis![0]!, visibleDomEquivalent: true,
+      decision: { ...decision, passed: false, score: 0 } }] });
+    const analysis = screen.getByRole("region", { name: "이미지 문자 분석" });
+    expect(within(analysis).getByText("광고 표현 확인")).toBeDefined();
+    expect(within(analysis).queryByText("광고 표현 미확인")).toBeNull();
+    expect(within(analysis).getByText(/페이지에 같은 광고 문구가 있어/)).toBeDefined();
+  });
+
+  it("distinguishes unavailable graph analysis from an observed absence of related infrastructure", async () => {
+    await renderResult({ ...bundle, analysisIssues: ["evidence-graph:deadline"] });
+    expect(screen.getByText(/관계 분석 기록을 사용할 수 없습니다/)).toBeDefined();
+    expect(screen.queryByText("광고 근거와 연결된 외부 도메인이 없습니다.")).toBeNull();
+    expect(screen.getByRole("note").textContent).toContain("추가 분석 일부를 완료하지 못했습니다");
+    expect(screen.getByText("evidence-graph:deadline").closest("details")?.open).toBe(false);
   });
 
   it("keeps cancelled results saveable and marks the preserved partial coverage", async () => {

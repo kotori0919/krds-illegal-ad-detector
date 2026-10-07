@@ -9,7 +9,8 @@
 
 import type { ScanEvent, ScanRequest, ScanSession } from "./scan.js";
 import type { ExtraResult, OfficialResult } from "./result.js";
-import type { ScanDetailBundle } from "./detail.js";
+import type { ImageAnalysisPage, ImageAnalysisQuery, ScanCoverageView, FindingDetailView,
+  EvidenceAsset, EvidenceSummary, EvidenceGraphQuery, EvidenceGraphSlice } from "./evidence-access.js";
 
 export interface HostCapabilities {
   /** Arbitrary local scan via Playwright worker (Tauri only). */
@@ -57,6 +58,11 @@ export interface HostBridge {
   getSession(sessionId: string): Promise<ScanSession | undefined>;
   getOfficialResult(sessionId: string): Promise<OfficialResult | undefined>;
   getExtraResult(sessionId: string): Promise<ExtraResult | undefined>;
-  getDetailBundle(sessionId: string): Promise<ScanDetailBundle | undefined>;
+  getScanCoverage(sessionId: string): Promise<ScanCoverageView | undefined>;
+  getFindingDetail(sessionId: string, findingId: string): Promise<FindingDetailView | undefined>;
+  getImageAnalysis(sessionId: string, query?: ImageAnalysisQuery): Promise<ImageAnalysisPage | undefined>;
+  getEvidenceAsset(sessionId: string, assetId: string): Promise<EvidenceAsset | undefined>;
+  getEvidenceSummary(sessionId: string): Promise<EvidenceSummary | undefined>;
+  getEvidenceGraphSlice(sessionId: string, query: EvidenceGraphQuery): Promise<EvidenceGraphSlice | undefined>;
   exportResult(sessionId: string, directory: string): Promise<ExportPaths>;
 }

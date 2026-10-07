@@ -113,7 +113,6 @@ async function runOne(concurrency, origin, baselineMiB) {
     const child = spawn(process.execPath, ["--import", pathToFileURL(join(root, "benchmarks", "capture-probe.mjs")).href, worker,
       "--session", `windows-v2-c${concurrency}`,
       "--entry-url", `${origin}/`,
-      "--topic", "municipal-style-fixture",
       "--max-pages", String(truth.expectedAttemptedPages), "--max-depth", large ? "4" : "2", "--timeout-sec", String(budgetSec),
       "--settle-ms", large ? "1500" : "1400", "--concurrency", String(concurrency),
       "--out-file", resultFile, "--detail-out-file", detailFile, "--extra-out-file", extraFile,

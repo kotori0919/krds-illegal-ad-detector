@@ -13,7 +13,6 @@ describe("end-to-end scan on synthetic fixtures", () => {
     const stages: string[] = [];
     await scanSite({
       entryUrl: "/",
-      topic: "synthetic-eval",
       crawl: {
         limits: { maxPages: 5, maxDepth: 1, timeoutSec: 120 },
         settleMs: 300,
@@ -49,7 +48,6 @@ describe("end-to-end scan on synthetic fixtures", () => {
     const started = Date.now();
     const { result, json, pagesVisited } = await scanSite({
       entryUrl: "/",
-      topic: "synthetic-eval",
       crawl: {
         limits: { maxPages: 30, maxDepth: 4, timeoutSec: 300 },
         settleMs: 1800,

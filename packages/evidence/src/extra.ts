@@ -1,9 +1,11 @@
 /**
  * Extra-result engine (GOAL Phase 17): result_extra.json.
  *
- * Only proven detectors feed extras. This slice ships two:
+ * Only proven detectors feed extras:
  * - REUSED_AD_CREATIVE: perceptual-hash creative family seen >= 2 times.
- * - AD_INFRASTRUCTURE_CORRELATION: domain referenced >= 2 times in the graph.
+ * - AD_INFRASTRUCTURE_CORRELATION: exact advertisement witnesses on >= 2 pages.
+ * - IMAGE_ONLY_ILLEGAL_AD: caller-approved OCR, semantics and corroboration,
+ *   without equivalent visible DOM advertisement text.
  * - ZERO_WIDTH_OBFUSCATION: zero-width chars (U+200B-U+200D, U+FEFF) inside
  *   ad-semantic text — extended intelligence, never an official technique.
  *
@@ -19,14 +21,6 @@ import {
 import { groupSimilarCreatives, type CreativeFingerprint } from "./fingerprint.js";
 import { summarizeCorrelatedInfrastructure, type EvidenceGraph } from "./graph.js";
 
-export const EXTRA_FINDING_TYPES = [
-  "REUSED_AD_CREATIVE",
-  "AD_INFRASTRUCTURE_CORRELATION",
-  "ZERO_WIDTH_OBFUSCATION",
-] as const;
-
-export type ExtraFindingType = (typeof EXTRA_FINDING_TYPES)[number];
-
 const ZERO_WIDTH_RE = /[\u200B-\u200D\uFEFF]/;
 
 export function zeroWidthSignals(text: string): boolean {
@@ -41,6 +35,8 @@ export interface ExtraBuildInput {
   creatives: CreativeFingerprint[];
   graph: EvidenceGraph;
   zeroWidthCases: { url: string; location: string; evidenceText: string }[];
+  /** Detection owns semantic, corroboration and visible-DOM exclusion gates. */
+  imageOnlyCases?: { url: string; location: string; evidenceText: string }[];
 }
 
 export function buildExtraResult(input: ExtraBuildInput): ExtraResult {
@@ -50,6 +46,14 @@ export function buildExtraResult(input: ExtraBuildInput): ExtraResult {
     n += 1;
     return `x${String(n)}`;
   };
+  const imageCases = new Map((input.imageOnlyCases ?? []).map((image) => [
+    `${image.url}\0${image.location}\0${image.evidenceText}`, image,
+  ]));
+  for (const [, image] of [...imageCases].sort(([a], [b]) => a.localeCompare(b))) {
+    findings.push({ id: nextId(), url: image.url, location: image.location,
+      is_violation: true, evidence_text: image.evidenceText,
+      technique: "ETC", extra_finding: "IMAGE_ONLY_ILLEGAL_AD" });
+  }
   for (const group of groupSimilarCreatives(input.creatives)) {
     const first = group[0];
     if (!first) continue;

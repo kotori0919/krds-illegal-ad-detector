@@ -7,6 +7,7 @@ import { chromium } from "playwright-core";
 import { scanSite } from "../packages/detection/dist/scan.js";
 import { validateExtraResult, validateOfficialResultText } from "../packages/contracts/dist/result.js";
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
+import { installResultReplay } from "./ui-evidence-ipc.mjs";
 
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 const fixtureRoot = resolve(repoRoot, "fixtures/realistic");
@@ -52,7 +53,6 @@ try {
   const output = await scanSite({
     onEvent: (event) => { progress = event.progress; },
     entryUrl,
-    topic: "municipal-style-fixture",
     crawl: { concurrency: 2, limits: { maxPages: 6, maxDepth: 2, timeoutSec: 90 }, settleMs: 1400, perPageMs: 10000 },
   });
   const result = output.result;
@@ -79,28 +79,16 @@ try {
   const appUrl = `http://127.0.0.1:${appServer.address().port}/`;
   browser = await chromium.launch({ args: ["--no-sandbox"] });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-  await page.addInitScript(({ result, detail, extra, entryUrl, progress }) => {
-    const session = { id: "real-evidence-ui", entryUrl, topic: "municipal-style-fixture",
-      status: "succeeded", startedAt: result.meta.started_at, finishedAt: result.meta.finished_at, progress };
-    window.__TAURI_INTERNALS__ = {
-      transformCallback: () => 1,
-      unregisterCallback: () => {},
-      invoke: async (command) => {
-        switch (command) {
-          case "plugin:event|listen": return 1;
-          case "scan_start": case "scan_get_session": return session;
-          case "scan_get_result": return result;
-          case "scan_get_detail_bundle": return detail;
-          case "scan_get_extra_result": return extra;
-          default: throw new Error(`unexpected IPC command ${command}`);
-        }
-      },
-    };
-  }, { result, detail, extra: output.extraResult, entryUrl, progress });
+  const reads = await installResultReplay(page, { result, detail, extra: output.extraResult,
+    session: { id: "real-evidence-ui", entryUrl, status: "succeeded", startedAt: result.meta.started_at,
+      finishedAt: result.meta.finished_at, progress } });
   await page.goto(appUrl, { waitUntil: "networkidle" });
   await page.getByLabel("점검할 웹사이트").fill(entryUrl);
   await page.getByRole("button", { name: "점검 시작" }).click();
   await page.getByText(`표시 중인 탐지 ${String(result.findings.length)}건 / 전체 ${String(result.findings.length)}건`).waitFor({ timeout: 10000 });
+  if (reads.some((read) => ["scan_get_evidence_asset", "scan_get_finding_detail", "scan_get_image_analysis", "scan_get_evidence_graph_slice"].includes(read.command))) {
+    throw new Error("official list eagerly retrieved detailed evidence");
+  }
 
   let renderedJpegs = 0;
   let renderedElementCrops = 0;
@@ -158,6 +146,16 @@ try {
     await inspector.getByRole("button", { name: "결과 목록으로" }).click();
   }
 
+  const reread = result.findings[0];
+  const retainedReads = reads.filter((read) => ["scan_get_finding_detail", "scan_get_evidence_asset"].includes(read.command)).length;
+  await page.locator(`button[data-finding-id="${reread.id}"]`).click();
+  await page.locator(".result-inspector .raw").getByText(reread.evidence_text, { exact: true }).waitFor();
+  await page.locator(".result-inspector").getByRole("heading", { name: "실제 화면" }).waitFor();
+  if (reads.filter((read) => ["scan_get_finding_detail", "scan_get_evidence_asset"].includes(read.command)).length !== retainedReads) {
+    throw new Error("repeated review retransferred retained evidence");
+  }
+  await page.locator(".result-inspector").getByRole("button", { name: "결과 목록으로" }).click();
+
   await page.getByRole("button", { name: "페이지별", exact: true }).click();
   const post = page.locator(".page-group").filter({ hasText: "/post.html" });
   await post.getByText("유사 문자 1건 · 자모 분리 1건 · 투명 처리 1건 · 화면 밖 배치 1건", { exact: true }).waitFor();
@@ -165,17 +163,14 @@ try {
   await page.getByText(`확인한 페이지 ${String(detail.coverage.checkedPages)}개 · 실패한 페이지 ${String(detail.coverage.failedPages.length)}개`).last().waitFor();
   await page.getByRole("button", { name: "추가 분석" }).click();
   if (output.extraResult.findings.length === 0) {
-    await page.getByText("추가 분석에서 확인된 항목이 없습니다.").waitFor();
+    await page.getByText(/추가 탐지 항목은 없습니다.|추가 분석에서 확인된 항목이 없습니다./).waitFor();
   } else {
     await page.getByText(`추가 분석 ${String(output.extraResult.findings.length)}건`).waitFor();
   }
   await page.getByRole("button", { name: "공식 탐지" }).click();
   await page.getByRole("button", { name: "결과 저장" }).click();
   const dialog = page.getByRole("dialog", { name: "결과 저장" });
-  await dialog.getByRole("button", { name: "저장" }).waitFor();
-  if (await dialog.getByRole("button", { name: "저장" }).isDisabled()) {
-    throw new Error("valid real result blocked from export");
-  }
+  await dialog.locator("button:not([disabled])").filter({ hasText: /^저장$/ }).waitFor();
   await dialog.getByText(`공식 탐지 ${String(result.findings.length)}건`).waitFor();
   const partial = await dialog.getByRole("note").textContent();
   if (!partial?.includes(`확인 실패 ${String(detail.coverage.failedPages.length)}페이지`)) {
@@ -187,7 +182,7 @@ try {
     officialFindings: result.findings.length, renderedJpegs, renderedElementCrops, displayedPositions, transformedTexts, pageTechniqueCounts: true,
     checkedPages: detail.coverage.checkedPages, failedPages: detail.coverage.failedPages.length,
     extraFindings: output.extraResult.findings.length,
-    exportValidationPassed: true, focusRestored: true }, null, 2));
+    exportValidationPassed: true, focusRestored: true, lazyInitialEvidence: true, retainedReviewEvidence: true }, null, 2));
 } finally {
   await browser?.close();
   if (appServer.listening) await new Promise((done) => appServer.close(done));

@@ -79,10 +79,10 @@ for (const concurrency of [1, 2, 3, 4]) {
   let output;
   try {
     output = await scanSite(realistic ? {
-      entryUrl: `${origin}/`, topic: "realistic-eval",
+      entryUrl: `${origin}/`,
       crawl: { concurrency, limits: { maxPages: 6, maxDepth: 2, timeoutSec: 90 }, settleMs: 1400, perPageMs: 10000 },
     } : {
-      entryUrl: "/", topic: "synthetic-eval", fixturePort: 4200 + concurrency,
+      entryUrl: "/", fixturePort: 4200 + concurrency,
       crawl: { concurrency, limits: { maxPages: 30, maxDepth: 4, timeoutSec: 300 }, settleMs: 1800, perPageMs: 20000 },
     });
   } finally {

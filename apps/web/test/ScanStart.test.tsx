@@ -136,7 +136,6 @@ describe("ScanStart field validation", () => {
     expect(start).toHaveBeenCalledTimes(1);
     expect(start.mock.calls[0][0]).toEqual({
       entryUrl: "https://example.kr/",
-      topic: undefined,
       limits: { maxPages: 200, maxDepth: 4, timeoutSec: 1500 },
     });
     expect(byId("entry-url").hasAttribute("aria-invalid")).toBe(false);

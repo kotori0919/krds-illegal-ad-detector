@@ -14,7 +14,14 @@ import {
   type HostBridge,
   type HostCapabilities,
   type OfficialResult,
-  type ScanDetailBundle,
+  type ScanCoverageView,
+  type FindingDetailView,
+  type ImageAnalysisQuery,
+  type ImageAnalysisPage,
+  type EvidenceAsset,
+  type EvidenceSummary,
+  type EvidenceGraphQuery,
+  type EvidenceGraphSlice,
   type ScanEvent,
   type ScanEventHandler,
   type ScanRequest,
@@ -41,6 +48,17 @@ async function loadTauri(): Promise<{ invoke: TauriInvoke; listen: TauriListen }
 }
 
 export class TauriHost implements HostBridge {
+  private evidenceReads = new Map<string, Promise<unknown>>();
+
+  private cachedRead<T>(command: string, args: Record<string, unknown>): Promise<T | undefined> {
+    const key = JSON.stringify([command, args]);
+    const pending = this.evidenceReads.get(key);
+    if (pending) return pending as Promise<T | undefined>;
+    const read = this.invoke().then((invoke) => invoke<T | undefined>(command, args));
+    this.evidenceReads.set(key, read);
+    void read.then((value) => { if (value == null) this.evidenceReads.delete(key); }, () => this.evidenceReads.delete(key));
+    return read;
+  }
   private invokePromise: Promise<TauriInvoke> | undefined;
   private handlers = new Set<ScanEventHandler>();
   private subscribed = false;
@@ -106,9 +124,28 @@ export class TauriHost implements HostBridge {
     return invoke<ExtraResult | undefined>("scan_get_extra_result", { sessionId });
   }
 
-  async getDetailBundle(sessionId: string): Promise<ScanDetailBundle | undefined> {
-    const invoke = await this.invoke();
-    return invoke<ScanDetailBundle | undefined>("scan_get_detail_bundle", { sessionId });
+  getScanCoverage(sessionId: string): Promise<ScanCoverageView | undefined> {
+    return this.cachedRead("scan_get_coverage", { sessionId });
+  }
+
+  getFindingDetail(sessionId: string, findingId: string): Promise<FindingDetailView | undefined> {
+    return this.cachedRead("scan_get_finding_detail", { sessionId, findingId });
+  }
+
+  getImageAnalysis(sessionId: string, query: ImageAnalysisQuery = {}): Promise<ImageAnalysisPage | undefined> {
+    return this.cachedRead("scan_get_image_analysis", { sessionId, query });
+  }
+
+  getEvidenceAsset(sessionId: string, assetId: string): Promise<EvidenceAsset | undefined> {
+    return this.cachedRead("scan_get_evidence_asset", { sessionId, assetId });
+  }
+
+  getEvidenceSummary(sessionId: string): Promise<EvidenceSummary | undefined> {
+    return this.cachedRead("scan_get_evidence_summary", { sessionId });
+  }
+
+  getEvidenceGraphSlice(sessionId: string, query: EvidenceGraphQuery): Promise<EvidenceGraphSlice | undefined> {
+    return this.cachedRead("scan_get_evidence_graph_slice", { sessionId, query });
   }
 
   async exportResult(sessionId: string, directory: string): Promise<ExportPaths> {

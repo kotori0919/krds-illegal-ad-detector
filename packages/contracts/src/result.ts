@@ -9,6 +9,8 @@
 import { EXTRA_TECHNIQUE, type OfficialTechnique } from "./technique.js";
 
 export const TOOL_VERSION = "0.1.0";
+export const EXTRA_FINDING_TYPES = ["IMAGE_ONLY_ILLEGAL_AD", "REUSED_AD_CREATIVE",
+  "AD_INFRASTRUCTURE_CORRELATION", "ZERO_WIDTH_OBFUSCATION"] as const;
 
 export interface OfficialMeta {
   topic: string;
@@ -242,8 +244,8 @@ export function validateExtraResult(value: unknown): ValidationOutcome {
     if (f.technique !== EXTRA_TECHNIQUE) {
       errors.push(`${where}.technique must be "ETC"`);
     }
-    if (typeof f.extra_finding !== "string") {
-      errors.push(`${where}.extra_finding must be a string`);
+    if (!(EXTRA_FINDING_TYPES as readonly unknown[]).includes(f.extra_finding)) {
+      errors.push(`${where}.extra_finding must be a supported detector`);
     }
   }
   return { ok: errors.length === 0, errors };

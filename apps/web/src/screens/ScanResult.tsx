@@ -3,17 +3,21 @@ import {
   OFFICIAL_TECHNIQUES,
   type ExtraResult,
   type ExtraFinding,
-  type CreativeImage,
+  type CreativeImageView,
   type ImageAnalysis,
   type HostBridge,
   type OfficialResult,
   type OfficialTechnique,
   type PageOutcome,
-  type ScanDetailBundle,
+  type ScanCoverageView,
+  type EvidenceSummary,
+  type ImageAnalysisPage,
   type ScanSession,
 } from "@krds-detector/contracts";
 import { techniqueLabel } from "../technique-label.js";
 import { formatElapsed, scanStatusLabel } from "../scan-format.js";
+import { AssetImage } from "./AssetImage.js";
+import { EvidenceRelations } from "./EvidenceRelations.js";
 
 interface Props {
   host: HostBridge;
@@ -41,9 +45,11 @@ const extraLabels: Record<string, string> = {
   REUSED_AD_CREATIVE: "반복 광고 소재",
   AD_INFRASTRUCTURE_CORRELATION: "연관 광고 인프라",
   ZERO_WIDTH_OBFUSCATION: "제로폭 글자 위장",
+  IMAGE_ONLY_ILLEGAL_AD: "이미지 안의 불법 광고",
 };
 
 function extraSummary(finding: ExtraFinding): string {
+  if (finding.extra_finding === "IMAGE_ONLY_ILLEGAL_AD") return "이미지 문자와 광고 관련 단서에서 불법 광고 표현이 확인되었습니다.";
   if (finding.extra_finding === "REUSED_AD_CREATIVE") {
     const count = finding.evidence_text.match(/seen (\d+) times/)?.[1];
     return count ? `비슷한 광고 이미지가 ${count}회 관측되었습니다.` : "비슷한 광고 이미지가 반복 관측되었습니다.";
@@ -55,38 +61,72 @@ function extraSummary(finding: ExtraFinding): string {
   return "광고 문구에 보이지 않는 글자가 포함되었습니다.";
 }
 
-function ImageAnalysisView({ analysis, image }: { analysis: ImageAnalysis; image?: CreativeImage }) {
+function ImageAnalysisView({ analysis, image, host, sessionId, displayAsset = !analysis.extraFindingId }: {
+  analysis: ImageAnalysis; image?: CreativeImageView; host: HostBridge; sessionId: string; displayAsset?: boolean;
+}) {
+  const assetId = analysis.assetId ?? image?.assetId;
   return <li className="finding-card">
     <h3>이미지 문자 분석</h3>
-    {image ? <figure className="visual-evidence">
-      <img src={image.dataUrl} alt="문자를 분석한 수집 이미지" width={image.width} height={image.height} />
-      <figcaption>수집한 이미지 · {image.width} × {image.height}</figcaption>
+    {assetId && displayAsset ? <figure className="visual-evidence">
+      <AssetImage host={host} sessionId={sessionId} assetId={assetId} alt="문자를 분석한 수집 이미지" width={image?.width} height={image?.height} />
+      <figcaption>수집한 이미지{image ? ` · ${image.width} × ${image.height}` : ""}</figcaption>
     </figure> : null}
     <dl className="evidence">
       <div><dt>이미지 주소</dt><dd>{analysis.sourceUrl}</dd></div>
       <div><dt>관측한 페이지</dt><dd><ul>{analysis.pageUrls.map((url) => <li key={url}>{url}</li>)}</ul></dd></div>
       {analysis.ocr.state === "available" ? <>
         <div><dt>인식한 원문</dt><dd className="raw">{analysis.ocr.text || "인식된 문자가 없습니다."}</dd></div>
-        {analysis.ocr.confidence !== undefined ? <div><dt>문자 인식 신뢰도</dt><dd>{String(Math.round(analysis.ocr.confidence * 100))}%</dd></div> : null}
       </> : <div><dt>문자 인식 상태</dt><dd>{analysis.ocr.reason === "budget"
         ? "시간·용량 제한으로 문자를 인식하지 못했습니다." : "문자 인식에 실패했습니다."}</dd></div>}
       {analysis.matchedTerms.length ? <div><dt>광고 표현</dt><dd>{analysis.matchedTerms.join(", ")}</dd></div> : null}
-      <div><dt>규칙 판단</dt><dd>{analysis.ocr.state === "unavailable" ? "판단할 수 없음"
-        : analysis.decision.passed ? "광고 표현 확인" : "광고 표현 미확인"}</dd></div>
-      <div><dt>판단 규칙</dt><dd>{analysis.decision.rule}</dd></div>
-      <div><dt>판단 점수 / 기준</dt><dd>{String(analysis.decision.score)} / {String(analysis.decision.threshold)}</dd></div>
+      <div><dt>분석 결과</dt><dd>{analysis.ocr.state === "unavailable" ? "판단할 수 없음"
+        : analysis.matchedTerms.length ? "광고 표현 확인" : "광고 표현 미확인"}</dd></div>
+      {analysis.visibleDomEquivalent ? <div><dt>페이지 문구와 중복</dt><dd>페이지에 같은 광고 문구가 있어 이미지 전용 탐지로 추가하지 않았습니다.</dd></div> : null}
     </dl>
     <details className="advanced"><summary>기술 정보</summary>
+      {analysis.ocr.state === "available" ? <p>문자 인식 신뢰도: {String(Math.round(analysis.ocr.confidence * 100))}%</p> : null}
+      <p>판단 규칙: {analysis.decision.rule}</p>
+      <p>판단 점수 / 기준: {String(analysis.decision.score)} / {String(analysis.decision.threshold)}</p>
+      <p>판단 통과 여부: {analysis.decision.passed ? "충족" : "미충족"}</p>
       <p>문자 인식 엔진: {analysis.ocr.backend}</p><p>{analysis.decision.detail}</p>
     </details>
+    <EvidenceRelations host={host} sessionId={sessionId} focus={image ? { kind: "creative", id: image.sha256 } : { kind: "page", id: analysis.pageUrls[0] ?? analysis.sourceUrl }} />
   </li>;
+}
+
+function ImageOnlyEvidence({ findingId, host, sessionId }: { findingId: string; host: HostBridge; sessionId: string }) {
+  const [analysis, setAnalysis] = useState<ImageAnalysis>();
+  const [state, setState] = useState<"closed" | "loading" | "open" | "missing" | "error">("closed");
+  async function show() {
+    if (state === "open") { setState("closed"); return; }
+    if (analysis) { setState("open"); return; }
+    setState("loading");
+    try {
+      const page = await host.getImageAnalysis(sessionId, { extraFindingId: findingId, limit: 1 });
+      const selected = page?.items[0];
+      setAnalysis(selected);
+      setState(selected ? "open" : "missing");
+    } catch { setState("error"); }
+  }
+  return <div>
+    <button type="button" className="secondary" disabled={state === "loading"} aria-expanded={state === "open"} onClick={() => void show()}>{state === "open" ? "이미지 근거 닫기" : "이미지 근거 보기"}</button>
+    {state === "loading" ? <p role="status">이미지 근거를 불러오는 중입니다.</p>
+      : state === "error" ? <p role="alert">이미지 근거를 불러오지 못했습니다. 다시 시도해 주세요.</p>
+        : state === "missing" ? <p>이 세션의 이미지 근거 기록을 사용할 수 없습니다.</p>
+          : state === "open" && analysis ? <ul className="finding-list"><ImageAnalysisView analysis={analysis} host={host} sessionId={sessionId} displayAsset /></ul> : null}
+  </div>;
 }
 
 export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
   const [selectionNotice, setSelectionNotice] = useState(false);
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
   const [result, setResult] = useState<OfficialResult | undefined>(undefined);
-  const [detailBundle, setDetailBundle] = useState<ScanDetailBundle | undefined>(undefined);
+  const [detailBundle, setDetailBundle] = useState<ScanCoverageView | undefined>(undefined);
+  const [evidenceSummary, setEvidenceSummary] = useState<EvidenceSummary>();
+  const [imagePage, setImagePage] = useState<ImageAnalysisPage>();
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   const [detailLoaded, setDetailLoaded] = useState(false);
   const [detailLoadError, setDetailLoadError] = useState(false);
   const [extraResult, setExtraResult] = useState<ExtraResult | undefined>(undefined);
@@ -114,12 +154,10 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
         if (!alive) return;
         if (r) {
           setResult(r);
-          void host.getDetailBundle(sessionId).then((bundle) => { if (alive) setDetailBundle(bundle); })
+          void host.getScanCoverage(sessionId).then((bundle) => { if (alive) setDetailBundle(bundle); })
             .catch(() => { if (alive) setDetailLoadError(true); })
             .finally(() => { if (alive) setDetailLoaded(true); });
-          void host.getExtraResult(sessionId).then((extra) => {
-            if (alive) { setExtraResult(extra); setExtraLoaded(true); }
-          }).catch(() => { if (alive) { setExtraLoadError(true); setExtraLoaded(true); } });
+          void host.getEvidenceSummary(sessionId).then((summary) => { if (alive) setEvidenceSummary(summary); }).catch(() => undefined);
           setLoadComplete(true);
           globalThis.clearInterval(timer);
         } else if (attempts >= 10) {
@@ -136,6 +174,33 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
       globalThis.clearInterval(timer);
     };
   }, [host, sessionId]);
+
+  useEffect(() => {
+    if (view !== "extra" || !result) return;
+    let alive = true;
+    if (!extraLoaded) void host.getExtraResult(sessionId).then((extra) => {
+      if (alive) setExtraResult(extra);
+    }).catch(() => { if (alive) setExtraLoadError(true); }).finally(() => { if (alive) setExtraLoaded(true); });
+    if (!imagesLoaded) {
+      setImageLoading(true);
+      void host.getImageAnalysis(sessionId, { cursor: 0, limit: 12 }).then((page) => {
+        if (alive) setImagePage(page);
+      }).catch(() => { if (alive) setImageLoadError(true); }).finally(() => {
+        if (alive) { setImagesLoaded(true); setImageLoading(false); }
+      });
+    }
+    return () => { alive = false; };
+  }, [host, sessionId, view, result]);
+
+  async function loadMoreImages() {
+    if (imagePage?.nextCursor === undefined || imageLoading) return;
+    setImageLoading(true); setImageLoadError(false);
+    try {
+      const next = await host.getImageAnalysis(sessionId, { cursor: imagePage.nextCursor, limit: 12 });
+      if (next) setImagePage((previous) => ({ ...next, items: [...(previous?.items ?? []), ...next.items] }));
+    } catch { setImageLoadError(true); }
+    finally { setImageLoading(false); }
+  }
 
   // Hooks stay above the conditional return: the cancelled branch must not
   // change the hook count between renders (React "fewer hooks" crash).
@@ -271,39 +336,58 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
         ) : view === "extra" ? (
           <div className="coverage-summary">
             <h2>추가 분석</h2>
+            {evidenceSummary?.analysisIssues?.length ? <p role="note">추가 분석 일부를 완료하지 못했습니다. 공식 탐지와 점검 범위는 별도로 확인할 수 있습니다.</p> : null}
+            {evidenceSummary ? <section aria-label="관련 광고 인프라">
+              {evidenceSummary.graphAvailable === false ? <p role="status">이 세션의 관계 분석 기록을 사용할 수 없습니다.</p> : <h3>관련 광고 인프라 {evidenceSummary.infrastructure.length}개</h3>}
+              {evidenceSummary.infrastructure.length ? <ul>{evidenceSummary.infrastructure.map((relation) => <li key={relation.domain}>
+                <strong>{relation.domain}</strong><p>{relation.pageUrls.length}개 관련 페이지에서 관측</p>
+                <EvidenceRelations host={host} sessionId={sessionId} focus={{ kind: "domain", id: relation.domain }} />
+              </li>)}</ul> : evidenceSummary.graphAvailable !== false ? <p>광고 근거와 연결된 외부 도메인이 없습니다.</p> : null}
+              <details className="advanced"><summary>기술 정보</summary><p>관측한 전체 도메인 {evidenceSummary.observedDomainCount}개</p>
+                {evidenceSummary.analysisIssues?.length ? <ul>{evidenceSummary.analysisIssues.map((issue, index) => <li key={index}>{issue}</li>)}</ul> : null}
+              </details>
+            </section> : null}
             {extraLoadError ? <p role="alert" className="empty">추가 분석 결과를 불러오지 못했습니다.</p>
               : !extraLoaded ? <p role="status" className="empty">추가 분석 결과를 불러오는 중입니다.</p>
-                : !extraResult ? <p role="status" className="empty">{detailBundle?.imageAnalysis?.length ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "이 세션에는 추가 분석 결과가 없습니다."}</p>
-                : extraResult.findings.length === 0 ? <p role="status" className="empty">{detailBundle?.imageAnalysis?.length ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "추가 분석에서 확인된 항목이 없습니다."}</p>
+                : !extraResult ? <p role="status" className="empty">{evidenceSummary?.imageAnalysisCount ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "이 세션에는 추가 분석 결과가 없습니다."}</p>
+                : extraResult.findings.length === 0 ? <p role="status" className="empty">{evidenceSummary?.imageAnalysisCount ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "추가 분석에서 확인된 항목이 없습니다."}</p>
                   : <>
                     <p role="status" aria-live="polite">추가 분석 {String(extraResult.findings.length)}건</p>
                     <ol className="finding-list" aria-label="추가 분석 목록">
                       {extraResult.findings.map((finding) => {
-                        const image = detailBundle?.creativeImages.find((item) => item.findingId === finding.id);
+                        const image = evidenceSummary?.creativeImages.find((item) => item.findingId === finding.id);
                         return <li key={finding.id} className="finding-card">
                         <h3>{extraLabels[finding.extra_finding] ?? finding.extra_finding}</h3>
                         <p>{extraSummary(finding)}</p>
+                        {finding.extra_finding === "IMAGE_ONLY_ILLEGAL_AD" ? <>
+                          <dl><div><dt>인식한 원문</dt><dd className="raw">{finding.evidence_text}</dd></div></dl>
+                          <ImageOnlyEvidence findingId={finding.id} host={host} sessionId={sessionId} />
+                        </> : null}
                         {finding.extra_finding === "REUSED_AD_CREATIVE" ? image ?
                           <figure className="visual-evidence">
-                            <img src={image.dataUrl} alt="수집한 반복 광고 이미지" width={image.width} height={image.height} />
+                            <AssetImage host={host} sessionId={sessionId} assetId={image.assetId} alt="수집한 광고 이미지" width={image.width} height={image.height} />
                             <figcaption>수집한 이미지 · {image.width} × {image.height}</figcaption>
                           </figure>
-                          : <p role={detailLoadError ? "alert" : "status"}>{!detailLoaded ? "이미지를 불러오는 중입니다." : detailLoadError ? "이미지를 불러오지 못했습니다." : "수집한 이미지가 없습니다."}</p> : null}
+                          : <p>수집한 이미지가 없습니다.</p> : null}
                         <dl>
                           <div><dt>관련 주소</dt><dd>{finding.url}</dd></div>
                         </dl>
-                        <details className="advanced"><summary>기술 정보</summary><p>위치: <code>{finding.location}</code></p><p>{finding.evidence_text}</p></details>
+                        <details className="advanced"><summary>기술 정보</summary><p>위치: <code>{finding.location}</code></p>
+                          {finding.extra_finding !== "IMAGE_ONLY_ILLEGAL_AD" ? <p>{finding.evidence_text}</p> : null}
+                        </details>
+                        {image ? <EvidenceRelations host={host} sessionId={sessionId} focus={{ kind: "creative", id: image.sha256 }} /> : null}
                       </li>; })}
                     </ol>
                   </>}
-            {!detailLoaded ? <p role="status" className="empty">이미지 문자 분석을 불러오는 중입니다.</p>
-              : detailLoadError ? <p role="alert" className="error">이미지 문자 분석을 불러오지 못했습니다.</p>
-                : detailBundle?.imageAnalysis?.length ? <section aria-label="이미지 문자 분석">
-                  <h2>이미지 문자 분석 ({String(detailBundle.imageAnalysis.length)}건)</h2>
-                  <ol className="finding-list">{detailBundle.imageAnalysis.map((analysis) =>
-                    <ImageAnalysisView key={analysis.sourceUrl} analysis={analysis}
-                      image={detailBundle.creativeImages.find((image) => image.sourceUrl === analysis.sourceUrl)} />)}</ol>
-                </section> : detailBundle?.imageAnalysis ? <p className="hint">문자 분석 대상 이미지가 없습니다.</p> : null}
+            {!imagesLoaded ? <p role="status" className="empty">이미지 문자 분석을 불러오는 중입니다.</p>
+              : imagePage?.items.length ? <section aria-label="이미지 문자 분석">
+                  <h2>이미지 문자 분석 ({String(imagePage.total)}건)</h2>
+                  <ol className="finding-list">{imagePage.items.map((analysis, index) =>
+                    <ImageAnalysisView key={analysis.analysisId ?? `${analysis.sourceUrl}-${index}`} analysis={analysis} host={host} sessionId={sessionId}
+                      image={evidenceSummary?.creativeImages.find((image) => image.sourceUrl === analysis.sourceUrl)} />)}</ol>
+                  {imagePage.nextCursor !== undefined ? <button type="button" className="secondary" disabled={imageLoading} onClick={() => void loadMoreImages()}>{imageLoading ? "불러오는 중" : "이미지 분석 더 보기"}</button> : null}
+                </section> : !imageLoadError ? <p className="hint">문자 분석 대상 이미지가 없습니다.</p> : null}
+            {imageLoadError ? <p role="alert" className="error">이미지 문자 분석을 불러오지 못했습니다.</p> : null}
           </div>
         ) : view === "coverage" ? (
           <div className="coverage-summary">
@@ -323,6 +407,7 @@ export function ScanResult({ host, sessionId, onEvidence, onExport, onRestart, q
             {pageGroups.map(([url, { findings: group, outcome }]) => (
               <section key={url} className="page-group" aria-label={`${url} 탐지 ${String(group.length)}건`}>
                 <h2>{url}</h2>
+                <EvidenceRelations host={host} sessionId={sessionId} focus={{ kind: "page", id: outcome?.finalUrl ?? url }} />
                 {outcome ? <>
                   <p>{outcome.outcome === "checked" ? "확인 완료" : "확인 실패"} · {outcome.status === 0 ? "응답 없음" : `HTTP ${String(outcome.status)}`} · 하위 {String(outcome.depth)}단계</p>
                   {outcome.finalUrl !== url ? <dl><div><dt>최종 주소</dt><dd>{outcome.finalUrl}</dd></div></dl> : null}

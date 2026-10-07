@@ -14,6 +14,7 @@ mod job;
 #[cfg(not(windows))]
 mod job_fallback;
 mod session;
+mod evidence;
 
 use session::{load_cancelled_bundle, validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout, SessionOutcome, SessionRegistry};
 use std::sync::Arc;
@@ -37,7 +38,6 @@ struct ScanLimitsArg {
 struct ScanStartRequest {
     #[serde(rename = "entryUrl")]
     entry_url: String,
-    topic: Option<String>,
     limits: Option<ScanLimitsArg>,
 }
 
@@ -69,9 +69,8 @@ async fn scan_start(
     if timeout_sec < 60 || timeout_sec > 1500 {
         return Err("timeoutSec must be 60..=1500".to_string());
     }
-    let topic = request.topic.clone().unwrap_or_default();
     let started_at = chrono::Utc::now().to_rfc3339();
-    let record = session::new_session(parsed.clone(), topic.clone(), started_at.clone());
+    let record = session::new_session(parsed.clone(), started_at.clone());
     let session_id = record.id.clone();
     state.registry.insert(record).await;
     // Bundled worker script (resources/binaries/scanner-worker*.mjs). No silent
@@ -88,8 +87,6 @@ async fn scan_start(
             session_id.clone(),
             "--entry-url".to_string(),
             parsed.clone(),
-            "--topic".to_string(),
-            topic.clone(),
             "--max-pages".to_string(),
             max_pages.to_string(),
             "--max-depth".to_string(),
@@ -268,11 +265,36 @@ async fn scan_get_result(
 }
 
 #[tauri::command]
-async fn scan_get_detail_bundle(
+async fn scan_get_coverage(
     state: State<'_, AppState>,
     session_id: String,
 ) -> Result<Option<serde_json::Value>, String> {
-    Ok(state.registry.detail_value(&session_id).await)
+    Ok(state.registry.coverage_value(&session_id).await)
+}
+
+#[tauri::command]
+async fn scan_get_finding_detail(state: State<'_, AppState>, session_id: String, finding_id: String) -> Result<Option<serde_json::Value>, String> {
+    Ok(state.registry.finding_detail_value(&session_id, &finding_id).await)
+}
+
+#[tauri::command]
+async fn scan_get_image_analysis(state: State<'_, AppState>, session_id: String, query: Option<serde_json::Value>) -> Result<Option<serde_json::Value>, String> {
+    state.registry.image_analysis_value(&session_id, &query.unwrap_or_else(||serde_json::json!({}))).await
+}
+
+#[tauri::command]
+async fn scan_get_evidence_asset(state: State<'_, AppState>, session_id: String, asset_id: String) -> Result<Option<serde_json::Value>, String> {
+    Ok(state.registry.evidence_asset_value(&session_id, &asset_id).await)
+}
+
+#[tauri::command]
+async fn scan_get_evidence_summary(state: State<'_, AppState>, session_id: String) -> Result<Option<serde_json::Value>, String> {
+    Ok(state.registry.evidence_summary_value(&session_id).await)
+}
+
+#[tauri::command]
+async fn scan_get_evidence_graph_slice(state: State<'_, AppState>, session_id: String, query: serde_json::Value) -> Result<Option<serde_json::Value>, String> {
+    state.registry.evidence_graph_value(&session_id, &query).await
 }
 
 #[tauri::command]
@@ -482,7 +504,12 @@ fn main() {
             scan_cancel,
             scan_get_session,
             scan_get_result,
-            scan_get_detail_bundle,
+            scan_get_coverage,
+            scan_get_finding_detail,
+            scan_get_image_analysis,
+            scan_get_evidence_asset,
+            scan_get_evidence_summary,
+            scan_get_evidence_graph_slice,
             scan_get_extra_result,
             scan_export
         ])

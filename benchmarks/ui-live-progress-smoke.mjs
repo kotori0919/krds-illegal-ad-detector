@@ -10,6 +10,7 @@ import { initialProgress } from "../packages/contracts/dist/scan.js";
 import { validateOfficialResultText, validateExtraResult } from "../packages/contracts/dist/result.js";
 import { validateScanDetailBundle } from "../packages/contracts/dist/detail.js";
 import { scanSite } from "../packages/detection/dist/scan.js";
+import { evidenceRead } from "./ui-evidence-ipc.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 function files(directory, fallback) {
@@ -42,7 +43,7 @@ try {
       case "plugin:event|listen": return 1;
       case "plugin:event|unlisten": return;
       case "scan_start": {
-        session = { id: "live-progress", entryUrl, topic: "", status: "running",
+        session = { id: "live-progress", entryUrl, status: "running",
           startedAt: new Date().toISOString(), progress: initialProgress("running") };
         scanning = scanSite({ entryUrl: args.request.entryUrl,
           crawl: { concurrency: 2, settleMs: 2200, perPageMs: 10000,
@@ -63,9 +64,8 @@ try {
       }
       case "scan_get_session": return session;
       case "scan_get_result": return output?.result;
-      case "scan_get_detail_bundle": return output?.detailBundle;
       case "scan_get_extra_result": return output?.extraResult;
-      default: throw new Error(`unexpected IPC command ${command}`);
+      default: return evidenceRead(output?.detailBundle, command, args);
     }
   });
   await page.addInitScript(() => {

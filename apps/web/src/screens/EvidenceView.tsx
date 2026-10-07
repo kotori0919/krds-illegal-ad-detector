@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { FindingDetail, HostBridge, OfficialFinding } from "@krds-detector/contracts";
+import type { FindingDetailView, HostBridge, OfficialFinding } from "@krds-detector/contracts";
 import { techniqueLabel } from "../technique-label.js";
+import { AssetImage } from "./AssetImage.js";
+import { EvidenceRelations } from "./EvidenceRelations.js";
 
 interface Props {
   host: HostBridge;
@@ -14,7 +16,7 @@ interface Props {
 /** Result-stage inspector backed by the official finding's observed fields. */
 export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onReviewChange }: Props) {
   const [finding, setFinding] = useState<OfficialFinding | undefined>(undefined);
-  const [detail, setDetail] = useState<FindingDetail | undefined>(undefined);
+  const [detail, setDetail] = useState<FindingDetailView | undefined>(undefined);
   const [detailLoaded, setDetailLoaded] = useState(false);
   const [missing, setMissing] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
@@ -25,6 +27,7 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
 
   useEffect(() => {
     let alive = true;
+    setFinding(undefined); setDetail(undefined); setDetailLoaded(false); setMissing(false);
     void host.getCapabilities().then((caps) => { if (alive) setDemoMode(!caps.localScan); }).catch(() => undefined);
     host.getOfficialResult(sessionId).then((r) => {
       if (!alive) return;
@@ -32,8 +35,8 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
       if (found) setFinding(found);
       else setMissing(true);
     }).catch(() => { if (alive) setMissing(true); });
-    host.getDetailBundle(sessionId).then((bundle) => {
-      if (alive) setDetail(bundle?.findings.find((item) => item.findingId === findingId));
+    host.getFindingDetail(sessionId, findingId).then((record) => {
+      if (alive) setDetail(record);
     }).catch(() => undefined).finally(() => { if (alive) setDetailLoaded(true); });
     return () => {
       alive = false;
@@ -88,13 +91,13 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
           </section>
           {detailLoaded ? <section aria-label="실제 화면">
             <h2>실제 화면</h2>
-            {detail?.visual.state === "available" && detail.visual.dataUrl ? (
+            {detail?.visual.state === "available" && detail.visual.assetId ? (
               <>
                 {detail.visual.target?.state === "available" ? <button type="button" className="secondary"
                   aria-pressed={showPosition} onClick={() => setShowPosition(!showPosition)}>분석 위치 표시</button> : null}
                 <figure className="visual-evidence">
                   <div className="visual-evidence-stage">
-                    <img src={detail.visual.dataUrl} alt="탐지 당시 페이지의 실제 화면" />
+                    <AssetImage host={host} sessionId={sessionId} assetId={detail.visual.assetId} alt="탐지 당시 페이지의 실제 화면" />
                     {showPosition && detail.visual.target?.state === "available" && detail.visual.viewport ?
                       <svg className="visual-evidence-overlay" viewBox={`0 0 ${String(detail.visual.viewport.width)} ${String(detail.visual.viewport.height)}`}
                         role="img" aria-label="측정한 요소 위치의 분석 표시">
@@ -107,7 +110,7 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
                 {showPosition ? <p>분석 표시{detail.visual.element?.state === "unavailable" && detail.visual.element.reason === "outside-viewport"
                   ? " · 캡처 화면 밖 위치" : ""} · {finding.evidence_text}</p> : null}
                 {detail.visual.element?.state === "available" ? <figure className="visual-evidence">
-                  <img src={detail.visual.element.dataUrl} alt="탐지 요소 위치의 실제 화면 캡처" />
+                  <AssetImage host={host} sessionId={sessionId} assetId={detail.visual.element.assetId} alt="탐지 요소 위치의 실제 화면 캡처" />
                   <figcaption>요소 위치 캡처 · {detail.visual.element.box.width}×{detail.visual.element.box.height}px</figcaption>
                 </figure> : <p className="hint">요소 캡처 없음{detail.visual.element?.reason === "outside-viewport" ? " (화면 밖 위치)"
                   : detail.visual.element?.reason === "budget" ? " (시간·용량 제한)"
@@ -115,6 +118,7 @@ export function EvidenceView({ host, sessionId, findingId, onBack, reviewed, onR
               </>
             ) : <p className="empty">화면 캡처 없음{detail?.visual.reason === "budget" ? " (시간·용량 제한)" : detail?.visual.reason === "capture-error" ? " (캡처 실패)" : ""}</p>}
           </section> : null}
+          <EvidenceRelations key={findingId} host={host} sessionId={sessionId} focus={{ kind: "finding", id: findingId }} />
           <details className="advanced"><summary>기술 정보</summary>
             <dl className="evidence"><div><dt>위치</dt><dd><code>{finding.location}</code></dd></div>
               <div><dt>공식 기법 코드</dt><dd><code>{finding.technique}</code></dd></div>

@@ -21,6 +21,10 @@ export interface EvidenceNode {
   kind: EvidenceNodeKind;
   url?: string;
   label: string;
+  findingId?: string;
+  pageUrl?: string;
+  creativeId?: string;
+  adRelated?: boolean;
 }
 
 export type EvidenceEdgeKind =
@@ -36,6 +40,8 @@ export interface EvidenceEdge {
   from: string;
   to: string;
   kind: EvidenceEdgeKind;
+  adRelated?: boolean;
+  evidenceKinds?: string[];
 }
 
 export interface GeometryEvidence {

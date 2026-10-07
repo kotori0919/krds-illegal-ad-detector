@@ -14,7 +14,6 @@ const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
 
 export function ScanStart({ host, onStarted }: Props) {
   const [url, setUrl] = useState("");
-  const [topic, setTopic] = useState("");
   const [scopeMode, setScopeMode] = useState<ScopeMode>("automatic");
   const [maxPages, setMaxPages] = useState("200");
   const [maxDepth, setMaxDepth] = useState("4");
@@ -98,7 +97,6 @@ export function ScanStart({ host, onStarted }: Props) {
     try {
       const session = await host.startScan({
         entryUrl,
-        topic: topic.trim() || undefined,
         limits,
       });
       onStarted(session.id);
@@ -245,12 +243,6 @@ export function ScanStart({ host, onStarted }: Props) {
               ) : null}
             </div>
           </div> : null}
-          <div className="field">
-            <label htmlFor="scan-topic">점검 주제 (선택)</label>
-            <input id="scan-topic" name="scan-topic" type="text" value={topic}
-              onChange={(e) => { setTopic(e.target.value); if (formError) setFormError(undefined); }}
-              placeholder="예: 정기 점검" />
-          </div>
         </details>
       </form>
     </main>

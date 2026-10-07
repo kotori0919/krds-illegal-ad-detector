@@ -13,7 +13,6 @@ import { createInterface } from "node:readline";
 interface WorkerArgs {
   session: string;
   entryUrl: string;
-  topic: string;
   maxPages: number;
   maxDepth: number;
   timeoutSec: number;
@@ -34,7 +33,6 @@ function parseArgs(argv: string[]): WorkerArgs {
   return {
     session: get("--session") ?? "",
     entryUrl: get("--entry-url") ?? "",
-    topic: get("--topic") ?? "",
     maxPages: Number(get("--max-pages") ?? 200),
     maxDepth: Number(get("--max-depth") ?? 4),
     timeoutSec: Number(get("--timeout-sec") ?? 1500),
@@ -51,7 +49,7 @@ function parseArgs(argv: string[]): WorkerArgs {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (!args.session || !args.entryUrl) {
-    console.error("usage: scanner-worker --session <id> --entry-url <url> [--topic t] [--max-pages n] [--max-depth n] [--timeout-sec s] [--settle-ms ms]");
+    console.error("usage: scanner-worker --session <id> --entry-url <url> [--max-pages n] [--max-depth n] [--timeout-sec s] [--settle-ms ms]");
     process.exitCode = 2;
     return;
   }
@@ -75,7 +73,6 @@ async function main(): Promise<void> {
   try {
   const { json, detailBundle, extraJson } = await scanSite({
     entryUrl: args.entryUrl,
-    topic: args.topic,
     signal: controller.signal,
     crawl: {
       limits: { maxPages: args.maxPages, maxDepth: args.maxDepth, timeoutSec: args.timeoutSec },

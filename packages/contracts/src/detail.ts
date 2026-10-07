@@ -2,6 +2,7 @@
 import type { OfficialTechnique } from "./technique.js";
 import type { DecisionEvidence } from "./detection.js";
 import type { ExtraResult, OfficialResult, ValidationOutcome } from "./result.js";
+import type { EvidenceAsset, EvidenceGraph, InfrastructureRelation, VisualSourceKind } from "./evidence-access.js";
 
 export interface FindingDetail {
   findingId: string;
@@ -52,6 +53,15 @@ export interface PageOutcome {
 }
 
 export interface ImageAnalysis {
+  analysisId?: string;
+  assetId?: string;
+  sourceKind?: VisualSourceKind;
+  frameUrl?: string;
+  location?: string;
+  destinationUrl?: string;
+  candidateEvidence?: string[];
+  visibleDomEquivalent?: boolean;
+  extraFindingId?: string;
   sourceUrl: string;
   pageUrls: string[];
   ocr: { state: "available"; backend: string; text: string; confidence: number }
@@ -62,6 +72,7 @@ export interface ImageAnalysis {
 }
 
 export interface CreativeImage {
+  assetId?: string;
   findingId: string;
   sourceUrl: string;
   sha256: string;
@@ -79,6 +90,10 @@ export interface ScanDetailBundle {
   coverage: ScanCoverage;
   pageOutcomes?: PageOutcome[];
   imageAnalysis?: ImageAnalysis[];
+  visualAssets?: EvidenceAsset[];
+  evidenceGraph?: EvidenceGraph;
+  infrastructure?: InfrastructureRelation[];
+  analysisIssues?: string[];
 }
 
 /** Check the ID join and bounded image representation before host transfer. */
@@ -178,5 +193,48 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
     imageCharacters += image.dataUrl.length;
   }
   if (imageCharacters > 2_670_000) errors.push("creative images exceed capture budget");
+  const assets = new Set(Array.isArray(bundle.creativeImages) ? bundle.creativeImages.flatMap((image)=>image.assetId ? [image.assetId] : []) : []);
+  let visualCharacters = imageCharacters;
+  if (bundle.visualAssets !== undefined) {
+    if (!Array.isArray(bundle.visualAssets) || bundle.visualAssets.length>64) errors.push("visual assets invalid");
+    else for (const asset of bundle.visualAssets) {
+      if (typeof asset.assetId!=="string" || !asset.assetId || assets.has(asset.assetId)
+        || !["image/png","image/jpeg","image/webp"].includes(asset.mimeType)
+        || typeof asset.dataUrl!=="string" || asset.dataUrl.length>334_000
+        || !asset.dataUrl.startsWith(`data:${asset.mimeType};base64,`)
+        || !/^[A-Za-z0-9+/]+={0,2}$/.test(asset.dataUrl.slice(asset.dataUrl.indexOf(",")+1))) errors.push("visual asset representation invalid");
+      assets.add(asset.assetId);visualCharacters+=asset.dataUrl.length;
+    }
+  }
+  if (visualCharacters>2_670_000) errors.push("visual assets exceed capture budget");
+  for (const analysis of Array.isArray(bundle.imageAnalysis) ? bundle.imageAnalysis : []) {
+    if (analysis.assetId!==undefined && !assets.has(analysis.assetId)) errors.push("image asset missing");
+    if (analysis.sourceKind!==undefined && !["img","background-image","svg","canvas"].includes(analysis.sourceKind)) errors.push("visual source invalid");
+    if (analysis.visibleDomEquivalent!==undefined && typeof analysis.visibleDomEquivalent!=="boolean") errors.push("visible DOM equivalence invalid");
+    if (analysis.extraFindingId!==undefined) {
+      const finding=extra.findings.find((finding)=>finding.id===analysis.extraFindingId);
+      if (!finding || finding.extra_finding!=="IMAGE_ONLY_ILLEGAL_AD" || finding.location!==analysis.location
+        || analysis.ocr?.state!=="available" || finding.evidence_text!==analysis.ocr.text
+        || !analysis.decision?.passed || analysis.visibleDomEquivalent!==false || !analysis.matchedTerms?.length
+        || finding.url!==analysis.frameUrl) errors.push("image-only identity invalid");
+    }
+  }
+  if (bundle.evidenceGraph!==undefined) {
+    const {nodes,edges}=bundle.evidenceGraph;
+    const ids=new Set(Array.isArray(nodes) ? nodes.map((node)=>node.id) : []);
+    if (!Array.isArray(nodes) || !Array.isArray(edges) || ids.size!==nodes.length || nodes.some((node)=>!node.id || typeof node.label!=="string"
+      || !["Page","Frame","Element","Resource","Creative","Domain","Redirect","Landing"].includes(node.kind)
+      || node.adRelated!==undefined && typeof node.adRelated!=="boolean")
+      || edges.some((edge)=>!ids.has(edge.from) || !ids.has(edge.to)
+        || !["CONTAINS","LOADS","EMBEDS","DISPLAYS","LINKS_TO","REDIRECTS_TO","SIMILAR_TO"].includes(edge.kind)
+        || edge.adRelated!==undefined && typeof edge.adRelated!=="boolean")) errors.push("evidence graph invalid");
+  }
+  if (bundle.infrastructure!==undefined && (!Array.isArray(bundle.infrastructure)
+    || bundle.infrastructure.some((relation)=>!relation.domain || !relation.nodeId || !Array.isArray(relation.pageUrls)
+      || !relation.pageUrls.length || relation.pageUrls.some((url)=>typeof url!=="string" || !url)
+      || !Array.isArray(relation.evidenceKinds) || !relation.evidenceKinds.length
+      || relation.evidenceKinds.some((kind)=>typeof kind!=="string" || !kind)))) errors.push("infrastructure summary invalid");
+  if (bundle.analysisIssues!==undefined && (!Array.isArray(bundle.analysisIssues)
+    || bundle.analysisIssues.some((issue)=>typeof issue!=="string" || !issue))) errors.push("analysis issues invalid");
   return { ok: errors.length === 0, errors };
 }

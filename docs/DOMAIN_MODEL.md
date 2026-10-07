@@ -16,7 +16,7 @@ Status: implemented internal Contract v0.2, 2026-10-06. The canonical shapes are
 | Failed-page record | session + attempted page URL | URL, HTTP status or status0 for navigation/analysis failure, and a reason. The UI translates these to Korean; this record does not promise per-frame failure coverage. |
 | `OfficialFinding` | `(url, location, technique)` + exported ID | Contest finding summary and export source of truth. |
 | `FindingDetail` | `(sessionId, findingId)` | Raw/normalized text, matched terms, destination when recorded, measured CSS/geometry and bounded actual visual evidence. Detail joins the same official ID. |
-| `EvidenceGraph` | worker scan | Observed resource/domain/creative relations used to derive separate ExtraResult summaries. HostBridge exposes those summaries; it does not expose a redundant raw graph API. |
+| `EvidenceGraph` | worker scan, persisted within session detail | Observed resource/domain/creative relations retain explicit advertisement witnesses. HostBridge exposes a lightweight infrastructure summary and bounded graph slices on request; general repeated external resources do not become advertisement findings. |
 
 ## Implemented typed records
 
@@ -42,6 +42,16 @@ It contains no page-controlled filesystem paths. BrowserHost is labelled
 replay; TauriHost reads actual persisted worker output. Missing records and
 rejected reads are distinct UI states. See EVIDENCE_MODEL for the8MB host,
 2MB JPEG and bounded creative-image representation.
+
+Optional `evidenceGraph` and `infrastructure` records preserve exact
+advertisement-related edges separately from general infrastructure observations.
+Infrastructure summaries count distinct observed pages and retain evidence
+kinds; repetition extras require at least two related pages. Graph exploration
+accepts finding/page/creative/domain focus and returns at most 250 nodes,
+500 edges and two traversal hops, with defaults of 100 nodes and 200 edges.
+Old detail records without these optional fields retain unavailable or empty
+analysis rather than fabricated relationships. The canonical read shapes are
+in `packages/contracts/src/evidence-access.ts`.
 
 ## Concurrent scan ownership
 

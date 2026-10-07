@@ -53,8 +53,16 @@ export function App() {
 
   const goResult = useCallback(() => go("result"), [go]);
   const closeHiddenSelection = useCallback(() => {
+    const active = document.activeElement;
+    const keepFocus = active instanceof HTMLElement && active !== document.body && !active.closest(".result-inspector");
     setFindingId(undefined);
     go("result");
+    requestAnimationFrame(() => {
+      if (keepFocus && document.contains(active)) return;
+      const target = document.getElementById("result-search")
+        ?? document.querySelector<HTMLElement>('.result-navigation button[aria-pressed="true"]');
+      target?.focus();
+    });
   }, [go]);
   const goResultFromEvidence = useCallback(() => {
     setRestoreFindingId(findingId);

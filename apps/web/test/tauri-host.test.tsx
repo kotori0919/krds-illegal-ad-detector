@@ -15,7 +15,6 @@ function session(): ScanSession {
   return {
     id: "s1",
     entryUrl: "https://example.kr/",
-    topic: "",
     status: "running",
     startedAt: "2026-10-02T00:00:00.000Z",
     progress: initialProgress("running"),
@@ -75,5 +74,41 @@ describe("TauriHost subscription lifecycle", () => {
     // onScanEvent fires ensureSubscribed without awaiting; flush first.
     await act(async () => {});
     expect(listen).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TauriHost evidence read retention", () => {
+  it("reuses in-flight and completed asset reads within one session while isolating another session", async () => {
+    let complete!: (value: unknown) => void;
+    const invoke = vi.fn(() => new Promise((resolve) => { complete = resolve; }));
+    vi.doMock("@tauri-apps/api/core", () => ({ invoke }));
+    vi.doMock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
+    const { TauriHost: H } = await import("../src/host/tauri.js");
+    const host = new H();
+    const first = host.getEvidenceAsset("s1", "asset");
+    const second = host.getEvidenceAsset("s1", "asset");
+    await act(async () => {});
+    const asset = { assetId: "asset", mimeType: "image/jpeg", dataUrl: "data:image/jpeg;base64,YQ==" };
+    complete(asset);
+    expect(await first).toEqual(asset);
+    expect(await second).toEqual(asset);
+    expect(await host.getEvidenceAsset("s1", "asset")).toEqual(asset);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    const other = host.getEvidenceAsset("s2", "asset");
+    await act(async () => {});
+    complete(undefined);
+    expect(await other).toBeUndefined();
+  });
+
+  it("does not retain an incomplete or failed read, so finalized evidence and retries become available", async () => {
+    const asset = { assetId: "asset", mimeType: "image/jpeg", dataUrl: "data:image/jpeg;base64,YQ==" };
+    const invoke = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("transient read failure")).mockResolvedValue(asset);
+    vi.doMock("@tauri-apps/api/core", () => ({ invoke }));
+    vi.doMock("@tauri-apps/api/event", () => ({ listen: vi.fn() }));
+    const { TauriHost: H } = await import("../src/host/tauri.js");
+    const host = new H();
+    expect(await host.getEvidenceAsset("s1", "asset")).toBeUndefined();
+    await expect(host.getEvidenceAsset("s1", "asset")).rejects.toThrow("transient read failure");
+    expect(await host.getEvidenceAsset("s1", "asset")).toEqual(asset);
   });
 });

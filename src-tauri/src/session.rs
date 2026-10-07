@@ -14,6 +14,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use crate::evidence::SessionEvidence;
 
 #[cfg(windows)]
 use crate::job::JobGuard;
@@ -50,7 +51,6 @@ pub(crate) struct SendJobGuard(JobGuard);
 pub struct SessionRecord {
     pub id: String,
     pub entry_url: String,
-    pub topic: String,
     pub status: SessionStatus,
     pub started_at: String,
     pub finished_at: Option<String>,
@@ -60,17 +60,16 @@ pub struct SessionRecord {
     pub child_pid: Option<u32>,
     pub job: Option<SendJobGuard>,
     pub result_json: Option<String>,
-    pub detail_json: Option<String>,
+    evidence: Option<SessionEvidence>,
     pub extra_json: Option<String>,
     pub progress: ProgressSnapshot,
 }
 
 impl SessionRecord {
-    fn new(id: String, entry_url: String, topic: String, started_at: String) -> Self {
+    fn new(id: String, entry_url: String, started_at: String) -> Self {
         Self {
             id,
             entry_url,
-            topic,
             status: SessionStatus::Running,
             started_at,
             finished_at: None,
@@ -80,7 +79,7 @@ impl SessionRecord {
             child_pid: None,
             job: None,
             result_json: None,
-            detail_json: None,
+            evidence: None,
             extra_json: None,
             progress: ProgressSnapshot::default(),
         }
@@ -242,7 +241,7 @@ impl SessionRegistry {
             record.progress.findings = serde_json::from_str::<serde_json::Value>(&canonical).ok()
                 .and_then(|value| value["findings"].as_array().map(|items| items.len() as u64)).unwrap_or(0);
             record.result_json = Some(canonical);
-            record.detail_json = Some(detail);
+            record.evidence = SessionEvidence::from_json(&detail).ok();
             record.extra_json = Some(extra);
         }
         record.status = SessionStatus::Cancelled;
@@ -291,7 +290,7 @@ impl SessionRegistry {
             .and_then(|value| value.get("findings").and_then(serde_json::Value::as_array).map(|items| items.len() as u64)) {
             record.progress.findings = count;
         }
-        record.detail_json = Some(detail_json);
+        record.evidence = SessionEvidence::from_json(&detail_json).ok();
         record.extra_json = Some(extra_json);
         record.status = SessionStatus::Succeeded;
         record.finished_at = Some(finished_at);
@@ -319,12 +318,11 @@ impl SessionRegistry {
         Some(serde_json::json!({
             "id": record.id,
             "entryUrl": record.entry_url,
-            "topic": record.topic,
             "status": record.status.as_str(),
             "startedAt": record.started_at,
             "finishedAt": record.finished_at,
             "error": record.error,
-            "hasResult": record.result_json.is_some() && record.detail_json.is_some() && record.extra_json.is_some(),
+            "hasResult": record.result_json.is_some() && record.evidence.is_some() && record.extra_json.is_some(),
             "progress": record.progress.value(record.status.as_str(), matches!(record.status,
                 SessionStatus::Succeeded | SessionStatus::Cancelled | SessionStatus::Failed)),
         }))
@@ -336,10 +334,32 @@ impl SessionRegistry {
         serde_json::from_str(&text).ok()
     }
 
-    pub async fn detail_value(&self, session_id: &str) -> Option<serde_json::Value> {
+    pub async fn coverage_value(&self, session_id: &str) -> Option<serde_json::Value> {
+        Some(self.inner.lock().await.get(session_id)?.evidence.as_ref()?.coverage())
+    }
+
+    pub async fn finding_detail_value(&self, session_id: &str, finding_id: &str) -> Option<serde_json::Value> {
+        self.inner.lock().await.get(session_id)?.evidence.as_ref()?.finding(finding_id)
+    }
+
+    pub async fn evidence_asset_value(&self, session_id: &str, asset_id: &str) -> Option<serde_json::Value> {
+        self.inner.lock().await.get(session_id)?.evidence.as_ref()?.asset(asset_id)
+    }
+
+    pub async fn evidence_summary_value(&self, session_id: &str) -> Option<serde_json::Value> {
+        Some(self.inner.lock().await.get(session_id)?.evidence.as_ref()?.summary())
+    }
+
+    pub async fn image_analysis_value(&self, session_id: &str, query: &serde_json::Value) -> Result<Option<serde_json::Value>, String> {
         let guard = self.inner.lock().await;
-        let text = guard.get(session_id)?.detail_json.clone()?;
-        serde_json::from_str(&text).ok()
+        let Some(index) = guard.get(session_id).and_then(|record|record.evidence.as_ref()) else { return Ok(None); };
+        index.images(query).map(Some)
+    }
+
+    pub async fn evidence_graph_value(&self, session_id: &str, query: &serde_json::Value) -> Result<Option<serde_json::Value>, String> {
+        let guard = self.inner.lock().await;
+        let Some(index) = guard.get(session_id).and_then(|record|record.evidence.as_ref()) else { return Ok(None); };
+        index.graph_slice(query).map(Some)
     }
 
     pub async fn extra_value(&self, session_id: &str) -> Option<serde_json::Value> {
@@ -352,7 +372,7 @@ impl SessionRegistry {
         let guard = self.inner.lock().await;
         let record = guard.get(session_id).ok_or("unknown session")?;
         if !matches!(record.status, SessionStatus::Succeeded | SessionStatus::Cancelled)
-            || record.detail_json.is_none() || record.extra_json.is_none() {
+            || record.evidence.is_none() || record.extra_json.is_none() {
             return Err("no validated result stored for session yet".to_string());
         }
         let text = record.result_json.as_deref().ok_or("no result stored for session yet")?;
@@ -741,9 +761,9 @@ impl SessionRegistry {
 
 }
 
-pub fn new_session(entry_url: String, topic: String, started_at: String) -> SessionRecord {
+pub fn new_session(entry_url: String, started_at: String) -> SessionRecord {
     let id = uuid::Uuid::new_v4().to_string();
-    SessionRecord::new(id, entry_url, topic, started_at)
+    SessionRecord::new(id, entry_url, started_at)
 }
 
 /// Cancellation can arrive after a natural worker exit. Validate its completed
@@ -1004,6 +1024,7 @@ pub(crate) fn validate_detail_bundle(official_text: &str, detail_text: &str, ext
         image_chars += data.len();
     }
     if image_chars > 2_670_000 { return Err("creative images exceed capture budget".to_string()); }
+    crate::evidence::validate_extensions(&detail,extras)?;
     Ok(())
 }
 
@@ -1024,7 +1045,7 @@ pub(crate) fn validate_extra_bundle(official_text: &str, extra_text: &str) -> Re
         let id = finding["id"].as_str().ok_or(format!("{at}.id missing"))?;
         if !ids.insert(id) { return Err(format!("{at}.id duplicated")); }
         if finding["technique"].as_str() != Some("ETC") { return Err(format!("{at}.technique must be ETC")); }
-        if !matches!(finding["extra_finding"].as_str(), Some("REUSED_AD_CREATIVE" | "AD_INFRASTRUCTURE_CORRELATION" | "ZERO_WIDTH_OBFUSCATION")) {
+        if !matches!(finding["extra_finding"].as_str(), Some("IMAGE_ONLY_ILLEGAL_AD" | "REUSED_AD_CREATIVE" | "AD_INFRASTRUCTURE_CORRELATION" | "ZERO_WIDTH_OBFUSCATION")) {
             return Err(format!("{at}.extra_finding invalid"));
         }
         for field in ["url", "location", "evidence_text"] {
@@ -1220,7 +1241,6 @@ mod tests {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:00:00Z".to_string(),
         );
         let id = record.id.clone();
@@ -1239,7 +1259,6 @@ mod tests {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:01:00Z".to_string(),
         );
         let id = record.id.clone();
@@ -1257,7 +1276,6 @@ mod tests {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:01:00Z".to_string(),
         );
         let id = record.id.clone();
@@ -1276,7 +1294,6 @@ mod tests {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:00:00Z".to_string(),
         );
         let id = record.id.clone();
@@ -1302,7 +1319,6 @@ mod tests {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:00:00Z".to_string(),
         );
         let id = record.id.clone();
@@ -1321,7 +1337,6 @@ mod tests {
         let registry = SessionRegistry::shared();
         let mut record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:00:00Z".to_string(),
         );
         let pid = child.id().unwrap_or(0);
@@ -1357,7 +1372,6 @@ mod tests {
         let registry = SessionRegistry::shared();
         let mut record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:00:00Z".to_string(),
         );
         let pid = child.id().unwrap_or(0);
@@ -1438,7 +1452,7 @@ mod progress_pump_tests {
     #[tokio::test]
     async fn polling_recovers_active_work_and_terminal_settlement_clears_it() {
         let registry = SessionRegistry::shared();
-        let record = new_session("https://example.kr/".to_string(), String::new(), "start".to_string());
+        let record = new_session("https://example.kr/".to_string(), "start".to_string());
         let id = record.id.clone();
         registry.insert(record).await;
         let progress = serde_json::json!({
@@ -1493,7 +1507,6 @@ mod progress_pump_tests {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:00:00Z".to_string(),
         );
         let id = record.id.clone();
@@ -1631,7 +1644,6 @@ mod progress_pump_tests {
         let registry = SessionRegistry::shared();
         let record = new_session(
             "https://example.kr/".to_string(),
-            "test".to_string(),
             "2026-10-01T00:00:00Z".to_string(),
         );
         let id = record.id.clone();

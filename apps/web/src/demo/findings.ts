@@ -14,7 +14,7 @@ export function demoResult(): OfficialResult {
   const started = "2026-10-01T00:00:00.000Z";
   return {
     meta: {
-      topic: "미리보기 데모",
+      topic: "TOPIC",
       entry_url: DEMO_ENTRY_URL,
       started_at: started,
       finished_at: "2026-10-01T00:01:00.000Z",

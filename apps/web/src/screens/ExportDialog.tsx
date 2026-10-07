@@ -59,8 +59,8 @@ export function ExportDialog({ host, sessionId, onClose }: Props) {
 
   useEffect(() => {
     let alive = true;
-    void host.getDetailBundle(sessionId).then((bundle) => {
-      if (alive) setCoverage(bundle?.coverage);
+    void host.getScanCoverage(sessionId).then((record) => {
+      if (alive) setCoverage(record?.coverage);
     }).catch(() => undefined).finally(() => { if (alive) setCoverageLoaded(true); });
     host.getOfficialResult(sessionId).then((r) => {
       if (!alive) return;
