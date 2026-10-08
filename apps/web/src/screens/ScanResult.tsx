@@ -107,7 +107,7 @@ function ImageOnlyEvidence({ findingId, host, sessionId }: { findingId: string; 
     <button ref={toggleRef} type="button" className="secondary" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "이미지 근거 닫기" : "이미지 근거 보기"}</button>
     {open ? result.state === "loading" ? <p role="status">이미지 근거를 불러오는 중입니다.</p>
       : result.state === "error" ? <div><p role="alert">이미지 근거를 불러오지 못했습니다.</p><button className="secondary" type="button" onClick={result.retry}>이미지 근거 다시 불러오기</button></div>
-        : result.state === "unavailable" ? <div><p>이 세션의 이미지 근거 기록을 사용할 수 없습니다.</p><button className="secondary" type="button" onClick={result.retry}>이미지 근거 다시 불러오기</button></div>
+        : result.state === "unavailable" ? <p>이 결과에 저장된 이미지 근거 기록이 없습니다.</p>
           : !analysis ? <p>이 탐지에 연결된 이미지 분석 기록이 없습니다.</p>
           : <ul className="finding-list"><ImageAnalysisView analysis={analysis} host={host} sessionId={sessionId} displayAsset /></ul> : null}
   </div>;
@@ -128,7 +128,7 @@ function ImageAnalysisList({ host, sessionId, images }: { host: HostBridge; sess
       : page.state === "error" ? <p role="alert">저장된 이미지 문자 분석을 불러오지 못했습니다. 공식 탐지는 유지됩니다.</p>
         : page.state === "unavailable" ? <p role="status">이 세션의 이미지 문자 분석 기록을 사용할 수 없습니다.</p>
           : !items.length ? <p className="hint">저장된 문자 분석 이미지가 없습니다. 미분석 사유는 이미지 분석 범위를 확인해 주세요.</p> : null}
-    {page.state === "error" || page.state === "unavailable" ? <button type="button" className="secondary" onClick={page.retry}>이미지 문자 분석 다시 불러오기</button> : null}
+    {page.state === "error" ? <button type="button" className="secondary" onClick={page.retry}>이미지 문자 분석 다시 불러오기</button> : null}
     {page.value?.nextCursor !== undefined ? <>
       <p role="status">전체 {String(page.value.total)}건 중 {String(items.length)}건 표시 · 나머지는 더 보기를 눌러 조회합니다.</p>
       <button type="button" className="secondary" onClick={() => { setPrevious(items); setCursor(page.value!.nextCursor!); }}>이미지 분석 더 보기</button>
@@ -227,25 +227,32 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
 
 
   return (
-    <main className="page">
-      <p className="eyebrow">결과 검토</p>
-      <h1 ref={resultHeading} tabIndex={-1}>점검 결과</h1>
-      <p className="lede">{noCheckedCoverage ? accessLimited.length ? "접근 제한으로 점검하지 못함" : "성공적으로 점검한 페이지 없음" : session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{!noCheckedCoverage && session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}</p>
-      {result ? <WorkbookExport host={host} sessionId={sessionId} reviews={reviewRecords} /> : null}
+    <main className="page result-page">
+      <header className="result-header">
+        <h1 ref={resultHeading} tabIndex={-1}>점검 결과</h1>
+        <div className="result-export-actions">
+          {result ? <WorkbookExport host={host} sessionId={sessionId} reviews={reviewRecords} /> : null}
+          <button id="export-trigger" type="button" onClick={onExport} className="secondary" disabled={!result}>공식 JSON 저장</button>
+        </div>
+      </header>
+      <p className="lede">{noCheckedCoverage ? accessLimited.length ? "접근 제한으로 점검하지 못함" : "성공적으로 점검한 페이지 없음" : session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{!noCheckedCoverage && session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}{result ? <> · 탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개 · 접근 제한 ${accessLimited.length}개` : " · 점검 범위 알 수 없음"}</> : null}</p>
       {session?.status === "cancelled" || detailBundle?.coverage.cancelled ? <p role="note" className="empty">점검이 중지되었습니다. 완료된 페이지의 결과를 표시합니다.</p>
         : session?.status === "failed" && session.hasResult === true ? <p role="note" className="empty">점검이 실패했습니다. 완료된 페이지의 결과를 표시합니다.</p> : null}
       {demoMode ? <p role="note" className="empty">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다.</p> : null}
-      {result ? <p className="hint">탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개 · 접근 제한 ${accessLimited.length}개` : " · 점검 범위 알 수 없음"}</p> : null}
       {accessLimited.length ? <p role="note">접근 제한 페이지는 점검하지 못했습니다. 탐지 0건이라도 안전하다고 판단할 수 없습니다. 점검 범위에서 사유를 확인해 주세요.</p> : null}
-      {result ? <details className="advanced"><summary>이미지 분석 범위</summary><section aria-label="이미지 분석 범위">
+      {result ? <div className="result-scope-details">
+        <div className="result-navigation" role="group" aria-label="결과 영역">
+          <button type="button" aria-pressed={view === "findings" || view === "pages"} onClick={() => onViewChange("findings")}>공식 탐지</button>
+          <button type="button" aria-pressed={view === "extra"} onClick={() => onViewChange("extra")}>추가 분석</button>
+          <button type="button" aria-pressed={view === "coverage"} onClick={() => onViewChange("coverage")}>점검 범위</button>
+        </div><details className="advanced"><summary>이미지 분석 범위</summary><section aria-label="이미지 분석 범위">
         <h2 ref={summaryHeading} tabIndex={-1}>이미지 분석 범위</h2>
         {summaryRead.state === "loading" ? <p role="status">근거 요약을 불러오는 중입니다.</p>
           : summaryRead.state === "error" ? <div><p role="alert">저장된 근거 요약을 불러오지 못했습니다. 공식 탐지와 저장은 유지됩니다.</p><button type="button" className="secondary" onClick={summaryRead.retry}>근거 요약 다시 불러오기</button></div>
-            : summaryRead.state === "unavailable" ? <div><p role="status">이 세션의 근거 요약을 사용할 수 없습니다. 이미지 분석 범위는 알 수 없습니다.</p><button type="button" className="secondary" onClick={summaryRead.retry}>근거 요약 다시 불러오기</button></div>
+            : summaryRead.state === "unavailable" ? <div><p role="status">이 결과에 저장된 근거 요약이 없습니다. 이미지 분석 범위는 알 수 없습니다.</p></div>
               : <VisualCoverage coverage={evidenceSummary?.visualAnalysisCoverage} />}
-      </section></details> : null}
-      {result && (view === "findings" || view === "pages") ? (
-        <section aria-label="기법별 건수">
+      </section></details>
+        <details className="advanced"><summary>기법별 건수</summary><section aria-label="기법별 건수">
           <ul className="counts">
             {OFFICIAL_TECHNIQUES.map((t) => (
               <li key={t}>
@@ -253,14 +260,8 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
               </li>
             ))}
           </ul>
-        </section>
-      ) : null}
+        </section></details></div> : null}
       <section aria-label="결과 목록">
-        <div className="result-navigation" role="group" aria-label="결과 영역">
-          <button type="button" aria-pressed={view === "findings" || view === "pages"} onClick={() => onViewChange("findings")}>공식 탐지</button>
-          <button type="button" aria-pressed={view === "extra"} onClick={() => onViewChange("extra")}>추가 분석</button>
-          <button type="button" aria-pressed={view === "coverage"} onClick={() => onViewChange("coverage")}>점검 범위</button>
-        </div>
         {result ? <ReviewCollection findings={findings} coverage={detailBundle} query={query} onQueryChange={onQueryChange}
           filter={filter} onFilterChange={onFilterChange} view={view} onViewChange={onViewChange}
           reviewedIds={reviewedIds} onReviewMany={onReviewMany} onEvidence={onEvidence}
@@ -286,7 +287,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
             </section> : null}
             {extraLoadError ? <div><p role="alert" className="empty">추가 분석 결과를 불러오지 못했습니다.</p><button type="button" className="secondary" onClick={extraRead.retry}>추가 분석 다시 불러오기</button></div>
               : !extraLoaded ? <p role="status" className="empty">추가 분석 결과를 불러오는 중입니다.</p>
-                : !extraResult ? <div><p role="status" className="empty">이 세션의 추가 탐지 기록을 사용할 수 없습니다. 이미지 문자 분석 기록은 별도로 확인할 수 있습니다.</p><button type="button" className="secondary" onClick={extraRead.retry}>추가 분석 다시 불러오기</button></div>
+                : !extraResult ? <div><p role="status" className="empty">이 세션의 추가 탐지 기록을 사용할 수 없습니다. 이미지 문자 분석 기록은 별도로 확인할 수 있습니다.</p></div>
                 : extraResult.findings.length === 0 ? <p role="status" className="empty">{evidenceSummary?.imageAnalysisCount ? "반복 소재 등의 추가 탐지 항목은 없습니다." : "추가 분석에서 확인된 항목이 없습니다."}</p>
                   : <>
                     <p role="status" aria-live="polite">추가 분석 {String(extraResult.findings.length)}건</p>
@@ -330,16 +331,13 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
               {detailBundle.coverage.timedOut ? <p role="status">제한 시간에 도달해 일부 페이지를 확인하지 못했습니다.</p> : null}
               {detailBundle.coverage.failedPages.length > 0 ? <ul>{detailBundle.coverage.failedPages.map((page) => <li key={page.url}>{page.url} — {page.status === 0 ? "연결 또는 분석 실패" : `접근 실패 (HTTP ${String(page.status)})`}</li>)}</ul>
                 : <p>확인에 실패한 페이지가 없습니다.</p>}
-            </> : <div><p role="status" className="empty">점검 범위 기록을 사용할 수 없습니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div>}
+            </> : <div><p role="status" className="empty">이 결과에 저장된 점검 범위 기록이 없습니다.</p></div>}
           </div>
         ) : null}
 
       </section>
-      {result ? <p className="hint">검토 완료는 항목을 읽고 검토했다는 표시이며 위반 확정이나 조치 완료가 아닙니다. 공식 탐지와 저장 파일은 바뀌지 않습니다. 검토 표시는 현재 화면 메모리에만 보관되어 새 점검이나 앱 새로고침 시 사라집니다.</p> : null}
+      {result ? <details className="advanced"><summary>검토 표시와 저장 안내</summary><p>검토 완료는 읽고 검토했다는 표시이며 위반 확정이나 조치 완료가 아닙니다. 공식 탐지와 저장 파일은 바뀌지 않습니다. 검토 표시는 현재 화면 메모리에만 보관되어 새 점검이나 앱 새로고침 시 사라집니다. 엑셀 보고서는 검색·필터와 관계없이 전체 기록과 현재 검토 메모를 저장합니다.</p></details> : null}
       <div className="actions">
-        <button id="export-trigger" type="button" onClick={onExport} className="primary" disabled={!result}>
-          공식 JSON 저장
-        </button>{" "}
         <button type="button" onClick={onRestart} className="secondary">
           {restartLabel}
         </button>

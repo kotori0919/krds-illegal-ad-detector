@@ -95,7 +95,7 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
                 <dt>{finding.location.includes(">>>") ? "프레임 화면 기준 위치" : "페이지 화면 기준 위치"}</dt>
                 <dd>가로 {String(Math.round(detail.observed.box.x))}px · 세로 {String(Math.round(detail.observed.box.y))}px</dd>
               </div> : null}
-            </dl> : <div><p className="empty">이 세션의 상세 판단 기록을 사용할 수 없습니다.</p><button type="button" className="secondary" onClick={detailRead.retry}>판단 근거 다시 불러오기</button></div>}
+            </dl> : <p className="empty">이 결과에 저장된 상세 판단 기록이 없습니다.</p>}
           </section>
           {detail ? <section aria-label="실제 화면">
             <h2>실제 화면</h2>

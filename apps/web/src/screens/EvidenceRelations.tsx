@@ -42,7 +42,7 @@ export function EvidenceRelations(props: { host: HostBridge; sessionId: string; 
 }
 
 function RelationPanel({ host, sessionId, focus }: { host: HostBridge; sessionId: string; focus: Focus }) {
-  const [read, setRead] = useState<{ host: HostBridge; state: "closed" | "loading" | "open" | "error"; slice?: EvidenceGraphSlice }>();
+  const [read, setRead] = useState<{ host: HostBridge; state: "closed" | "loading" | "open" | "error"; slice?: EvidenceGraphSlice; loaded?: true }>();
   const sequence = useRef(0);
   const button = useRef<HTMLButtonElement>(null);
   const regionId = useId();
@@ -55,13 +55,13 @@ function RelationPanel({ host, sessionId, focus }: { host: HostBridge; sessionId
   const state = current?.state ?? "closed";
   const slice = current?.slice;
   async function open() {
-    if (state === "open") { setRead({ host, state: "closed", slice }); button.current?.focus(); return; }
-    if (slice) { setRead({ host, state: "open", slice }); return; }
+    if (state === "open") { setRead({ host, state: "closed", slice, loaded: current?.loaded }); button.current?.focus(); return; }
+    if (current?.loaded) { setRead({ host, state: "open", slice, loaded: true }); return; }
     const request = ++sequence.current;
     setRead({ host, state: "loading" });
     try {
       const result = await host.getEvidenceGraphSlice(sessionId, { focus, maxNodes: 100, maxEdges: 200, depth: 2 });
-      if (request === sequence.current) setRead({ host, state: "open", slice: result });
+      if (request === sequence.current) setRead({ host, state: "open", slice: result, loaded: true });
     } catch {
       if (request === sequence.current) setRead({ host, state: "error" });
     }
@@ -71,7 +71,7 @@ function RelationPanel({ host, sessionId, focus }: { host: HostBridge; sessionId
   return <div className="evidence-relations">
     <button ref={button} type="button" className="secondary" onClick={() => void open()} disabled={state === "loading"} aria-expanded={state === "open"} aria-controls={regionId}>{state === "open" ? "관계 닫기" : state === "error" ? "관계 다시 시도" : "관계 보기"}</button>
     {state === "loading" ? <p role="status">관계를 불러오는 중입니다.</p> : state === "error" ? <p role="alert">저장된 관계를 불러오지 못했습니다. 관계 다시 시도로 이 조회만 재시도할 수 있습니다.</p> : state === "open" ? <section id={regionId} aria-label="근거 관계">
-      {!slice ? <p>이 세션의 관계 분석 기록을 사용할 수 없습니다.</p> : !slice.nodes.length ? <p>선택한 항목에 연결된 관계가 없습니다.</p> : <>
+      {!slice ? <p>이 결과에 저장된 관계 분석 기록이 없습니다.</p> : !slice.nodes.length ? <p>선택한 항목에 연결된 관계가 없습니다.</p> : <>
         <p>관련 항목 {slice.nodes.length}개 · 연결 {slice.edges.length}개{slice.truncated ? " · 조회 범위에 따라 일부 관계만 표시합니다." : ""}</p>
         <p>연결 기록은 공동 소유나 위반 확정을 뜻하지 않습니다. 링크 목적지는 추출한 주소이며 최종 도착 페이지를 확인한 결과가 아닙니다.</p>
         <ul>{slice.edges.map((edge, index) => <li key={`${edge.from}-${edge.to}-${index}`}>

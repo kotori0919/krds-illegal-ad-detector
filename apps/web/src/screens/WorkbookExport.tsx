@@ -20,8 +20,7 @@ export function WorkbookExport({ host, sessionId, reviews }: { host: HostBridge;
     } catch { setError(true); setMessage("엑셀 보고서를 저장하지 못했습니다. 저장 위치의 권한과 여유 공간을 확인하고 다시 저장해 주세요. 공식 결과는 유지됩니다."); }
     finally { setBusy(false); requestAnimationFrame(() => button.current?.focus()); }
   };
-  return <div className="workbook-export"><button ref={button} type="button" className="primary" disabled={busy} onClick={() => void save()}>엑셀 보고서 저장</button>
-    <p className="hint">검색·필터와 관계없이 전체 기록과 현재 검토 메모를 저장합니다.</p>
+  return <div className="workbook-export"><button ref={button} type="button" className="primary" title="검색·필터와 관계없이 전체 기록과 현재 검토 메모를 저장합니다." disabled={busy} onClick={() => void save()}>엑셀 보고서 저장</button>
     {message ? <p role={error ? "alert" : "status"}>{message}</p> : null}
   </div>;
 }

@@ -85,14 +85,14 @@ describe("operator evidence read recovery", () => {
     expect(screen.queryByRole("img")).toBeNull(); expect(screen.getByRole("status").textContent).toContain("불러오는 중");
   });
 
-  it("shows native null assets as unavailable and allows a later successful read", async () => {
+  it("shows native null assets as absent without offering a retrieval retry", async () => {
     const host = baseHost();
     vi.spyOn(host, "getEvidenceAsset").mockResolvedValueOnce(null as unknown as undefined)
       .mockResolvedValueOnce({ assetId: "a", mimeType: "image/png", dataUrl: "data:image/png;base64,YQ==" });
     render(<AssetImage host={host} sessionId="s1" assetId="a" alt="선택 이미지" />);
-    expect(await screen.findByText("이 세션의 수집 이미지를 사용할 수 없습니다.")).toBeDefined();
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "이미지 다시 불러오기" })); });
-    expect(screen.getByRole("img").getAttribute("src")).toBe("data:image/png;base64,YQ==");
+    expect(await screen.findByText("이 결과에 저장된 수집 이미지가 없습니다.")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "이미지 다시 불러오기" })).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
   });
 
   it("removes an asset from a previous host even when the session and asset identity stay the same", async () => {

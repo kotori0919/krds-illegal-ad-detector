@@ -50,6 +50,12 @@ of the current search/filter. Six sheets include summary, management patterns,
 one row per official finding, coverage, supplemental analysis and review history.
 Excel forbids `/` in worksheet names, so the coverage sheet is named
 `페이지·점검 범위`. Aggregates use the same writer with a `대상 요약` sheet.
+Image coverage in `점검 요약` uses separate Korean-labelled counts, collection
+and OCR limits, reached limits and excluded/failed units instead of a raw JSON
+cell. Missing coverage and the unknown full candidate total remain explicitly
+unknown. `탐지 상세` and `반복 항목` show Korean technique names beside unchanged
+official technique codes; every original finding and management group remains
+in the export.
 Date headings explicitly use UTC. URLs are copyable text, without untrusted
 active hyperlinks. Strings are explicitly string cells; length/control-character
 limits are explained while official JSON remains unchanged. Header freezing,

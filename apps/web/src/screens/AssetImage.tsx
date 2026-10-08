@@ -11,7 +11,7 @@ export function AssetImage({ host, sessionId, assetId, alt, width, height }: {
   if (asset.state === "ready" && asset.value) return <img ref={imageRef} tabIndex={-1} src={asset.value.dataUrl} alt={alt} width={width} height={height} />;
   return <div>
     <p role={asset.state === "error" ? "alert" : "status"}>{asset.state === "loading" ? "이미지를 불러오는 중입니다."
-      : asset.state === "error" ? "저장된 이미지를 불러오지 못했습니다. 점검 결과는 유지됩니다." : "이 세션의 수집 이미지를 사용할 수 없습니다."}</p>
-    {asset.state === "error" || asset.state === "unavailable" ? <button type="button" className="secondary" onClick={asset.retry}>이미지 다시 불러오기</button> : null}
+      : asset.state === "error" ? "저장된 이미지를 불러오지 못했습니다. 점검 결과는 유지됩니다." : "이 결과에 저장된 수집 이미지가 없습니다."}</p>
+    {asset.state === "error" ? <button type="button" className="secondary" onClick={asset.retry}>이미지 다시 불러오기</button> : null}
   </div>;
 }

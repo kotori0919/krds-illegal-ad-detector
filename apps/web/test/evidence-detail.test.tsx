@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { FindingDetailView, HostBridge, OfficialFinding } from "@krds-detector/contracts";
 import { EvidenceView } from "../src/screens/EvidenceView.js";
 
@@ -26,6 +26,15 @@ const detail: FindingDetailView = { findingId: "f1", url: finding.url, location:
   visual: { state: "unavailable", reason: "budget" } };
 
 describe("finding evidence presentation", () => {
+  it("keeps an absent optional detail settled without suggesting another read", async () => {
+    renderInspector(finding, async () => undefined);
+    expect(await screen.findByText(finding.evidence_text)).toBeDefined();
+    expect(await screen.findByText("이 결과에 저장된 상세 판단 기록이 없습니다.")).toBeDefined();
+    expect(screen.queryByRole("button", { name: "판단 근거 다시 불러오기" })).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect((screen.getByRole("button", { name: "검토 완료로 표시" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("keeps a pending detail in loading before showing raw and normalized text separately", async () => {
     let resolveDetail!: (value: FindingDetailView) => void;
     renderInspector(finding, () => new Promise((resolve) => { resolveDetail = resolve; }));
@@ -51,5 +60,21 @@ describe("finding evidence presentation", () => {
     expect(screen.queryByText("private host failure")).toBeNull();
     expect((screen.getByRole("button", { name: "검토 완료로 표시" }) as HTMLButtonElement).disabled).toBe(false);
     expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  it("recovers only a failed detail read while retaining the official evidence", async () => {
+    let attempts = 0;
+    renderInspector(finding, async () => {
+      if (++attempts === 1) throw new Error("temporary detail failure");
+      return detail;
+    });
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button", { name: "판단 근거 다시 불러오기" }));
+    expect(screen.getByText(finding.evidence_text)).toBeDefined();
+    const reason = screen.getByRole("region", { name: "판단 근거" });
+    expect(await within(reason).findByText(detail.normalizedText)).toBeDefined();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "판단 근거 다시 불러오기" })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "탐지 상세" }));
   });
 });

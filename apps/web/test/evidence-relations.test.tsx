@@ -103,7 +103,7 @@ describe("operator relationship reads", () => {
     fireEvent.click(screen.getByRole("button", { name: "관계 닫기" }));
     rerender(<EvidenceRelations host={host} sessionId="s1" focus={{ kind: "finding", id: "f2" }} />);
     fireEvent.click(screen.getByRole("button", { name: "관계 보기" }));
-    expect(await screen.findByText("이 세션의 관계 분석 기록을 사용할 수 없습니다.")).toBeDefined();
+    expect(await screen.findByText("이 결과에 저장된 관계 분석 기록이 없습니다.")).toBeDefined();
     expect(screen.queryByText(/관련 항목 6개/)).toBeNull();
   });
 
@@ -120,5 +120,17 @@ describe("operator relationship reads", () => {
     expect(screen.queryByRole("region")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "관계 보기" }));
     expect(await screen.findByText("선택한 항목에 연결된 관계가 없습니다.")).toBeDefined();
+  });
+
+  it("reopens a successfully absent relationship record without treating it as a failed read", async () => {
+    const read = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("unnecessary second read"));
+    render(<EvidenceRelations host={hostWith(read)} sessionId="s1" focus={{ kind: "finding", id: "f1" }} />);
+    fireEvent.click(screen.getByRole("button", { name: "관계 보기" }));
+    expect(await screen.findByText("이 결과에 저장된 관계 분석 기록이 없습니다.")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "관계 닫기" }));
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "관계 보기" })); });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "관계 다시 시도" })).toBeNull();
+    expect(within(screen.getByRole("region", { name: "근거 관계" })).getByText("이 결과에 저장된 관계 분석 기록이 없습니다.")).toBeDefined();
   });
 });

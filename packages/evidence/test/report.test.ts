@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
-import type { OfficialResult } from "@krds-detector/contracts";
+import type { OfficialResult, VisualAnalysisCoverage } from "@krds-detector/contracts";
 import { createOperationalWorkbook } from "../src/report.js";
 
 const official = JSON.parse(readFileSync(new URL("./fixtures/sample_result_617_sanitized.json", import.meta.url), "utf8")) as OfficialResult;
+const techniqueNames = { HOMOGLYPH: "유사 문자", JAMO: "자모 분리", TRANSPARENT: "투명 처리", OFFSCREEN: "화면 밖 배치" };
 describe("real operational XLSX", () => {
   it("round-trips every original record, conservative group and local review note", async () => {
     const before = JSON.stringify(official);
@@ -17,7 +18,7 @@ describe("real operational XLSX", () => {
     for (let i = 0; i < official.findings.length; i++) {
       const finding = official.findings[i]!;
       expect(detail.getRow(i + 2).values).toEqual([undefined, "s1", finding.id, finding.url, finding.evidence_text,
-        finding.technique, finding.location, finding.id === "f372" ? "검토 완료" : "검토 필요",
+        finding.technique, techniqueNames[finding.technique], finding.location, finding.id === "f372" ? "검토 완료" : "검토 필요",
         finding.id === "f372" ? "자연스러운 댓글인지 추가 확인 필요" : ""]);
     }
     expect(book.getWorksheet("반복 항목")?.rowCount).toBe(20);
@@ -25,6 +26,76 @@ describe("real operational XLSX", () => {
     expect(book.getWorksheet("검토 기록")?.getRow(2).values).toContain("자연스러운 댓글인지 추가 확인 필요");
     expect(detail.views[0]?.state).toBe("frozen"); expect(detail.autoFilter).toBeDefined();
     expect(JSON.stringify(official)).toBe(before);
+  });
+  it("exports measured image coverage as readable counts, limits and skipped units without inferring unknown totals", async () => {
+    const visualAnalysisCoverage: VisualAnalysisCoverage = {
+      pagesConsidered: 2, pagesNotConsidered: 3, candidatesObserved: 8, candidateTotal: null,
+      imagesAcquired: 5, imageAnalysisRecords: 4, ocrImagesAttempted: 3, ocrImagesCompleted: 2, ocrImagesUnavailable: 1,
+      limits: { pages: 2, candidatesPerDocument: 12, elementsPerDocument: 24, bytesPerPage: 4096, distinctOcrImages: 3 },
+      limitsReached: ["page-limit", "ocr-image-limit"],
+      skips: [{ reason: "page-limit", unit: "page", count: 3 }, { reason: "image-unavailable", unit: "image", count: 1 },
+        { reason: "candidate-limit", unit: "document", count: 2 }, { reason: "capture-error", unit: "candidate", count: 1 }],
+    };
+    const bytes = await createOperationalWorkbook([{ sessionId: "s1", official,
+      summary: { visualAnalysisCoverage, observedDomainCount: 0, infrastructure: [], imageAnalysisCount: 4, creativeImages: [] } }]);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes as unknown as ExcelJS.Buffer);
+    const values = new Map<string, ExcelJS.CellValue>();
+    book.getWorksheet("점검 요약")!.eachRow((row) => values.set(String(row.getCell(2).value), row.getCell(3).value));
+    expect(values.get("이미지 수집을 고려한 페이지 수")).toBe(2);
+    expect(values.get("이미지 수집을 고려하지 않은 것으로 기록된 페이지 수")).toBe(3);
+    expect(values.get("실제로 관측한 이미지 후보 수")).toBe(8);
+    expect(values.get("전체 이미지 후보 수")).toBe("알 수 없음");
+    expect(values.get("수집한 이미지 수")).toBe(5);
+    expect(values.get("저장된 이미지 분석 기록 수")).toBe(4);
+    expect(values.get("문자 인식을 시도한 서로 다른 이미지 수")).toBe(3);
+    expect(values.get("문자 인식을 완료한 서로 다른 이미지 수")).toBe(2);
+    expect(values.get("문자 인식이 불가한 서로 다른 이미지 수")).toBe(1);
+    expect(values.get("이미지 수집 페이지 수 제한")).toBe(2);
+    expect(values.get("문서별 이미지 후보 수 제한")).toBe(12);
+    expect(values.get("문서별 요소 확인 수 제한")).toBe(24);
+    expect(values.get("페이지별 이미지 용량 제한 (바이트)")).toBe(4096);
+    expect(values.get("서로 다른 문자 인식 이미지 수 제한")).toBe(3);
+    expect(values.get("이미지 분석에서 도달한 제한")).toBe("이미지 수집 페이지 수 제한 · 서로 다른 문자 인식 이미지 수 제한");
+    expect(values.get("이미지 분석 제외·실패 1")).toBe("이미지 수집 페이지 수 제한 · 페이지 3개");
+    expect(values.get("이미지 분석 제외·실패 2")).toBe("이미지 분석 사용 불가 · 이미지 1개");
+    expect(values.get("이미지 분석 제외·실패 3")).toBe("문서별 후보 수 제한 · 문서 2개");
+    expect(values.get("이미지 분석 제외·실패 4")).toBe("이미지 촬영 실패 · 후보 1개");
+    expect(values.get("이미지 분석 범위")).not.toBe(JSON.stringify(visualAnalysisCoverage));
+    expect(values.get("공식 탐지 기록 수")).toBe(617);
+    expect(book.getWorksheet("탐지 상세")!.rowCount).toBe(618);
+  });
+  it("distinguishes missing image coverage from measured zero work", async () => {
+    const bytes = await createOperationalWorkbook([{ sessionId: "missing", official }, { sessionId: "measured", official,
+      summary: { observedDomainCount: 0, infrastructure: [], imageAnalysisCount: 0, creativeImages: [], visualAnalysisCoverage: {
+        pagesConsidered: 0, pagesNotConsidered: 0, candidatesObserved: 0, candidateTotal: null,
+        imagesAcquired: 0, imageAnalysisRecords: 0, ocrImagesAttempted: 0, ocrImagesCompleted: 0, ocrImagesUnavailable: 0,
+        limits: { pages: 1, candidatesPerDocument: 1, elementsPerDocument: 1, bytesPerPage: 1, distinctOcrImages: 1 }, limitsReached: [], skips: [],
+      } } }]);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes as unknown as ExcelJS.Buffer);
+    const values = new Map<string, ExcelJS.CellValue>();
+    book.getWorksheet("점검 요약")!.eachRow((row) => values.set(`${row.getCell(1).value}:${row.getCell(2).value}`, row.getCell(3).value));
+    expect(values.get("missing:이미지 분석 범위")).toContain("알 수 없음");
+    expect(values.has("missing:실제로 관측한 이미지 후보 수")).toBe(false);
+    expect(values.get("measured:실제로 관측한 이미지 후보 수")).toBe(0);
+    expect(values.get("measured:전체 이미지 후보 수")).toBe("알 수 없음");
+    expect(values.get("measured:이미지 분석에서 도달한 제한")).toBe("기록된 설정 제한 도달 없음; 확인하지 않은 요소의 분석 여부는 알 수 없음");
+    expect(values.get("measured:이미지 분석 제외·실패")).toBe("기록된 이미지 분석 제외·실패 없음");
+  });
+  it("keeps all four official technique codes beside Korean names in details and groups", async () => {
+    const codes = ["HOMOGLYPH", "JAMO", "TRANSPARENT", "OFFSCREEN"] as const;
+    const bytes = await createOperationalWorkbook([{ sessionId: "s1", official: { ...official,
+      findings: codes.map((technique, index) => ({ ...official.findings[0]!, id: `t${index}`, technique })) } }]);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes as unknown as ExcelJS.Buffer);
+    const details = book.getWorksheet("탐지 상세")!;
+    expect(details.getRow(1).values).toContain("공식 기법 코드");
+    for (let index = 0; index < codes.length; index++) {
+      expect(details.getCell(index + 2, 5).value).toBe(codes[index]);
+      expect(details.getCell(index + 2, 6).value).toBe(techniqueNames[codes[index]!]);
+    }
+    const groups = book.getWorksheet("반복 항목")!;
+    const labelsByCode = new Map<string, ExcelJS.CellValue>();
+    groups.eachRow((row, number) => { if (number > 1) labelsByCode.set(String(row.getCell(5).value), row.getCell(4).value); });
+    expect(Object.fromEntries(labelsByCode)).toEqual(techniqueNames);
   });
   it("writes hostile input as bounded inert strings with no formulas or hyperlinks", async () => {
     const hostile = ["=HYPERLINK(\"https://evil.invalid\",\"open\")", "+cmd|calc!A0", "@SUM(1,2)", "-1+2", "x".repeat(40_000)];

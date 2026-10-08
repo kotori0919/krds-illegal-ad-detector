@@ -24,7 +24,7 @@ let browser;
 try {
   await new Promise((done) => app.listen(0, "127.0.0.1", done));
   browser = await chromium.launch({ args: ["--no-sandbox"] });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
   const errors = [], remoteRequests = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route("**/*", (route) => {
@@ -40,15 +40,32 @@ try {
   await page.getByLabel("점검할 웹사이트").fill(result.meta.entry_url);
   await page.getByRole("button", { name: "점검 시작", exact: true }).click();
   await page.getByRole("heading", { name: "반복 항목 검토" }).waitFor();
+  await page.evaluate(async () => { await document.fonts.ready; window.scrollTo(0, 0); });
+  const initialGeometry = await page.evaluate(() => ({
+    bodyFontSize: getComputedStyle(document.body).fontSize,
+    search: document.getElementById("result-search").getBoundingClientRect().toJSON(),
+    rows: [...document.querySelectorAll(".review-row")].slice(0, 3).map((row) => row.getBoundingClientRect().toJSON()),
+    height: window.innerHeight,
+  }));
+  await page.screenshot({ path: `${outputDir}/workspace-1366x768.png` });
+  assert(initialGeometry.search.bottom <= initialGeometry.height, JSON.stringify(initialGeometry));
+  assert(initialGeometry.rows.every((row) => row.bottom <= initialGeometry.height), JSON.stringify(initialGeometry));
+  assert.equal(await page.getByRole("navigation", { name: "목록 페이지" }).count(), 0);
   assert.equal(await page.getByRole("button", { name: "근거 보기", exact: true }).count(), 19);
   assert.equal(reads.filter((r) => r.command === "scan_get_evidence_asset").length, 0);
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: `${outputDir}/grouped-desktop.png` });
+  await page.getByLabel("결과 검색").fill("/game/baccarat");
+  await page.screenshot({ path: `${outputDir}/followup-aggregate-and-ids.png` });
+  await page.getByRole("button", { name: "검색·필터 초기화" }).click();
   const first = page.locator(".review-row").first();
   await first.getByText("기록 197건 · 영향 페이지 197개", { exact: false }).waitFor();
   await first.getByRole("button", { name: "근거 보기", exact: true }).focus();
   await page.keyboard.press("Enter");
   const inspector = page.getByRole("complementary", { name: "탐지 상세" });
   await inspector.getByText(/현재 검토 범위 1 \/ 197건/).waitFor();
+  await inspector.getByText(/이 결과에 저장된 상세 판단 기록이 없습니다/).waitFor();
+  assert.equal(await inspector.getByRole("button", { name: /다시 불러오기/ }).count(), 0);
   await inspector.getByRole("button", { name: "다음 기록" }).click();
   await inspector.getByText(/현재 검토 범위 2 \/ 197건/).waitFor();
   await inspector.getByRole("button", { name: "결과 목록으로" }).click();
@@ -62,6 +79,7 @@ try {
   await inspector.getByRole("button", { name: "결과 목록으로" }).click();
   await page.getByRole("button", { name: "검색·필터 초기화" }).click();
   await page.getByRole("button", { name: "전체 기록", exact: true }).click();
+  assert.equal(await page.getByRole("navigation", { name: "목록 페이지" }).count(), 1);
   assert.equal(await page.getByRole("button", { name: "근거 보기", exact: true }).count(), 20);
   await page.getByRole("button", { name: "다음 목록" }).click();
   await page.getByText("2 / 31 페이지", { exact: true }).waitFor();
@@ -76,6 +94,10 @@ try {
   await page.getByRole("button", { name: "반복 항목별", exact: true }).click();
   await page.setViewportSize({ width: 360, height: 800 });
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+  await page.locator(".review-row-details").first().getByText("묶음의 관측 위치와 구분 기준", { exact: true }).click();
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `${outputDir}/workspace-360px.png`, fullPage: true });
   await page.getByLabel("결과 검색").fill("f372");
   await page.getByRole("button", { name: "근거 보기", exact: true }).click();
   await inspector.getByText(/현재 검토 범위/).waitFor();
@@ -84,7 +106,7 @@ try {
   await inspector.getByRole("button", { name: "결과 목록으로" }).click();
   assert.equal(await page.getByLabel("결과 검색").inputValue(), "f372");
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
+  await page.evaluate(() => { document.documentElement.style.zoom = "2"; window.scrollTo(0, 0); });
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   await page.screenshot({ path: `${outputDir}/workspace-200-percent.png` });
   await page.evaluate(() => { document.documentElement.style.zoom = "1"; });
@@ -92,7 +114,7 @@ try {
   await page.getByText(/엑셀 보고서 저장 완료:/).waitFor();
   const workbook = new ExcelJS.Workbook(); await workbook.xlsx.readFile(`${outputDir}/report.xlsx`);
   assert.equal(workbook.getWorksheet("탐지 상세").rowCount, 618);
-  assert.equal(workbook.getWorksheet("탐지 상세").getRow(373).getCell(8).value, "자연스러운 댓글인지 추가 확인 필요");
+  assert.equal(workbook.getWorksheet("탐지 상세").getRow(373).getCell(9).value, "자연스러운 댓글인지 추가 확인 필요");
   for (const sheet of workbook.worksheets) sheet.eachRow((row) => row.eachCell((cell) => assert.notEqual(cell.type, ExcelJS.ValueType.Formula)));
   await page.getByRole("button", { name: "공식 JSON 저장", exact: true }).click();
   const exportDialog = page.getByRole("dialog");
@@ -102,7 +124,7 @@ try {
   assert.equal(serializeOfficialResult(result), officialBefore);
   assert.deepEqual(errors, []); assert.deepEqual(remoteRequests, []);
   const report = { mode: "offline fixture through production React and Tauri adapter; explicit IPC replay, not native scanner/export",
-    officialRecords: 617, affectedPages: 211, reviewPatterns: 19, repeatedRecords: 197, repeatedPages: 197,
+    officialRecords: 617, affectedPages: 211, reviewPatterns: 19, repeatedRecords: 197, repeatedPages: 197, initialGeometry,
     f372: "found and reviewed; original retained", recordPagination: "20/50", bulkConfirmation: true,
     narrowReflow: true, zoom200: true, keyboardEntryAndFocusReturn: true, officialCanonicalBytesUnchanged: true,
     xlsx: { sheets: workbook.worksheets.map((sheet) => sheet.name), officialRows: 617, filteredExportStillFull: true, note: true, formulas: false, mode: "real workbook; native Save As replay only" },
