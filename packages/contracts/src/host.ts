@@ -8,6 +8,7 @@
  */
 
 import type { ScanEvent, ScanRequest, ScanSession } from "./scan.js";
+import type { BatchScanRequest } from "./batch.js";
 import type { ExtraResult, OfficialResult } from "./result.js";
 import type { ImageAnalysisPage, ImageAnalysisQuery, ScanCoverageView, FindingDetailView,
   EvidenceAsset, EvidenceSummary, EvidenceGraphQuery, EvidenceGraphSlice } from "./evidence-access.js";
@@ -53,6 +54,7 @@ export interface ExportPaths {
 export interface HostBridge {
   getCapabilities(): Promise<HostCapabilities>;
   startScan(request: ScanRequest): Promise<ScanSession>;
+  startBatchScan(request: BatchScanRequest): Promise<ScanSession>;
   cancelScan(sessionId: string): Promise<void>;
   onScanEvent(handler: ScanEventHandler): Unsubscribe;
   getSession(sessionId: string): Promise<ScanSession | undefined>;
@@ -67,4 +69,7 @@ export interface HostBridge {
   exportResult(sessionId: string, directory: string): Promise<ExportPaths>;
   /** Local XLSX bytes from persisted sessions; always asks via native Save As. */
   saveWorkbook(sessionIds: string[], data: Uint8Array): Promise<string | null>;
+  /** Separate result.json per session, under a newly created batch directory. */
+  exportBatchResults(sessionIds: string[]): Promise<string | null>;
+  saveTargetTemplate(): Promise<string | null>;
 }

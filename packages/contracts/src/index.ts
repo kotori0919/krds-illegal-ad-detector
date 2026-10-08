@@ -8,3 +8,4 @@ export * from "./evidence.js";
 export * from "./detail.js";
 export * from "./evidence-access.js";
 export * from "./selector.js";
+export * from "./batch.js";

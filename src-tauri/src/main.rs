@@ -42,12 +42,30 @@ struct ScanStartRequest {
     limits: Option<ScanLimitsArg>,
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct BatchScanStartRequest {
+    #[serde(flatten)]
+    scan: ScanStartRequest,
+    kind: String,
+}
+
 #[tauri::command]
 async fn scan_start(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
     request: ScanStartRequest,
 ) -> Result<serde_json::Value, String> {
+    start_scan(app, state, request, false, "site").await
+}
+
+#[tauri::command]
+async fn scan_start_batch(app: tauri::AppHandle, state: State<'_, AppState>, request: BatchScanStartRequest) -> Result<serde_json::Value, String> {
+    if request.kind != "site" && request.kind != "sitemap" { return Err("invalid imported target kind".to_string()); }
+    start_scan(app, state, request.scan, true, &request.kind).await
+}
+
+async fn start_scan(app: tauri::AppHandle, state: State<'_, AppState>, request: ScanStartRequest,
+    public_network_only: bool, entry_kind: &str) -> Result<serde_json::Value, String> {
     if request.entry_url.trim().is_empty() {
         return Err("entryUrl is required".to_string());
     }
@@ -83,7 +101,7 @@ async fn scan_start(
         return Err(detail);
     };
     {
-        let args: Vec<String> = vec![
+        let mut args: Vec<String> = vec![
             "--session".to_string(),
             session_id.clone(),
             "--entry-url".to_string(),
@@ -113,6 +131,8 @@ async fn scan_start(
                 .to_string_lossy()
                 .into_owned(),
         ];
+        if public_network_only { args.push("--public-network-only".to_string()); }
+        args.extend(["--entry-kind".to_string(), entry_kind.to_string()]);
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
         if let Err(detail) = state.registry.spawn_sidecar(&session_id, &path, &arg_refs).await {
             state.registry.fail(&session_id, detail.clone(), chrono::Utc::now().to_rfc3339()).await;
@@ -394,6 +414,45 @@ async fn scan_export_workbook(app: tauri::AppHandle, state: State<'_, AppState>,
     Ok(Some(path.to_string_lossy().into_owned()))
 }
 
+#[tauri::command]
+async fn scan_export_batch(app: tauri::AppHandle, state: State<'_, AppState>, session_ids: Vec<String>) -> Result<Option<String>, String> {
+    if session_ids.is_empty() || session_ids.len() > 100 { return Err("invalid batch export scope".to_string()); }
+    let mut bundles = Vec::with_capacity(session_ids.len());
+    for id in &session_ids {
+        let official = state.registry.validated_export_text(id).await?;
+        let extra = state.registry.extra_value(id).await;
+        if let Some(value) = &extra { validate_extra_bundle(&official, &value.to_string())?; }
+        let coverage = state.registry.coverage_value(id).await;
+        let snapshot = state.registry.snapshot(id).await.ok_or("unknown batch session")?;
+        bundles.push((official, extra, coverage, snapshot));
+    }
+    use tauri_plugin_dialog::{DialogExt, FilePath};
+    let Some(FilePath::Path(parent)) = app.dialog().file().set_title("사이트별 공식 결과를 저장할 폴더 선택").blocking_pick_folder() else { return Ok(None); };
+    let root = parent.join(format!("krds-batch-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir(&root).map_err(|e| format!("batch directory failed: {e}"))?;
+    let mut manifest = Vec::new();
+    for (index, (official, extra, coverage, snapshot)) in bundles.into_iter().enumerate() {
+        let name = format!("target-{:03}", index + 1);
+        let dir = root.join(&name);
+        std::fs::create_dir(&dir).map_err(|e| format!("batch target directory failed: {e}"))?;
+        std::fs::write(dir.join("result.json"), official).map_err(|e| format!("batch official write failed: {e}"))?;
+        if let Some(value) = extra { std::fs::write(dir.join("result_extra.json"), value.to_string()).map_err(|e| format!("batch extra write failed: {e}"))?; }
+        if let Some(value) = coverage { std::fs::write(dir.join("coverage.json"), value.to_string()).map_err(|e| format!("batch coverage write failed: {e}"))?; }
+        manifest.push(serde_json::json!({ "directory": name, "session": snapshot }));
+    }
+    std::fs::write(root.join("batch.json"), serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?).map_err(|e| format!("batch manifest write failed: {e}"))?;
+    Ok(Some(root.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
+async fn scan_save_template(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use tauri_plugin_dialog::{DialogExt, FilePath};
+    let Some(FilePath::Path(mut path)) = app.dialog().file().set_file_name("점검 대상 양식.csv").add_filter("CSV", &["csv"]).blocking_save_file() else { return Ok(None); };
+    path.set_extension("csv");
+    std::fs::write(&path, "\u{feff}사이트명,시작 주소\r\n예시 사이트,https://example.kr/\r\n").map_err(|e| format!("template write failed: {e}"))?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
 fn url_like_valid(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if !(trimmed.starts_with("http://") || trimmed.starts_with("https://")) {
@@ -503,6 +562,7 @@ fn main() {
             .prevent_overflow()
             .center()
             .zoom_hotkeys_enabled(cfg!(target_os = "windows"))
+            .disable_drag_drop_handler()
             .data_directory(dir)
             .visible(true)
             .focused(true)
@@ -532,7 +592,10 @@ fn main() {
             scan_get_evidence_graph_slice,
             scan_get_extra_result,
             scan_export,
-            scan_export_workbook
+            scan_export_workbook,
+            scan_start_batch,
+            scan_export_batch,
+            scan_save_template
         ])
         .run(tauri::generate_context!())
         .expect("tauri host failed to start");

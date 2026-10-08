@@ -575,3 +575,12 @@ a passing execution. The terminal rerun supplied actual OS input and passed.
 Final native process inspection found only idle fixture Nodes4008/7684/8756,
 no app or scanner Chromium (`intrinsic-final-process-cleanup.png`). Core
 performance/correctness acceptance preceded these strict UI checks.
+## Product V2.1 batch intake
+
+The single-URL form remains the default. A secondary task button opens labelled
+file intake, an offline preview and an explicit scoped start action. Existing KRDS
+typography, border, gap, padding and focus tokens are reused. Status text separates
+pending/running/complete/partial/uninspected/failed/cancelled targets; actions name
+their pause/stop scope. Native file picker and save dialogs retain platform keyboard
+semantics. Actual built UI four-format/360px/keyboard-start observations and images
+are recorded in `PRODUCT_V2_1_ACCEPTANCE.md`; installed Windows proof is separate.

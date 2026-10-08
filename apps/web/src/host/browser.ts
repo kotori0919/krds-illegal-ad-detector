@@ -21,6 +21,7 @@ import {
   type ScanEventHandler,
   type ScanProgress,
   type ScanRequest,
+  type BatchScanRequest,
   type ScanSession,
   type Unsubscribe,
 } from "@krds-detector/contracts";
@@ -116,6 +117,18 @@ export class BrowserHost implements HostBridge {
         });
       }
     }
+  }
+
+  async startBatchScan(request: BatchScanRequest): Promise<ScanSession> {
+    void request;
+    throw new Error("일괄 점검은 데스크톱 앱에서 실행해 주세요.");
+  }
+  async exportBatchResults(sessionIds: string[]): Promise<string | null> {
+    void sessionIds;
+    throw new Error("브라우저 미리보기에서는 파일 저장을 지원하지 않습니다.");
+  }
+  async saveTargetTemplate(): Promise<string | null> {
+    throw new Error("브라우저 미리보기에서는 파일 저장을 지원하지 않습니다.");
   }
 
   onScanEvent(handler: ScanEventHandler): Unsubscribe {

@@ -25,6 +25,7 @@ import {
   type ScanEvent,
   type ScanEventHandler,
   type ScanRequest,
+  type BatchScanRequest,
   type ScanSession,
   type Unsubscribe,
 } from "@krds-detector/contracts";
@@ -99,6 +100,21 @@ export class TauriHost implements HostBridge {
   async cancelScan(sessionId: string): Promise<void> {
     const invoke = await this.invoke();
     await invoke<void>("scan_cancel", { sessionId });
+  }
+
+  async startBatchScan(request: BatchScanRequest): Promise<ScanSession> {
+    await this.ensureSubscribed();
+    const invoke = await this.invoke();
+    return invoke<ScanSession>("scan_start_batch", { request });
+  }
+
+  async exportBatchResults(sessionIds: string[]): Promise<string | null> {
+    const invoke = await this.invoke();
+    return invoke<string | null>("scan_export_batch", { sessionIds });
+  }
+  async saveTargetTemplate(): Promise<string | null> {
+    const invoke = await this.invoke();
+    return invoke<string | null>("scan_save_template");
   }
 
   onScanEvent(handler: ScanEventHandler): Unsubscribe {

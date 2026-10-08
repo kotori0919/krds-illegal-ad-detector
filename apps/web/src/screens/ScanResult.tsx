@@ -26,6 +26,7 @@ interface Props {
   onEvidence: (findingId: string, context?: string[]) => void;
   onExport: () => void;
   onRestart: () => void;
+  restartLabel?: string;
   query: string;
   onQueryChange: (value: string) => void;
   filter: TechniqueFilter;
@@ -139,7 +140,7 @@ export function ScanResult(props: Props) {
   return <SessionResults key={props.sessionId} {...props} />;
 }
 
-function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, reviewRecords = [], restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
+function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, restartLabel = "새로 검사하기", query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, reviewRecords = [], restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
   const summaryHeading = useRef<HTMLHeadingElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
@@ -217,7 +218,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
         </p>
         <div className="actions">
           <button type="button" onClick={onRestart} className="primary">
-            새로 검사하기
+            {restartLabel}
           </button>
         </div>
       </main>
@@ -340,7 +341,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
           공식 JSON 저장
         </button>{" "}
         <button type="button" onClick={onRestart} className="secondary">
-          새로 검사하기
+          {restartLabel}
         </button>
       </div>
     </main>

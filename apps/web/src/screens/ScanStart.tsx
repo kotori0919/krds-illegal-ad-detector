@@ -4,6 +4,7 @@ import type { HostBridge } from "@krds-detector/contracts";
 interface Props {
   host: HostBridge;
   onStarted: (sessionId: string) => void;
+  onBatch?: () => void;
 }
 
 type FieldName = "url" | "maxPages" | "maxDepth" | "timeoutSec";
@@ -12,7 +13,7 @@ type ScopeMode = "automatic" | "quick" | "custom";
 /** DOM order. The first entry carrying an error is the one focused on submit. */
 const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
 
-export function ScanStart({ host, onStarted }: Props) {
+export function ScanStart({ host, onStarted, onBatch }: Props) {
   const [url, setUrl] = useState("");
   const [scopeMode, setScopeMode] = useState<ScopeMode>("automatic");
   const [maxPages, setMaxPages] = useState("200");
@@ -245,6 +246,7 @@ export function ScanStart({ host, onStarted }: Props) {
           </div> : null}
         </details>
       </form>
+      {onBatch ? <div className="actions"><button type="button" className="secondary" onClick={onBatch}>여러 사이트 일괄 점검</button></div> : null}
     </main>
   );
 }

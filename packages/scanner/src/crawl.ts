@@ -17,6 +17,7 @@ import { ScanDeadline, pageConcurrency } from "./deadline.js";
 import { normalizeUrl } from "./urls.js";
 import { classifyAccess, classifyPageError } from "./access.js";
 import { CRAWLER_USER_AGENT, discoverSitemaps } from "./sitemap.js";
+import { PublicNetworkPolicy, startPublicNetworkProxy, type PublicNetworkBoundary, type PublicNetworkProxy } from "./public-network.js";
 
 export interface FrameSnapshot {
   /** Absolute iframe src chain, outer → inner. */
@@ -89,6 +90,11 @@ export interface CrawlOptions {
   /** Fixed page worker count for benchmarks (1–4); defaults to CPU policy. */
   concurrency?: number;
   signal?: AbortSignal;
+  /** Required for imported targets. Every runtime connection is public-only. */
+  publicNetworkOnly?: boolean;
+  entryKind?: "site" | "sitemap";
+  /** Trusted owned-fixture code only; never accepted from UI/worker arguments. */
+  networkPolicyForTesting?: PublicNetworkBoundary;
   /** Called while the first and only navigated Page remains live. */
   onLivePage?: (page: Page, snapshot: PageSnapshot, frames: LiveFrame[], images: LiveImageResponse[], pageRank: number) => Promise<void>;
 }
@@ -174,7 +180,8 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   }
   const entry = normalizeUrl(options.entryUrl);
   const queue = new CrawlQueue(options.entryUrl, entry.host, {
-    maxPages: limits.maxPages,
+    // The sitemap seed is consumed as discovery metadata, not a page attempt.
+    maxPages: limits.maxPages + (options.entryKind === "sitemap" ? 1 : 0),
     maxDepth: limits.maxDepth,
   });
   const settleMs = options.settleMs ?? 1500;
@@ -191,6 +198,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
 
   let browser: Browser | undefined;
   let context: BrowserContext | undefined;
+  let networkProxy: PublicNetworkProxy | undefined;
   let timedOut = false;
   let queuedPages = 0;
   const activePages = new Set<Page>();
@@ -205,10 +213,17 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       timedOut: !options.signal?.aborted, cancelled: options.signal?.aborted ?? false };
   }
   try {
+    const networkPolicy = options.publicNetworkOnly ? options.networkPolicyForTesting ?? new PublicNetworkPolicy() : undefined;
+    if (networkPolicy) {
+      await networkPolicy.resolveTarget(options.entryUrl, options.signal, deadline.operationTimeoutMs(2000));
+      networkProxy = await startPublicNetworkProxy(networkPolicy, deadline, options.signal);
+    }
     browser = await chromium.launch({
       executablePath: options.executablePath,
       channel: options.channel,
-      args: ["--no-sandbox"],
+      args: ["--no-sandbox", ...(networkPolicy ? ["--proxy-bypass-list=<-loopback>", "--disable-quic", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+        "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1"] : [])],
+      proxy: networkProxy?.proxy,
       timeout: launchBudgetMs,
     });
     context = await browser.newContext({
@@ -216,6 +231,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       bypassCSP: false,
       javaScriptEnabled: true,
       userAgent: CRAWLER_USER_AGENT,
+      serviceWorkers: networkPolicy ? "block" : "allow",
     });
     const activeContext = context;
     await context.addInitScript({ content: POPUP_BLOCK_JS });
@@ -229,7 +245,10 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       }).catch(() => undefined);
     });
 
-    const discovery = await discoverSitemaps(options.entryUrl, deadline, options.signal, limits.maxDepth > 0 && limits.maxPages > 1);
+    const discovery = await discoverSitemaps(options.entryUrl, deadline, options.signal,
+      options.entryKind === "sitemap" || (limits.maxDepth > 0 && limits.maxPages > 1), {
+        networkPolicy, initialSitemap: options.entryKind === "sitemap" ? options.entryUrl : undefined,
+      });
     let sitemapPages = discovery.urls;
     let nextRequestAt = discovery.deferUntilMs ?? 0;
     const deferRequests = async (): Promise<boolean> => {
@@ -481,6 +500,15 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       return snapshot;
     };
 
+    if (options.entryKind === "sitemap") {
+      queue.nextFrontier();
+      if (!sitemapPages.length && !options.signal?.aborted && deadline.canStartPage()) {
+        throw new Error("sitemap discovery produced no admissible page URLs");
+      }
+      const seeds = queue.discoverBatch(sitemapPages.map((url) => ({ from: options.entryUrl, fromDepth: -1, url, discoverySource: "sitemap" })), discovery.allows);
+      sitemapPages = [];
+      for (const item of seeds) options.events?.onPageQueued?.({ url: item.url, depth: item.depth, pending: queue.pendingCount });
+    }
     let frontier = queue.nextFrontier();
     let admittedPages = 0;
     while (frontier.length > 0 && !options.signal?.aborted && deadline.canStartPage()) {
@@ -510,6 +538,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     options.signal?.removeEventListener("abort", abortPages);
     await context?.close().catch(() => undefined);
     await browser?.close().catch(() => undefined);
+    await networkProxy?.close();
   }
   return {
     entryUrl: options.entryUrl,

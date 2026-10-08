@@ -727,3 +727,8 @@ code {
     transition: none !important;
   }
 }
+.batch-import { border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); padding: var(--krds-semantic-padding-6); border-radius: var(--krds-semantic-radius-control); }
+.batch-targets { padding: 0; list-style: none; display: grid; gap: .75rem; }
+.batch-targets li { display: flex; flex-wrap: wrap; gap: var(--krds-semantic-gap-4); border-bottom: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); padding: var(--krds-semantic-padding-5) 0; }
+.batch-targets li > span, .batch-targets li > strong { flex-basis: 100%; overflow-wrap: anywhere; }
+.batch-workspace input[type="file"] { max-width: 100%; }

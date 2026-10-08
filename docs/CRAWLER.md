@@ -106,6 +106,64 @@ settle windows, bounded frame inspection and browser cleanup remain. Optional
 HTML/frame copies yield to live detection and the scan deadline. External
 infrastructure is observed, never recursively admitted.
 
+## Imported-target runtime network boundary
+
+Imported sessions set `CrawlOptions.publicNetworkOnly` through worker
+`--public-network-only`. Ordinary single-URL sessions keep their existing
+network behavior. The worker accepts `--entry-kind site|sitemap`; a sitemap
+input is fetched as the first XML/index discovery seed, never checked as HTML.
+Its discovered pages start at depth 0 and share the configured page limit.
+The official `meta.entry_url` remains the original sitemap input. A sitemap
+with no admissible page URLs produces an explicit discovery error.
+
+`public-network.ts` owns an authenticated HTTP/CONNECT proxy bound only to
+`127.0.0.1`. Random per-scan credentials remain in process memory and are
+removed before forwarding origin requests. Each upstream connection resolves
+all DNS answers, rejects any non-public answer, and connects to one validated
+IP without another DNS lookup. Existing connections remain pinned; new
+connections revalidate DNS. Redirects, frames and HTTP/HTTPS subresources use
+the proxy too. Chromium's implicit localhost/link-local proxy bypass is
+disabled; direct browser DNS resolution, QUIC and non-proxied WebRTC UDP are
+disabled, and service workers are blocked. Proxy sockets close on cancellation
+and the shared deadline. Unsupported proxy upgrades are rejected.
+
+Public sitemap HTTP uses the same address policy and a pinned Node lookup,
+manual redirects, no connection pool, normal TLS certificate validation and
+identity content encoding. It never falls back to unrestricted global fetch.
+Literal addresses and all DNS answers are checked, including IPv4-mapped IPv6,
+loopback, private, shared-address, link-local/metadata, multicast, documentation,
+transition and reserved ranges. IPv6 is conservatively limited to eligible
+global-unicast `2000::/3` allocations.
+
+Network bounds are 64 tracked proxy sockets, 32 DNS answers, 2 seconds per
+DNS operation, 20 seconds socket idle time, 16 KiB HTTP headers, plus the
+existing shared deadline and sitemap body/time limits. DNS failure, mixed
+unsafe answers and unsupported addresses fail closed. The proxy has no direct
+connection fallback.
+
+Owned-fixture smoke code can pass `networkPolicyForTesting` using
+`PublicNetworkPolicy.forFixtureTargets([{ origin, address: "127.0.0.1" }])`
+(or address `"::1"`). Bindings match exact scheme, host and explicit port,
+connect to the supplied loopback address without system DNS, and authorize
+no other origin. `forFixtureOrigins` is the literal-loopback convenience.
+These policies and resolver injection are trusted programmatic test APIs;
+neither is accepted by UI input, native arguments or the worker CLI.
+
+OBSERVED: real Chromium fixtures prove that HTTP and HTTPS redirects,
+image/iframe/fetch resources, localhost names and mapped-loopback URLs cause
+zero TCP connections to an unbound protected origin. A controlled resolver
+changes an initially public answer to loopback before runtime requests; actual
+navigation is denied without reaching that fixture. Exact bound DNS-like
+origins work through the proxy and pinned Node discovery. Real `scanSite`
+processes two pages from an exact nested sitemap input, retaining the original
+official entry URL and excluding the XML from checked coverage.
+
+This boundary is application transport enforcement, not an OS network
+sandbox. Browser exploits and platform/browser changes require independent
+containment and installed-Windows validation. The conservative address policy
+may reject unusual legitimate special-purpose addresses. A public server's own
+internal routing is outside the scanner's socket boundary.
+
 ## Observed verification
 
 Local HTTP fixtures run the real Playwright crawler and streamed discovery:
@@ -136,3 +194,6 @@ are unchanged; these checks do not establish installed Windows acceptance.
 - [Sitemaps XML protocol](https://www.sitemaps.org/protocol.html)
 - [HTTP Retry-After semantics](https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after)
 - [Robots Exclusion Protocol](https://www.rfc-editor.org/rfc/rfc9309.html)
+- [Chromium proxy and implicit bypass policy](https://chromium.googlesource.com/chromium/src/net/+/HEAD/docs/proxy.md)
+- [Playwright network/proxy/service-worker behavior](https://playwright.dev/docs/network)
+- [Node HTTP request and lookup options](https://nodejs.org/api/http.html#httprequestoptions-callback)

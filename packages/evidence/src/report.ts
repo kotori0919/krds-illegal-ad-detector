@@ -20,6 +20,9 @@ export interface ReportSession {
   reviews?: ReviewRecord[];
   unavailable?: string[];
 }
+export interface ReportTarget {
+  key: string; label: string; entryUrl: string; status: string; sessionId?: string; reason?: string;
+}
 
 const CELL_LIMIT = 32_767;
 const CELL_SUFFIX = "\n[일부 생략: 원문은 공식 JSON 참조]";
@@ -54,8 +57,8 @@ function date(raw: string): Date | string {
 }
 const reviewLabel = (review?: ReviewRecord): string => review?.state === "reviewed" ? "검토 완료" : "검토 필요";
 
-export async function createOperationalWorkbook(sessions: readonly ReportSession[]): Promise<Uint8Array> {
-  if (!sessions.length || sessions.length > 100 || sessions.reduce((count, session) => count + session.official.findings.length, 0) > 100_000) {
+export async function createOperationalWorkbook(sessions: readonly ReportSession[], options: { targets?: readonly ReportTarget[] } = {}): Promise<Uint8Array> {
+  if (!sessions.length || sessions.length > 100 || (options.targets?.length ?? 0) > 100 || sessions.reduce((count, session) => count + session.official.findings.length, 0) > 100_000) {
     throw new Error("보고서 범위를 초과했습니다. 사이트별 보고서를 저장해 주세요.");
   }
   const book = new ExcelJS.Workbook();
@@ -66,9 +69,10 @@ export async function createOperationalWorkbook(sessions: readonly ReportSession
   const coverage = sheet(book, "페이지·점검 범위", ["세션", "요청 주소", "최종 주소", "점검 상태", "HTTP 상태", "미점검 사유", "발견 경로"], [24, 65, 65, 24, 14, 70, 24]);
   const extra = sheet(book, "추가 분석", ["세션", "분석 종류", "기록 번호", "관련 주소", "관측 원문", "관측·파생 구분", "설명"], [24, 30, 24, 65, 80, 30, 70]);
   const reviews = sheet(book, "검토 기록", ["세션", "원본 기록 번호", "사람의 검토 상태", "메모", "기록 시각 (UTC)", "보관 범위"], [24, 20, 24, 80, 26, 65]);
-  const targets = sessions.length > 1 ? sheet(book, "대상 요약", ["세션", "사이트명", "시작 주소", "원본 탐지 수", "영향 페이지 수", "확인 페이지 수", "실패 페이지 수"], [24, 30, 65, 18, 20, 20, 20]) : undefined;
+  const targets = options.targets || sessions.length > 1 ? sheet(book, "대상 요약", ["세션", "사이트명", "시작 주소", "원본 탐지 수", "영향 페이지 수", "확인 페이지 수", "실패 페이지 수", "일괄 대상 번호", "진행 상태", "미완료 사유"], [24, 30, 65, 18, 20, 20, 20, 18, 24, 65]) : undefined;
   for (const session of sessions) {
     const { official } = session;
+    const officialIds = new Set(official.findings.map((finding) => finding.id));
     const byId = new Map((session.reviews ?? []).map((review) => [review.findingId, review]));
     const addSummary = (key: string, value: unknown): void => row(summary, [session.sessionId, key, value]);
     addSummary("시작 주소", official.meta.entry_url);
@@ -112,10 +116,20 @@ export async function createOperationalWorkbook(sessions: readonly ReportSession
       relation.pageUrls.join("\n"), "관측 관계의 파생 요약", "공동 소유 또는 법적 위반을 증명하지 않음"]);
     if (!session.extra && !session.imageAnalysis) row(extra, [session.sessionId, "알 수 없음", "", "", "", "분석 기록 없음", "추가 분석 완료 또는 탐지 없음으로 해석하지 마세요."]);
     for (const review of session.reviews ?? []) {
-      if (official.findings.some((finding) => finding.id === review.findingId)) row(reviews, [session.sessionId, review.findingId, reviewLabel(review), review.note, date(review.at), "현재 화면의 로컬 사람 판단; 이 보고서에 복사됨"]);
+      if (officialIds.has(review.findingId)) row(reviews, [session.sessionId, review.findingId, reviewLabel(review), review.note, date(review.at), "현재 화면의 로컬 사람 판단; 이 보고서에 복사됨"]);
     }
-    if (targets) row(targets, [session.sessionId, session.label ?? "", official.meta.entry_url, official.findings.length,
+    if (targets && !options.targets) row(targets, [session.sessionId, session.label ?? "", official.meta.entry_url, official.findings.length,
       new Set(official.findings.map((finding) => finding.url)).size, session.coverage?.coverage.checkedPages ?? "알 수 없음", session.coverage?.coverage.failedPages.length ?? "알 수 없음"]);
+  }
+  if (targets && options.targets) {
+    const bySession = new Map(sessions.map((session) => [session.sessionId, session]));
+    for (const target of options.targets) {
+      const session = target.sessionId ? bySession.get(target.sessionId) : undefined;
+      row(targets, [target.sessionId ?? "", target.label, target.entryUrl, session?.official.findings.length ?? "알 수 없음",
+        session ? new Set(session.official.findings.map((finding) => finding.url)).size : "알 수 없음",
+        session?.coverage?.coverage.checkedPages ?? "알 수 없음", session?.coverage?.coverage.failedPages.length ?? "알 수 없음",
+        target.key, target.status, target.reason ?? ""]);
+    }
   }
   for (const sheet of book.worksheets) sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, sheet.rowCount), column: sheet.columnCount } };
   const buffer = await book.xlsx.writeBuffer();

@@ -7,7 +7,8 @@
     ".": "./dist/index.js",
     "./graph": "./dist/graph.js",
     "./review-patterns": "./dist/review-patterns.js",
-    "./report": "./dist/report.js"
+    "./report": "./dist/report.js",
+    "./target-import": "./dist/target-import.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node ../../scripts/build-ocr-worker.mjs dist",
@@ -18,6 +19,8 @@
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/kor": "1.0.0",
     "exceljs": "4.4.0",
+    "fast-xml-parser": "5.11.2",
+    "fflate": "0.8.3",
     "tesseract.js": "7.0.0"
   }
 }

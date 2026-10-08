@@ -106,6 +106,47 @@ and four technique enums remain unchanged.
 
 ## Remaining ordered milestones
 
-M4: network-free safe file preview, sequential independent batch sessions,
-per-site official outputs and aggregate workbook.
 M5: focused integrated acceptance and separate Windows installer candidate.
+
+## M4 — safe file intake and sequential batch
+
+The secondary **여러 사이트 일괄 점검** path reads XLSX/CSV/JSONL/XML Sitemap
+in a disposable offline worker. Input is 2MiB/100 targets; ZIP actual expansion,
+active content, formulas, XML entities and materialization bounds precede parsing.
+The worker is terminated after ten seconds. Korean CSV template uses native Save As.
+Known column aliases are documented in `TARGET_IMPORT.md`; ambiguous mapping is
+rejected instead of guessed. Preview counts valid/invalid/duplicate rows and makes
+no target connection. Explicit start admits valid rows only.
+
+BatchCoordinator awaits one independently supervised ScanSession at a time.
+Pause takes effect after the current site; stop cancels it while keeping completed
+results. A lost active session stops admission. Only typed retryable failures can
+be explicitly retried. Review notes are keyed by session as well as finding ID.
+Per-site native folder export creates a fresh directory with independent
+`result.json`, separate extra/coverage and a manifest. Aggregate XLSX has all
+target states (including pending/failed unknown counts), with exact session-keyed
+detail. Results remain available in this app session; operators must save before
+app exit. Restoration of a batch after app restart is not claimed.
+
+File-started scans use a distinct native command that always enables public-only
+transport. An authenticated loopback HTTP/CONNECT proxy pins validated public DNS
+answers for each connection, including redirects and subresources. Node sitemap
+requests use the same pinned policy. Browser loopback bypass/direct DNS/QUIC and
+non-proxied UDP are disabled; service workers are blocked. Exact owned origins are
+allowed only by a programmatic test policy, never file/CLI/UI configuration.
+This is an application transport boundary, not an OS network sandbox.
+Single-URL contest mode retains its existing controlled-local inspection behavior.
+
+OBSERVED: 52 parser tests, three orchestration behavior tests, 15 public-network/
+sitemap tests, report read-back, frontend build/lint/typecheck and native GNU LLVM
+check pass. Actual Chromium attempts through HTTP/HTTPS redirects, images,
+iframes, fetch and DNS rebinding reach zero protected-server TCP connections.
+The built UI smoke `ui-v21-batch-smoke.mjs` previews all four formats with zero
+target requests, runs two owned sites using actual canonical scanSite (peak one
+active site), retains independent official outputs, saves a seven-sheet aggregate,
+isolates notes for equal finding IDs, and preserves the first completed site when
+the second is stopped. Each normal site checks root, sitemap detail and recorded
+link; robots-excluded path is not requested. Transport/export IPC in this Linux
+smoke is explicitly harnessed, not asserted to be native Save As.
+Evidence: `/tmp/illegal-ad-v21-batch/{observed.json,preview.png,preview-360px.png,
+completed.png,cancel-retained.png,aggregate.xlsx,exported/}`.

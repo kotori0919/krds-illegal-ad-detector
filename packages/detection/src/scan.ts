@@ -117,6 +117,9 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       executablePath: input.crawl?.executablePath,
       channel: input.crawl?.channel,
       concurrency: input.crawl?.concurrency,
+      publicNetworkOnly: input.crawl?.publicNetworkOnly,
+      entryKind: input.crawl?.entryKind,
+      networkPolicyForTesting: input.crawl?.networkPolicyForTesting,
       deadline,
       signal: input.signal,
       onLivePage: async (page, snapshot, liveFrames, images, pageRank) => {

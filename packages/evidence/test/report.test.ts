@@ -48,4 +48,18 @@ describe("real operational XLSX", () => {
     expect(details.rowCount).toBe(619);
     expect(details.getCell(618, 1).value).toBe("a"); expect(details.getCell(619, 1).value).toBe("b");
   });
+  it("retains pending and failed targets as unknown counts in a partial batch report", async () => {
+    const bytes = await createOperationalWorkbook([{ sessionId: "a", official }], { targets: [
+      { key: "1", label: "Done", entryUrl: official.meta.entry_url, status: "완료", sessionId: "a" },
+      { key: "2", label: "Failed", entryUrl: "https://failed.invalid/", status: "실패", reason: "DNS unavailable" },
+      { key: "3", label: "Pending", entryUrl: "https://pending.invalid/", status: "대기" },
+    ] });
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes as unknown as ExcelJS.Buffer);
+    const targets = book.getWorksheet("대상 요약")!;
+    expect(targets.rowCount).toBe(4);
+    expect(targets.getRow(2).values).toContain(617);
+    expect(targets.getRow(3).values).toContain("DNS unavailable");
+    expect(targets.getRow(4).values).toContain("알 수 없음");
+    expect(book.getWorksheet("탐지 상세")?.rowCount).toBe(618);
+  });
 });

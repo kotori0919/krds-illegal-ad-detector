@@ -8,6 +8,7 @@ import { ScanResult } from "./screens/ScanResult.js";
 import type { OfficialTechnique } from "@krds-detector/contracts";
 import { EvidenceView } from "./screens/EvidenceView.js";
 import { ExportDialog } from "./screens/ExportDialog.js";
+import { BatchWorkspace } from "./screens/BatchWorkspace.js";
 import { stepStates, type Phase } from "./steps.js";
 
 const narrowInspector = () => window.matchMedia?.("(max-width: 63.999rem)").matches ?? false;
@@ -15,6 +16,9 @@ const narrowInspector = () => window.matchMedia?.("(max-width: 63.999rem)").matc
 export function App() {
   const [phase, setPhase] = useState<Phase>("start");
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchMounted, setBatchMounted] = useState(false);
+  const [batchResult, setBatchResult] = useState(false);
   const [findingId, setFindingId] = useState<string | undefined>(undefined);
   const [findingContext, setFindingContext] = useState<string[]>([]);
   const [restoreFindingId, setRestoreFindingId] = useState<string | undefined>(undefined);
@@ -22,7 +26,11 @@ export function App() {
   const [resultQuery, setResultQuery] = useState("");
   const [resultFilter, setResultFilter] = useState<OfficialTechnique | "ALL">("ALL");
   const [resultView, setResultView] = useState<"findings" | "pages" | "extra" | "coverage">("findings");
-  const [reviewRecords, setReviewRecords] = useState<Record<string, ReviewRecord>>({});
+  const [reviewSessions, setReviewSessions] = useState<Record<string, Record<string, ReviewRecord>>>({});
+  const reviewRecords = reviewSessions[sessionId ?? ""] ?? {};
+  const setReviewRecords = (update: (previous: Record<string, ReviewRecord>) => Record<string, ReviewRecord>): void => {
+    if (sessionId) setReviewSessions((previous) => ({ ...previous, [sessionId]: update(previous[sessionId] ?? {}) }));
+  };
   const reviewedIds = useMemo(() => new Set(Object.values(reviewRecords).filter((record) => record.state === "reviewed").map((record) => record.findingId)), [reviewRecords]);
   const reviewMany = (ids: string[], reviewed: boolean): void => setReviewRecords((previous) => {
     const next = { ...previous };
@@ -89,7 +97,6 @@ export function App() {
     setResultView("findings");
     setRestoreFindingId(undefined);
     setExportOpen(false);
-    setReviewRecords({});
     setFindingContext([]);
   }, []);
 
@@ -110,6 +117,11 @@ export function App() {
   return (
     <>
       <div inert={exportOpen}>
+      {batchMounted ? <div hidden={!batchOpen}><BatchWorkspace host={host} reviews={reviewSessions}
+        onBack={() => { setBatchOpen(false); setBatchResult(false); goStart(); }}
+        onInspect={(id) => { setSessionId(id); setBatchResult(true); setBatchOpen(false); setFindingId(undefined);
+          setResultQuery(""); setResultFilter("ALL"); setResultView("findings"); setFindingContext([]); setRestoreFindingId(undefined); go("result"); }} /></div> : null}
+      <div hidden={batchOpen}>
       <nav aria-label="탐지 단계" className="steps-nav">
         <ol className="steps">
           {steps.map((s) => (
@@ -155,7 +167,8 @@ export function App() {
             if (phase === "result" && narrowInspector()) scheduleScroll(0);
           }}
           onExport={() => setExportOpen(true)}
-          onRestart={goStart}
+          onRestart={batchResult ? () => { setFindingId(undefined); setBatchOpen(true); } : goStart}
+          restartLabel={batchResult ? "일괄 점검 현황으로 돌아가기" : undefined}
         />
         </div>
         {phase === "evidence" && findingId ? <EvidenceView
@@ -176,12 +189,15 @@ export function App() {
       ) : (
         <ScanStart
           host={host}
+          onBatch={() => { setBatchMounted(true); setBatchOpen(true); }}
           onStarted={(id) => {
+            setBatchResult(false);
             setSessionId(id);
             go("progress");
           }}
         />
       )}
+      </div>
       </div>
       {(phase === "result" || phase === "evidence") && exportOpen && sessionId ? (
         <ExportDialog host={host} sessionId={sessionId} onClose={closeExport} />

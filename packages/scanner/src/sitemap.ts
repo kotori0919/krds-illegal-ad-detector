@@ -3,6 +3,7 @@ import { XMLParser, XMLValidator } from "fast-xml-parser";
 import type { ScanDeadline } from "./deadline.js";
 import { normalizeUrlKey } from "./urls.js";
 import { retryAfterMs } from "./access.js";
+import type { PublicNetworkBoundary } from "./public-network.js";
 
 export const SITEMAP_LIMITS = Object.freeze({
   totalMs: 5000, requestMs: 2000, documents: 8, indexDepth: 2, urls: 1000,
@@ -113,7 +114,8 @@ function sitemapLocations(xml: string): { index: boolean; locations: string[] } 
 }
 
 /** Sequential bounded discovery keeps admission independent of HTTP completion order. */
-export async function discoverSitemaps(entryUrl: string, deadline: ScanDeadline, signal?: AbortSignal, includeMaps = true): Promise<SitemapDiscovery> {
+export async function discoverSitemaps(entryUrl: string, deadline: ScanDeadline, signal?: AbortSignal, includeMaps = true,
+  options: { networkPolicy?: PublicNetworkBoundary; initialSitemap?: string } = {}): Promise<SitemapDiscovery> {
   const origin = new URL(entryUrl).origin;
   const expires = performance.now() + SITEMAP_LIMITS.totalMs;
   let totalBytes = 0;
@@ -133,8 +135,10 @@ export async function discoverSitemaps(entryUrl: string, deadline: ScanDeadline,
       let url = initial;
       for (let redirects = 0; redirects <= SITEMAP_LIMITS.redirects; redirects += 1) {
         if (!sameOriginUrl(url, origin) || signal?.aborted) return undefined;
-        const response = await fetch(url, { redirect: "manual", signal: controller.signal,
-          headers: { "User-Agent": CRAWLER_USER_AGENT, Accept: "application/xml,text/plain;q=0.9" } });
+        const requestOptions = { signal: controller.signal,
+          headers: { "User-Agent": CRAWLER_USER_AGENT, Accept: "application/xml,text/plain;q=0.9" } };
+        const response = options.networkPolicy ? await options.networkPolicy.fetch(url, requestOptions)
+          : await fetch(url, { ...requestOptions, redirect: "manual" });
         if (response.status === 429) {
           rateLimited = true;
           const delay = retryAfterMs(response.headers.get("retry-after") ?? undefined);
@@ -176,14 +180,15 @@ export async function discoverSitemaps(entryUrl: string, deadline: ScanDeadline,
   const policy = parseRobots(robots ?? "");
   allows = robotsPolicy(policy.groups);
   if (!includeMaps || signal?.aborted) return { urls: [], allows, deferUntilMs };
-  let frontier = [...policy.sitemaps, `${origin}/sitemap.xml`].flatMap((raw) => {
-    const url = sameOriginUrl(raw, origin); return url ? [{ url, depth: 0 }] : [];
+  let frontier = [options.initialSitemap, ...policy.sitemaps, `${origin}/sitemap.xml`].flatMap((raw) => {
+    if (!raw) return [];
+    const url = sameOriginUrl(raw, origin); return url ? [{ url, depth: 0, priority: raw === options.initialSitemap ? 0 : 1 }] : [];
   });
-  frontier.sort((a, b) => normalizeUrlKey(a.url).localeCompare(normalizeUrlKey(b.url)));
+  frontier.sort((a, b) => a.priority - b.priority || normalizeUrlKey(a.url).localeCompare(normalizeUrlKey(b.url)));
   frontier = frontier.slice(0, SITEMAP_LIMITS.queuedDocuments);
   let documents = 0;
   while (frontier.length && documents < SITEMAP_LIMITS.documents && urls.size < SITEMAP_LIMITS.urls && totalBytes < SITEMAP_LIMITS.totalBytes && remaining() > 0 && !signal?.aborted && !rateLimited) {
-    frontier.sort((a, b) => a.depth - b.depth || normalizeUrlKey(a.url).localeCompare(normalizeUrlKey(b.url)));
+    frontier.sort((a, b) => a.depth - b.depth || a.priority - b.priority || normalizeUrlKey(a.url).localeCompare(normalizeUrlKey(b.url)));
     const current = frontier.shift()!;
     const key = normalizeUrlKey(current.url);
     if (visited.has(key) || current.depth > SITEMAP_LIMITS.indexDepth || !allows(current.url)) continue;
@@ -196,7 +201,7 @@ export async function discoverSitemaps(entryUrl: string, deadline: ScanDeadline,
     locations.sort((a, b) => normalizeUrlKey(a).localeCompare(normalizeUrlKey(b)));
     for (const url of locations) {
       if (map.index) {
-        if (current.depth < SITEMAP_LIMITS.indexDepth && frontier.length < SITEMAP_LIMITS.queuedDocuments) frontier.push({ url, depth: current.depth + 1 });
+        if (current.depth < SITEMAP_LIMITS.indexDepth && frontier.length < SITEMAP_LIMITS.queuedDocuments) frontier.push({ url, depth: current.depth + 1, priority: current.priority });
       } else if (urls.size < SITEMAP_LIMITS.urls) {
         const key = normalizeUrlKey(url);
         if (!urls.has(key)) urls.set(key, url);

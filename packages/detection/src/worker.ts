@@ -23,6 +23,8 @@ interface WorkerArgs {
   outFile?: string;
   detailOutFile?: string;
   extraOutFile?: string;
+  publicNetworkOnly: boolean;
+  entryKind: "site" | "sitemap";
 }
 
 function parseArgs(argv: string[]): WorkerArgs {
@@ -43,11 +45,17 @@ function parseArgs(argv: string[]): WorkerArgs {
     outFile: get("--out-file"),
     detailOutFile: get("--detail-out-file"),
     extraOutFile: get("--extra-out-file"),
+    publicNetworkOnly: argv.includes("--public-network-only"),
+    entryKind: get("--entry-kind") === "sitemap" ? "sitemap" : "site",
   };
 }
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  const entryKindIndex = process.argv.indexOf("--entry-kind");
+  if (entryKindIndex >= 0 && !["site", "sitemap"].includes(process.argv[entryKindIndex + 1] ?? "")) {
+    console.error("--entry-kind must be site or sitemap"); process.exitCode = 2; return;
+  }
   if (!args.session || !args.entryUrl) {
     console.error("usage: scanner-worker --session <id> --entry-url <url> [--max-pages n] [--max-depth n] [--timeout-sec s] [--settle-ms ms]");
     process.exitCode = 2;
@@ -80,6 +88,8 @@ async function main(): Promise<void> {
       concurrency: args.concurrency,
       channel: args.channel,
       executablePath: args.executablePath,
+      publicNetworkOnly: args.publicNetworkOnly,
+      entryKind: args.entryKind,
     },
     onEvent: (e) => {
       // Machine-readable progress for the Tauri host (KODEX §36): the host
