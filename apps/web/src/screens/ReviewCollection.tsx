@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OFFICIAL_TECHNIQUES, type OfficialFinding, type OfficialTechnique, type ScanCoverageView } from "@krds-detector/contracts";
 import { groupReviewPatterns, normalizeReviewText } from "@krds-detector/evidence/review-patterns";
-import { techniqueLabel } from "../technique-label.js";
+import { techniqueLabel } from "@krds-detector/contracts";
 
 interface Props {
   findings: OfficialFinding[];

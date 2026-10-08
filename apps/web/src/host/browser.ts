@@ -166,4 +166,9 @@ export class BrowserHost implements HostBridge {
       "브라우저 미리보기에서는 파일 내보내기를 지원하지 않습니다.",
     );
   }
+
+  async saveWorkbook(_sessionIds: string[], _data: Uint8Array): Promise<string | null> {
+    void _sessionIds; void _data;
+    throw new Error("브라우저 미리보기에서는 파일 저장을 지원하지 않습니다.");
+  }
 }

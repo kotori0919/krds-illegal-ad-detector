@@ -27,7 +27,7 @@ export function evidenceRead(detail, command, args = {}) {
   }
 }
 
-export async function installResultReplay(page, { result, detail, extra, session, beforeRead, exportReplay }) {
+export async function installResultReplay(page, { result, detail, extra, session, beforeRead, exportReplay, workbookReplay }) {
   const reads = [];
   await page.exposeFunction("resultReplayInvoke", async (command, args) => {
     reads.push({ command, args });
@@ -41,6 +41,9 @@ export async function installResultReplay(page, { result, detail, extra, session
       case "scan_export":
         if (!exportReplay) throw new Error("export replay not configured");
         return exportReplay(args);
+      case "scan_export_workbook":
+        if (!workbookReplay) throw new Error("workbook replay not configured");
+        return workbookReplay(args);
       default: return evidenceRead(detail, command, args);
     }
   });

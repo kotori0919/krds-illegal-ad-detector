@@ -15,6 +15,7 @@ mod job;
 mod job_fallback;
 mod session;
 mod evidence;
+mod report;
 
 use session::{load_cancelled_bundle, validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout, SessionOutcome, SessionRegistry};
 use std::sync::Arc;
@@ -374,6 +375,25 @@ async fn scan_export(
     }))
 }
 
+#[tauri::command]
+async fn scan_export_workbook(app: tauri::AppHandle, state: State<'_, AppState>, session_ids: Vec<String>, data: Vec<u8>) -> Result<Option<String>, String> {
+    if session_ids.is_empty() || session_ids.len() > 100 { return Err("invalid report session scope".to_string()); }
+    report::validate_workbook(&data)?;
+    for id in &session_ids {
+        // A report cannot claim to represent a missing/unvalidated official session.
+        state.registry.validated_export_text(id).await?;
+    }
+    use tauri_plugin_dialog::{DialogExt, FilePath};
+    let name = if session_ids.len() == 1 { "점검 보고서.xlsx" } else { "일괄 점검 보고서.xlsx" };
+    let mut dialog = app.dialog().file().set_file_name(name).add_filter("Excel 보고서", &["xlsx"]);
+    if let Ok(docs) = app.path().document_dir() { dialog = dialog.set_directory(docs); }
+    let Some(FilePath::Path(mut path)) = dialog.blocking_save_file() else { return Ok(None); };
+    // Never let a report overwrite a .json export chosen in the dialog.
+    path.set_extension("xlsx");
+    report::write_workbook(&path, &data)?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
 fn url_like_valid(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
     if !(trimmed.starts_with("http://") || trimmed.starts_with("https://")) {
@@ -511,7 +531,8 @@ fn main() {
             scan_get_evidence_summary,
             scan_get_evidence_graph_slice,
             scan_get_extra_result,
-            scan_export
+            scan_export,
+            scan_export_workbook
         ])
         .run(tauri::generate_context!())
         .expect("tauri host failed to start");

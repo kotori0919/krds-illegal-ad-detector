@@ -57,7 +57,7 @@ try {
     throw new Error(`inspector layout/focus: ${JSON.stringify(inspector)}`);
   }
   await page.getByRole("button", { name: "결과 목록으로" }).click();
-  await page.getByRole("button", { name: "결과 저장" }).click();
+  await page.getByRole("button", { name: "공식 JSON 저장" }).click();
   await page.getByRole("dialog", { name: "결과 저장" }).waitFor();
   await checkReflow("export dialog");
   const dialogFocused = await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]')));

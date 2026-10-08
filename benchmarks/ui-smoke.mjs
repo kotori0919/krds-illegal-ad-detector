@@ -62,7 +62,7 @@ try {
   await page.waitForFunction(() => Boolean(document.activeElement?.getAttribute("data-finding-id")), undefined, { timeout: 5000 });
   const focused = await page.evaluate(() => document.activeElement?.getAttribute("data-finding-id"));
   if (!focused) throw new Error("finding focus was not restored");
-  await page.getByRole("button", { name: "결과 저장" }).click();
+  await page.getByRole("button", { name: "공식 JSON 저장" }).click();
   await page.getByRole("dialog", { name: "결과 저장" }).waitFor();
   const dialogFocused = await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]')));
   if (!dialogFocused) throw new Error("export dialog did not receive focus");

@@ -93,7 +93,7 @@ describe("stored OCR and partial coverage presentation", () => {
   it("keeps cancelled results saveable and marks the preserved partial coverage", async () => {
     await renderResult({ ...bundle, coverage: { ...bundle.coverage, cancelled: true } }, { status: "cancelled", view: "coverage" });
     expect(screen.getByText("점검이 중지되었습니다. 완료된 페이지의 결과를 표시합니다.")).toBeDefined();
-    expect((screen.getByRole("button", { name: "결과 저장" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "공식 JSON 저장" }) as HTMLButtonElement).disabled).toBe(false);
     expect(screen.queryByText("제한 시간에 도달해 일부 페이지를 확인하지 못했습니다.")).toBeNull();
   });
 

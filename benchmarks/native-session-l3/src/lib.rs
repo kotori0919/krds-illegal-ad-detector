@@ -381,3 +381,5 @@ mod tests {
         server.abort();
     }
 }
+#[path = "../../../src-tauri/src/report.rs"]
+pub mod report;

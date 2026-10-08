@@ -38,7 +38,7 @@ describe("operator evidence read recovery", () => {
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "근거 요약 다시 불러오기" })); });
     expect(screen.queryByRole("alert")).toBeNull(); expect(read).toHaveBeenCalledTimes(2);
     expect(officialRead).toHaveBeenCalledTimes(1); expect(coverageRead).toHaveBeenCalledTimes(1);
-    expect((screen.getByRole("button", { name: "결과 저장" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "공식 JSON 저장" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("retries detail alone and excludes delayed metadata from a previous selection", async () => {

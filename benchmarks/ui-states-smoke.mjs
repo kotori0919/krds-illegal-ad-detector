@@ -116,7 +116,7 @@ try {
   await page.getByText("표시 중인 탐지 17건 / 전체 17건").waitFor();
   await page.getByRole("button", { name: "점검 범위", exact: true }).click();
   await page.getByText("점검 범위를 불러오는 중입니다.", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "결과 저장" }).click();
+  await page.getByRole("button", { name: "공식 JSON 저장" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByText("공식 탐지 17건", { exact: true }).waitFor();
   if (await dialog.getByRole("button", { name: "저장", exact: true }).isEnabled()) throw new Error("save enabled before coverage");
@@ -196,7 +196,7 @@ try {
   await page.getByText("표시 중인 탐지 17건 / 전체 17건").waitFor();
   await page.getByRole("button", { name: "점검 범위", exact: true }).click();
   await page.getByText("점검 범위 기록 없음", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "결과 저장" }).click();
+  await page.getByRole("button", { name: "공식 JSON 저장" }).click();
   await dialog.getByText("점검 범위 기록 없음", { exact: true }).waitFor();
   if (!await dialog.getByRole("button", { name: "저장", exact: true }).isEnabled()) throw new Error("missing coverage blocked validated findings");
   await page.keyboard.press("Escape");
@@ -205,7 +205,7 @@ try {
   await start();
   await page.getByRole("alert").waitFor();
   if (await page.getByText("결과를 불러오는 중입니다.", { exact: true }).count()) throw new Error("failed result read still loading");
-  if (await page.getByRole("button", { name: "결과 저장" }).isEnabled()) throw new Error("failed result savable");
+  if (await page.getByRole("button", { name: "공식 JSON 저장" }).isEnabled()) throw new Error("failed result savable");
   await page.getByRole("button", { name: "새로 검사하기" }).click();
   await page.waitForFunction(() => document.activeElement?.id === "entry-url");
   resultRejected = false; coverageMode = "normal"; output = empty;

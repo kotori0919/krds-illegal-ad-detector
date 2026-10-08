@@ -9,13 +9,15 @@ import {
   type OfficialTechnique,
   type ScanSession,
 } from "@krds-detector/contracts";
-import { techniqueLabel } from "../technique-label.js";
+import { techniqueLabel } from "@krds-detector/contracts";
 import { formatElapsed, scanStatusLabel } from "../scan-format.js";
 import { AssetImage } from "./AssetImage.js";
 import { EvidenceRelations } from "./EvidenceRelations.js";
 import { useEvidenceRead } from "./evidence-read.js";
 import { VisualCoverage } from "./VisualCoverage.js";
 import { ReviewCollection } from "./ReviewCollection.js";
+import { WorkbookExport } from "./WorkbookExport.js";
+import type { ReviewRecord } from "@krds-detector/evidence/report";
 
 interface Props {
   host: HostBridge;
@@ -31,6 +33,7 @@ interface Props {
   onViewChange: (value: "findings" | "pages" | "extra" | "coverage") => void;
   reviewedIds: ReadonlySet<string>;
   onReviewMany: (ids: string[], reviewed: boolean) => void;
+  reviewRecords?: ReviewRecord[];
   restoreFindingId?: string;
   selectedFindingId?: string;
   onSelectionHidden: () => void;
@@ -135,7 +138,7 @@ export function ScanResult(props: Props) {
   return <SessionResults key={props.sessionId} {...props} />;
 }
 
-function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
+function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, reviewRecords = [], restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
   const summaryHeading = useRef<HTMLHeadingElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
@@ -224,6 +227,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
       <p className="eyebrow">결과 검토</p>
       <h1 ref={resultHeading} tabIndex={-1}>점검 결과</h1>
       <p className="lede">{session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}</p>
+      {result ? <WorkbookExport host={host} sessionId={sessionId} reviews={reviewRecords} /> : null}
       {session?.status === "cancelled" || detailBundle?.coverage.cancelled ? <p role="note" className="empty">점검이 중지되었습니다. 완료된 페이지의 결과를 표시합니다.</p>
         : session?.status === "failed" && session.hasResult === true ? <p role="note" className="empty">점검이 실패했습니다. 완료된 페이지의 결과를 표시합니다.</p> : null}
       {demoMode ? <p role="note" className="empty">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다.</p> : null}
@@ -326,7 +330,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
       {result ? <p className="hint">검토 완료는 항목을 읽고 검토했다는 표시이며 위반 확정이나 조치 완료가 아닙니다. 공식 탐지와 저장 파일은 바뀌지 않습니다. 검토 표시는 현재 화면 메모리에만 보관되어 새 점검이나 앱 새로고침 시 사라집니다.</p> : null}
       <div className="actions">
         <button id="export-trigger" type="button" onClick={onExport} className="primary" disabled={!result}>
-          결과 저장
+          공식 JSON 저장
         </button>{" "}
         <button type="button" onClick={onRestart} className="secondary">
           새로 검사하기

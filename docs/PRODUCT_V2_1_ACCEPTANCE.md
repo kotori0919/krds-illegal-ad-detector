@@ -41,9 +41,48 @@ Evidence: `/tmp/illegal-ad-v21-m1/observed.json`, `grouped-desktop.png`,
 NOT_RUN in M1: installed Windows acceptance and an uninstructed human tester.
 Review state remains local screen memory in this milestone.
 
+## M2 — operational workbook and review notes
+
+The Results header provides **엑셀 보고서 저장**, separate from **공식 JSON 저장**.
+It reads the same persisted official session, optional coverage/extra/analysis,
+and the current local human review records. All records are exported regardless
+of the current search/filter. Six sheets include summary, management patterns,
+one row per official finding, coverage, supplemental analysis and review history.
+Excel forbids `/` in worksheet names, so the coverage sheet is named
+`페이지·점검 범위`. Aggregates use the same writer with a `대상 요약` sheet.
+Date headings explicitly use UTC. URLs are copyable text, without untrusted
+active hyperlinks. Strings are explicitly string cells; length/control-character
+limits are explained while official JSON remains unchanged. Header freezing,
+widths, wrapping and filters are included. ExcelJS 4.4.0 is pinned locally and
+lazy-loaded; no Office, cloud service or GPU is required.
+
+Review marks and notes share one session-screen state and timestamps. Notes
+are limited to 2,000 characters. They are included in the workbook; app-restart
+persistence is not claimed. Optional read failures are included as report
+limitations. Export failure/cancellation retains official results and review.
+The HostBridge command always uses native Save As, validates every referenced
+official session, bounds bytes, enforces `.xlsx` and commits a complete temporary
+file by rename; failed writes preserve the previous destination.
+
+OBSERVED: actual XLSX writer/read-back tests preserve all 617 raw findings,
+19 management rows, f372 notes, and independent-session aggregate details.
+Hostile `=HYPERLINK`, `+`, `@`, and `-` strings create no formula or hyperlink
+cells. The built UI smoke saves and reopens a real six-sheet workbook with
+617 detail rows while filtered to f372; native Save As is still explicit replay
+in that smoke. The save-failure/cancellation/retry UI test preserves official
+JSON. The Rust write-path test preserves an existing destination on invalid
+data and leaves no temporary file after a complete write. GNU LLVM Windows
+`cargo check` passes for the registered native command.
+NOT_RUN at this checkpoint: actual installed Windows Save As; this is reserved
+for the integrated candidate acceptance in M5, not asserted from replay or compilation.
+
+The shared migration adds a native workbook bridge, reusable Korean technique
+labels and optional typed access/discovery metadata outside official JSON.
+Local XML parsing dependencies are prepared for M3/M4 without altering the
+official serializer or runtime RC.
+
 ## Remaining ordered milestones
 
-M2: local XLSX reporting and review notes through actual native export.
 M3: typed access limitations and bounded sitemap discovery.
 M4: network-free safe file preview, sequential independent batch sessions,
 per-site official outputs and aggregate workbook.

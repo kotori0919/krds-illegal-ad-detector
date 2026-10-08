@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HostBridge } from "@krds-detector/contracts";
-import { techniqueLabel } from "../technique-label.js";
+import { techniqueLabel } from "@krds-detector/contracts";
 import { AssetImage } from "./AssetImage.js";
 import { EvidenceRelations } from "./EvidenceRelations.js";
 import { useEvidenceRead } from "./evidence-read.js";
@@ -14,6 +14,8 @@ interface Props {
   onReviewChange: (reviewed: boolean) => void;
   contextIds?: string[];
   onSelectFinding?: (id: string) => void;
+  note?: string;
+  onNoteChange?: (value: string) => void;
 }
 
 /** Result-stage inspector backed by the official finding's observed fields. */
@@ -21,7 +23,7 @@ export function EvidenceView(props: Props) {
   return <EvidenceInspector key={`${props.sessionId}\0${props.findingId}`} {...props} />;
 }
 
-function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onReviewChange, contextIds = [findingId], onSelectFinding }: Props) {
+function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onReviewChange, contextIds = [findingId], onSelectFinding, note = "", onNoteChange }: Props) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const readFinding = useCallback(async () => (await host.getOfficialResult(sessionId))?.findings.find((finding) => finding.id === findingId), [host, sessionId, findingId]);
   const readDetail = useCallback(() => host.getFindingDetail(sessionId, findingId), [host, sessionId, findingId]);
@@ -143,6 +145,10 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
           결과 목록으로
         </button>
       </div>
+      {onNoteChange && finding ? <div className="review-note"><label htmlFor="review-note">검토 메모</label>
+        <textarea id="review-note" rows={4} maxLength={2000} value={note} onChange={(e) => onNoteChange(e.target.value)} aria-describedby="review-note-hint" />
+        <p id="review-note-hint" className="hint">현재 화면에 보관되며 엑셀 보고서에 포함됩니다. 앱을 다시 시작하면 사라집니다.</p>
+      </div> : null}
       <p className="hint">검토 완료는 항목을 읽고 검토했다는 표시입니다. 위반 확정이나 조치 완료를 뜻하지 않으며 공식 탐지와 저장 파일을 바꾸지 않습니다. 이 표시는 현재 화면의 메모리에만 보관되어 새 점검이나 앱 새로고침 시 사라집니다.</p>
     </aside>
   );

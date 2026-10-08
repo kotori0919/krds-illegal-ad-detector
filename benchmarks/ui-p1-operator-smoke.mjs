@@ -86,7 +86,7 @@ try {
   await page.getByRole("button", { name: "이미지 분석 더 보기" }).click();
   await page.getByRole("region", { name: "이미지 문자 분석" }).getByText("광고 표현 미확인", { exact: true }).first().waitFor();
   await page.getByRole("button", { name: "공식 탐지", exact: true }).click();
-  await page.getByRole("button", { name: "결과 저장", exact: true }).click();
+  await page.getByRole("button", { name: "공식 JSON 저장", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] button')].some((button) => button.textContent === "저장" && !button.disabled));
   await dialog.getByRole("button", { name: "저장", exact: true }).click();

@@ -50,6 +50,15 @@ export interface PageOutcome {
   depth: number;
   outcome: "checked" | "failed";
   reason?: string;
+  issue?: ScanIssue;
+  discoverySource?: "entry" | "link" | "sitemap";
+}
+
+/** Measured access/processing limitation. Kept outside official result.json. */
+export interface ScanIssue {
+  kind: "challenge" | "denied" | "rate-limit" | "login-required" | "timeout" | "navigation" | "unknown";
+  retryable: boolean;
+  retryAfterMs?: number;
 }
 
 export interface ImageAnalysis {

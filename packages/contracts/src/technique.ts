@@ -14,6 +14,14 @@ export const OFFICIAL_TECHNIQUES = [
 
 export type OfficialTechnique = (typeof OFFICIAL_TECHNIQUES)[number];
 
+/** Operator/report presentation labels; official enum values remain unchanged. */
+export const techniqueLabel: Record<OfficialTechnique, string> = {
+  HOMOGLYPH: "유사 문자",
+  JAMO: "자모 분리",
+  TRANSPARENT: "투명 처리",
+  OFFSCREEN: "화면 밖 배치",
+};
+
 export function isOfficialTechnique(value: unknown): value is OfficialTechnique {
   return (
     typeof value === "string" &&

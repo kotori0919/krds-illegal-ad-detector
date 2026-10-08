@@ -65,4 +65,6 @@ export interface HostBridge {
   getEvidenceSummary(sessionId: string): Promise<EvidenceSummary | undefined>;
   getEvidenceGraphSlice(sessionId: string, query: EvidenceGraphQuery): Promise<EvidenceGraphSlice | undefined>;
   exportResult(sessionId: string, directory: string): Promise<ExportPaths>;
+  /** Local XLSX bytes from persisted sessions; always asks via native Save As. */
+  saveWorkbook(sessionIds: string[], data: Uint8Array): Promise<string | null>;
 }

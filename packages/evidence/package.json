@@ -6,7 +6,8 @@
   "exports": {
     ".": "./dist/index.js",
     "./graph": "./dist/graph.js",
-    "./review-patterns": "./dist/review-patterns.js"
+    "./review-patterns": "./dist/review-patterns.js",
+    "./report": "./dist/report.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node ../../scripts/build-ocr-worker.mjs dist",
@@ -16,6 +17,7 @@
     "@krds-detector/contracts": "0.1.0",
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/kor": "1.0.0",
+    "exceljs": "4.4.0",
     "tesseract.js": "7.0.0"
   }
 }

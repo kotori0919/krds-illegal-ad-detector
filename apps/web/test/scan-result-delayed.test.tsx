@@ -67,7 +67,7 @@ describe("ScanResult delayed availability", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).not.toContain("private coverage error");
     expect(screen.queryByText("점검 범위를 불러오는 중입니다.")).toBeNull();
-    expect((screen.getByRole("button", { name: "결과 저장" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "공식 JSON 저장" }) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "공식 탐지", exact: true }));
     expect(screen.getByRole("button", { name: "근거 보기", exact: true }).dataset.findingId).toBe(findingResult().findings[0]!.id);
   });
@@ -77,7 +77,7 @@ describe("ScanResult delayed availability", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).not.toContain("private result error");
     expect(screen.queryByRole("status")).toBeNull();
-    expect((screen.getByRole("button", { name: "결과 저장" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "공식 JSON 저장" }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: "새로 검사하기" }) as HTMLButtonElement).disabled).toBe(false);
   });
 

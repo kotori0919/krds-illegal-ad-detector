@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { resolve, extname } from "node:path";
 import { chromium } from "playwright-core";
+import ExcelJS from "exceljs";
 import { initialProgress } from "../packages/contracts/dist/scan.js";
 import { serializeOfficialResult } from "../packages/contracts/dist/result.js";
 import { installResultReplay } from "./ui-evidence-ipc.mjs";
@@ -33,7 +34,8 @@ try {
   const reads = await installResultReplay(page, { result,
     session: { id: "offline-617", entryUrl: result.meta.entry_url, status: "succeeded", hasResult: true,
       startedAt: result.meta.started_at, finishedAt: result.meta.finished_at, progress: initialProgress("succeeded") },
-    exportReplay: async () => { await writeFile(`${outputDir}/result.json`, serializeOfficialResult(result)); return { resultJson: `${outputDir}/result.json` }; } });
+    exportReplay: async () => { await writeFile(`${outputDir}/result.json`, serializeOfficialResult(result)); return { resultJson: `${outputDir}/result.json` }; },
+    workbookReplay: async (args) => { assert.deepEqual(args.sessionIds, ["offline-617"]); await writeFile(`${outputDir}/report.xlsx`, new Uint8Array(args.data)); return `${outputDir}/report.xlsx`; } });
   await page.goto(`http://127.0.0.1:${app.address().port}`);
   await page.getByLabel("점검할 웹사이트").fill(result.meta.entry_url);
   await page.getByRole("button", { name: "점검 시작", exact: true }).click();
@@ -55,6 +57,7 @@ try {
   await page.getByRole("button", { name: "근거 보기", exact: true }).click();
   await inspector.getByText("원피스는 ㄹㅇ 재미가보장되있네 ㅋㅋㅋ", { exact: true }).waitFor();
   await inspector.getByRole("button", { name: "검토 완료로 표시" }).click();
+  await inspector.getByLabel("검토 메모").fill("자연스러운 댓글인지 추가 확인 필요");
   await page.screenshot({ path: `${outputDir}/f372-inspector.png` });
   await inspector.getByRole("button", { name: "결과 목록으로" }).click();
   await page.getByRole("button", { name: "검색·필터 초기화" }).click();
@@ -85,7 +88,13 @@ try {
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
   await page.screenshot({ path: `${outputDir}/workspace-200-percent.png` });
   await page.evaluate(() => { document.documentElement.style.zoom = "1"; });
-  await page.getByRole("button", { name: "결과 저장", exact: true }).click();
+  await page.getByRole("button", { name: "엑셀 보고서 저장", exact: true }).click();
+  await page.getByText(/엑셀 보고서 저장 완료:/).waitFor();
+  const workbook = new ExcelJS.Workbook(); await workbook.xlsx.readFile(`${outputDir}/report.xlsx`);
+  assert.equal(workbook.getWorksheet("탐지 상세").rowCount, 618);
+  assert.equal(workbook.getWorksheet("탐지 상세").getRow(373).getCell(8).value, "자연스러운 댓글인지 추가 확인 필요");
+  for (const sheet of workbook.worksheets) sheet.eachRow((row) => row.eachCell((cell) => assert.notEqual(cell.type, ExcelJS.ValueType.Formula)));
+  await page.getByRole("button", { name: "공식 JSON 저장", exact: true }).click();
   const exportDialog = page.getByRole("dialog");
   await exportDialog.getByRole("button", { name: "저장", exact: true }).click();
   await exportDialog.getByText(/저장 완료:/).waitFor();
@@ -96,6 +105,7 @@ try {
     officialRecords: 617, affectedPages: 211, reviewPatterns: 19, repeatedRecords: 197, repeatedPages: 197,
     f372: "found and reviewed; original retained", recordPagination: "20/50", bulkConfirmation: true,
     narrowReflow: true, zoom200: true, keyboardEntryAndFocusReturn: true, officialCanonicalBytesUnchanged: true,
+    xlsx: { sheets: workbook.worksheets.map((sheet) => sheet.name), officialRows: 617, filteredExportStillFull: true, note: true, formulas: false, mode: "real workbook; native Save As replay only" },
     remoteRequests, errors, nativeWindows: "NOT_RUN in this M1 smoke", uninstructedTester: "NOT_RUN" };
   await writeFile(`${outputDir}/observed.json`, JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));
 } finally { await browser?.close(); if (app.listening) await new Promise((done) => app.close(done)); }

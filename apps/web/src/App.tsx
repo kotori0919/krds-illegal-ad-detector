@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReviewRecord } from "@krds-detector/evidence/report";
 import type { HostBridge } from "@krds-detector/contracts";
 import { createHost } from "./host/index.js";
 import { ScanStart } from "./screens/ScanStart.js";
@@ -21,7 +22,14 @@ export function App() {
   const [resultQuery, setResultQuery] = useState("");
   const [resultFilter, setResultFilter] = useState<OfficialTechnique | "ALL">("ALL");
   const [resultView, setResultView] = useState<"findings" | "pages" | "extra" | "coverage">("findings");
-  const [reviewedIds, setReviewedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [reviewRecords, setReviewRecords] = useState<Record<string, ReviewRecord>>({});
+  const reviewedIds = useMemo(() => new Set(Object.values(reviewRecords).filter((record) => record.state === "reviewed").map((record) => record.findingId)), [reviewRecords]);
+  const reviewMany = (ids: string[], reviewed: boolean): void => setReviewRecords((previous) => {
+    const next = { ...previous };
+    const at = new Date().toISOString();
+    for (const id of ids) next[id] = { findingId: id, state: reviewed ? "reviewed" : "needed", note: previous[id]?.note ?? "", at };
+    return next;
+  });
   const [host, setHost] = useState<HostBridge | undefined>(undefined);
   const resultScrollY = useRef(0);
   const scrollFrame = useRef<number | undefined>(undefined);
@@ -81,7 +89,7 @@ export function App() {
     setResultView("findings");
     setRestoreFindingId(undefined);
     setExportOpen(false);
-    setReviewedIds(new Set());
+    setReviewRecords({});
     setFindingContext([]);
   }, []);
 
@@ -133,11 +141,8 @@ export function App() {
           view={resultView}
           onViewChange={setResultView}
           reviewedIds={reviewedIds}
-          onReviewMany={(ids, reviewed) => setReviewedIds((previous) => {
-            const next = new Set(previous);
-            for (const id of ids) { if (reviewed) next.add(id); else next.delete(id); }
-            return next;
-          })}
+          onReviewMany={reviewMany}
+          reviewRecords={Object.values(reviewRecords)}
           restoreFindingId={restoreFindingId}
           selectedFindingId={phase === "evidence" ? findingId : undefined}
           onSelectionHidden={closeHiddenSelection}
@@ -161,11 +166,10 @@ export function App() {
           contextIds={findingContext}
           onSelectFinding={setFindingId}
           reviewed={reviewedIds.has(findingId)}
-          onReviewChange={(reviewed) => setReviewedIds((previous) => {
-            const next = new Set(previous);
-            if (reviewed) next.add(findingId); else next.delete(findingId);
-            return next;
-          })}
+          onReviewChange={(reviewed) => reviewMany([findingId], reviewed)}
+          note={reviewRecords[findingId]?.note ?? ""}
+          onNoteChange={(note) => setReviewRecords((previous) => ({ ...previous,
+            [findingId]: { findingId, state: previous[findingId]?.state ?? "needed", note, at: new Date().toISOString() } }))}
           onBack={goResultFromEvidence}
         /> : null}
         </div>

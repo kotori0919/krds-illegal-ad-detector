@@ -152,4 +152,9 @@ export class TauriHost implements HostBridge {
     const invoke = await this.invoke();
     return invoke<ExportPaths>("scan_export", { sessionId, directory });
   }
+
+  async saveWorkbook(sessionIds: string[], data: Uint8Array): Promise<string | null> {
+    const invoke = await this.invoke();
+    return invoke<string | null>("scan_export_workbook", { sessionIds, data: Array.from(data) });
+  }
 }
