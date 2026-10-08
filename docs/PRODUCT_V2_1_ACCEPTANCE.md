@@ -173,7 +173,15 @@ Evidence: `/tmp/illegal-ad-v21-operator-tester/operator-review.md` and screensho
 operator exercise, not a human participant study. CUA offered no browser; the
 authorized local Playwright fallback used visible accessibility controls.
 
-Installed Windows Save As and the separate installer candidate are recorded in
-the final candidate acceptance record after their actual execution. Historical
-RC acceptance is not substituted for these new paths. Human participant and
-assistive-technology evaluation are NOT_RUN in this environment.
+OBSERVED: the separate `rc-v21-105ce20-20261008` candidate installs under a new
+ordinary-user Windows path; 679 static payload hashes match. Actual XLSX Save As
+cancellation/retry, six-sheet read-back, canonical JSON Save As, independent
+directory export, HTTP 200 challenge, four-format preview and native batch
+startup failures pass their focused checks. Normal close disconnects CDP and
+the installed host PID is absent. The original RC installer, manifest and all
+static payload hashes remain unchanged. Full scope and screenshot mapping are
+in [RELEASE_CANDIDATE_V21.md](RELEASE_CANDIDATE_V21.md). Historical acceptance is
+not substituted for new paths. Successful owned two-site execution is Linux;
+the Windows public-only test uses two nonexistent reserved DNS names and
+preserves failure without inventing results. Human participant and assistive-
+technology evaluation are NOT_RUN in this environment.
