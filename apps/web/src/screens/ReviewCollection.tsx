@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { OFFICIAL_TECHNIQUES, type OfficialFinding, type OfficialTechnique, type ScanCoverageView } from "@krds-detector/contracts";
+import { OFFICIAL_TECHNIQUES, scanIssueLabel, discoverySourceLabel, type OfficialFinding, type OfficialTechnique, type ScanCoverageView } from "@krds-detector/contracts";
 import { groupReviewPatterns, normalizeReviewText } from "@krds-detector/evidence/review-patterns";
 import { techniqueLabel } from "@krds-detector/contracts";
 
@@ -152,6 +152,8 @@ export function ReviewCollection(props: Props) {
               <h3>{row.summary || "문구 없음"}</h3>
               {view === "pages" && first ? <p>{normalizeReviewText(first.evidence_text)}{row.findings.length > 1 ? ` 외 ${row.findings.length - 1}건` : ""}</p> : null}
               {view === "pages" && row.outcome ? <p>{row.outcome.outcome === "checked" ? "확인 완료" : "확인 실패"} · HTTP {row.outcome.status} · 하위 {row.outcome.depth}단계</p> : null}
+              {row.outcome?.issue ? <p>{scanIssueLabel[row.outcome.issue.kind]}{row.outcome.issue.retryable ? " · 재시도 가능" : ""}</p> : null}
+              {row.outcome?.discoverySource ? <p className="hint">발견 경로: {discoverySourceLabel[row.outcome.discoverySource]}</p> : null}
               {row.outcome?.finalUrl !== undefined && row.outcome.finalUrl !== row.summary ? <p>{row.outcome.finalUrl}</p> : null}
               {row.outcome?.reason ? <details className="advanced"><summary>실패 상세</summary><p>{row.outcome.reason}</p></details> : null}
               <p>{[...new Set(row.findings.map((f) => techniqueLabel[f.technique]))].join(" · ")}{row.findings.length ? " · " : ""}기록 {row.findings.length}건 · 영향 페이지 {row.pageCount}개</p>

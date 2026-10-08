@@ -6,15 +6,17 @@
  * - External ad infrastructure observed, never recursively crawled.
  * - Hostile pages contained: popup/download suppression, request caps,
  *   per-page budget, hard global timeout, same-site bound, depth bound.
- * - Mutation settling: network-idle attempt + fixed settle windows so
- *   delayed (setTimeout) ad injection is observed without unbounded waits.
+ * - Fixed parsed-document settle windows observe delayed injection.
+ * - Access failures never reach detection; sitemap discovery is bounded.
  */
 import { chromium, type Browser, type BrowserContext, type Frame, type Page, type Request, type Response, type Route } from "playwright-core";
 import { performance } from "node:perf_hooks";
-import { DEFAULT_SCAN_LIMITS, type ScanLimits } from "@krds-detector/contracts";
-import { CrawlQueue, type ObservedExternal, type QueuedPage } from "./queue.js";
+import { DEFAULT_SCAN_LIMITS, type ScanIssue, type ScanLimits } from "@krds-detector/contracts";
+import { CrawlQueue, type DiscoveredPage, type ObservedExternal, type QueuedPage } from "./queue.js";
 import { ScanDeadline, pageConcurrency } from "./deadline.js";
 import { normalizeUrl } from "./urls.js";
+import { classifyAccess, classifyPageError } from "./access.js";
+import { CRAWLER_USER_AGENT, discoverSitemaps } from "./sitemap.js";
 
 export interface FrameSnapshot {
   /** Absolute iframe src chain, outer → inner. */
@@ -45,6 +47,8 @@ export interface PageSnapshot {
   duplicateContent: boolean;
   elapsedMs: number;
   failureReason?: string;
+  issue?: ScanIssue;
+  discoverySource?: "entry" | "link" | "sitemap";
 }
 
 export interface LiveFrame {
@@ -211,6 +215,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       acceptDownloads: false,
       bypassCSP: false,
       javaScriptEnabled: true,
+      userAgent: CRAWLER_USER_AGENT,
     });
     const activeContext = context;
     await context.addInitScript({ content: POPUP_BLOCK_JS });
@@ -224,8 +229,24 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       }).catch(() => undefined);
     });
 
+    const discovery = await discoverSitemaps(options.entryUrl, deadline, options.signal, limits.maxDepth > 0 && limits.maxPages > 1);
+    let sitemapPages = discovery.urls;
+    let nextRequestAt = discovery.deferUntilMs ?? 0;
+    const deferRequests = async (): Promise<boolean> => {
+      while (nextRequestAt > performance.now()) {
+        const delay = Math.ceil(nextRequestAt - performance.now());
+        if (options.signal?.aborted || deadline.operationTimeoutMs(delay + 2000) < delay + 2000) return false;
+        await new Promise<void>((resolve) => {
+          const finish = (): void => { clearTimeout(timer); options.signal?.removeEventListener("abort", finish); resolve(); };
+          const timer = setTimeout(finish, delay);
+          options.signal?.addEventListener("abort", finish, { once: true });
+        });
+      }
+      return !options.signal?.aborted && deadline.canStartPage();
+    };
+
     const processPage = async (next: QueuedPage & { pageRank: number }): Promise<PageSnapshot | undefined> => {
-      if (options.signal?.aborted || !deadline.canStartPage()) return undefined;
+      if (options.signal?.aborted || !deadline.canStartPage() || !await deferRequests()) return undefined;
       queuedPages -= 1;
       options.events?.onPageStarted?.(next.url, queuedPages);
       const pageStarted = performance.now();
@@ -238,6 +259,11 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         pushExternal(external);
       };
       let pageTimer: ReturnType<typeof setTimeout> | undefined;
+      let pageTimedOut = false;
+      let navigating = true;
+      let status = 0;
+      let finalUrl = next.url;
+      let issue: ScanIssue | undefined;
       // Hostile-page caps: abort oversized media/fonts, record externals.
       const seenRequests: string[] = [];
       const decide = (req: Request): "abort" | "continue" => {
@@ -284,9 +310,10 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       const liveFrames: LiveFrame[] = [];
       try {
         if (options.signal?.aborted) throw new Error("scan cancelled");
+        if (!discovery.allows(next.url)) { issue = { kind: "denied", retryable: false }; throw new Error("robots-disallowed"); }
         const budget = Math.min(perPageMs, deadline.operationTimeoutMs(perPageMs));
         if (budget < 1000) throw new Error("scan deadline reached before page navigation");
-        pageTimer = setTimeout(() => { void page.close().catch(() => undefined); }, budget);
+        pageTimer = setTimeout(() => { pageTimedOut = true; void page.close().catch(() => undefined); }, budget);
         page.setDefaultTimeout(budget);
         page.setDefaultNavigationTimeout(budget);
         await page.route("**/*", (route: Route) => {
@@ -302,7 +329,13 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           waitUntil: "commit",
           timeout: Math.min(budget, 20000),
         });
-        const status = response?.status() ?? 0;
+        status = response?.status() ?? 0;
+        finalUrl = page.url();
+        navigating = false;
+        const headers = response?.headers() ?? {};
+        issue = classifyAccess(status, headers);
+        if (issue?.kind === "rate-limit" && issue.retryAfterMs !== undefined) nextRequestAt = Math.max(nextRequestAt, performance.now() + issue.retryAfterMs);
+        if (issue?.kind === "challenge") throw new Error("access-challenge");
         // A commit can precede script execution by seconds under load. Start
         // the injection settle window only after the document is parsed, while
         // retaining time for analysis and whole-scan finalization.
@@ -311,11 +344,20 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         if (loadMs > 0) {
           await page.waitForLoadState("domcontentloaded", { timeout: loadMs }).catch(() => undefined);
         }
+        const readAccessDocument = async () => page.evaluate(() => ({
+          title: document.title,
+          passwordForm: document.querySelector("form input[type=password]") !== null,
+          challengeElement: document.querySelector("#challenge-running, #challenge-form, #cf-challenge-running, script[src*='/cdn-cgi/challenge-platform/']") !== null,
+        }));
+        issue = classifyAccess(status, headers, await readAccessDocument());
+        if (issue) throw new Error(`access-${issue.kind}`);
         const waitMs = Math.min(settleBudget, remainingPageMs(), deadline.operationTimeoutMs(settleBudget));
         if (waitMs > 0) await page.waitForTimeout(waitMs);
+        if (waitMs > 0) issue = classifyAccess(status, headers, await readAccessDocument());
+        if (issue) throw new Error(`access-${issue.kind}`);
         // Frame snapshot after settle: resolve absolute srcs, capture nested html.
         const described = await describePage(page, limits.maxFrameDepth);
-        const finalUrl = page.url();
+        finalUrl = page.url();
         const frameSnapshots: FrameSnapshot[] = [];
         const frameEls = page.frames();
         for (const f of frameEls.slice(1, 16)) {
@@ -398,6 +440,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           externals: [...pageExternals].sort(compareExternal),
           duplicateContent: false,
           elapsedMs: performance.now() - pageStarted,
+          discoverySource: next.discoverySource,
         };
         if (options.onLivePage) await options.onLivePage(page, snapshot, liveFrames, imageResponses, next.pageRank);
         // Snapshot copies are optional evidence; official live detection has
@@ -410,20 +453,23 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             if (frame) frame.html = (await liveFrames[i]!.frame.content().catch(() => "")).slice(0, maxBodyBytes);
           }
         }
-      } catch {
+      } catch (error) {
+        issue ??= classifyPageError(error, pageTimedOut, navigating);
         snapshot = {
           url: next.url,
-          finalUrl: next.url,
+          finalUrl,
           depth: next.depth,
-          status: 0,
+          status,
           html: "",
           links: [],
           frames: [],
           externals: [...pageExternals].sort(compareExternal),
           duplicateContent: false,
           elapsedMs: performance.now() - pageStarted,
+          issue,
+          discoverySource: next.discoverySource,
           failureReason: options.signal?.aborted ? "cancelled-during-analysis"
-            : "navigation-or-analysis-failed",
+            : error instanceof Error && error.message === "robots-disallowed" ? "robots-disallowed" : `access-${issue.kind}`,
         };
       } finally {
         activePages.delete(page);
@@ -442,19 +488,21 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       admittedPages += rankedFrontier.length;
       queuedPages = rankedFrontier.length;
       const completed = await boundedMap(rankedFrontier, concurrency, processPage);
+      const discovered: DiscoveredPage[] = [];
       // boundedMap preserves frontier order even when worker completion differs.
       for (const snapshot of completed) {
         if (!snapshot) {
           if (!options.signal?.aborted) timedOut = true;
           continue;
         }
-        snapshot.duplicateContent = queue.isDuplicateContent(snapshot.html.slice(0, 65536));
+        if (!snapshot.issue) snapshot.duplicateContent = queue.isDuplicateContent(snapshot.html.slice(0, 65536));
         pages.push(snapshot);
-        const added = queue.discover(snapshot.url, snapshot.depth, [...snapshot.links].sort());
-        for (const item of added) {
-          options.events?.onPageQueued?.({ url: item.url, depth: item.depth, pending: queue.pendingCount });
-        }
+        if (!snapshot.issue) discovered.push(...snapshot.links.map((url) => ({ from: snapshot.url, fromDepth: snapshot.depth, url, discoverySource: "link" as const })));
       }
+      discovered.push(...sitemapPages.map((url) => ({ from: options.entryUrl, fromDepth: 0, url, discoverySource: "sitemap" as const })));
+      sitemapPages = [];
+      const added = queue.discoverBatch(discovered, discovery.allows);
+      for (const item of added) options.events?.onPageQueued?.({ url: item.url, depth: item.depth, pending: queue.pendingCount });
       frontier = queue.nextFrontier();
     }
     if (!options.signal?.aborted && (frontier.length > 0 || deadline.expired() || !deadline.canStartPage())) timedOut = true;

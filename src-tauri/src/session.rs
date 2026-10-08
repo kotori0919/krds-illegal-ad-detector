@@ -950,7 +950,18 @@ pub(crate) fn validate_detail_bundle(official_text: &str, detail_text: &str, ext
             }
             if !urls.insert(page["url"].as_str().unwrap()) { return Err("detail page outcome URL duplicated".to_string()); }
             let status = page["status"].as_u64().unwrap();
-            let was_checked = status > 0 && status < 400;
+            let issue = page.get("issue");
+            if let Some(issue) = issue {
+                let kinds = ["challenge", "denied", "rate-limit", "login-required", "timeout", "navigation", "unknown"];
+                if !issue["kind"].as_str().is_some_and(|kind| kinds.contains(&kind)) || !issue["retryable"].is_boolean()
+                    || issue.get("retryAfterMs").is_some_and(|ms| !ms.as_u64().is_some_and(|ms| ms <= 5000)) {
+                    return Err("detail page issue invalid".to_string());
+                }
+            }
+            if page.get("discoverySource").is_some_and(|source| !source.as_str().is_some_and(|source| ["entry", "link", "sitemap"].contains(&source))) {
+                return Err("detail discovery source invalid".to_string());
+            }
+            let was_checked = status > 0 && status < 400 && issue.is_none();
             if page["outcome"] != if was_checked { "checked" } else { "failed" } {
                 return Err("detail page outcome status mismatch".to_string());
             }
@@ -1082,6 +1093,15 @@ mod validation_tests {
         });
         let check = |value: &serde_json::Value| validate_detail_bundle(&good_json(), &value.to_string(), "{\"findings\":[]}");
         assert!(check(&detail).is_ok());
+        let mut challenge = detail.clone();
+        challenge["pageOutcomes"][0]["issue"] = serde_json::json!({"kind":"challenge","retryable":false});
+        assert_eq!(check(&challenge).unwrap_err(), "detail page outcome status mismatch");
+        challenge["pageOutcomes"][0]["outcome"] = serde_json::json!("failed");
+        challenge["coverage"]["checkedPages"] = serde_json::json!(0);
+        challenge["coverage"]["failedPages"].as_array_mut().unwrap().push(serde_json::json!({"url":"https://example.kr/a","status":200,"reason":"challenge"}));
+        assert!(check(&challenge).is_ok());
+        challenge["pageOutcomes"][0]["issue"]["retryAfterMs"] = serde_json::json!(5001);
+        assert_eq!(check(&challenge).unwrap_err(), "detail page issue invalid");
         let mut wrong = detail.clone();
         wrong["coverage"]["checkedPages"] = serde_json::json!(2);
         assert_eq!(check(&wrong).unwrap_err(), "detail page outcomes coverage mismatch");

@@ -17,6 +17,14 @@ export interface QueuedPage {
   url: string;
   key: string;
   depth: number;
+  discoverySource: "entry" | "link" | "sitemap";
+}
+
+export interface DiscoveredPage {
+  from: string;
+  fromDepth: number;
+  url: string;
+  discoverySource: "link" | "sitemap";
 }
 
 export interface ObservedExternal {
@@ -36,7 +44,7 @@ export class CrawlQueue {
     readonly entryHost: string,
     private limits: CrawlLimits,
   ) {
-    this.enqueue(entryUrl, 0);
+    this.enqueue(entryUrl, 0, "entry");
   }
 
   get pendingCount(): number {
@@ -51,7 +59,7 @@ export class CrawlQueue {
     return this.externals;
   }
 
-  private enqueue(url: string, depth: number): boolean {
+  private enqueue(url: string, depth: number, discoverySource: QueuedPage["discoverySource"]): boolean {
     if (depth > this.limits.maxDepth) return false;
     if (this.visited.size + this.queue.length >= this.limits.maxPages) return false;
     let key: string;
@@ -62,7 +70,7 @@ export class CrawlQueue {
     }
     if (this.visited.has(key)) return false;
     if (this.queue.some((q) => q.key === key)) return false;
-    this.queue.push({ url, key, depth });
+    this.queue.push({ url, key, depth, discoverySource });
     return true;
   }
 
@@ -86,20 +94,35 @@ export class CrawlQueue {
 
   /** Register discovered hrefs; returns newly enqueued same-site pages. */
   discover(from: string, fromDepth: number, hrefs: string[]): QueuedPage[] {
+    return this.discoverBatch(hrefs.map((url) => ({ from, fromDepth, url, discoverySource: "link" })));
+  }
+
+  /** Merge a complete frontier's discoveries before applying the page bound. */
+  discoverBatch(candidates: DiscoveredPage[], allows: (url: string) => boolean = () => true): QueuedPage[] {
     const added: QueuedPage[] = [];
-    for (const href of hrefs) {
+    const normalized: (DiscoveredPage & { key: string })[] = [];
+    for (const candidate of candidates) {
       let absolute: string;
       try {
-        absolute = new URL(href, from).href;
+        const url = new URL(candidate.url, candidate.from);
+        if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) continue;
+        url.hash = "";
+        absolute = url.href;
       } catch {
         continue;
       }
       if (!isSameSite(this.entryHost, absolute)) {
-        this.externals.push({ url: absolute, from, kind: "link" });
+        this.externals.push({ url: absolute, from: candidate.from, kind: "link" });
         continue;
       }
+      if (!allows(absolute)) continue;
+      normalized.push({ ...candidate, url: absolute, key: normalizeUrlKey(absolute) });
+    }
+    normalized.sort((a, b) => a.fromDepth - b.fromDepth || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)
+      || a.discoverySource.localeCompare(b.discoverySource) || a.from.localeCompare(b.from) || a.url.localeCompare(b.url));
+    for (const candidate of normalized) {
       const before = this.queue.length;
-      if (this.enqueue(absolute, fromDepth + 1)) {
+      if (this.enqueue(candidate.url, candidate.fromDepth + 1, candidate.discoverySource)) {
         added.push(this.queue[before] as QueuedPage);
       }
     }

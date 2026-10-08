@@ -335,7 +335,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
           progress.visitedPages += 1;
           progress.queuedPages = queuedPages;
           progress.currentPages = progress.currentPages.filter((url) => url !== snapshot.url);
-          const failed = snapshot.status === 0 || snapshot.status >= 400;
+          const failed = snapshot.issue !== undefined || snapshot.status === 0 || snapshot.status >= 400;
           if (failed) progress.failedPages += 1;
           emit(failed ? "page-failed" : "page-visited", undefined, snapshot.url);
         },
@@ -348,9 +348,6 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     progress.visitedPages = summary.pages.length;
     progress.queuedPages = 0;
     progress.currentPages = [];
-    if (!summary.cancelled && !summary.pages.some((page) => page.status >= 200 && page.status < 300)) {
-      throw new Error("no successfully analyzed pages");
-    }
 
     // OCR started only for bounded image candidates while pages were live.
     // Its own deadline/abort closes the worker; await it before timestamps
@@ -455,7 +452,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       imageAnalysis,evidenceGraph:graph,infrastructure,
       pageOutcomes: summary.pages.map((page) => ({ url: page.url, finalUrl: page.finalUrl,
         depth: page.depth, status: page.status,
-        outcome: page.status > 0 && page.status < 400 ? "checked" : "failed",
+        outcome: !page.issue && page.status > 0 && page.status < 400 ? "checked" : "failed",
+        issue: page.issue, discoverySource: page.discoverySource,
         reason: page.failureReason ?? (page.status >= 400 ? `HTTP ${String(page.status)}` : undefined) })),
       creativeImages: extraResult.findings.flatMap((finding) => {
         if (finding.extra_finding !== "REUSED_AD_CREATIVE") return [];
@@ -480,8 +478,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         };
       }),
       coverage: {
-        checkedPages: summary.pages.filter((page) => page.status > 0 && page.status < 400).length,
-        failedPages: summary.pages.filter((page) => page.status === 0 || page.status >= 400)
+        checkedPages: summary.pages.filter((page) => !page.issue && page.status > 0 && page.status < 400).length,
+        failedPages: summary.pages.filter((page) => page.issue !== undefined || page.status === 0 || page.status >= 400)
           .map((page) => ({ url: page.url, status: page.status,
             reason: page.failureReason ?? (page.status === 0 ? "navigation-or-analysis-failed" : `HTTP ${String(page.status)}`) })),
         timedOut: summary.timedOut,
@@ -511,7 +509,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       extraResult,
       extraJson,
       pagesVisited: summary.pages.length,
-      failedPages: summary.pages.filter((page) => page.status === 0 || page.status >= 400).length,
+      failedPages: summary.pages.filter((page) => page.issue !== undefined || page.status === 0 || page.status >= 400).length,
       timedOut: summary.timedOut,
       detailBundle,
     };

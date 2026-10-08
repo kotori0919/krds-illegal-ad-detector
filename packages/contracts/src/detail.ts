@@ -61,6 +61,17 @@ export interface ScanIssue {
   retryAfterMs?: number;
 }
 
+export const scanIssueLabel: Record<ScanIssue["kind"], string> = {
+  challenge: "보안 확인이 필요하여 이 페이지를 점검하지 못했습니다",
+  denied: "접근 거부",
+  "rate-limit": "요청 제한",
+  "login-required": "로그인 필요",
+  timeout: "연결 시간 초과",
+  navigation: "페이지 연결 실패",
+  unknown: "점검 실패 (원인 확인 필요)",
+};
+export const discoverySourceLabel = { entry: "시작 주소", link: "페이지 링크", sitemap: "사이트맵" } as const;
+
 export interface ImageAnalysis {
   analysisId?: string;
   assetId?: string;
@@ -158,7 +169,10 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
         if (typeof page.url !== "string" || !page.url || typeof page.finalUrl !== "string" || !page.finalUrl
           || !Number.isSafeInteger(page.depth) || page.depth < 0 || !Number.isSafeInteger(page.status) || page.status < 0
           || !["checked", "failed"].includes(page.outcome)
-          || (page.outcome === "checked") !== (page.status > 0 && page.status < 400)) errors.push("page outcome representation invalid");
+          || (page.outcome === "checked") !== (page.status > 0 && page.status < 400 && page.issue === undefined)) errors.push("page outcome representation invalid");
+        if (page.issue !== undefined && (!page.issue || !Object.hasOwn(scanIssueLabel, page.issue.kind) || typeof page.issue.retryable !== "boolean"
+          || (page.issue.retryAfterMs !== undefined && (!Number.isSafeInteger(page.issue.retryAfterMs) || page.issue.retryAfterMs < 0 || page.issue.retryAfterMs > 5000)))) errors.push("page issue invalid");
+        if (page.discoverySource !== undefined && !Object.hasOwn(discoverySourceLabel, page.discoverySource)) errors.push("page discovery source invalid");
         if (page.outcome === "failed" && !bundle.coverage.failedPages.some((failure) => failure.url === page.url && failure.status === page.status)) {
           errors.push("failed page outcome mismatch");
         }

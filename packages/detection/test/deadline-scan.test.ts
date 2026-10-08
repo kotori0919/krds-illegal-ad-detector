@@ -34,27 +34,31 @@ beforeAll(async () => {
 afterAll(async () => { await new Promise<void>((resolve) => server.close(() => resolve())); });
 
 describe("L3 global deadline settlement", () => {
-  it("fails when every attempted page fails", async () => {
-    const stages: string[] = [];
-    await expect(scanSite({
+  it("retains failed coverage when no attempted page was successfully checked", async () => {
+    const output = await scanSite({
       entryUrl: `${origin}/missing`,
       crawl: { concurrency: 1, settleMs: 0, perPageMs: 5_000,
         limits: { maxPages: 1, maxDepth: 0, timeoutSec: 10 } },
-      onEvent: (event) => {
-        if (["session-started", "session-failed"].includes(event.kind)) stages.push(event.progress.stage);
-      },
-    })).rejects.toThrow("no successfully analyzed pages");
-    expect(stages).toEqual(["running", "failed"]);
+    });
+    expect(output.result.findings).toEqual([]);
+    expect(output.detailBundle.coverage.checkedPages).toBe(0);
+    expect(output.failedPages).toBe(1);
+    expect(output.detailBundle.pageOutcomes?.map((page) => [page.outcome, page.status, page.issue]))
+      .toEqual([["failed", 404, { kind: "navigation", retryable: false }]]);
+    expect(validateScanDetailBundle(output.detailBundle, output.result, output.extraResult).ok).toBe(true);
   }, 15_000);
 
-  it("fails without requesting a page when the deadline cannot admit work", async () => {
+  it("retains zero checked coverage without requesting a page when the deadline cannot admit work", async () => {
     const before = requests.length;
-    await expect(scanSite({
+    const output = await scanSite({
       entryUrl: `${origin}/`,
       crawl: { concurrency: 1, settleMs: 0, perPageMs: 5_000,
         limits: { maxPages: 1, maxDepth: 0, timeoutSec: 1 } },
-    })).rejects.toThrow("no successfully analyzed pages");
+    });
     expect(requests.length).toBe(before);
+    expect(output.result.findings).toEqual([]);
+    expect(output.detailBundle.coverage).toEqual({ checkedPages: 0, failedPages: [], timedOut: true, cancelled: false });
+    expect(output.detailBundle.pageOutcomes).toEqual([]);
   }, 15_000);
 
   it("retains completed findings and does not admit another page inside the reserve", async () => {
@@ -71,8 +75,10 @@ describe("L3 global deadline settlement", () => {
     expect(output.timedOut).toBe(true);
     expect(output.pagesVisited).toBe(3);
     expect(output.failedPages).toBe(1);
-    expect(output.detailBundle.coverage.failedPages.map((page) => [new URL(page.url).pathname, page.status, page.reason]))
-      .toEqual([["/b-slow", 0, "navigation-or-analysis-failed"]]);
+    expect(output.detailBundle.coverage.failedPages.map((page) => [new URL(page.url).pathname, page.status]))
+      .toEqual([["/b-slow", 0]]);
+    expect(output.detailBundle.pageOutcomes?.find((page) => new URL(page.url).pathname === "/b-slow")?.issue)
+      .toEqual({ kind: "timeout", retryable: true });
     expect(output.result.findings.map((finding) => [new URL(finding.url).pathname, finding.location, finding.technique]))
       .toEqual([["/a-fast", "#ad", "OFFSCREEN"]]);
     expect(validateOfficialResultText(output.json).ok).toBe(true);

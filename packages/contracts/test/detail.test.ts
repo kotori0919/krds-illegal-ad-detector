@@ -41,6 +41,17 @@ it("rejects page outcomes that overstate successfully checked coverage", () => {
   expect(validateScanDetailBundle(data, result, extra).ok).toBe(true);
 });
 
+it("retains HTTP200 challenge coverage while refusing to count it as successfully analyzed", () => {
+  const data = bundle();
+  data.pageOutcomes![0]!.issue = { kind: "challenge", retryable: false };
+  expect(validateScanDetailBundle(data, result, extra).ok).toBe(false);
+  data.pageOutcomes![0]!.outcome = "failed";
+  data.coverage = { checkedPages: 0, failedPages: [{ url: result.meta.entry_url, status: 200, reason: "challenge" }], timedOut: false };
+  expect(validateScanDetailBundle(data, result, extra).ok).toBe(true);
+  data.pageOutcomes![0]!.issue = { kind: "rate-limit", retryable: true, retryAfterMs: 5001 };
+  expect(validateScanDetailBundle(data, result, extra).ok).toBe(false);
+});
+
 it("rejects invalid OCR confidence and inconsistent structured decisions", () => {
   const data = bundle();
   const recognition = data.imageAnalysis![0]!.ocr;

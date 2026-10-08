@@ -8,6 +8,7 @@ import {
   type OfficialResult,
   type OfficialTechnique,
   type ScanSession,
+  scanIssueLabel,
 } from "@krds-detector/contracts";
 import { techniqueLabel } from "@krds-detector/contracts";
 import { formatElapsed, scanStatusLabel } from "../scan-format.js";
@@ -158,6 +159,8 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
   const detailLoadError = coverageRead.state === "error";
   const extraLoaded = extraRead.state !== "loading";
   const extraLoadError = extraRead.state === "error";
+  const accessLimited = detailBundle?.pageOutcomes.filter((page) => page.issue && ["challenge", "denied", "rate-limit", "login-required"].includes(page.issue.kind)) ?? [];
+  const noCheckedCoverage = !!detailBundle && detailBundle.coverage.checkedPages === 0;
 
   useEffect(() => {
     let alive = true;
@@ -226,12 +229,13 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
     <main className="page">
       <p className="eyebrow">결과 검토</p>
       <h1 ref={resultHeading} tabIndex={-1}>점검 결과</h1>
-      <p className="lede">{session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}</p>
+      <p className="lede">{noCheckedCoverage ? accessLimited.length ? "접근 제한으로 점검하지 못함" : "성공적으로 점검한 페이지 없음" : session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{!noCheckedCoverage && session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}</p>
       {result ? <WorkbookExport host={host} sessionId={sessionId} reviews={reviewRecords} /> : null}
       {session?.status === "cancelled" || detailBundle?.coverage.cancelled ? <p role="note" className="empty">점검이 중지되었습니다. 완료된 페이지의 결과를 표시합니다.</p>
         : session?.status === "failed" && session.hasResult === true ? <p role="note" className="empty">점검이 실패했습니다. 완료된 페이지의 결과를 표시합니다.</p> : null}
       {demoMode ? <p role="note" className="empty">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다.</p> : null}
-      {result ? <p className="hint">탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개` : ""}</p> : null}
+      {result ? <p className="hint">탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개 · 접근 제한 ${accessLimited.length}개` : " · 점검 범위 알 수 없음"}</p> : null}
+      {accessLimited.length ? <p role="note">접근 제한 페이지는 점검하지 못했습니다. 탐지 0건이라도 안전하다고 판단할 수 없습니다. 점검 범위에서 사유를 확인해 주세요.</p> : null}
       {result ? <details className="advanced"><summary>이미지 분석 범위</summary><section aria-label="이미지 분석 범위">
         <h2 ref={summaryHeading} tabIndex={-1}>이미지 분석 범위</h2>
         {summaryRead.state === "loading" ? <p role="status">근거 요약을 불러오는 중입니다.</p>
@@ -319,6 +323,9 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
               : detailLoadError ? <div><p role="alert" className="error">점검 범위를 불러오지 못했습니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div>
                 : detailBundle ? <>
               <p>확인한 페이지 {String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 {String(detailBundle.coverage.failedPages.length)}개</p>
+              {detailBundle.pageOutcomes.some((page) => page.issue) ? <ul aria-label="접근 및 점검 제한">{detailBundle.pageOutcomes.filter((page) => page.issue).map((page) => <li key={page.url}>
+                {page.url} — {scanIssueLabel[page.issue!.kind]}{page.issue!.retryable ? " · 재시도 가능 (다음 점검에서 다시 확인)" : ""}{page.issue!.retryAfterMs !== undefined ? ` · 서버 대기 시간 ${page.issue!.retryAfterMs / 1000}초 이내 적용` : ""}
+              </li>)}</ul> : null}
               {detailBundle.coverage.timedOut ? <p role="status">제한 시간에 도달해 일부 페이지를 확인하지 못했습니다.</p> : null}
               {detailBundle.coverage.failedPages.length > 0 ? <ul>{detailBundle.coverage.failedPages.map((page) => <li key={page.url}>{page.url} — {page.status === 0 ? "연결 또는 분석 실패" : `접근 실패 (HTTP ${String(page.status)})`}</li>)}</ul>
                 : <p>확인에 실패한 페이지가 없습니다.</p>}

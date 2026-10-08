@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { techniqueLabel, type ExtraResult, type ImageAnalysis, type OfficialResult, type ScanCoverageView, type EvidenceSummary } from "@krds-detector/contracts";
+import { techniqueLabel, scanIssueLabel, discoverySourceLabel, type ExtraResult, type ImageAnalysis, type OfficialResult, type ScanCoverageView, type EvidenceSummary } from "@krds-detector/contracts";
 import { groupReviewPatterns } from "./review-patterns.js";
 
 export interface ReviewRecord {
@@ -97,8 +97,8 @@ export async function createOperationalWorkbook(sessions: readonly ReportSession
     }
     if (!session.coverage) row(coverage, [session.sessionId, official.meta.entry_url, "", "알 수 없음", "", "저장된 점검 범위 기록 없음", "알 수 없음"]);
     else if (session.coverage.pageOutcomes.length) for (const outcome of session.coverage.pageOutcomes) {
-      row(coverage, [session.sessionId, outcome.url, outcome.finalUrl, outcome.outcome === "checked" ? "확인 완료" : "미점검", outcome.status,
-        outcome.reason ?? "", outcome.discoverySource ?? "알 수 없음"]);
+      row(coverage, [session.sessionId, outcome.url, outcome.finalUrl, outcome.issue ? scanIssueLabel[outcome.issue.kind] : outcome.outcome === "checked" ? "확인 완료" : "미점검", outcome.status,
+        outcome.reason ?? "", outcome.discoverySource ? discoverySourceLabel[outcome.discoverySource] : "알 수 없음"]);
     } else {
       row(coverage, [session.sessionId, official.meta.entry_url, "", "페이지별 기록 없음", "", `확인 ${session.coverage.coverage.checkedPages}개; 개별 확인 페이지를 추정하지 않음`, "알 수 없음"]);
       for (const failure of session.coverage.coverage.failedPages) row(coverage, [session.sessionId, failure.url, "", "미점검", failure.status, failure.reason, "알 수 없음"]);

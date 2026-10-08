@@ -4,3 +4,5 @@ export * from "./queue.js";
 export * from "./crawl.js";
 export * from "./selectors.js";
 export * from "./deadline.js";
+export * from "./access.js";
+export * from "./sitemap.js";

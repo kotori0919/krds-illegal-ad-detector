@@ -81,9 +81,31 @@ labels and optional typed access/discovery metadata outside official JSON.
 Local XML parsing dependencies are prepared for M3/M4 without altering the
 official serializer or runtime RC.
 
+## M3 — access limitations and sitemap discovery
+
+HTTP 200 with `cf-mitigated: challenge` is uninspected, not successful/clean.
+Typed challenge, denial, rate limit, login, timeout and navigation failures are
+kept in supplemental coverage, displayed in Korean and included in XLSX.
+Both TypeScript and native validators reconcile status with the typed issue.
+429 waits at most five seconds before further site admission, without retries.
+All-blocked and zero-admission scans retain a truthful official empty result and
+coverage; the operator is told that no page was successfully checked.
+
+Robots declarations, conventional sitemap, bounded nested indexes and live
+links share deterministic same-site admission, page/depth limits and deadline.
+Limits and robots matching are recorded in `CRAWLER.md`. XML entities/DTD,
+malformed/multiple roots and external sitemap redirects are rejected.
+No CAPTCHA solver or access-control change is part of this implementation.
+
+OBSERVED: 29 scoped crawler/detector tests pass, including a real `scanSite`
+against an owned HTTP 200 challenge (checked 0, failed 1, no findings), recursive
+sitemaps, robots exclusions, bounded rate-limit delay and cancellation.
+Seven contract/access tests and the native coverage reconciliation test pass.
+Scanner build, scoped typecheck and lint pass. The original official serializer
+and four technique enums remain unchanged.
+
 ## Remaining ordered milestones
 
-M3: typed access limitations and bounded sitemap discovery.
 M4: network-free safe file preview, sequential independent batch sessions,
 per-site official outputs and aggregate workbook.
 M5: focused integrated acceptance and separate Windows installer candidate.
