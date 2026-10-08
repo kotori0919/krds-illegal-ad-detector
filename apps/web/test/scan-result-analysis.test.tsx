@@ -47,7 +47,6 @@ describe("stored OCR and partial coverage presentation", () => {
     expect(within(analysis).getByText("판단 점수 / 기준: 0.8 / 0.7").closest("details")?.open).toBe(false);
     expect(within(analysis).getByText("광고 표현 확인")).toBeDefined();
     expect(screen.getByText("https://example.kr/clean")).toBeDefined();
-    expect(screen.queryByText("확정된 탐지 목록")).toBeNull();
     expect(screen.queryByText("이 세션에는 추가 분석 결과가 없습니다.")).toBeNull();
   });
 
@@ -106,7 +105,6 @@ describe("stored OCR and partial coverage presentation", () => {
     const clean = screen.getByRole("region", { name: "https://example.kr/start 탐지 0건" });
     expect(within(clean).getByText(/확인 완료.*HTTP 200/)).toBeDefined();
     expect(within(clean).getByText("https://example.kr/clean")).toBeDefined();
-    expect(within(clean).getByText("확정된 탐지가 없습니다.")).toBeDefined();
     const failed = screen.getByRole("region", { name: "https://example.kr/missing 탐지 0건" });
     expect(within(failed).getByText(/확인 실패.*HTTP 404/)).toBeDefined();
     expect(within(failed).getByText("HTTP 404", { exact: true })).toBeDefined();
@@ -141,6 +139,5 @@ describe("stored OCR and partial coverage presentation", () => {
     const group = screen.getByRole("region", { name: "https://example.kr/start 탐지 1건" });
     expect(within(group).getByText(/숨겨진 광고/)).toBeDefined();
     expect(within(group).getByRole("button", { name: "근거 보기" }).dataset.findingId).toBe("f1");
-    expect(screen.queryByText("확정된 탐지가 없습니다.")).toBeNull();
   });
 });

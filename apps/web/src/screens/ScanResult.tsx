@@ -7,7 +7,6 @@ import {
   type HostBridge,
   type OfficialResult,
   type OfficialTechnique,
-  type PageOutcome,
   type ScanSession,
 } from "@krds-detector/contracts";
 import { techniqueLabel } from "../technique-label.js";
@@ -16,11 +15,12 @@ import { AssetImage } from "./AssetImage.js";
 import { EvidenceRelations } from "./EvidenceRelations.js";
 import { useEvidenceRead } from "./evidence-read.js";
 import { VisualCoverage } from "./VisualCoverage.js";
+import { ReviewCollection } from "./ReviewCollection.js";
 
 interface Props {
   host: HostBridge;
   sessionId: string;
-  onEvidence: (findingId: string) => void;
+  onEvidence: (findingId: string, context?: string[]) => void;
   onExport: () => void;
   onRestart: () => void;
   query: string;
@@ -138,7 +138,6 @@ export function ScanResult(props: Props) {
 function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
   const summaryHeading = useRef<HTMLHeadingElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
-  const [selectionNotice, setSelectionNotice] = useState(false);
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
   const [result, setResult] = useState<OfficialResult | undefined>(undefined);
   const [loadComplete, setLoadComplete] = useState(false);
@@ -202,56 +201,6 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
     for (const f of findings) map.set(f.technique, (map.get(f.technique) ?? 0) + 1);
     return map;
   }, [findings]);
-  const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
-  const pageSourceUrls = useMemo(() => {
-    const sources = new Map<string, string>();
-    for (const page of detailBundle?.pageOutcomes ?? []) {
-      sources.set(page.finalUrl, `${sources.get(page.finalUrl) ?? ""} ${page.url}`);
-    }
-    return sources;
-  }, [detailBundle]);
-  const visible = findings.filter((f) =>
-    (filter === "ALL" || f.technique === filter)
-    && (!normalizedQuery || `${f.url} ${f.evidence_text} ${view === "pages" ? pageSourceUrls.get(f.url) ?? "" : ""}`.toLocaleLowerCase("ko-KR").includes(normalizedQuery)),
-  );
-  const pageGroups = useMemo(() => {
-    const groups = new Map<string, { findings: typeof visible; outcome?: PageOutcome }>();
-    const finalUrls = new Map<string, string>();
-    for (const outcome of detailBundle?.pageOutcomes ?? []) {
-      groups.set(outcome.url, { findings: [], outcome });
-      if (!finalUrls.has(outcome.finalUrl)) finalUrls.set(outcome.finalUrl, outcome.url);
-    }
-    for (const finding of visible) {
-      const url = groups.has(finding.url) ? finding.url : finalUrls.get(finding.url) ?? finding.url;
-      const group = groups.get(url);
-      if (group) group.findings.push(finding);
-      else groups.set(url, { findings: [finding] });
-    }
-    return [...groups.entries()].filter(([url, group]) => group.findings.length > 0 || (filter === "ALL"
-      && (!normalizedQuery || `${url} ${group.outcome?.finalUrl ?? ""}`.toLocaleLowerCase("ko-KR").includes(normalizedQuery))));
-  }, [visible, detailBundle, filter, normalizedQuery]);
-  const resetFilters = () => { setSelectionNotice(false); onFilterChange("ALL"); onQueryChange(""); };
-  const selectedVisible = visible.some((finding) => finding.id === selectedFindingId);
-  useEffect(() => {
-    if (!result || !selectedFindingId) return;
-    if ((view !== "findings" && view !== "pages") || !selectedVisible) {
-      setSelectionNotice(view === "findings" || view === "pages");
-      onSelectionHidden();
-    } else setSelectionNotice(false);
-  }, [result, selectedFindingId, selectedVisible, view, onSelectionHidden]);
-
-  useEffect(() => {
-    if (!result || !restoreFindingId) return;
-    const target = [...document.querySelectorAll<HTMLButtonElement>("button[data-finding-id]")]
-      .find((button) => button.dataset.findingId === restoreFindingId);
-    const fallback = document.getElementById("result-search")
-      ?? document.querySelector<HTMLElement>('.result-navigation button[aria-pressed="true"]');
-    if (target || fallback) {
-      (target ?? fallback)?.focus();
-      onFocusRestored?.();
-    }
-  }, [result, restoreFindingId, onFocusRestored, view, filter, query]);
-
   if (session?.status === "cancelled" && session.hasResult !== true) {
     return (
       <main className="page">
@@ -279,13 +228,13 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
         : session?.status === "failed" && session.hasResult === true ? <p role="note" className="empty">점검이 실패했습니다. 완료된 페이지의 결과를 표시합니다.</p> : null}
       {demoMode ? <p role="note" className="empty">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다.</p> : null}
       {result ? <p className="hint">탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개` : ""}</p> : null}
-      {result ? <section aria-label="이미지 분석 범위">
+      {result ? <details className="advanced"><summary>이미지 분석 범위</summary><section aria-label="이미지 분석 범위">
         <h2 ref={summaryHeading} tabIndex={-1}>이미지 분석 범위</h2>
         {summaryRead.state === "loading" ? <p role="status">근거 요약을 불러오는 중입니다.</p>
           : summaryRead.state === "error" ? <div><p role="alert">저장된 근거 요약을 불러오지 못했습니다. 공식 탐지와 저장은 유지됩니다.</p><button type="button" className="secondary" onClick={summaryRead.retry}>근거 요약 다시 불러오기</button></div>
             : summaryRead.state === "unavailable" ? <div><p role="status">이 세션의 근거 요약을 사용할 수 없습니다. 이미지 분석 범위는 알 수 없습니다.</p><button type="button" className="secondary" onClick={summaryRead.retry}>근거 요약 다시 불러오기</button></div>
               : <VisualCoverage coverage={evidenceSummary?.visualAnalysisCoverage} />}
-      </section> : null}
+      </section></details> : null}
       {result && (view === "findings" || view === "pages") ? (
         <section aria-label="기법별 건수">
           <ul className="counts">
@@ -303,30 +252,11 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
           <button type="button" aria-pressed={view === "extra"} onClick={() => onViewChange("extra")}>추가 분석</button>
           <button type="button" aria-pressed={view === "coverage"} onClick={() => onViewChange("coverage")}>점검 범위</button>
         </div>
-        {(view === "findings" || view === "pages") ? <div className="result-navigation result-subnavigation" role="group" aria-label="공식 탐지 보기 방식">
-          <button type="button" aria-pressed={view === "findings"} onClick={() => onViewChange("findings")}>탐지 항목별</button>
-          <button type="button" aria-pressed={view === "pages"} onClick={() => onViewChange("pages")}>페이지별</button>
-        </div> : null}
-        {(view === "findings" || view === "pages") ? <div className="toolbar">
-          <div className="result-search">
-            <label htmlFor="result-search">결과 검색</label>
-            <input id="result-search" type="search" value={query} onChange={(e) => { setSelectionNotice(false); onQueryChange(e.target.value); }} placeholder="원문 또는 페이지 주소" />
-          </div>
-          <label htmlFor="technique-filter">기법 필터</label>
-          <select
-            id="technique-filter"
-            value={filter}
-            onChange={(e) => { setSelectionNotice(false); onFilterChange(e.target.value as TechniqueFilter); }}
-          >
-            <option value="ALL">전체</option>
-            {OFFICIAL_TECHNIQUES.map((t) => (
-              <option key={t} value={t}>
-                {techniqueLabel[t]}
-              </option>
-            ))}
-          </select>
-        </div> : null}
-        {result && (view === "findings" || view === "pages") ? <p role="status" aria-live="polite" className="result-count">표시 중인 탐지 {String(visible.length)}건 / 전체 {String(findings.length)}건{selectionNotice ? " · 조건에 맞지 않아 근거를 닫았습니다." : ""}</p> : null}
+        {result ? <ReviewCollection findings={findings} coverage={detailBundle} query={query} onQueryChange={onQueryChange}
+          filter={filter} onFilterChange={onFilterChange} view={view} onViewChange={onViewChange}
+          reviewedIds={reviewedIds} onReviewMany={onReviewMany} onEvidence={onEvidence}
+          selectedFindingId={selectedFindingId} restoreFindingId={restoreFindingId}
+          onSelectionHidden={onSelectionHidden} onFocusRestored={onFocusRestored} /> : null}
         {!result && !loadComplete ? (
           <p role="status" className="empty">결과를 불러오는 중입니다.</p>
         ) : !result ? (
@@ -390,67 +320,8 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, quer
                 : <p>확인에 실패한 페이지가 없습니다.</p>}
             </> : <div><p role="status" className="empty">점검 범위 기록을 사용할 수 없습니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div>}
           </div>
-        ) : view === "pages" && !detailLoaded ? (
-          <p role="status" className="empty">페이지별 점검 기록을 불러오는 중입니다.</p>
-        ) : view === "pages" && pageGroups.length > 0 ? (
-          <div className="page-groups">
-            {detailLoadError ? <div><p role="alert">페이지 점검 기록을 불러오지 못했습니다. 공식 탐지가 있는 페이지를 표시합니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div>
-              : !detailBundle ? <div><p role="status">페이지 점검 기록을 사용할 수 없습니다. 공식 탐지가 있는 페이지를 표시합니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div> : null}
-            {pageGroups.map(([url, { findings: group, outcome }]) => (
-              <section key={url} className="page-group" aria-label={`${url} 탐지 ${String(group.length)}건`}>
-                <h2>{url}</h2>
-                <EvidenceRelations host={host} sessionId={sessionId} focus={{ kind: "page", id: outcome?.finalUrl ?? url }} />
-                {outcome ? <>
-                  <p>{outcome.outcome === "checked" ? "확인 완료" : "확인 실패"} · {outcome.status === 0 ? "응답 없음" : `HTTP ${String(outcome.status)}`} · 하위 {String(outcome.depth)}단계</p>
-                  {outcome.finalUrl !== url ? <dl><div><dt>최종 주소</dt><dd>{outcome.finalUrl}</dd></div></dl> : null}
-                  {outcome.reason ? <details className="advanced"><summary>실패 상세</summary><p className="raw">{outcome.reason}</p></details> : null}
-                </> : null}
-                <p>탐지 {String(group.length)}건 · 검토 완료 {String(group.filter((finding) => reviewedIds.has(finding.id)).length)}건</p>
-                {group.length > 0 ? <>
-                  <p className="hint">{OFFICIAL_TECHNIQUES.map((technique) => {
-                    const count = group.filter((finding) => finding.technique === technique).length;
-                    return count > 0 ? `${techniqueLabel[technique]} ${String(count)}건` : undefined;
-                  }).filter(Boolean).join(" · ")}</p>
-                  <button type="button" className="secondary" onClick={() => onReviewMany(group.map((finding) => finding.id), !group.every((finding) => reviewedIds.has(finding.id)))}>
-                    {group.every((finding) => reviewedIds.has(finding.id)) ? "페이지 검토 취소" : "페이지 항목 모두 검토 완료"}
-                  </button>
-                  <ul>{group.map((f) => <li key={f.id}>{techniqueLabel[f.technique]} · {f.evidence_text} · {f.id === selectedFindingId ? "확인 중 · " : ""}{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"} <button type="button" className="linklike" data-finding-id={f.id} aria-current={f.id === selectedFindingId ? "true" : undefined} onClick={() => onEvidence(f.id)}>근거 보기</button></li>)}</ul>
-                </> : <p>{outcome?.outcome === "failed" ? "페이지 확인에 실패해 탐지 여부를 판단할 수 없습니다." : "확정된 탐지가 없습니다."}</p>}
-              </section>
-            ))}
-          </div>
-        ) : findings.length === 0 && !(view === "pages" && (query || filter !== "ALL")) ? (
-          <p role="status" className="empty">
-            확정된 탐지가 없습니다. 검사 범위를 넓히거나 시작 주소를 확인해 주세요.
-          </p>
-        ) : visible.length === 0 ? (
-          <div role="status" className="empty">
-            <p>검색어나 선택한 기법에 해당하는 탐지가 없습니다.</p>
-            <button type="button" className="secondary" onClick={resetFilters}>검색·필터 초기화</button>
-          </div>
-        ) : (
-          <div>
-            <h2>확정된 탐지 목록 ({String(visible.length)}건)</h2>
-            <ol className="finding-list" aria-label="확정된 탐지 목록">
-              {visible.map((f) => (
-                <li key={f.id} className="finding-card">
-                  <div className="finding-card-head">
-                    <span className="badge">{techniqueLabel[f.technique]}</span>
-                    <span>{f.id === selectedFindingId ? "확인 중 · " : ""}{reviewedIds.has(f.id) ? "검토 완료" : "검토 전"}</span>
-                  </div>
-                  <dl>
-                    <div><dt>페이지</dt><dd>{f.url}</dd></div>
-                    <div><dt>확인된 문구</dt><dd>{f.evidence_text}</dd></div>
-                  </dl>
-                  <button type="button" onClick={() => onEvidence(f.id)} className="secondary" data-finding-id={f.id}
-                    aria-current={f.id === selectedFindingId ? "true" : undefined}>
-                    근거 보기
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+        ) : null}
+
       </section>
       {result ? <p className="hint">검토 완료는 항목을 읽고 검토했다는 표시이며 위반 확정이나 조치 완료가 아닙니다. 공식 탐지와 저장 파일은 바뀌지 않습니다. 검토 표시는 현재 화면 메모리에만 보관되어 새 점검이나 앱 새로고침 시 사라집니다.</p> : null}
       <div className="actions">

@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.js",
-    "./graph": "./dist/graph.js"
+    "./graph": "./dist/graph.js",
+    "./review-patterns": "./dist/review-patterns.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node ../../scripts/build-ocr-worker.mjs dist",

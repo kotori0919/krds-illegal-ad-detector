@@ -15,6 +15,7 @@ export function App() {
   const [phase, setPhase] = useState<Phase>("start");
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [findingId, setFindingId] = useState<string | undefined>(undefined);
+  const [findingContext, setFindingContext] = useState<string[]>([]);
   const [restoreFindingId, setRestoreFindingId] = useState<string | undefined>(undefined);
   const [exportOpen, setExportOpen] = useState(false);
   const [resultQuery, setResultQuery] = useState("");
@@ -81,6 +82,7 @@ export function App() {
     setRestoreFindingId(undefined);
     setExportOpen(false);
     setReviewedIds(new Set());
+    setFindingContext([]);
   }, []);
 
   const closeExport = useCallback(() => {
@@ -140,9 +142,10 @@ export function App() {
           selectedFindingId={phase === "evidence" ? findingId : undefined}
           onSelectionHidden={closeHiddenSelection}
           onFocusRestored={() => setRestoreFindingId(undefined)}
-          onEvidence={(id) => {
+          onEvidence={(id, context) => {
             if (phase === "result" && narrowInspector()) resultScrollY.current = window.scrollY;
             setFindingId(id);
+            setFindingContext(context ?? [id]);
             go("evidence");
             if (phase === "result" && narrowInspector()) scheduleScroll(0);
           }}
@@ -155,6 +158,8 @@ export function App() {
           host={host}
           sessionId={sessionId}
           findingId={findingId}
+          contextIds={findingContext}
+          onSelectFinding={setFindingId}
           reviewed={reviewedIds.has(findingId)}
           onReviewChange={(reviewed) => setReviewedIds((previous) => {
             const next = new Set(previous);

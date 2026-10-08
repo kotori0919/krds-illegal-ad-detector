@@ -6,6 +6,16 @@
   font-display: swap;
 }
 
+.review-filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--krds-semantic-gap-4); margin-block: var(--krds-semantic-padding-6); }
+.review-filters > div { min-width: 0; flex: 1 1 var(--krds-semantic-label-width); }
+.review-filters label { display: block; margin-bottom: var(--krds-semantic-padding-2); }
+.review-filters select, .review-filters input { width: 100%; }
+.review-list { list-style: none; padding: 0; }
+.review-row { padding-block: var(--krds-semantic-padding-8); border-top: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); }
+.review-row h3 { margin-top: 0; overflow-wrap: anywhere; }
+.review-row p { overflow-wrap: anywhere; }
+.review-row .actions { margin-top: var(--krds-semantic-padding-5); }
+
 :root {
   color-scheme: light;
   /* KRDS HTML Component Kit light-mode tokens; see KRDS_COMPLIANCE.md. */

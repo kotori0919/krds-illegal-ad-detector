@@ -12,6 +12,8 @@ interface Props {
   onBack: () => void;
   reviewed: boolean;
   onReviewChange: (reviewed: boolean) => void;
+  contextIds?: string[];
+  onSelectFinding?: (id: string) => void;
 }
 
 /** Result-stage inspector backed by the official finding's observed fields. */
@@ -19,7 +21,7 @@ export function EvidenceView(props: Props) {
   return <EvidenceInspector key={`${props.sessionId}\0${props.findingId}`} {...props} />;
 }
 
-function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onReviewChange }: Props) {
+function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onReviewChange, contextIds = [findingId], onSelectFinding }: Props) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const readFinding = useCallback(async () => (await host.getOfficialResult(sessionId))?.findings.find((finding) => finding.id === findingId), [host, sessionId, findingId]);
   const readDetail = useCallback(() => host.getFindingDetail(sessionId, findingId), [host, sessionId, findingId]);
@@ -46,6 +48,11 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
     <aside className="page result-inspector" aria-label="탐지 상세">
       <p className="eyebrow">결과 검토</p>
       <h1 ref={headingRef} tabIndex={-1}>탐지 상세</h1>
+      <p>현재 검토 범위 {Math.max(0, contextIds.indexOf(findingId)) + 1} / {contextIds.length}건 · 기록 {findingId}</p>
+      {onSelectFinding && contextIds.length > 1 ? <nav className="actions" aria-label="검토 기록 이동">
+        <button className="secondary" type="button" disabled={contextIds.indexOf(findingId) <= 0} onClick={() => onSelectFinding(contextIds[contextIds.indexOf(findingId) - 1]!)}>이전 기록</button>
+        <button className="secondary" type="button" disabled={contextIds.indexOf(findingId) >= contextIds.length - 1} onClick={() => onSelectFinding(contextIds[contextIds.indexOf(findingId) + 1]!)}>다음 기록</button>
+      </nav> : null}
       {demoMode ? <p role="note" className="empty">브라우저 미리보기의 예시 근거입니다. 실제 사이트 점검 결과가 아닙니다.</p> : null}
       {findingRead.state === "error" ? <div><p role="alert">탐지 내용을 불러오지 못했습니다.</p><button type="button" className="secondary" onClick={findingRead.retry}>탐지 내용 다시 불러오기</button></div> : missing ? (
         <p role="alert" className="error">
@@ -116,7 +123,7 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
                     : detail.visual.element?.reason === "target-unavailable" ? " (요소 위치 확인 불가)" : " (캡처 실패)"}</p>}
               </>
             ) : <p className="empty">화면 캡처 없음{detail?.visual.reason === "budget" ? " (시간·용량 제한)" : detail?.visual.reason === "capture-error" ? " (캡처 실패)" : ""}</p>}
-          </section> : null}
+          </section> : <p className="hint">화면 캡처 없음 (이 세션에 저장된 상세 근거 기록이 없습니다). 원문과 요소 위치는 공식 기록에서 확인할 수 있습니다.</p>}
           <EvidenceRelations key={findingId} host={host} sessionId={sessionId} focus={{ kind: "finding", id: findingId }} />
           <details className="advanced"><summary>기술 정보</summary>
             <dl className="evidence"><div><dt>위치</dt><dd><code>{finding.location}</code></dd></div>

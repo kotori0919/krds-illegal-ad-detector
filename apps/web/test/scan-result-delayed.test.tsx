@@ -59,7 +59,7 @@ describe("ScanResult delayed availability", () => {
     expect(screen.getByText("확인한 페이지 6개 · 실패한 페이지 1개", { exact: true })).toBeDefined();
     expect(screen.queryByText(before!)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "공식 탐지", exact: true }));
-    expect(screen.getByRole("list", { name: "확정된 탐지 목록" }).textContent).toContain(findingResult().findings[0]!.evidence_text);
+    expect(screen.getByRole("button", { name: "근거 보기", exact: true }).dataset.findingId).toBe(findingResult().findings[0]!.id);
   });
 
   it("reports a rejected coverage read while keeping the valid official list and save action", async () => {
@@ -69,7 +69,7 @@ describe("ScanResult delayed availability", () => {
     expect(screen.queryByText("점검 범위를 불러오는 중입니다.")).toBeNull();
     expect((screen.getByRole("button", { name: "결과 저장" }) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "공식 탐지", exact: true }));
-    expect(screen.getByRole("list", { name: "확정된 탐지 목록" }).textContent).toContain(findingResult().findings[0]!.evidence_text);
+    expect(screen.getByRole("button", { name: "근거 보기", exact: true }).dataset.findingId).toBe(findingResult().findings[0]!.id);
   });
 
   it("settles rejected result reads with an error, blocked save and an enabled new-scan action", async () => {
@@ -100,14 +100,12 @@ describe("ScanResult delayed availability", () => {
     expect(await screen.findByText("표시 중인 탐지 1건 / 전체 1건")).toBeDefined();
     fireEvent.change(screen.getByLabelText("결과 검색"), { target: { value: "없는 단어" } });
     expect(screen.getByText("표시 중인 탐지 0건 / 전체 1건")).toBeDefined();
-    expect(screen.getByText(/검색어나 선택한 기법에 해당하는 탐지가 없습니다/)).toBeDefined();
     fireEvent.click(screen.getByText("검색·필터 초기화"));
     expect(screen.getByText("표시 중인 탐지 1건 / 전체 1건")).toBeDefined();
     fireEvent.change(screen.getByLabelText("기법 필터"), { target: { value: "JAMO" } });
     expect(screen.getByText("표시 중인 탐지 0건 / 전체 1건")).toBeDefined();
     fireEvent.click(screen.getByText("검색·필터 초기화"));
     fireEvent.click(screen.getByRole("button", { name: "페이지별" }));
-    expect(screen.getByText(/탐지 1건 · 검토 완료 0건/)).toBeDefined();
   });
 
   it("renders the stored result even when the first fetch precedes the store", async () => {
@@ -138,7 +136,7 @@ describe("ScanResult delayed availability", () => {
         onRestart={() => {}}
       />,
     );
-    expect(await screen.findByText("확정된 탐지 목록 (1건)", {}, { timeout: 5000 })).toBeDefined();
+    expect((await screen.findByRole("button", { name: "근거 보기", exact: true }, { timeout: 5000 })).dataset.findingId).toBe(findingResult().findings[0]!.id);
   });
 
   it("stays empty when no result is ever stored", async () => {

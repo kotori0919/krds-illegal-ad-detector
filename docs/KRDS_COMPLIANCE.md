@@ -1,5 +1,24 @@
 # KRDS Product V2 pattern and release record
 
+## V2.1 Results Workspace mapping (2026-10-08)
+
+The official pages below were consulted again for this implementation. Existing
+verified HTML Component Kit primitive/semantic/component mappings remain the
+numeric source; new layout spacing uses those roles. No new palette is introduced.
+
+| Screen interaction | Exact KRDS reference | Applied component/pattern and service variation |
+| --- | --- | --- |
+| Repetition-aware collection | [List browsing](https://www.krds.go.kr/html/site/global/global_04.html) | Structured list, meaningful sorting, 20/50 pagination; counts separately name records and affected pages. Management grouping is a documented service projection. |
+| One persistent search and zero matches | [Search results](https://www.krds.go.kr/html/site/service/service_02_04.html) | Single search input, result count, retained query, reset and differentiated empty/loading/error states. |
+| Technique/review filters and count/page/text sorting | [Filtering/sorting](https://www.krds.go.kr/html/site/global/global_10.html) | Select controls, applied-condition summary, reset. No unsupported relevance score. |
+| Selected record and return | [Detail information](https://www.krds.go.kr/html/site/global/global_06.html) | Contextual inspector, previous/next original occurrence, current indication, focus return; narrow-screen detail is the existing Adaptive extension. |
+| Scoped bulk review | [Confirmation](https://www.krds.go.kr/html/site/global/global_11.html) | Modal names exact selected scope/count, explicit confirm/cancel, focus containment and restoration. No official-result mutation. |
+| Colors/spacing/typography | [Tokens](https://www.krds.go.kr/html/site/style/style_07.html), [official transformed tokens](https://github.com/KRDS-uiux/krds-uiux/blob/main/tokens/transformed_tokens.json) | Existing primary-50/60, gray, 48px controls and converted 16px root roles retained. Conservative list/detail spacing reuses semantic roles. |
+
+Observed actions/screens and remaining native/human acceptance are recorded in
+[PRODUCT_V2_1_ACCEPTANCE.md](PRODUCT_V2_1_ACCEPTANCE.md). The M1 smoke uses built
+React and the actual Tauri adapter with explicit offline IPC replay, not an installed scanner.
+
 Status: **implemented with scoped native evidence; combined V2 audit open**
 (2026-10-06). The previous
 five-stage audit is available in Git history; its tests and line references do
