@@ -6,36 +6,36 @@
  * decompositions (대출 → 대출). Reconstruction goes to normalizedText;
  * evidence_text always keeps the raw source.
  *
- * Precision rule: isolated Jamo in otherwise normal syllabic text
- * (e.g. "ㅋㅋㅋ" laughter in educational content) is not Jamo evasion —
- * require >= 4 Jamo chars or a Jamo-only spelling without syllables.
+ * Precision rule: a vowel-bearing composition must contribute to a matched
+ * ad term. Disconnected shorthand/laughter never establishes fragmentation.
  */
 import type { TechniqueEvidence } from "@krds-detector/contracts";
+import { AD_TERMS, normalizeForMatch } from "./semantic.js";
 
-const COMPAT_JAMO_RE = /[ㄱ-ㅎㅏ-ㅣ]/;
-const CONJOINING_JAMO_RE = /[ᄀ-ᇿ]/;
 const JAMO_ANY_RE = /[ㄱ-ㅎㅏ-ㅣᄀ-ᇿ]/;
+const JAMO_VOWEL_RE = /[ㅏ-ㅣᅠ-ᆧ]/;
+const JAMO_STRIP_RE = /[ㄱ-ㅎㅏ-ㅣᄀ-ᇿ]/g;
+
+function countTerm(text: string, term: string): number {
+  let count = 0; let at = 0;
+  while ((at = text.indexOf(term, at)) !== -1) { count++; at += term.length; }
+  return count;
+}
 
 export function jamoSignal(rawText: string): TechniqueEvidence | undefined {
-  if (!COMPAT_JAMO_RE.test(rawText) && !CONJOINING_JAMO_RE.test(rawText)) return undefined;
-  const hasSyllables = /[가-힣]/.test(rawText);
-  const jamoCount = (rawText.match(new RegExp(JAMO_ANY_RE.source, "g")) ?? []).length;
-  // Mixed complete/decomposed evasion (카ㅈㅣ노): syllables present, the
-  // NFKC form folds Jamo into syllables (length shrinks), and ad semantics
-  // will confirm illegality downstream. Pure laughter (ㅋㅋㅋ) has no such
-  // folding — NFKC keeps every Jamo (length unchanged) — so it stays silent.
+  if (!JAMO_ANY_RE.test(rawText) || !JAMO_VOWEL_RE.test(rawText)) return undefined;
   const nospace = rawText.replace(/\s+/g, "");
-  const folded = rawText.normalize("NFKC").replace(/\s+/g, "");
-  const mixedDecomposed = hasSyllables && jamoCount >= 2 && folded.length < nospace.length;
-  const fragmented = !hasSyllables || jamoCount >= 4 || mixedDecomposed;
-  const spacedSingle = /\s[ㄱ-ㅎㅏ-ㅣᄀ-ᇿ]\s/.test(rawText);
-  if (!fragmented && !spacedSingle) return undefined;
-  const normalizedText = rawText.normalize("NFKC").replace(/\s+/g, "");
+  const normalizedText = nospace.normalize("NFKC");
+  const matchText = normalizeForMatch(rawText);
+  const withoutJamo = normalizeForMatch(rawText.replace(JAMO_STRIP_RE, ""));
+  const attributableTerms = AD_TERMS.filter((term) => countTerm(matchText, term) > countTerm(withoutJamo, term));
+  if (!attributableTerms.length) return undefined;
+  const jamoCount = (rawText.match(JAMO_STRIP_RE) ?? []).length;
   return {
     kind: "jamo-signal",
     technique: "JAMO",
     rawText,
     normalizedText,
-    detail: `jamo fragmentation: ${String(jamoCount)} jamo chars → "${normalizedText.slice(0, 40)}"`,
+    detail: `jamo fragmentation: terms=[${attributableTerms.join(",")}] ${String(jamoCount)} jamo chars → "${normalizedText.slice(0, 40)}"`,
   };
 }

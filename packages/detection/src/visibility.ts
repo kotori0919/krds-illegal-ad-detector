@@ -29,6 +29,7 @@ export interface ElementSignal {
   transparentDetail: string;
   offscreen: boolean;
   offscreenDetail: string;
+  collapsedNavigation: boolean;
   box: { x: number; y: number; width: number; height: number };
   css: { color: string; backgroundColor: string; opacity: string; display: string; fontSize: string; position: string };
 }
@@ -36,6 +37,7 @@ export interface ElementSignal {
 /** Page-side collector: serializable, runs via page.evaluate. Paste-safe. */
 export function collectElementSignals(inputs: ElementSignalInput[]): ElementSignal[] {
   const out: ElementSignal[] = [];
+  const navigationLinks = new Map<HTMLAnchorElement, { navigation: Element; signals: ElementSignal[]; visible: boolean }>();
   for (const input of inputs) {
     const el = document.querySelector(input.selector) as HTMLElement | undefined;
     if (!el) continue;
@@ -123,7 +125,7 @@ export function collectElementSignals(inputs: ElementSignalInput[]): ElementSign
       offscreenReasons.push("overflow-hidden micro box with text");
     }
 
-    out.push({
+    const signal: ElementSignal = {
       selector: input.selector,
       rawText: el.textContent ?? input.rawText,
       href: input.href ?? (el instanceof HTMLAnchorElement ? el.href : undefined),
@@ -131,10 +133,62 @@ export function collectElementSignals(inputs: ElementSignalInput[]): ElementSign
       transparentDetail: transparentReasons.join("; ") || "visible rendering",
       offscreen,
       offscreenDetail: offscreenReasons.join("; ") || "in-flow geometry",
+      collapsedNavigation: false,
       box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       css: { color: style.color, backgroundColor: style.backgroundColor, opacity: style.opacity,
         display: style.display, fontSize: style.fontSize, position: style.position },
-    });
+    };
+    out.push(signal);
+    const link = el.closest("a[href]") as HTMLAnchorElement | null;
+    const navigation = link?.closest('nav,[role="navigation"]');
+    if (link && navigation) {
+      const context = navigationLinks.get(link) ?? { navigation, signals: [], visible: true };
+      context.visible &&= !offscreen && !transparent && rect.width > 0 && rect.height > 0 && style.visibility === "visible";
+      context.signals.push(signal); navigationLinks.set(link, context);
+    }
+  }
+
+  // Visible counterparts reuse the computed concealment signals. IDs, class
+  // names, domains and category words are never exclusion rules.
+  const visibleLinks = new Map<Element, Set<string>>();
+  const controlledPanels = new Map<Element, Set<Element>>();
+  const hiddenPanels = new WeakMap<Element, boolean>();
+  const keyOf = (link: HTMLAnchorElement) => `${link.href}\0${(link.textContent ?? "").replace(/\s+/g, " ").trim()}`;
+  for (const [link, context] of navigationLinks) {
+    if (!context.visible) continue;
+    const keys = visibleLinks.get(context.navigation) ?? new Set<string>();
+    keys.add(keyOf(link)); visibleLinks.set(context.navigation, keys);
+  }
+  for (const [link, context] of navigationLinks) {
+    if (!context.signals.some((signal) => signal.offscreen)) continue;
+    let legitimate = visibleLinks.get(context.navigation)?.has(keyOf(link)) ?? false;
+    if (!legitimate) {
+      let panels = controlledPanels.get(context.navigation);
+      if (!panels) {
+        panels = new Set<Element>();
+        const controls = context.navigation.querySelectorAll('[aria-controls][aria-expanded="false"]');
+        for (let index = 0; index < controls.length; index++) {
+          const control = controls[index]!;
+          if (!control.matches('button,a[href],[role="button"]') || control.matches(":disabled") || control.getAttribute("aria-disabled") === "true") continue;
+          for (const id of (control.getAttribute("aria-controls") ?? "").split(/\s+/)) {
+            const panel = id ? document.getElementById(id) : null;
+            if (panel && context.navigation.contains(panel)) panels.add(panel);
+          }
+        }
+        controlledPanels.set(context.navigation, panels);
+      }
+      for (let panel: Element | null = link; panel && panel !== context.navigation; panel = panel.parentElement) {
+        if (panels.has(panel)) {
+          let hidden = hiddenPanels.get(panel);
+          if (hidden === undefined) {
+            hidden = panel.hasAttribute("hidden") || getComputedStyle(panel).display === "none";
+            hiddenPanels.set(panel, hidden);
+          }
+          if (hidden) { legitimate = true; break; }
+        }
+      }
+    }
+    if (legitimate) for (const signal of context.signals) signal.collapsedNavigation = true;
   }
   return out;
 }

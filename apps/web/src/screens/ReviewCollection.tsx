@@ -51,6 +51,7 @@ export function ReviewCollection(props: Props) {
     && (!normalizedQuery || normalizeReviewText(`${finding.id} ${finding.url} ${finding.evidence_text} ${finding.location} ${coverage?.pageOutcomes?.find((p) => p.finalUrl === finding.url)?.url ?? ""}`).toLocaleLowerCase("ko-KR").includes(normalizedQuery))),
   [findings, filter, reviewFilter, reviewedIds, normalizedQuery, coverage]);
   const visibleIds = useMemo(() => new Set(visible.map((finding) => finding.id)), [visible]);
+  const affectedPageCount = useMemo(() => new Set(visible.map((finding) => finding.url)).size, [visible]);
   const rows = useMemo(() => {
     let items: Row[];
     if (view === "pages") {
@@ -129,7 +130,7 @@ export function ReviewCollection(props: Props) {
         </select></div>
         <button className="secondary" type="button" onClick={reset}>검색·필터 초기화</button>
       </div>
-      <p role="status" aria-live="polite"><span>표시 중인 탐지 {visible.length}건 / 전체 {findings.length}건</span> · {rows.length}개 {view === "pages" ? "페이지" : mode === "patterns" ? "검토 항목" : "기록"}{notice ? ` · ${notice}` : ""}</p>
+      <p role="status" aria-live="polite"><span>표시 중인 탐지 {visible.length}건 / 전체 {findings.length}건</span> · 영향 페이지 {affectedPageCount}개 · {rows.length}개 {view === "pages" ? "페이지" : mode === "patterns" ? "검토 항목" : "기록"}{notice ? ` · ${notice}` : ""}</p>
       {query || filter !== "ALL" || reviewFilter !== "ALL" ? <p className="hint">적용 조건: {query ? `검색 '${query}' · ` : ""}{filter !== "ALL" ? `${techniqueLabel[filter]} · ` : ""}{reviewFilter === "needed" ? "검토 필요" : reviewFilter === "reviewed" ? "검토 완료" : "전체 검토 상태"}</p> : null}
       <div className="review-filters">
         <div><label htmlFor="review-sort">정렬 기준</label><select id="review-sort" value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }}>
@@ -158,6 +159,10 @@ export function ReviewCollection(props: Props) {
               {row.outcome?.reason ? <details className="advanced"><summary>실패 상세</summary><p>{row.outcome.reason}</p></details> : null}
               <p>{[...new Set(row.findings.map((f) => techniqueLabel[f.technique]))].join(" · ")}{row.findings.length ? " · " : ""}기록 {row.findings.length}건 · 영향 페이지 {row.pageCount}개</p>
               {row.destination ? <p className="hint">기록된 링크 주소: {row.destination} (요소 위치 기록에서 읽음)</p> : null}
+              {view !== "pages" && mode === "patterns" && first ? <>
+                <p className="hint">대표 기록 {first.id} · {first.url}</p>
+                <details className="advanced"><summary>묶음의 관측 위치와 구분 기준</summary><p>문구·기법·링크 주소가 같아도 요소 위치가 다르면 별도 묶음입니다. 이 묶음의 위치 기록: <code>{first.location}</code></p></details>
+              </> : null}
               {view !== "pages" && mode === "records" && first ? <p className="hint">{first.id} · {first.url}</p> : null}
               <p>{selected ? "확인 중 · " : ""}{row.findings.length ? reviewed === row.findings.length ? "검토 완료" : `검토 필요 · 완료 ${reviewed}/${row.findings.length}건` : row.outcome?.outcome === "failed" ? "페이지 확인에 실패해 탐지 여부를 판단할 수 없습니다." : "탐지된 항목이 없습니다."}</p>
               {representative ? <div className="actions">

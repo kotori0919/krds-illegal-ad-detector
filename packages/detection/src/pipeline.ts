@@ -154,7 +154,8 @@ export async function detectPageCandidates(
     if (jm) techniques.push({ ...jm, rawText });
     const ownedSignals = el.styleSelectors.map((selector) => bySelector.get(selector)).filter((value) => value !== undefined);
     const transparentSignal = ownedSignals.find((value) => value.transparent);
-    const offscreenSignal = ownedSignals.find((value) => value.offscreen);
+    const offscreenSignal = ownedSignals.find((value) => value.offscreen
+      && !(value.collapsedNavigation && !gate.offerIntent && !gate.suspiciousDestination));
     if (transparentSignal) {
       techniques.push({
         kind: "transparent-signal",

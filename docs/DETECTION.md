@@ -62,8 +62,12 @@ matchedTerms[], destinationUrl?, detail }`.
 
 Rules (frozen):
 
-- At least one matched ad/illegal term **or** a suspicious ad destination
-  (`destinationUrl`) is required. Hidden text with no ad semantics → no finding.
+- A strong ad/illegal category, a generic term supported by concrete offer
+  intent, **or** a suspicious ad destination (`destinationUrl`) is required.
+  Generic `보장`, `당일`, `고액`, `보너스`, `쿠폰`, `무료체험` alone do not
+  establish an ad. A free-trial review is not an offer; solicitation such as
+  sign-up, application, provision or payment supplies distinct offer evidence.
+  Hidden text with no supported ad semantics → no finding.
 - Reporting, prevention, education, statistics and accessibility-help text can
   name illegal activities without advertising them. When that context has no
   concrete offer/solicitation and no ad destination, the gate rejects it even
@@ -73,9 +77,16 @@ Rules (frozen):
   The current deterministic rule requires a gambling host label or both a
   category and conversion/action route signal. Ambiguous destinations remain
   an explicit recall/precision limit to challenge with L2 cases.
-- Legitimate hidden UI (sr-only labels, responsive nav, inactive dialogs,
-  collapsed controls, app state, normal `display:none` state) must not pass
-  even when concealment is present — this is the precision gate (35 pts).
+- Legitimate hidden UI must not become an official finding merely because
+  concealment is present. Hidden category navigation has a bounded structural
+  precision rule: a `nav`/navigation landmark plus a real collapsed interactive
+  `aria-controls` relationship or an identical visible href/text counterpart
+  in that same navigation. Controls must be enabled and resolve to the actual
+  hidden panel. The rule excludes only OFFSCREEN evidence, and concrete offer
+  intent or a suspicious action destination disables the exclusion. Navigation
+  markup alone, a fake/disabled controller, a wrong-target mirror or an
+  invisible mirror supplies no exclusion. No domain/class/category-word
+  exclusions apply.
 - Mixed/ambiguous semantics defer to `DecisionEvidence { rule, score,
   threshold, passed, detail }`; the decision model resolves ambiguity only,
   never acts as sole detector.
@@ -102,6 +113,14 @@ reconstruction goes in `normalizedText`, never `evidence_text`.
 Negatives: legitimate educational/Jamo content (Hangul teaching pages),
 ordinary Korean text that happens to contain isolated Jamo.
 
+A JAMO signal requires vowel-bearing reconstruction that contributes to an
+ad-term occurrence. The canonical NFKC/spacing match form is recomposed after
+spacing/punctuation folding. Normalized term occurrence counts before and
+after Jamo removal prove attribution; a plaintext occurrence elsewhere does
+not suppress a second fragmented spelling of that same term. Aggregate Jamo
+count alone is not a technique: disconnected laughter/shorthand, unrelated
+decomposed names and standalone consonants/vowels remain silent.
+
 ## 5. TRANSPARENT (`transparent-signal`)
 
 Computed style + rendering context: `color:transparent`, alpha channel,
@@ -123,6 +142,13 @@ where meaningful.
 Emission rule: the located element is the ad-text element itself; geometry
 in `GeometryEvidence { x, y, width, height, visible }` must support the
 claim. Viewport-relative judgment uses actual boxes, not class names.
+
+The structural navigation rule in section 2 distinguishes a collapsed or
+responsive category link from deliberately hidden advertising. Its visible
+counterpart check reuses the same computed concealment signals; transparent
+or offscreen mirrors do not qualify. Semantic offer/destination guards remain
+in the canonical pipeline, and TRANSPARENT/HOMOGLYPH/JAMO evidence is unchanged
+by the OFFSCREEN navigation exclusion.
 
 ## 7. Frame analysis
 

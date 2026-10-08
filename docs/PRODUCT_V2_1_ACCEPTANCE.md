@@ -104,10 +104,6 @@ Seven contract/access tests and the native coverage reconciliation test pass.
 Scanner build, scoped typecheck and lint pass. The original official serializer
 and four technique enums remain unchanged.
 
-## Remaining ordered milestones
-
-M5: focused integrated acceptance and separate Windows installer candidate.
-
 ## M4 — safe file intake and sequential batch
 
 The secondary **여러 사이트 일괄 점검** path reads XLSX/CSV/JSONL/XML Sitemap
@@ -150,3 +146,34 @@ link; robots-excluded path is not requested. Transport/export IPC in this Linux
 smoke is explicitly harnessed, not asserted to be native Save As.
 Evidence: `/tmp/illegal-ad-v21-batch/{observed.json,preview.png,preview-360px.png,
 completed.png,cancel-retained.png,aggregate.xlsx,exported/}`.
+
+## M5 — focused correctness and operator acceptance
+
+The original sanitized f372 record stays unchanged. Actual owned HTML reproduces
+the visible ordinary comment and legitimate collapsed navigation false positives;
+both fail before the general correction and pass afterwards while hidden offers,
+ad action destinations and fragmented advertising remain detectable. Exact DOM,
+styles and surrounding context of the original external sample are unavailable;
+it is still review-needed. See `OPERATOR_CANDIDATE_REVIEW.md` for the boundaries.
+
+OBSERVED: the integrated typecheck, lint and 56-file/336-test suite pass. The
+latest bundled worker passes actual native-session persistence/evidence smoke.
+The rebuilt 617-record workspace smoke passes, with original canonical JSON
+unchanged and a full six-sheet XLSX despite the one-record filter.
+
+An independent automated tester, given the operator tasks but no UI instructions,
+used visible controls/screens only to find f372, inspect f3/f6 in a 197-record/
+197-page group, find the link's 211 affected pages, inspect missing evidence and
+save XLSX with a local memo. Actual workbook read-back found 617 detail rows and
+that memo. The tester's two usability findings are corrected: aggregate affected
+pages are visible in grouped mode, and otherwise identical groups have distinct
+representative records plus an optional exact-location explanation.
+Evidence: `/tmp/illegal-ad-v21-operator-tester/operator-review.md` and screenshots;
+`/tmp/illegal-ad-v21-operator/report.xlsx`. This is an automated, uninstructed
+operator exercise, not a human participant study. CUA offered no browser; the
+authorized local Playwright fallback used visible accessibility controls.
+
+Installed Windows Save As and the separate installer candidate are recorded in
+the final candidate acceptance record after their actual execution. Historical
+RC acceptance is not substituted for these new paths. Human participant and
+assistive-technology evaluation are NOT_RUN in this environment.

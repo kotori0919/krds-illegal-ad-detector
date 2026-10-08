@@ -2,12 +2,12 @@
  * Semantic gate, axis B (docs/DETECTION.md §2, frozen).
  *
  * A finding requires illegal-ad semantics: at least one matched ad/illegal
- * term (NFKC + space-folded match, raw preserved) OR a suspicious ad
+ * category (or a generic term supported by an offer) OR a suspicious ad
  * destination URL. Public reporting/education text without an offer is not
  * an ad. The gate runs before any technique signal is trusted.
  */
 
-const AD_TERMS = [
+export const AD_TERMS = [
   "카지노",
   "바카라",
   "슬롯",
@@ -34,6 +34,9 @@ const AD_TERMS = [
   "무료체험",
 ] as const;
 
+/** Ordinary service/review language does not establish an ad by itself. */
+const WEAK_AD_TERMS = new Set<string>(["보장", "당일", "고액", "보너스", "쿠폰", "무료체험"]);
+
 /** A category in a public article path is not an ad destination by itself. */
 const AD_DESTINATION_CATEGORY = /casino|baccarat|slot|toto|loan|cash|bonus|coupon/i;
 const AD_HOST_LABEL = /^(?:casino|baccarat|slot|toto)(?:\d+)?$/i;
@@ -43,7 +46,7 @@ const AD_ROUTE_ACTION = /(?:^|[/?&=._-])(?:join|signup|register|apply|bet|play|p
 // A sales offer in the same element still passes the gate, even if the ad
 // borrows reporting language to look legitimate.
 const PUBLIC_INFORMATION_CONTEXT = /신고|예방|교육|통계|설명|도움말|절차|양식|뜻하|차단/i;
-const OFFER_INTENT = /가입(?!\s*광고)|(?:즉시|간편|당일|무서류)\s*승인|(?:머니|현금|쿠폰|보너스|당첨금)\s*지급|첫충|꽁머니|무료\s*체험|실시간\s*쿠폰|고액\s*배당|환전\s*안내|신용\s*무관|무직자|24\s*시\s*간편/i;
+const OFFER_INTENT = /가입(?!\s*광고)|(?:즉시|간편|당일|무서류)\s*승인|(?:머니|현금|쿠폰|보너스|당첨금)\s*(?:즉시\s*)?지급|첫충|꽁머니|무료\s*체험\s*(?:신청|제공|받기)|실시간\s*쿠폰|고액\s*배당|환전\s*안내|신용\s*무관|무직자|24\s*시\s*간편/i;
 
 export function normalizeForMatch(raw: string): string {
   // Adversarial folding: punctuation inserted between syllables (카.지.노,
@@ -60,7 +63,8 @@ export function normalizeForMatch(raw: string): string {
   return leet
     .normalize("NFKC")
     .replace(/[.・ㆍ·∙⋅‐‑‒–—_~^|/\\-]/g, "")
-    .replace(/\s+/g, "");
+    .replace(/\s+/g, "")
+    .normalize("NFKC"); // Recompose Jamo fragments separated by spaces/punctuation.
 }
 
 export function matchedAdTerms(raw: string): string[] {
@@ -86,6 +90,8 @@ export interface GateVerdict {
   matchedTerms: string[];
   normalizedText: string;
   destinationUrl?: string;
+  offerIntent: boolean;
+  suspiciousDestination: boolean;
   detail: string;
 }
 
@@ -97,11 +103,12 @@ export function semanticGate(rawText: string, destinationUrl?: string): GateVerd
   const readableText = rawText.normalize("NFKC");
   const publicInformation = PUBLIC_INFORMATION_CONTEXT.test(readableText);
   const offer = OFFER_INTENT.test(readableText);
-  const passed = (matchedTerms.length > 0 || destHit) && (!publicInformation || offer || destHit);
+  const strongTerm = matchedTerms.some((term) => !WEAK_AD_TERMS.has(term));
+  const passed = (strongTerm || (matchedTerms.length > 0 && offer) || destHit) && (!publicInformation || offer || destHit);
   const detail = passed
     ? `ad-semantics: terms=[${matchedTerms.join(",")}]${destHit ? ` dest=${destinationUrl}` : ""}`
     : publicInformation && !offer && !destHit
       ? "public information without an ad offer or destination"
-      : "no ad semantics: hidden text without illegal-ad vocabulary or destination";
-  return { passed, matchedTerms, normalizedText, destinationUrl, detail };
+      : "no ad semantics: no supported illegal-ad category, offer or destination";
+  return { passed, matchedTerms, normalizedText, destinationUrl, offerIntent: offer, suspiciousDestination: destHit, detail };
 }
