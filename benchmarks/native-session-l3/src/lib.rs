@@ -242,7 +242,7 @@ mod tests {
         let events = Arc::new(Mutex::new(Vec::<serde_json::Value>::new()));
         let collected = events.clone();
         let sink: ProgressSink = Arc::new(move |event| collected.lock().unwrap().push(event));
-        match registry.wait_sidecar_with_progress(&id, sink).await {
+        match registry.wait_sidecar_with_watchdog(&id, sink, 90).await {
             SessionOutcome::Succeeded { stdout } => assert!(stdout.is_empty()),
             SessionOutcome::Failed { detail } => panic!("real worker failed: {detail}"),
             SessionOutcome::Cancelled => panic!("real worker was cancelled"),

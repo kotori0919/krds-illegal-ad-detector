@@ -16,6 +16,10 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use crate::evidence::SessionEvidence;
 
+fn sidecar_watchdog_sec(worker_timeout_sec: u64) -> u64 {
+    worker_timeout_sec.saturating_add(150).min(1650)
+}
+
 #[cfg(windows)]
 use crate::job::JobGuard;
 #[cfg(not(windows))]
@@ -432,6 +436,30 @@ impl SessionRegistry {
         }
         true
     }
+    /// Allow worker startup and final artifact writes beyond its scan clock,
+    /// while retaining the host's absolute 1650-second backstop.
+    pub async fn wait_sidecar_with_watchdog(
+        self: &Arc<Self>,
+        session_id: &str,
+        on_progress: ProgressSink,
+        timeout_sec: u64,
+    ) -> SessionOutcome {
+        let guard_sec = sidecar_watchdog_sec(timeout_sec);
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(guard_sec),
+            self.wait_sidecar_with_progress(session_id, on_progress),
+        ).await {
+            Ok(outcome) => outcome,
+            Err(_) => {
+                if self.terminate_at_deadline(session_id, chrono::Utc::now().to_rfc3339()).await {
+                    SessionOutcome::Failed { detail: "scan deadline reached; worker process stopped".to_string() }
+                } else {
+                    SessionOutcome::Cancelled
+                }
+            }
+        }
+    }
+
     /// Wait with live progress forwarding: `on_progress` receives one
     /// `scan-event`-shaped JSON value per non-terminal KRDSPROGRESS stderr line.
     ///
@@ -1248,6 +1276,40 @@ mod validation_tests {
 #[cfg(test)]
 mod tests {
     use super::{new_session, SessionRegistry, SessionStatus};
+
+    #[test]
+    fn watchdog_grace_is_bounded_by_the_host_hard_limit() {
+        assert_eq!(super::sidecar_watchdog_sec(60), 210);
+        assert_eq!(super::sidecar_watchdog_sec(600), 750);
+        assert_eq!(super::sidecar_watchdog_sec(1500), 1650);
+        assert_eq!(super::sidecar_watchdog_sec(u64::MAX), 1650);
+    }
+
+    #[tokio::test]
+    async fn watchdog_preserves_artifacts_written_after_worker_budget() {
+        let registry = SessionRegistry::shared();
+        let record = new_session("https://example.kr/".to_string(), chrono::Utc::now().to_rfc3339());
+        let id = record.id.clone();
+        registry.insert(record).await;
+        let artifact = std::env::temp_dir().join(format!("krds-watchdog-{id}.json"));
+        let path = artifact.to_str().unwrap();
+        #[cfg(not(windows))]
+        let argv = ["sh", "-c", "sleep 2; printf '%s' '{\"completedPages\":1}' > \"$1\"", "watchdog", path];
+        #[cfg(windows)]
+        let script = format!("Start-Sleep -Seconds 2; [IO.File]::WriteAllText('{}', '{{\"completedPages\":1}}')", path.replace('\'', "''"));
+        #[cfg(windows)]
+        let argv = ["powershell", "-NoProfile", "-NonInteractive", "-Command", script.as_str()];
+        registry.spawn_sidecar_for_test(&id, &argv).await.unwrap();
+        let outcome = registry.wait_sidecar_with_watchdog(&id, std::sync::Arc::new(|_| {}), 1).await;
+        match outcome {
+            super::SessionOutcome::Succeeded { .. } => {},
+            super::SessionOutcome::Failed { detail } => panic!("late worker artifact lost: {detail}"),
+            super::SessionOutcome::Cancelled => panic!("late worker artifact cancelled"),
+        }
+        let saved: serde_json::Value = serde_json::from_slice(&std::fs::read(&artifact).unwrap()).unwrap();
+        std::fs::remove_file(artifact).unwrap();
+        assert_eq!(saved, serde_json::json!({"completedPages": 1}));
+    }
 
     #[tokio::test]
     async fn cancel_unknown_session_returns_false() {

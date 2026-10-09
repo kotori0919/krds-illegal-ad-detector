@@ -30,6 +30,14 @@ empty summary without launching Chromium. An admitted launch uses the remaining
 operation budget as its Playwright launch timeout. The host watchdog remains the
 process-level backstop for stalled browser or worker cleanup.
 
+## Amendment 2026-10-09: host finalization grace
+
+The host watchdog expires at `min(configured worker budget + 150 s, 1650 s)`
+after sidecar launch. It must not expire at the worker's own scan deadline:
+Node startup and final artifact writes also consume host wall time. The normal
+1500 s worker budget therefore has a 1650 s host backstop; a 60 s worker budget
+has a 210 s backstop. This grace does not extend page admission or analysis.
+
 ## Amendment 2026-10-06: live completion feedback
 
 The sorted frontier barrier controls admission and persisted output, while a

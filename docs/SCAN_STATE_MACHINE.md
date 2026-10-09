@@ -30,6 +30,11 @@ Partial completion is a derived **outcome** from `succeeded` and coverage, not a
 
 Create a monotonic `ScanDeadline` when the scan starts; do not restart it between crawl, analysis, frames, evidence, and serialization. The effective expiry is `min(configured budget, 1650 s internal guard)`. Normal preset is 1500 s, desired Windows acceptance is 1200 s, and the official ceiling is 1800 s. Before admitting a page, all workers check that remaining time exceeds an initial 30 s finalization reserve plus a measured minimum safe page budget. The 30 s reserve is provisional until the Windows benchmark establishes finalization tail latency. Each Playwright navigation/settle/frame/capture timeout is capped by remaining time; no worker starts a frame or capture that cannot finish before reserve. Optional capture yields before detection. A host watchdog covers a hung worker and closes its process tree by the hard guard.
 
+The host backstop uses `min(configured worker budget + 150 s, 1650 s)` from
+sidecar launch, independently of the worker's monotonic scan deadline. This
+allows worker startup, browser shutdown and artifact persistence to finish.
+The grace never admits additional page work.
+
 The coordinator admits a sorted breadth-depth frontier to a bounded pool:
 2 active pages on <=4 logical CPUs, 3 on 5–8, 4 above 8; hard cap 4.
 Depth-frontier completion creates the next sorted frontier, so completion

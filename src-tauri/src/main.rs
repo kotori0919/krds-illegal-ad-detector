@@ -147,20 +147,7 @@ async fn start_scan(app: tauri::AppHandle, state: State<'_, AppState>, request: 
             let sink: session::ProgressSink = std::sync::Arc::new(move |event| {
                 let _ = forward_handle.emit("scan-event", event);
             });
-            let guard_sec = timeout_sec.min(1650);
-            let outcome = match tokio::time::timeout(
-                std::time::Duration::from_secs(guard_sec),
-                registry.wait_sidecar_with_progress(&finished_session, sink),
-            ).await {
-                Ok(outcome) => outcome,
-                Err(_) => {
-                    if registry.terminate_at_deadline(&finished_session, chrono::Utc::now().to_rfc3339()).await {
-                        SessionOutcome::Failed { detail: "scan deadline reached; worker process stopped".to_string() }
-                    } else {
-                        SessionOutcome::Cancelled
-                    }
-                }
-            };
+            let outcome = registry.wait_sidecar_with_watchdog(&finished_session, sink, timeout_sec).await;
             finish_session(
                 &app_handle,
                 &registry,
