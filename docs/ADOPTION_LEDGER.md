@@ -6,8 +6,8 @@
 과거 RC와 중간 GNU/MSVC 후보를 보존한다. 현재 앱은 `0.2.1`, 공식 tool version은
 `0.2.1-policy2`다. 공식 contract v0, Case 1, detail 2, config 1, policy 2를 구분한다.
 정확한 후보와 운영 수용 판정은 [채택 인계](ADOPTION_HANDOFF_KO.md)가 기준이다.
-후속 UI `2a8356d`의 실제 화면 검증과 위 설치 후보를 구분한다. 새 UI 후보 build ID는
-`0.2.1-x86_64-pc-windows-msvc-4981e396550a-20261009T172224777Z`이며 receiving에서
+후속 UI `2a8356d`와 683px 수정 `8b68248`의 화면 검증을 위 설치 후보와 구분한다.
+최종 UI 후보 build ID는 `0.2.1-x86_64-pc-windows-msvc-7ae9f6144bf9-20261009T173735184Z`이며 receiving에서
 한 번 빌드하고 Windows·로컬 artifact verify를 통과했다. 설치 과업·실제 사람/AT와
 사용자 UI/UX 수용은 아직 완료 판정하지 않는다. 운영 코드 이후 변경은 테스트·문서다.
 
@@ -48,6 +48,10 @@ desktop build, NSIS package, artifact verify는 각각 실제 실행했다.
 OBSERVED: source 509 CI [run 37959883958](https://github.com/snowman0919/krds-illegal-ad-detector/actions/runs/37959883958)의
 `verify`, `windows-native`, `required`가 모두 SUCCESS다. 이후 UI 변경에 이 검사 결과를
 소급 적용하지 않는다.
+후속 b30 통합 검사는 491 pass/1 skip, 웹 검사는 107 pass다. b30 CI `37967025068`의
+Linux verify도 SUCCESS다. 중간 683px 제목 reflow 회귀를 `8b68248`에서 수정하고
+617건·320/683px·CSS zoom·BrowserHost의 실제 화면 smoke를 다시 통과했다.
+8b CI `37967491010`의 Linux verify도 SUCCESS이며 Windows/required의 완료 판정과는 구분한다.
 
 ## 후속 UI 화면 관찰과 검증 우선순위
 

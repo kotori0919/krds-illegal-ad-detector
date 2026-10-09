@@ -3,14 +3,39 @@
 `dev/bootstrap`, Draft PR #2의 현재 후보와 실행 증거를 연결한다. 검토 기준은
 `d14b8feadf60a174d3d74ad47e49ba13072c84c7`, 설치 검증을 마친 네이티브 후보 소스는
 `50941bd99f9d09d1b7abec93417a94d659c5dcb2`다. 이후 UI 변경은 아래 화면 검증과
-구분한다. 새 UI 후보는 `2a8356d00bea1334b37c0684225843ba97f94db9`에서 한 번 빌드했고
+구분한다. 최종 UI 후보는 `8b68248240c050df1b9257b6a3f9f939a029e46b`에서 한 번 빌드했고
 Windows·로컬 무결성 검증을 통과했다. 새 후보의 설치·실행 수용은 NOT_RUN이다.
 현재 판정은 **서명 없는 내부 평가
 후보, 운영 채택 조건부**다. 아래 미실행 수용 행이 남아 있으므로 M5 전체 완료,
 NIA 인증, 법적 위반 확정 또는 공개 배포 가능 판정으로 읽어서는 안 된다.
 [역사 RC](RELEASE_CANDIDATE.md)와 중간 GNU/MSVC 후보는 보존한다.
 
-## 정확한 전달 후보 — 새 UI 포함
+## 정확한 전달 후보 — 683px 수정 포함
+
+앱 `0.2.1`, 공식 tool `0.2.1-policy2`, 공식/Case/detail/config/policy는 `v0/1/2/1/2`다.
+UI 수정으로 탐지 정책이나 저장된 공식 원본을 바꾸지 않았다.
+
+| 항목 | 식별자 |
+| --- | --- |
+| source commit | `8b68248240c050df1b9257b6a3f9f939a029e46b` |
+| build ID | `0.2.1-x86_64-pc-windows-msvc-7ae9f6144bf9-20261009T173735184Z` |
+| source SHA-256 | `7ae9f6144bf9c939c5f58a71a3172857b6f58dd37b2bd07ddff9b89451473079` |
+| installer | `불법광고 탐지 도구_0.2.1_x64-setup.exe` |
+| installer 크기 / SHA-256 | `149714831` bytes / `e6c4ed74e696fd2d2ccae51f4c2310d68da15ccf4efa4795322df3ea498b58ba` |
+| standalone EXE SHA-256 | `4ab1e45167cd1a18066192e0b9c26dc97c600df9b96ef3100431752e63705e5a` |
+| 설치 EXE 유도 SHA-256 | `b271fedff7ff73913e84ac765258bd37eca6c9e1d2bb25c15f4d1ed515c8e842` — 실제 설치 확인값 아님 |
+| manifest SHA-256 | `5bdb174330c5e95f037b771e0cce8d934dc97eee2ebf759c3db79f9fa0c7867f` |
+
+폴더는 `artifacts/candidate-0.2.1-x86_64-pc-windows-msvc-7ae9f6144bf9-20261009T173735184Z/`다.
+중간 2a 후보에서 추가 발견한 683px 제목 reflow를 수정한 뒤 receiving의 clean git
+checkout을 fast-forward했다. 변경된 웹 bytes를 내장하기 위해 package를 한 번 실행했다.
+OBSERVED: Rust/Tauri·웹·NSIS package exit 0, 332.41초(단일 VM 관측), Windows·로컬
+artifact verify exit 0. 기존 receiving cache를 재사용했고 도구 설치·doctor·native harness·
+앱 설치/제거를 반복하지 않았다. 이전 후보 manifest 해시는 모두 유지됐다.
+`ui-candidate-8b68248-report.json`과 단계 로그가 근거다. 정확한 빌드 소스 archive와
+후속 인계 문서의 유지보수 source archive를 전달 ZIP에서 별도로 식별한다.
+
+## 중간 UI 빌드 — 2a, 보존
 
 | 항목 | 식별자 |
 | --- | --- |
@@ -83,6 +108,7 @@ STATIC_REVIEW/INFERRED는 실행하지 않은 판단, NOT_RUN은 미실행이다
 | 운영: 실패·사전 조건 | OBSERVED 범위. 최종 MSVC는 실제 빈 `PLAYWRIGHT_BROWSERS_PATH` poison 환경에서도 bundled runtime으로 실행, host integrity RID 8192/renderer RID 0 및 no-sandbox 인자 없음 확인. 실행 중 앱 배포 거부와 격리 Windows 복구 fixture 11건 관찰 | 실제 runtime 파일 삭제/변조·권한·중단 upgrade, WebView2 부재/완전 offline 설치는 이 환경변수 poison 시험과 구분하여 NOT_RUN |
 | 평가자: 공식/추가 결과·시간 경계 | OBSERVED. receiving Windows built/packaged worker와 최종 MSVC 설치본의 strict 결과·native 원본 저장/export. 실제 slow page를 잡은 상태에서 scan_start/progress/cancel, 완료 한 페이지의 partial 공식 결과 저장·cancelled 재열기/export 동일, CIM 관측 orphan worker/renderer 없음 | controlled fixture 범위이며 외부 평가 수용은 NOT_RUN |
 | CI | OBSERVED: 50941bd의 [run 37959883958](https://github.com/snowman0919/krds-illegal-ad-detector/actions/runs/37959883958)에서 `verify`, `windows-native`, `required` 모두 SUCCESS. 해당 소스 로컬 check 타입/lint 및 491 pass/1 skip, 80 파일 | receiving 15단계와 CI는 별개. 이 결과를 이후 UI 변경의 검사 결과로 전용하지 않음 |
+| 후속 검사 | OBSERVED: 웹 107 pass, b30 통합 491 pass/1 skip. b30 CI `37967025068`, 683px 수정 8b CI `37967491010`의 Linux verify SUCCESS | 최초 2a CI 취소 fixture timeout과 분리. 683px reflow 수정 후 실제 617건 UI smoke 재통과; 이후 Windows/전체 CI는 해당 실행 상태를 따름 |
 | 실제 사람·AT | NOT_RUN | 수신팀의 실제 사용자/보조기기 평가. keyboard 자동화·관찰된 Excel 렌더링으로 대신하지 않음 |
 
 Linux 브라우저 fixture는 Vitest setup 전용 `KRDS_TEST_UNSANDBOXED=1`을 명시했다.
@@ -127,6 +153,7 @@ MSVC source build 로그에서 따로 식별한다.
 | 실제 React + Tauri adapter | OBSERVED. 역사 617개 기록·211페이지·19반복항목을 **file-backed IPC replay**로 검토. 실제 네이티브 scanner/Save As 실행이 아님 |
 | 1366×768 / 17px | MEASURED. 첫 세 검토 행의 마지막 bottom이 변경 전 830.25px에서 변경 후 748.25px로 이동해 초기 viewport 안에 들어옴. 단일 fixture의 화면 기하 측정이며 속도 지표가 아님 |
 | 320px / 200% CSS zoom | OBSERVED. 좁은 화면 재배치와 zoom 동선. MEASURED: 320px에서 원문 폭 300px, 이전 관찰 132px 대비 확보. 원문을 요약문으로 대체하지 않음 |
+| 683×384 CSS viewport | OBSERVED. 중간 너비에서 제목이 세로로 밀리는 회귀를 추가 발견·수정. 제목 159×48px, 가로 넘침 없음. 실제 viewport 회귀를 추가했으며 CSS zoom만으로 판단하지 않음 |
 | 키보드·검토 | OBSERVED. 검색/기법 필터, 결과 초점·목록 jump, 원문 진입/초점 복귀, 메모·reading, 묶음 확인, 20/50 표시와 f372 원문 확인 |
 | JSON / XLSX | OBSERVED. 공식 canonical JSON bytes 동일, 실제 workbook 617 official 행과 검토 메모 확인. 필터가 export 전체 범위를 줄이지 않음. native Save As만 replay이며 이 시험을 실제 chooser 수용으로 읽지 않음 |
 | BrowserHost preview | OBSERVED. 실제 preview adapter 경로는 Tauri IPC 없이 별도로 실행. 임시 preview 안내, 잘못된 저장 장애 없음, 외부 요청 없음 |
