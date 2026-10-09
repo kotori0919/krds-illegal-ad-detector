@@ -47,7 +47,7 @@ LLVM MinGW는 clang 23.1.1/UCRT 배포의 `bin`, `LICENSE.TXT`, `x86_64-w64-ming
 
 ## 별도 경로: Windows MSVC
 
-Windows는 C++ Build Tools와 Windows SDK, Rust `x86_64-pc-windows-msvc`가 필요하다. 기본 `package:windows` 대상은 MSVC다. Windows CI는 실제 fmt/Clippy/test/link와 패키지 worker smoke를 검사한다. workflow_dispatch의 선택 항목은 서명 없는 내부 MSVC 후보를 만들며 공개 release는 하지 않는다. 이 경로는 GNU 증거와 독립적이다. CI 실행 결과가 없으면 **NOT_RUN**이고, 이번 주 경로 후보와 동일하게 검증됐다고 표현하지 않는다.
+Windows는 C++ Build Tools와 Windows SDK, Rust `x86_64-pc-windows-msvc`가 필요하다. 기본 `package:windows` 대상은 MSVC다. `bundle.useLocalToolsDir=true`로 Tauri 패키징 도구는 프로젝트 target 아래에 준비하며 작성자의 전역 도구 캐시를 요구하지 않는다. 첫 준비에는 Tauri가 고정한 도구 다운로드 연결이 필요하다. Windows CI는 실제 fmt/Clippy/test/link와 패키지 worker smoke를 검사한다. workflow_dispatch의 선택 항목은 서명 없는 내부 MSVC 후보를 만들며 공개 release는 하지 않는다. 이 경로는 GNU 증거와 독립적이다. CI 실행 결과가 없으면 **NOT_RUN**이고, 이번 주 경로 후보와 동일하게 검증됐다고 표현하지 않는다.
 
 ## 산출물과 한계
 
