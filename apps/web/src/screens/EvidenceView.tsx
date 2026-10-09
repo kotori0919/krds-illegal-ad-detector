@@ -51,7 +51,12 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
 
   return (
     <aside className="page result-inspector" aria-label="탐지 상세">
-      <p className="eyebrow">결과 검토</p>
+      <div className="inspector-toolbar">
+        <button type="button" onClick={onBack} className="secondary">결과 목록으로</button>
+        {finding ? <button type="button" onClick={() => onReviewChange(!reviewed)} className="primary">
+          {reviewed ? "검토 완료 취소" : "검토 완료로 표시"}
+        </button> : null}
+      </div>
       <h1 ref={headingRef} tabIndex={-1}>탐지 상세</h1>
       <p>현재 검토 범위 {Math.max(0, contextIds.indexOf(findingId)) + 1} / {contextIds.length}건 · 기록 {findingId}</p>
       {onSelectFinding && contextIds.length > 1 ? <nav className="actions" aria-label="검토 기록 이동">
@@ -148,14 +153,6 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
           </details>
         </>
       )}
-      <div className="actions">
-        {finding ? <button type="button" onClick={() => onReviewChange(!reviewed)} className="primary">
-          {reviewed ? "검토 완료 취소" : "검토 완료로 표시"}
-        </button> : null}{" "}
-        <button type="button" onClick={onBack} className="secondary">
-          결과 목록으로
-        </button>
-      </div>
       {onNoteChange && finding ? <div className="review-note"><label htmlFor="review-note">검토 메모</label>
         <textarea id="review-note" rows={4} maxLength={2000} value={note} onChange={(e) => onNoteChange(e.target.value)} aria-describedby="review-note-hint" />
         <p id="review-note-hint" className="hint">검토 기록 저장 상태를 확인해 주세요. 저장된 메모는 케이스를 다시 열 때 복원되며 엑셀 보고서에 포함됩니다. 브라우저 미리보기는 영구 저장되지 않습니다.</p>

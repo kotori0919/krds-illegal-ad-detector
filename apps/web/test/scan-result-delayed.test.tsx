@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { ScanResult } from "../src/screens/ScanResult.js";
 import type { HostBridge, OfficialResult, ScanCoverageView } from "@krds-detector/contracts";
@@ -50,7 +50,10 @@ describe("ScanResult delayed availability", () => {
     let complete!: (bundle: ScanCoverageView | undefined) => void;
     const pending = new Promise<ScanCoverageView | undefined>((resolve) => { complete = resolve; });
     renderResultState(async () => findingResult(), () => pending);
-    await screen.findByText(/공식 탐지 1건/);
+    await screen.findByText("광고 원문 유지");
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { name: "점검 결과" })));
+    const navigation = screen.getByRole("button", { name: "공식 탐지", exact: true });
+    navigation.focus();
     const before = screen.getByText("점검 범위를 불러오는 중입니다.").textContent;
     await act(async () => complete({ pageOutcomes: [], coverage: {
       checkedPages: 6, failedPages: [{ url: "https://example.kr/missing", status: 404, reason: "HTTP 404" }], timedOut: false,
@@ -58,6 +61,7 @@ describe("ScanResult delayed availability", () => {
     expect(screen.queryByText("점검 범위를 불러오는 중입니다.")).toBeNull();
     expect(screen.getByText("확인한 페이지 6개 · 실패한 페이지 1개", { exact: true })).toBeDefined();
     expect(screen.queryByText(before!)).toBeNull();
+    expect(document.activeElement).toBe(navigation);
     fireEvent.click(screen.getByRole("button", { name: "공식 탐지", exact: true }));
     expect(screen.getByRole("button", { name: "근거 보기", exact: true }).dataset.findingId).toBe(findingResult().findings[0]!.id);
   });

@@ -121,14 +121,23 @@ export function ReviewCollection(props: Props) {
   }, [restoreFindingId, active, rows, pageSize, currentPage, onFocusRestored]);
   const reviewedCount = findings.filter((f) => reviewedIds.has(f.id)).length;
 
-  return <div hidden={!active}>
+  return <div className="review-collection" hidden={!active}>
     <div inert={!!confirmation}>
+      <div className="review-list-toolbar">
+      <h2 ref={listHeading} tabIndex={-1} className="sr-only">{view === "pages" ? "페이지별 점검" : mode === "patterns" ? "반복 항목 검토" : "전체 탐지 기록"}</h2>
       <div className="result-navigation result-subnavigation" role="group" aria-label="공식 탐지 보기 방식">
         <button type="button" aria-pressed={view === "findings" && mode === "patterns"} onClick={() => { onViewChange("findings"); setMode("patterns"); setPage(1); }}>반복 항목별</button>
         <button type="button" aria-pressed={view === "pages"} onClick={() => { onViewChange("pages"); setPage(1); }}>페이지별</button>
         <button type="button" aria-pressed={view === "findings" && mode === "records"} onClick={() => { onViewChange("findings"); setMode("records"); setPage(1); }}>전체 기록</button>
       </div>
-      <p className="review-scope hint">자동 탐지는 위반 확정이 아닙니다. 전체 {patterns.length}개 항목 · 검토 완료 {reviewedCount}건 / 전체 {findings.length}건</p>
+      <details className="review-display-options"><summary>정렬·표시 설정</summary>
+      <div className="review-filters review-display-controls">
+        <div><label htmlFor="review-sort">정렬 기준</label><select id="review-sort" value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }}>
+          <option value="count">기록 많은 순</option><option value="pages">영향 페이지 많은 순</option><option value="text">내용 가나다순</option>
+        </select></div>
+        <div><label htmlFor="review-size">목록 표시 개수</label><select id="review-size" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}><option value="20">20</option><option value="50">50</option></select></div>
+      </div></details>
+      </div>
       <div className="review-filters review-search-controls">
         <div className="result-search"><label htmlFor="result-search">결과 검색</label>
           <input id="result-search" type="search" placeholder="문구, 페이지, 연결 주소 또는 기록 번호" value={query} onChange={(e) => { onQueryChange(e.target.value); setPage(1); }} /></div>
@@ -138,18 +147,10 @@ export function ReviewCollection(props: Props) {
         <div><label htmlFor="review-filter">검토 상태</label><select id="review-filter" value={reviewFilter} onChange={(e) => { setReviewFilter(e.target.value); setPage(1); }}>
           <option value="ALL">전체</option><option value="needed">검토 필요</option><option value="reviewed">검토 완료</option>
         </select></div>
-        <button className="secondary" type="button" onClick={reset}>검색·필터 초기화</button>
+        <button className="linklike" type="button" onClick={reset}>검색·필터 초기화</button>
       </div>
-      <p className="review-result-status" role="status" aria-live="polite"><span>표시 중인 탐지 {visible.length}건 / 전체 {findings.length}건</span> · 영향 페이지 {affectedPageCount}개 · {rows.length}개 {view === "pages" ? "페이지" : mode === "patterns" ? "검토 항목" : "기록"}{notice ? ` · ${notice}` : ""}</p>
-      <div className="review-list-toolbar">
-      <h2 ref={listHeading} tabIndex={-1}>{view === "pages" ? "페이지별 점검" : mode === "patterns" ? "반복 항목 검토" : "전체 탐지 기록"}</h2>
-      <div className="review-filters review-display-controls">
-        <div><label htmlFor="review-sort">정렬 기준</label><select id="review-sort" value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }}>
-          <option value="count">기록 많은 순</option><option value="pages">영향 페이지 많은 순</option><option value="text">내용 가나다순</option>
-        </select></div>
-        <div><label htmlFor="review-size">목록 표시 개수</label><select id="review-size" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}><option value="20">20</option><option value="50">50</option></select></div>
-      </div>
-      </div>
+      <p className="review-result-status" role="status" aria-live="polite"><span>표시 중인 탐지 {visible.length}건 / 전체 {findings.length}건</span> · 영향 페이지 {affectedPageCount}개 · {rows.length}개 {view === "pages" ? "페이지" : mode === "patterns" ? "검토 항목" : "기록"} · 검토 완료 {reviewedCount}건{notice ? ` · ${notice}` : ""}</p>
+      <p className="review-scope sr-only">자동 탐지는 위반 확정이 아닙니다. 전체 {patterns.length}개 항목 · 검토 완료 {reviewedCount}건 / 전체 {findings.length}건</p>
       {view === "pages" && !coverage ? <p className="hint">페이지 점검 기록을 사용할 수 없습니다. 공식 탐지가 있는 페이지를 표시합니다. 점검 범위는 알 수 없습니다.</p> : null}
       {!rows.length ? <div className="empty" role="status"><p>{findings.length || query || filter !== "ALL" || reviewFilter !== "ALL"
         ? "검색어나 선택한 조건에 해당하는 탐지가 없습니다." : coverage?.coverage.checkedPages ? "확인한 페이지에서 탐지된 항목이 없습니다. 미검사 범위는 점검 범위에서 확인해 주세요."
@@ -159,7 +160,7 @@ export function ReviewCollection(props: Props) {
           const selected = row.findings.find((f) => f.id === selectedFindingId);
           const representative = selected ?? first;
           const reviewed = row.findings.filter((f) => reviewedIds.has(f.id)).length;
-          return <li key={row.id} className="review-row">
+          return <li key={row.id} className={`review-row${selected ? " is-selected" : ""}${row.findings.length && reviewed === row.findings.length ? " is-reviewed" : ""}`}>
             <section className="review-row-content" aria-label={view === "pages" ? `${row.summary} 탐지 ${row.findings.length}건` : undefined}>
               <div className="review-row-description">
               <h3>{row.summary || "문구 없음"}</h3>
@@ -174,6 +175,7 @@ export function ReviewCollection(props: Props) {
                 <p>대표 기록 {first.id} · {first.url}</p>
                 {row.destination ? <p>기록된 링크 주소: {row.destination} (요소 위치 기록에서 읽음)</p> : null}
                 <p>{mode === "patterns" && view !== "pages" ? "문구·기법·링크 주소가 같아도 요소 위치가 다르면 별도 묶음입니다. " : ""}위치 기록: <code>{first.location}</code></p>
+                {row.findings.length > 1 ? <button className="secondary" type="button" onClick={() => requestBulk(row.findings.map((f) => f.id), `선택한 ${view === "pages" ? "페이지" : "반복 항목"}의 조건에 맞는 기록`)}>이 항목 {row.findings.length}건 검토 완료</button> : null}
               </details> : null}
               </div>
               <div className="review-row-state">
@@ -181,7 +183,6 @@ export function ReviewCollection(props: Props) {
               {representative ? <div className="actions">
                 <button className="secondary" type="button" data-finding-id={representative.id} aria-current={selected ? "true" : undefined}
                   onClick={() => onEvidence(representative.id, view === "findings" && mode === "records" ? visible.map((f) => f.id) : row.findings.map((f) => f.id))}>근거 보기</button>
-                {row.findings.length > 1 ? <button className="secondary" type="button" onClick={() => requestBulk(row.findings.map((f) => f.id), `선택한 ${view === "pages" ? "페이지" : "반복 항목"}의 조건에 맞는 기록`)}>이 항목 {row.findings.length}건 검토 완료</button> : null}
               </div> : null}
               </div>
             </section>

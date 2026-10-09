@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { HostBridge } from "@krds-detector/contracts";
+import type { HostBridge, HostCapabilities } from "@krds-detector/contracts";
 import { createHost } from "./host/index.js";
 import { ScanStart } from "./screens/ScanStart.js";
 import { ScanProgressView } from "./screens/ScanProgress.js";
@@ -29,7 +29,8 @@ export function App() {
   const [resultFilter, setResultFilter] = useState<OfficialTechnique | "ALL">("ALL");
   const [resultView, setResultView] = useState<"findings" | "pages" | "extra" | "coverage">("findings");
   const [host, setHost] = useState<HostBridge | undefined>(undefined);
-  const caseReview = useCaseReview(host, sessionId, phase === "result" || phase === "evidence");
+  const [capabilities, setCapabilities] = useState<HostCapabilities>();
+  const caseReview = useCaseReview(host, sessionId, !!capabilities?.filesystem && (phase === "result" || phase === "evidence"));
   const reviewRecords = caseReview.records;
   const reviewSessions = caseReview.sessions;
   const setReviewRecords = caseReview.edit;
@@ -58,8 +59,9 @@ export function App() {
 
   useEffect(() => {
     let alive = true;
-    createHost().then((h) => {
-      if (alive) setHost(h);
+    createHost().then(async (h) => {
+      const available = await h.getCapabilities();
+      if (alive) { setCapabilities(available); setHost(h); }
     });
     return () => {
       alive = false;
@@ -126,6 +128,12 @@ export function App() {
   return (
     <>
       <div inert={exportOpen}>
+      <header className="app-header">
+        <div className="app-header-inner"><span className="app-symbol" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="10" cy="10" r="6" /><path d="m14.5 14.5 6 6M7 10l2 2 4-4" /></svg></span>
+          <div><strong>불법광고 탐지 도구</strong><span>웹사이트 점검 · 근거 검토</span></div>
+          {!capabilities?.localScan ? <span className="environment-label">화면 미리보기</span> : null}
+        </div>
+      </header>
       {batchMounted ? <div hidden={!batchOpen}><BatchWorkspace host={host} reviews={reviewSessions}
         onBack={() => { setBatchOpen(false); setBatchResult(false); goStart(); }}
         onInspect={(id) => { setSessionId(id); setBatchResult(true); setBatchOpen(false); setFindingId(undefined);
@@ -135,7 +143,7 @@ export function App() {
         <ol className="steps">
           {steps.map((s) => (
             <li key={s.id} aria-current={s.current ? "step" : undefined} className={s.className}>
-              {s.done && <span aria-hidden="true" className="done-check">✓ </span>}
+              <span aria-hidden="true" className="step-number">{s.done ? <span className="done-check">✓</span> : steps.indexOf(s) + 1}</span>
               {s.done && <span className="sr-only">완료 </span>}
               {s.label}
             </li>
@@ -152,7 +160,7 @@ export function App() {
       ) : (phase === "result" || phase === "evidence") && sessionId ? (
         <div className={`result-workspace${phase === "evidence" ? " inspecting" : ""}`}>
         <div className="result-workspace-list">
-        <section aria-label="케이스 보관 상태">
+        {capabilities?.filesystem ? <section className="case-storage" aria-label="케이스 보관 상태">
           <details className="advanced"><summary><span role="status">{caseReview.status === "saved" ? `검토 기록 저장됨 · 수정 번호 ${caseReview.opened?.review.revision ?? 0}`
             : caseReview.status === "saving" ? "검토 기록 저장 중" : caseReview.status === "unsaved" ? "검토 기록 저장 대기"
               : caseReview.status === "error" ? "검토 기록 저장 확인 필요" : "케이스 보관 확인 중"}</span> · 보관 정보</summary>
@@ -160,7 +168,7 @@ export function App() {
             {caseReview.opened.manifest.issues.length ? <p role="note">일부 근거 사용 제한: {caseReview.opened.manifest.issues.map((issue) => `${issue.scope} (${issue.code})`).join(" · ")}. 공식 결과를 계속 검토할 수 있습니다.</p> : null}</> : null}
           </details>
           {caseReview.status === "error" ? <><p role="alert">검토 기록을 저장하거나 불러오지 못했습니다. 작성 중인 메모는 이 화면에 유지됩니다. 저장 실패·다른 창의 수정 충돌·브라우저 미리보기 여부를 확인해 주세요.</p><button type="button" className="secondary" onClick={caseReview.retry}>현재 메모를 유지하고 저장 재시도</button><p className="hint">다른 창의 변경을 다시 읽고 현재 수정한 항목을 반영합니다. 같은 항목을 수정했다면 현재 화면의 내용을 저장합니다.</p></> : null}
-        </section>
+        </section> : null}
         <ScanResult
           host={host}
           sessionId={sessionId}

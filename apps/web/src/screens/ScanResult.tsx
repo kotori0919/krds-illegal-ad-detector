@@ -148,6 +148,13 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
   const [result, setResult] = useState<OfficialResult | undefined>(undefined);
   const [loadComplete, setLoadComplete] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const focusedResult = useRef(false);
+  useEffect(() => {
+    if (result && !focusedResult.current) {
+      focusedResult.current = true;
+      resultHeading.current?.focus();
+    }
+  }, [result]);
   const readCoverage = useCallback(() => host.getScanCoverage(sessionId), [host, sessionId]);
   const readSummary = useCallback(() => host.getEvidenceSummary(sessionId), [host, sessionId]);
   const readExtra = useCallback(() => host.getExtraResult(sessionId), [host, sessionId]);
@@ -229,17 +236,27 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
 
   return (
     <main className="page result-page">
+      <div className="result-layout">
+      <div className="result-summary-panel">
       <header className="result-header">
-        <h1 ref={resultHeading} tabIndex={-1}>점검 결과</h1>
+        <div><h1 ref={resultHeading} tabIndex={-1}>점검 결과</h1>
+          <p className="result-site">{result?.meta.entry_url ?? session?.entryUrl}</p></div>
         <div className="result-export-actions">
           {result ? <WorkbookExport host={host} sessionId={sessionId} reviews={reviewRecords} /> : null}
           <button id="export-trigger" type="button" onClick={onExport} className="secondary" disabled={!result}>공식 JSON 저장</button>
         </div>
+      <p className="lede result-completion">{noCheckedCoverage ? accessLimited.length ? "접근 제한으로 점검하지 못함" : "성공적으로 점검한 페이지 없음" : session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{!noCheckedCoverage && session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}</p>
+      {result ? <dl className="result-overview" aria-label="점검 요약">
+        <div><dt>공식 탐지</dt><dd><strong>{result.findings.length}</strong>건</dd></div>
+        <div><dt>확인한 페이지</dt><dd><strong>{detailBundle?.coverage.checkedPages ?? "—"}</strong>{detailBundle ? "개" : ""}</dd></div>
+        <div className={detailBundle?.coverage.failedPages.length ? "coverage-incomplete" : undefined}><dt><button type="button" className="linklike" onClick={() => onViewChange("coverage")}>확인하지 못한 페이지 ↗</button></dt><dd><strong>{detailBundle?.coverage.failedPages.length ?? "—"}</strong>{detailBundle ? "개" : ""}</dd></div>
+      </dl> : null}
       </header>
-      <p className="lede">{noCheckedCoverage ? accessLimited.length ? "접근 제한으로 점검하지 못함" : "성공적으로 점검한 페이지 없음" : session ? scanStatusLabel(session.status) : "결과를 불러오는 중"}{!noCheckedCoverage && session?.status === "succeeded" && detailBundle?.coverage.failedPages.length ? " — 일부 페이지 확인 실패" : session?.status === "succeeded" && detailBundle?.coverage.timedOut ? " — 제한 시간 도달" : ""}{result ? ` · 공식 탐지 ${String(result.findings.length)}건 · 경과 시간 ${formatElapsed(result.meta.elapsed_sec)}` : null}{result ? <> · 탐지된 페이지 {String(new Set(findings.map((finding) => finding.url)).size)}개{detailBundle ? ` · 확인한 페이지 ${String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 ${String(detailBundle.coverage.failedPages.length)}개 · 접근 제한 ${accessLimited.length}개` : " · 점검 범위 알 수 없음"}</> : null}</p>
+      {result ? <div className="result-review-entry"><p className="hint">자동 탐지는 위반 확정이 아닙니다. {!detailBundle ? "점검 범위 알 수 없음 · 확인한 범위를 알 수 없어 탐지 건수만으로 안전하다고 판단할 수 없습니다." : "원문 근거와 점검 범위를 함께 검토해 주세요."}</p>
+        <a href="#review-workspace" onClick={(event) => { event.preventDefault(); document.getElementById("review-workspace")?.focus(); }}>검토 목록으로 이동 ↓</a></div> : null}
       {session?.status === "cancelled" || detailBundle?.coverage.cancelled ? <p role="note" className="empty">점검이 중지되었습니다. 완료된 페이지의 결과를 표시합니다.</p>
         : session?.status === "failed" && session.hasResult === true ? <p role="note" className="empty">점검이 실패했습니다. 완료된 페이지의 결과를 표시합니다.</p> : null}
-      {demoMode ? <p role="note" className="empty">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다.</p> : null}
+      {demoMode ? <p role="note" className="preview-notice">브라우저 미리보기 데이터입니다. 입력한 사이트를 실제로 점검한 결과가 아닙니다. 검토 메모는 새로고침하면 사라집니다.</p> : null}
       {accessLimited.length ? <p role="note">접근 제한 페이지는 점검하지 못했습니다. 탐지 0건이라도 안전하다고 판단할 수 없습니다. 점검 범위에서 사유를 확인해 주세요.</p> : null}
       {result ? <div className="result-scope-details">
         <div className="result-navigation" role="group" aria-label="결과 영역">
@@ -262,7 +279,8 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
             ))}
           </ul>
         </section></details></div> : null}
-      <section aria-label="결과 목록">
+      </div>
+      <section id="review-workspace" tabIndex={-1} aria-label="결과 목록">
         {result ? <ReviewCollection findings={findings} coverage={detailBundle} query={query} onQueryChange={onQueryChange}
           filter={filter} onFilterChange={onFilterChange} view={view} onViewChange={onViewChange}
           reviewedIds={reviewedIds} onReviewMany={onReviewMany} onEvidence={onEvidence}
@@ -337,6 +355,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
         ) : null}
 
       </section>
+      </div>
       {result ? <details className="advanced"><summary>검토 표시와 저장 안내</summary><p>검토 완료는 읽고 검토했다는 표시이며 위반 확정이나 조치 완료가 아닙니다. 공식 탐지와 원본 파일은 바뀌지 않습니다. 검토 표시·판단·메모는 케이스에 별도로 저장됩니다. 화면 위의 저장 상태를 확인한 뒤 앱을 닫아 주세요. 엑셀 보고서는 검색·필터와 관계없이 전체 기록과 현재 검토 메모를 저장합니다.</p></details> : null}
       <div className="actions">
         <button type="button" onClick={onRestart} className="secondary">

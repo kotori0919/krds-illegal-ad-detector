@@ -38,7 +38,7 @@ export function SavedCases({ host, onOpen }: { host: HostBridge; onOpen: (caseId
     if (document.activeElement?.tagName === "H3" || event.shiftKey && document.activeElement === first) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
-  return <section className="page" aria-label="저장된 케이스">
+  return <section className="page saved-cases" aria-label="저장된 케이스">
     <div inert={!!deleting}>
     <h2>저장된 케이스</h2>
     {supported === false ? <p className="hint">브라우저 미리보기는 영구 보관을 지원하지 않습니다. 저장·다시 열기는 데스크톱 앱을 사용해 주세요.</p> : <>

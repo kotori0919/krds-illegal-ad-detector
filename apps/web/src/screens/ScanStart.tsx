@@ -110,10 +110,11 @@ export function ScanStart({ host, onStarted, onBatch }: Props) {
   }
 
   return (
-    <main className="page">
-      <p className="eyebrow">공공 웹사이트 불법광고 탐지</p>
+    <main className="page start-page">
+      <header className="start-heading"><p className="eyebrow">새 점검</p>
       <h1>공공 웹사이트 점검</h1>
-      <form onSubmit={onSubmit} aria-label="탐지 시작" noValidate>
+      <p className="lede">웹사이트 주소를 입력하고, 의심 문구와 숨겨진 광고의 근거를 확인하세요.</p></header>
+      <form className="scan-form" onSubmit={onSubmit} aria-label="탐지 시작" noValidate>
         <div className="field">
           <label htmlFor="entry-url">점검할 웹사이트 <span className="required">필수</span></label>
           <input
@@ -135,7 +136,7 @@ export function ScanStart({ host, onStarted, onBatch }: Props) {
             aria-describedby={fieldErrors.url ? "entry-url-error" : "scan-hint"}
             required
           />
-          <p id="scan-hint" className="hint">같은 사이트의 하위 페이지도 확인합니다. 기본 점검은 최대 25분입니다.</p>
+          <p id="scan-hint" className="hint">입력한 사이트와 같은 사이트의 하위 페이지를 점검합니다.</p>
           {fieldErrors.url ? (
             <p id="entry-url-error" role="alert" className="error">
               {fieldErrors.url}
@@ -147,11 +148,8 @@ export function ScanStart({ host, onStarted, onBatch }: Props) {
             {formError}
           </p>
         ) : null}
-        <button type="submit" disabled={busy} className="primary">
-          {busy ? "시작 중…" : "점검 시작"}
-        </button>
         <details className="advanced" ref={advancedRef}>
-          <summary>상세 설정</summary>
+          <summary><span>상세 설정</span><span className="scope-current">{scopeMode === "quick" ? "빠른 점검 · 최대 50페이지 · 10분" : scopeMode === "automatic" ? "자동 점검 · 최대 200페이지 · 25분" : `직접 설정 · 최대 ${maxPages}페이지 · ${timeoutSec}초`}</span></summary>
           <fieldset className="scope-options">
             <legend>점검 범위</legend>
             <label><input type="radio" name="scope-mode" value="automatic" checked={scopeMode === "automatic"} onChange={() => setScopeMode("automatic")} /> 자동 점검 — 최대 200페이지, 하위 4단계, 25분</label>
@@ -245,8 +243,11 @@ export function ScanStart({ host, onStarted, onBatch }: Props) {
             </div>
           </div> : null}
         </details>
+        <div className="scan-submit"><p className="hint">점검 중에도 중지할 수 있습니다.<br />완료된 페이지의 결과는 보관됩니다.</p>
+          <button type="submit" disabled={busy} className="primary">{busy ? "시작 중…" : "점검 시작"}<span aria-hidden="true"> →</span></button>
+        </div>
       </form>
-      {onBatch ? <div className="actions"><button type="button" className="secondary" onClick={onBatch}>여러 사이트 일괄 점검</button></div> : null}
+      {onBatch ? <section className="batch-entry"><div><h2>여러 사이트를 한 번에 점검하려면</h2><p className="hint">대상 목록 파일을 불러와 사이트별 진행과 결과를 관리하세요.</p></div><button type="button" className="secondary" onClick={onBatch}>여러 사이트 일괄 점검</button></section> : null}
     </main>
   );
 }

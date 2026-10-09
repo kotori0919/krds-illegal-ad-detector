@@ -27,11 +27,15 @@ export function evidenceRead(detail, command, args = {}) {
   }
 }
 
-export async function installResultReplay(page, { result, detail, extra, session, beforeRead, exportReplay, workbookReplay }) {
+export async function installResultReplay(page, { result, detail, extra, session, beforeRead, exportReplay, workbookReplay, caseReplay }) {
   const reads = [];
   await page.exposeFunction("resultReplayInvoke", async (command, args) => {
     reads.push({ command, args });
     await beforeRead?.(command, args);
+    if (command.startsWith("case_")) {
+      if (!caseReplay) throw new Error("case replay not configured");
+      return caseReplay(command, args);
+    }
     switch (command) {
       case "plugin:event|listen": return 1;
       case "plugin:event|unlisten": return;
