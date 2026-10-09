@@ -13,7 +13,7 @@ npm run prepare:windows-runtime
 npm run doctor
 ```
 
-준비 단계만 네트워크를 사용한다. `prepare:windows-runtime`은 Node의 공식 고정 SHA-256, Playwright 1.63.0의 Windows Chromium 1243/FFmpeg 1011/Windows DLL inspector 1007, Tesseract 7 및 한국어/영어 데이터를 준비한다. `scripts/windows-runtime.lock.json`은 출처와 전체 런타임 파일 해시를 기록한다. 검증 불일치는 실패이며 자동으로 새 해시를 신뢰하지 않는다. 관리자가 출처와 의도한 의존성 변경을 검토한 뒤에만 `node scripts/prepare-windows-runtime.mjs --update-lock`로 갱신한다. 다운로드와 npm/Cargo 캐시 준비 없이 오프라인 빌드가 된다는 뜻은 아니다.
+준비 단계만 네트워크를 사용한다. `prepare:windows-runtime`은 Node의 공식 고정 SHA-256, Playwright 1.63.0의 Windows Chromium 1243/FFmpeg 1011/Windows DLL inspector 1007, Tesseract 7 및 한국어/영어 데이터를 준비한다. `scripts/windows-runtime.lock.json`은 출처와 전체 런타임 파일 해시를 기록한다. 검증 불일치는 실패이며 자동으로 새 해시를 신뢰하지 않는다. 실제 Windows 브라우저 실행이 만드는 세 개의 알려진 빈 `DEPENDENCIES_VALIDATED` 캐시 파일만 준비/검증 전에 제거한다. 링크, 비어 있지 않은 marker, 알 수 없는 DLL/추가 파일은 허용하지 않는다. 관리자가 출처와 의도한 의존성 변경을 검토한 뒤에만 `node scripts/prepare-windows-runtime.mjs --update-lock`로 갱신한다. 다운로드와 npm/Cargo 캐시 준비 없이 오프라인 빌드가 된다는 뜻은 아니다.
 
 ## 공통 명령
 

@@ -16,9 +16,12 @@ const executable=resolve(process.argv[2]);
 const output=resolve(process.argv[3]);
 await mkdir(output,{recursive:true});
 const image=await readFile(new URL("../fixtures/ocr/banner.png",import.meta.url));
-let requests=0;
+let requests=0,slowRequests=0,slowClosed=0;
 const fixture=createServer((request,response)=>{
   requests++;
+  if(request.url==="/robots.txt"||request.url==="/sitemap.xml"){response.writeHead(404);response.end();return;}
+  if(request.url==="/cancel"){response.setHeader("content-type","text/html; charset=utf-8");response.end('<!doctype html><html lang="ko"><p id="cancel-ad" style="opacity:0">카지노 가입 보너스 지급</p><a href="/slow">다음 페이지</a></html>');return;}
+  if(request.url==="/slow"){slowRequests++;response.once("close",()=>{slowClosed++;});return;}
   if(request.url==="/banner.png"){response.writeHead(200,{"content-type":"image/png"});response.end(image);return;}
   if(request.url==="/missing"){globalThis.setTimeout(()=>{response.writeHead(404);response.end("missing");},3000);return;}
   response.setHeader("content-type","text/html; charset=utf-8");
@@ -44,16 +47,41 @@ async function close(){
   }
 }
 const invoke=(command,args={})=>page.evaluate(({command,args})=>window.__TAURI_INTERNALS__.invoke(command,args),{command,args});
-const report={scope:"installed native Windows UI + worker + filesystem + restart, no fabricated IPC responses",checks:[]};
-try{
-  report.appSha256=createHash("sha256").update(await readFile(executable)).digest("hex");
-  report.build=JSON.parse(await readFile(join(dirname(executable),"binaries/build-manifest.json"),"utf8"));
-  await launch();
+async function subscribeEvents(){
   await page.evaluate(async()=>{
     const api=window.__TAURI_INTERNALS__;window.adoptionEvents=[];
     const handler=api.transformCallback(event=>window.adoptionEvents.push(event.payload));
     await api.invoke("plugin:event|listen",{event:"scan-event",target:{kind:"Any"},handler});
   });
+}
+async function until(predicate,timeoutMs,message){
+  const expires=performance.now()+timeoutMs;
+  while(performance.now()<expires){if(await predicate())return;await pause(100);}
+  throw Error(message);
+}
+function processSnapshot(sessionId){
+  // CIM identities include creation time so PID reuse cannot fabricate an orphan.
+  // Keep command lines/installation paths inside this local classification only.
+  const runtimeRoot=join(dirname(executable),"binaries")+"\\";
+  const script=`$root='${runtimeRoot.replace(/'/g,"''")}';$session='${sessionId}';$rows=@(Get-CimInstance Win32_Process | ForEach-Object { $path=[string]$_.ExecutablePath;$command=[string]$_.CommandLine;[pscustomobject]@{pid=[int]$_.ProcessId;parentPid=[int]$_.ParentProcessId;createdAt=$(if($_.CreationDate){$_.CreationDate.ToUniversalTime().ToString('o')}else{''});name=[string]$_.Name;runtimeOwned=$path.StartsWith($root,[StringComparison]::OrdinalIgnoreCase);sessionOwned=$command.Contains($session);worker=($command.Contains($session) -and $command -match 'scanner-worker');renderer=($command -match '--type=renderer');noSandbox=($command -match '--no-sandbox')}});ConvertTo-Json -InputObject $rows -Depth 3 -Compress`;
+  const text=execFileSync("powershell.exe",["-NoProfile","-EncodedCommand",Buffer.from(script,"utf16le").toString("base64")],{encoding:"utf8"});
+  return JSON.parse(text.replace(/^\uFEFF/,"").trim());
+}
+const processIdentity=row=>`${row.pid}:${row.createdAt}`;
+function workerTree(rows,sessionId){
+  const roots=rows.filter(row=>row.runtimeOwned&&row.worker&&row.sessionOwned&&row.parentPid===app.pid);
+  assert.ok(roots.length>0,`must observe actual native worker for ${sessionId}`);
+  const ids=new Set(roots.map(row=>row.pid));
+  let changed=true;
+  while(changed){changed=false;for(const row of rows)if(ids.has(row.parentPid)&&!ids.has(row.pid)){ids.add(row.pid);changed=true;}}
+  return rows.filter(row=>ids.has(row.pid));
+}
+const report={scope:"installed native Windows UI + worker + filesystem + restart, no fabricated IPC responses",checks:[]};
+try{
+  report.appSha256=createHash("sha256").update(await readFile(executable)).digest("hex");
+  report.build=JSON.parse(await readFile(join(dirname(executable),"binaries/build-manifest.json"),"utf8"));
+  await launch();
+  await subscribeEvents();
   await page.getByLabel("점검할 웹사이트",{exact:true}).fill(entry);
   await page.locator("summary").first().click();
   await page.getByLabel("직접 설정",{exact:true}).check();
@@ -123,10 +151,64 @@ try{
   report.workbookBytes=(await readFile(workbook)).length;
   report.checks.push("real native JSON export byte identity / real workbook save chooser");
   await page.screenshot({path:join(output,"native-case-reopened.png"),fullPage:true});
+  // Start/cancel through the installed host; completed-page evidence comes from
+  // the real worker. /slow remains an unfinished navigation until cancellation.
+  await subscribeEvents();
+  const baselineProcesses=processSnapshot("").filter(row=>row.runtimeOwned);
+  const baselineIdentities=new Set(baselineProcesses.map(processIdentity));
+  const cancelled=await invoke("scan_start",{request:{configVersion:1,entryUrl:entry+"cancel",limits:{maxPages:2,maxDepth:1,timeoutSec:60,maxFrameDepth:4}}});
+  assert.match(cancelled.id,/^[0-9a-f-]{36}$/i);
+  await page.waitForFunction(id=>window.adoptionEvents.some(event=>event.sessionId===id&&event.kind==="page-started"&&event.pageUrl?.endsWith("/slow")&&event.progress.visitedPages===1),cancelled.id,{timeout:45000});
+  await until(()=>slowRequests>0,10000,"the real fixture must receive the held /slow navigation before cancel");
+  const ownedProcesses=workerTree(processSnapshot(cancelled.id),cancelled.id);
+  assert.ok(ownedProcesses.some(row=>row.renderer),"must observe the actual cancelling worker renderer");
+  assert.ok(ownedProcesses.filter(row=>row.renderer).every(row=>!row.noSandbox),"cancelled scan must retain production sandbox configuration");
+  const cancelStarted=performance.now();
+  await invoke("scan_cancel",{sessionId:cancelled.id});
+  let terminal;
+  await until(async()=>{terminal=await invoke("scan_get_session",{sessionId:cancelled.id});assert.notEqual(terminal.status,"failed",terminal.error);return terminal.status==="cancelled";},30000,"native cancellation must settle");
+  const cancelToSettledMs=performance.now()-cancelStarted;
+  assert.equal(terminal.hasResult,true,"cancellation must retain the completed first page");
+  await page.waitForFunction(id=>window.adoptionEvents.some(event=>event.sessionId===id&&event.kind==="session-cancelled"),cancelled.id,{timeout:10000});
+  await until(()=>slowClosed>0,10000,"cancellation must close the held navigation connection");
+  const cancelledResult=await invoke("scan_get_result",{sessionId:cancelled.id});
+  assert.equal(validateOfficialResultText(JSON.stringify(cancelledResult)).ok,true);
+  assert.ok(cancelledResult.findings.some(f=>f.url===entry+"cancel"&&f.technique==="TRANSPARENT"&&f.evidence_text==="카지노 가입 보너스 지급"));
+  const cancelledCoverage=await invoke("scan_get_coverage",{sessionId:cancelled.id});
+  assert.equal(cancelledCoverage.coverage.checkedPages,1);assert.equal(cancelledCoverage.coverage.cancelled,true);assert.equal(cancelledCoverage.coverage.timedOut,false);
+  assert.ok(cancelledCoverage.pageOutcomes.some(row=>row.url===entry+"cancel"&&row.outcome==="checked"));
+  assert.ok(!cancelledCoverage.pageOutcomes.some(row=>row.url===entry+"slow"&&row.outcome==="checked"),"unfinished navigation must never be reported checked");
+  const cancelledCase=await invoke("case_open",{caseId:cancelled.id});
+  assert.equal(cancelledCase.manifest.status,"cancelled");
+  const cancelledOriginal=await readFile(join(cancelledCase.directory,"result.json"));
+  assert.equal(validateOfficialResultText(cancelledOriginal.toString("utf8")).ok,true);
+  const afterCancellation=processSnapshot(cancelled.id);
+  const ownedIdentities=new Set(ownedProcesses.map(processIdentity));
+  const remainingOwned=afterCancellation.filter(row=>ownedIdentities.has(processIdentity(row)));
+  const newRuntimeProcesses=afterCancellation.filter(row=>row.runtimeOwned&&!baselineIdentities.has(processIdentity(row)));
+  assert.deepEqual(remainingOwned,[],"cancelled worker and its captured renderer descendants must be reaped");
+  assert.deepEqual(newRuntimeProcesses,[],"no new installed scanner runtime process may remain orphaned");
+  const cancelEvents=await page.evaluate(id=>window.adoptionEvents.filter(event=>event.sessionId===id),cancelled.id);
+  report.cancellation={caseId:cancelled.id,cancelToSettledMs,findings:cancelledResult.findings.length,coverage:cancelledCoverage.coverage,
+    originalSha256:createHash("sha256").update(cancelledOriginal).digest("hex"),events:cancelEvents,ownedProcesses,remainingOwned,newRuntimeProcesses,slowRequests,slowClosed};
+  assert.equal(report.cancellation.originalSha256,cancelledCase.manifest.officialSha256);
+  await close();
+  const requestsBeforeCancelledReopen=requests;
+  await launch();
+  const reopenedCancelled=await invoke("case_open",{caseId:cancelled.id});
+  assert.equal(reopenedCancelled.manifest.status,"cancelled");
+  assert.deepEqual(await readFile(join(reopenedCancelled.directory,"result.json")),cancelledOriginal);
+  assert.deepEqual(await invoke("scan_get_result",{sessionId:cancelled.id}),cancelledResult);
+  assert.equal(requests,requestsBeforeCancelledReopen,"cancelled case reopen after app restart must not recrawl");
+  const cancelledExport=join(output,"cancelled-export");await mkdir(cancelledExport,{recursive:true});
+  await invoke("scan_export",{sessionId:cancelled.id,directory:cancelledExport});
+  assert.deepEqual(await readFile(join(cancelledExport,"result.json")),cancelledOriginal);
+  report.cancellation.reopenedAfterRestart=true;report.cancellation.noRecrawl=true;report.cancellation.exportByteIdentity=true;
+  report.checks.push("real native scan_start/progress/scan_cancel / completed-page partial official / cancelled durable reopen after restart / export byte identity / CIM worker-renderer orphan absence");
   report.passed=true;
 }catch(error){report.passed=false;report.error=String(error);process.exitCode=1;}
 finally{
-  await close().catch(error=>{report.closeError=String(error);process.exitCode=1;});
+  await close().catch(error=>{report.passed=false;report.closeError=String(error);process.exitCode=1;});
   fixture.closeAllConnections();await new Promise(done=>fixture.close(done));
   await writeFile(join(output,"native-adoption.json"),JSON.stringify(report,null,2));
   process.stdout.write(JSON.stringify({passed:report.passed,error:report.error,checks:report.checks,findings:report.findings,workbookBytes:report.workbookBytes})+"\n");

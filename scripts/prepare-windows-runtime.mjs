@@ -14,6 +14,7 @@ import { createRequire } from "node:module";
 import { dirname } from "node:path";
 import { inventory, json, verifyFiles, writeJson } from "./build-support.mjs";
 import { unzipSync } from "fflate";
+import { clearBrowserValidationCache } from "./runtime-cache.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const stage = join(root, "src-tauri", "binaries");
@@ -30,6 +31,7 @@ const runtimeOnly = name => !["node.exe", "node-LICENSE"].includes(name)
 if (process.argv.includes("--verify")) {
   const lock = await json(lockPath);
   if (lock.schemaVersion !== 1) throw new Error("Unsupported runtime lock");
+  await clearBrowserValidationCache(stage);
   await verifyFiles(stage, lock.files);
   const actual = await inventory(stage, runtimeOnly);
   if (JSON.stringify(actual) !== JSON.stringify(lock.files)) throw new Error("Runtime inventory has unexpected/missing files; prepare pinned resources again");
@@ -68,7 +70,6 @@ async function installWindowsInspector() {
   await mkdir(directory, { recursive: true });
   await writeFile(join(directory, "PrintDeps.exe"), files["PrintDeps.exe"]);
   await writeFile(join(directory, "INSTALLATION_COMPLETE"), "");
-  await rm(join(directory, "DEPENDENCIES_VALIDATED"), { force: true });
 }
 
 async function downloadVerifiedNode() {
@@ -178,8 +179,7 @@ await installWindowsInspector();
 // they are not runtime inputs and must never enter an installer or its lock.
 await rm(join(stage, "ms-playwright", ".links"), { recursive: true, force: true });
 // Host-validation markers are cache state, not proof of target Windows acceptance.
-await rm(join(stage, "ms-playwright", `chromium_headless_shell-${shell.revision}`, "DEPENDENCIES_VALIDATED"), { force: true });
-await rm(join(stage, "ms-playwright", `ffmpeg-${ffmpegVersion.revision}`, "DEPENDENCIES_VALIDATED"), { force: true });
+await clearBrowserValidationCache(stage);
 const files = await inventory(stage, runtimeOnly);
 if (process.argv.includes("--update-lock")) {
   await writeJson(lockPath, { schemaVersion: 1, nodeVersion, playwrightVersion,
