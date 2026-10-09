@@ -1,6 +1,6 @@
 # 유지보수 인계
 
-수신팀은 [빌드 매뉴얼](BUILD_MANUAL.md)의 준비/검증/packaging 명령부터 실행한다. source build ID와 탐지 정책 버전은 별개다. 현재 내부 후보는 앱 0.2.0, 정책 2, Case schema 1이다. 과거 0.1.0 결과/설치본을 덮어쓰거나 새 정책 결과와 같다고 취급하지 않는다. [계약 명세](CONTRACTS.md)는 설정, 진행, 공식 JSON, Case와 검토의 wire/disk 경계를 정의한다.
+수신팀은 [빌드 매뉴얼](BUILD_MANUAL.md)의 준비/검증/packaging 명령부터 실행한다. source build ID와 탐지 정책 버전은 별개다. 현재 내부 후보는 앱 0.2.1, 정책 2, Case schema 1이다. 과거 0.1.0 결과/설치본을 덮어쓰거나 새 정책 결과와 같다고 취급하지 않는다. [계약 명세](CONTRACTS.md)는 설정, 진행, 공식 JSON, Case와 검토의 wire/disk 경계를 정의한다.
 
 ## 소유 경계와 변경 방법
 

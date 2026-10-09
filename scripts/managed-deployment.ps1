@@ -10,6 +10,75 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+function Get-AppRegistrations {
+  # This is the exact NSIS product key, not a search of unrelated installations.
+  $productName = '"\ubd88\ubc95\uad11\uace0 \ud0d0\uc9c0 \ub3c4\uad6c"' | ConvertFrom-Json
+  foreach ($hive in @('HKCU:', 'HKLM:')) {
+    foreach ($branch in @('Software', 'Software\WOW6432Node')) {
+      $key = "$hive\$branch\Microsoft\Windows\CurrentVersion\Uninstall\$productName"
+      $record = Get-ItemProperty -LiteralPath $key -ErrorAction SilentlyContinue
+      if ($record -and $record.DisplayName -ceq $productName -and $record.InstallLocation) {
+        [pscustomobject]@{root=$record.InstallLocation;source=$key}
+      }
+    }
+  }
+}
+function Resolve-Installations([object[]]$Running, [object[]]$Registrations) {
+  $candidates = @()
+  if ($InstallationRoot) { $candidates += [pscustomobject]@{root=$InstallationRoot;source='explicit'} }
+  foreach ($process in $Running) {
+    if ($process.Path) { $candidates += [pscustomobject]@{root=(Split-Path -Parent $process.Path);source='running-process'} }
+  }
+  $candidates += $Registrations
+  $seen = @{}
+  foreach ($candidate in $candidates) {
+    $root = ([string]$candidate.root).Trim().Trim('"')
+    if (-not $root -or -not [IO.Path]::IsPathRooted($root)) { continue }
+    $root = [IO.Path]::GetFullPath($root).TrimEnd('\')
+    if (-not $seen.ContainsKey($root)) {
+      $seen[$root]=$true
+      [pscustomobject]@{root=$root;source=$candidate.source}
+    }
+  }
+}
+function Get-WebViewRegistrations {
+  $client = '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+  foreach ($hive in @('HKCU:', 'HKLM:')) {
+    foreach ($branch in @('Software', 'Software\WOW6432Node')) {
+      $key = "$hive\$branch\Microsoft\EdgeUpdate\Clients\$client"
+      $record = Get-ItemProperty -LiteralPath $key -ErrorAction SilentlyContinue
+      if ($record) { [pscustomobject]@{version=$record.pv;source=$key} }
+    }
+  }
+}
+function Get-WebViewEvidence([object[]]$Registrations, [string[]]$ApplicationRoots) {
+  foreach ($record in $Registrations) {
+    if ($record.version -match '^\d+\.\d+\.\d+\.\d+$' -and $record.version -ne '0.0.0.0') {
+      [pscustomobject]@{version=$record.version;source=$record.source;kind='registry';state='registered-not-executed'}
+    }
+  }
+  foreach ($root in $ApplicationRoots) {
+    if (-not $root -or -not (Test-Path -LiteralPath $root -PathType Container)) { continue }
+    # Only immediate version directories in known runtime roots are inspected.
+    foreach ($directory in Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue) {
+      $executable = Join-Path $directory.FullName 'msedgewebview2.exe'
+      if ($directory.Name -match '^\d+\.\d+\.\d+\.\d+$' -and (Test-Path -LiteralPath $executable -PathType Leaf)) {
+        [pscustomobject]@{version=$directory.Name;source=$executable;kind='file';state='present-not-executed'}
+      }
+    }
+  }
+}
+function Get-DeploymentDiagnosis([object[]]$Running, [object[]]$Registrations, [object[]]$WebViewRegistrations, [string[]]$WebViewRoots) {
+  $installations = @(Resolve-Installations $Running $Registrations)
+  $selected = if ($installations.Count) { $installations[0].root } else { $null }
+  $build=$null
+  if ($selected -and (Test-Path -LiteralPath (Join-Path $selected 'binaries\build-manifest.json') -PathType Leaf)) {
+    $record=Get-Content -LiteralPath (Join-Path $selected 'binaries\build-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $build=@{appVersion=$record.appVersion;buildId=$record.buildId;target=$record.target;sourceSha256=$record.source.sourceSha256;caseSchemaVersion=$record.caseSchemaVersion;detectorPolicyVersion=$record.detectorPolicyVersion}
+  }
+  $evidence = @(Get-WebViewEvidence $WebViewRegistrations $WebViewRoots)
+  @{schemaVersion=1;dataRoot=$DataRoot;dataExists=(Test-Path -LiteralPath $DataRoot);installationRoot=$selected;installationCandidates=$installations;build=$build;nodeRuntime='22.19.0';webview2=@($evidence.version | Sort-Object -Unique);webview2Evidence=$evidence;running=@($Running)}
+}
 function Assert-NoRunningApp {
   if (Get-Process -Name 'krds-detector' -ErrorAction SilentlyContinue) {
     throw 'Close the application after saving/cancelling its scans; deployment will not terminate it.'
@@ -24,11 +93,22 @@ function Assert-NoLinks([string]$Path) {
   }
 }
 function Backup-Data {
+  param([object[]]$Registrations = @(Get-AppRegistrations))
   if (-not $BackupPath) { throw 'BackupPath is required; select a protected folder outside the installation and data directories.' }
   if (Test-Path -LiteralPath $BackupPath) { throw 'BackupPath must be new; existing backups are never overwritten.' }
   $source = [IO.Path]::GetFullPath($DataRoot).TrimEnd('\')
   $target = [IO.Path]::GetFullPath($BackupPath).TrimEnd('\')
   if ($target.Equals($source,[StringComparison]::OrdinalIgnoreCase) -or $target.StartsWith($source+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Backup cannot be inside data root.' }
+  $installations = @(Resolve-Installations @() $Registrations)
+  foreach ($installation in $installations) {
+    if ($target.Equals($installation.root,[StringComparison]::OrdinalIgnoreCase) -or $target.StartsWith($installation.root+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Backup cannot be inside an installation root.' }
+  }
+  # A junction in an existing target ancestor must not bypass the path boundary.
+  $ancestor = $target
+  while ($ancestor) {
+    if ((Test-Path -LiteralPath $ancestor) -and ((Get-Item -LiteralPath $ancestor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Backup path cannot traverse a reparse point.' }
+    $ancestor = Split-Path -Parent $ancestor
+  }
   Assert-NoLinks $DataRoot
   New-Item -ItemType Directory -Path $BackupPath | Out-Null
   if (Test-Path -LiteralPath $DataRoot) { Copy-Item -LiteralPath $DataRoot -Destination (Join-Path $BackupPath 'data') -Recurse }
@@ -64,16 +144,15 @@ function Restore-Data {
   Write-Output "Restored: $DataRoot; previous data retained at $previous"
 }
 
+# Dot-sourcing exposes the same bounded helpers for isolated administration/tests.
+if ($MyInvocation.InvocationName -eq '.') { return }
 if ($Action -eq 'diagnose') {
-  $wv = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application" -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
   $running=@(Get-Process -Name 'krds-detector' -ErrorAction SilentlyContinue | Select-Object Id,Path)
-  if (-not $InstallationRoot -and $running.Count -gt 0) { $InstallationRoot=Split-Path -Parent $running[0].Path }
-  $build=$null
-  if ($InstallationRoot -and (Test-Path -LiteralPath (Join-Path $InstallationRoot 'binaries\build-manifest.json'))) {
-    $record=Get-Content -LiteralPath (Join-Path $InstallationRoot 'binaries\build-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-    $build=@{appVersion=$record.appVersion;buildId=$record.buildId;target=$record.target;sourceSha256=$record.source.sourceSha256;caseSchemaVersion=$record.caseSchemaVersion;detectorPolicyVersion=$record.detectorPolicyVersion}
+  $runtimeRoots = @()
+  foreach ($base in @(${env:ProgramFiles(x86)},$env:ProgramFiles,$env:LOCALAPPDATA)) {
+    if ($base) { $runtimeRoots += Join-Path $base 'Microsoft\EdgeWebView\Application' }
   }
-  @{schemaVersion=1;dataRoot=$DataRoot;dataExists=(Test-Path -LiteralPath $DataRoot);installationRoot=$InstallationRoot;build=$build;nodeRuntime='22.19.0';webview2=$wv;running=$running} | ConvertTo-Json -Depth 4
+  Get-DeploymentDiagnosis $running @(Get-AppRegistrations) @(Get-WebViewRegistrations) $runtimeRoots | ConvertTo-Json -Depth 6
   exit 0
 }
 Assert-NoRunningApp

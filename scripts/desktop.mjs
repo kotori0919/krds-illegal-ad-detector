@@ -5,10 +5,13 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import process from "node:process";
 import { inventory, json, npm, root, run, sha256, sourceIdentity, stage, verifyFiles, workerName, writeJson } from "./build-support.mjs";
+import { msvcEnvironment } from "./msvc-environment.mjs";
+import { installedExecutableIdentity, projectNsisIdentity } from "./nsis-identity.mjs";
 
 const action = process.argv[2];
 const target = process.env.KRDS_WINDOWS_TARGET ?? (process.platform === "win32" ? "x86_64-pc-windows-msvc" : "x86_64-pc-windows-gnullvm");
 if (!["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnullvm"].includes(target)) throw new Error("Unsupported Windows target");
+const msvc=target.endsWith("msvc")?await msvcEnvironment():undefined;
 if (action === "resources") {
   await run(process.execPath, [join(root, "scripts/prepare-windows-runtime.mjs"), "--verify"]);
   await npm(["run", "build", "-w", "apps/web"]);
@@ -16,8 +19,13 @@ if (action === "resources") {
   const source = await sourceIdentity();
   const builtAt = new Date().toISOString();
   const appVersion = (await json(join(root,"package.json"))).version;
+  const tauriPackage=(await json(join(root,"node_modules/@tauri-apps/cli/package.json"))).version;
+  const tauriOutput=execFileSync(process.execPath,[join(root,"node_modules/@tauri-apps/cli/tauri.js"),"--version"],{encoding:"utf8"}).trim();
+  const tauriVersion=/^tauri-cli (\d+\.\d+\.\d+)$/.exec(tauriOutput)?.[1];
+  if(!tauriVersion)throw new Error("Unrecognized Tauri CLI version output");
   if ((await json(join(root,"src-tauri/tauri.conf.json"))).version !== appVersion) throw new Error("Tauri/app version mismatch");
   const releaseInputs = {};
+  if(msvc)releaseInputs.msvc=msvc.provenance;
   if (target.endsWith("gnullvm") && process.env.KRDS_LLVM_MINGW && process.env.KRDS_NSIS_ROOT) {
     const llvm=resolve(process.env.KRDS_LLVM_MINGW);
     const nsis=resolve(process.env.KRDS_NSIS_ROOT);
@@ -30,7 +38,7 @@ if (action === "resources") {
   const manifest = { schemaVersion: 1, builtAt, buildId: `${appVersion}-${target}-${source.sourceSha256.slice(0,12)}-${builtAt.replace(/[^0-9TZ]/g,"")}`,
     caseSchemaVersion: 1, detectorPolicyVersion: 2, appVersion, source,
     target, releaseInputs, tools: { node: process.version, rust: execFileSync("rustc", ["--version"], { encoding: "utf8" }).trim(),
-      tauri: (await json(join(root, "node_modules/@tauri-apps/cli/package.json"))).version },
+      tauri:tauriVersion,tauriNpmPackage:tauriPackage },
     lockfiles: { npm: await sha256(join(root,"package-lock.json")), cargo: await sha256(join(root,"src-tauri/Cargo.lock")),
       runtime: await sha256(join(root,"scripts/windows-runtime.lock.json")) },
     frontend: await inventory(join(root, "apps/web/dist")),
@@ -38,7 +46,7 @@ if (action === "resources") {
   await writeJson(join(stage, "build-manifest.json"), manifest);
   await cp(join(root, "scripts/windows-runtime.lock.json"), join(stage, "resources-manifest.json"));
 } else if (action === "build" || action === "package") {
-  const env = { ...process.env, KRDS_WINDOWS_TARGET: target };
+  const env = { ...(msvc?msvc.env:process.env), KRDS_WINDOWS_TARGET: target };
   let nsisLauncher;
   if (target === "x86_64-pc-windows-gnullvm") {
     if (!process.env.KRDS_LLVM_MINGW || !process.env.KRDS_NSIS_ROOT) throw new Error("GNU build requires KRDS_LLVM_MINGW and KRDS_NSIS_ROOT; see BUILD_MANUAL.md");
@@ -82,17 +90,26 @@ if (action === "resources") {
     await run(process.execPath,[join(root,"scripts/prepare-windows-runtime.mjs"),"--verify"]);
     if(target.endsWith("gnullvm")&&(await sha256(join(stage,"libunwind.dll"))!==manifest.releaseInputs.loaders.libunwind
       ||await sha256(join(stage,"WebView2Loader.dll"))!==manifest.releaseInputs.loaders.webview2)) throw new Error("Loader inputs changed during packaging");
+    if(msvc){
+      const current=(await msvcEnvironment()).provenance;
+      if(JSON.stringify(current.tools)!==JSON.stringify(manifest.releaseInputs.msvc.tools)
+        ||current.toolsetVersion!==manifest.releaseInputs.msvc.toolsetVersion
+        ||current.windowsSdkVersion!==manifest.releaseInputs.msvc.windowsSdkVersion
+        ||current.ucrtVersion!==manifest.releaseInputs.msvc.ucrtVersion)throw new Error("MSVC/Windows SDK inputs changed during packaging");
+    }
     const directory = join(root,"src-tauri/target",target,"release/bundle/nsis");
     const installers = (await inventory(directory)).filter(file=>file.path.endsWith(`_${manifest.appVersion}_x64-setup.exe`));
     if (installers.length !== 1) throw new Error("Expected exactly one NSIS installer for candidate");
     const executable = join(root,"src-tauri/target",target,"release/krds-detector.exe");
+    const installedExecutable=await installedExecutableIdentity(executable,manifest.tools.tauri);
+    const packagingTools=msvc?await projectNsisIdentity(root,manifest.tools,manifest.lockfiles.npm):undefined;
     const candidate = join(root,"artifacts",`candidate-${manifest.buildId}`);
     await mkdir(candidate,{recursive:true});
     await cp(join(directory,installers[0].path),join(candidate,installers[0].path));
     await cp(executable,join(candidate,"krds-detector.exe"));
     await cp(join(stage,"build-manifest.json"),join(candidate,"build-manifest.json"));
     await cp(join(stage,"resources-manifest.json"),join(candidate,"resources-manifest.json"));
-    await writeJson(join(candidate,"manifest.json"),{schemaVersion:1,...manifest, releaseStatus:"preparing", createdAt:new Date().toISOString(),
+    await writeJson(join(candidate,"manifest.json"),{schemaVersion:1,...manifest, installedExecutable, packagingTools, releaseStatus:"preparing", createdAt:new Date().toISOString(),
       signing:"unsigned-internal-candidate",webview2:"pre-provisioned-or-approved-online-bootstrapper; absent-runtime installation NOT_RUN",
       reproducibility:"functional rebuild; bit identity NOT_ESTABLISHED",files:await inventory(candidate)});
     await run(process.execPath,[join(root,"scripts/supply-chain.mjs"),candidate]);

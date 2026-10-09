@@ -30,3 +30,5 @@ Windows 보관 위치는 `%APPDATA%\kr.go.nia.illegal-ad-detector\cases`다.
 사용자명이 포함된 경로는 공유 전 검토/삭제한다. 일반 로그에 원문·메모·토큰을
 추가하지 않는다. XLSX의 원문/메모는 문자열 셀로 기록하며 수식·외부 링크로
 해석하지 않는다. 실제 Excel 및 보조기기 판독은 후보별 외부 수용 사항이다.
+
+일반 오류의 기존 연락 경로는 [저장소 Issues](https://github.com/snowman0919/krds-illegal-ad-detector/issues)다. 공개 issue에는 원문·메모·개인정보·토큰·사용자 프로필 경로를 넣지 않는다. 민감한 보안 사건의 비공개 접수 담당자와 조직 내부 경로는 수신 조직이 지정해야 하며 현재 문서는 존재하지 않는 연락처를 만들지 않는다.

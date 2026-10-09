@@ -3,7 +3,7 @@
 Real Windows-capable public-website illegal-advertisement inspection tool for the
 2026 행정안전부 / 한국지능정보사회진흥원 "공공 웹사이트 불법광고 탐지 도구 개발 공모전".
 
-## Current adoption candidate (0.2.0 / policy 2)
+## Current adoption candidate (0.2.1 / policy 2)
 
 Current implementation and evidence: [adoption ledger](docs/ADOPTION_LEDGER.md).
 Receiving maintainers start with [BUILD_MANUAL](docs/BUILD_MANUAL.md),
@@ -22,7 +22,7 @@ OCR analyzes selected advertisement images; cooperative cancellation preserves
 validated completed results. Browser preview is explicitly a replay; Tauri
 uses the real worker and session artifacts. Release acceptance remains scoped
 to the candidate build; see [`docs/RELEASE_CANDIDATE.md`](./docs/RELEASE_CANDIDATE.md)
-for the current complete NSIS artifact and Gate A/B/C verdict. Earlier component
+for the historical complete NSIS artifact and Gate A/B/C verdict. Earlier component
 acceptance is retained in `docs/PRODUCT_V2_ACCEPTANCE.md`.
 
 - Submission deadline: 2026-10-23 18:00 KST
@@ -66,7 +66,7 @@ platform adapters — all native capability goes through `HostBridge`.
 
 ## Docs
 
-- Current release candidate: [`docs/RELEASE_CANDIDATE.md`](./docs/RELEASE_CANDIDATE.md) · Installed resources: [`docs/INSTALL_LAYOUT.md`](./docs/INSTALL_LAYOUT.md)
+- Historical release candidate: [`docs/RELEASE_CANDIDATE.md`](./docs/RELEASE_CANDIDATE.md) · Installed resources: [`docs/INSTALL_LAYOUT.md`](./docs/INSTALL_LAYOUT.md)
 - Build: [`docs/BUILD_MANUAL.md`](./docs/BUILD_MANUAL.md) · Use: [`docs/USER_MANUAL.md`](./docs/USER_MANUAL.md)
 - Submission plan: [`docs/PLANNING_DOC.md`](./docs/PLANNING_DOC.md) · Dry run: [`docs/DRY_RUN.md`](./docs/DRY_RUN.md)
 - Detection: [`docs/DETECTION.md`](./docs/DETECTION.md) · [`docs/DETECTORS.md`](./docs/DETECTORS.md) · [`docs/ADVERSARIAL.md`](./docs/ADVERSARIAL.md)

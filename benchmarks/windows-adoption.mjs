@@ -101,7 +101,18 @@ try{
   await page.getByLabel("최대 페이지 수",{exact:true}).fill("2");
   await page.getByLabel("탐색 깊이",{exact:true}).fill("1");
   await page.getByLabel("제한 시간(초)",{exact:true}).fill("60");
-  const uiStarted=performance.now();
+  await page.evaluate(()=>{
+    window.adoptionTiming={};
+    const start=[...document.querySelectorAll("button")].find(button=>button.textContent==="점검 시작");
+    start.addEventListener("click",()=>{window.adoptionTiming.uiStartedAt=performance.now();},{once:true});
+    const observer=new window.MutationObserver(()=>{
+      const save=[...document.querySelectorAll("button")].find(button=>button.textContent==="공식 JSON 저장");
+      if(window.adoptionTiming.uiStartedAt!==undefined&&save&&!save.disabled){
+        window.adoptionTiming.exportableAt=performance.now();observer.disconnect();
+      }
+    });
+    observer.observe(document.body,{childList:true,subtree:true,attributes:true});
+  });
   await page.getByRole("button",{name:"점검 시작",exact:true}).click();
   let renderers=[];
   for(let attempt=0;attempt<10&&!renderers.length;attempt++){
@@ -113,7 +124,9 @@ try{
   assert.ok(renderers.every(row=>row.noSandbox===false&&row.integrityRid>=0&&row.integrityRid<=4096),"renderer must run at low/untrusted Windows integrity without no-sandbox");
   report.sandbox={productionLaunch:true,renderers};
   await page.getByRole("heading",{name:"점검 결과",exact:true}).waitFor({timeout:90000});
-  report.uiStartToExportableMs=performance.now()-uiStarted;
+  await page.waitForFunction(()=>window.adoptionTiming.exportableAt!==undefined);
+  report.uiTiming=await page.evaluate(()=>window.adoptionTiming);
+  report.uiStartToExportableMs=report.uiTiming.exportableAt-report.uiTiming.uiStartedAt;
   const id=await page.evaluate(()=>window.adoptionEvents.at(-1).sessionId);
   report.caseId=id;
   const result=await invoke("scan_get_result",{sessionId:id});
@@ -124,6 +137,7 @@ try{
   const coverage=await invoke("scan_get_coverage",{sessionId:id});
   assert.equal(coverage.coverage.checkedPages,1);assert.equal(coverage.coverage.failedPages.length,1);
   const summary=await invoke("scan_get_evidence_summary",{sessionId:id});
+  assert.equal(summary.graphAvailable,true,"native evidence graph must be committed with this case");
   const analyses=await invoke("scan_get_image_analysis",{sessionId:id,query:{limit:24}});
   assert.ok(analyses.items.some(a=>a.ocr.state==="available"),"offline bundled OCR must run");
   const opened=await invoke("case_open",{caseId:id});
@@ -133,6 +147,17 @@ try{
   report.findings=result.findings.length;report.coverage=coverage.coverage;report.optionalIssues=opened.manifest.issues;
   report.checks.push("real single scan / contrasting library negative / failed-page coverage / bundled OCR / durable original");
   await page.getByRole("button",{name:"근거 보기",exact:true}).first().click();
+  const inspectedText=await page.locator(".result-inspector .raw").innerText();
+  const selectedFinding=result.findings.find(f=>f.evidence_text===inspectedText);
+  assert.ok(selectedFinding,"inspector must show an immutable official record");
+  await page.getByRole("button",{name:"관계 보기",exact:true}).click();
+  const witness=page.getByRole("button",{name:`원본 요소 ${selectedFinding.id}`,exact:true});
+  await witness.focus();await witness.press("Enter");
+  await page.getByRole("button",{name:`원본 기록 ${selectedFinding.id} 열기`,exact:true}).click();
+  assert.equal(await page.locator(".result-inspector .raw").innerText(),selectedFinding.evidence_text);
+  report.checks.push("real native graph / keyboard witness selection / same original inspector");
+  report.viewport=await page.evaluate(()=>({width:window.innerWidth,height:window.innerHeight,devicePixelRatio:window.devicePixelRatio,bodyFontSize:getComputedStyle(document.body).fontSize}));
+  assert.equal(report.viewport.bodyFontSize,"17px");
   await page.getByLabel("검토 메모",{exact:true}).fill("인수 검증 메모 =1+1");
   await page.getByLabel("담당자의 판단",{exact:true}).selectOption("needs-more-evidence");
   await page.getByRole("button",{name:"검토 완료로 표시",exact:true}).click();
@@ -154,13 +179,16 @@ try{
   assert.deepEqual(await readFile(join(output,"result.json")),original);
   assert.deepEqual(await readFile(join(opened.directory,"result.json")),original);
   report.summary={graphAvailable:summary.graphAvailable,assets:JSON.parse(await readFile(join(opened.directory,"evidence.json"),"utf8")).assets};
+  await page.getByRole("button",{name:"결과 목록으로",exact:true}).click();
   // A real operator (or the authorized GUI driver) completes the native chooser.
   // Do not activate a guessed window or synthesize global keys from this harness.
+  const saveDialogStarted=performance.now();
   await page.getByRole("button",{name:"엑셀 보고서 저장",exact:true}).click();
   await pause(1000);
   const workbook=join(output,"native-review.xlsx");
   process.stdout.write(JSON.stringify({phase:"native-save-dialog",pid:app.pid,path:workbook})+"\n");
   await page.getByText(/엑셀 보고서 저장 완료:/).waitFor({timeout:120000});
+  report.userSaveInteractionMs=performance.now()-saveDialogStarted;
   report.workbookBytes=(await readFile(workbook)).length;
   report.checks.push("real native JSON export byte identity / real workbook save chooser");
   await page.screenshot({path:join(output,"native-case-reopened.png"),fullPage:true});

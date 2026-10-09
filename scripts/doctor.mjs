@@ -12,7 +12,8 @@ function check(name, action, recovery) {
   catch (error) { checks.push({name,state:"missing",error:error.message,recovery}); }
 }
 check("Node build major",()=> {
-  if (![22,24,26].includes(Number(process.versions.node.split(".")[0]))) throw new Error("Supported build majors:22,24,26; canonical:22.19.0");
+  const [major,minor]=process.versions.node.split(".").map(Number);
+  if (![22,24,26].includes(major) || (major===22 && minor<19)) throw new Error("Supported builds:22.19+,24,26; canonical:22.19.0");
   return process.version;
 },"Install an approved supported Node release, then npm ci");
 check("Rust",()=> {

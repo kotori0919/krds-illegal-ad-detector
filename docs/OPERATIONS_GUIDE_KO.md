@@ -12,7 +12,7 @@
 powershell -NoProfile -File scripts/managed-deployment.ps1 -Action diagnose
 ```
 
-결과는 실제 데이터 경로, WebView2 발견 버전, 실행 중 앱 경로를 출력한다. 사용자 이름을 포함한 경로는 진단을 외부 전달하기 전에 검토/삭제한다. 인증정보나 원문 사례는 진단에 담지 않는다. 개발팀의 `npm run doctor`는 추가로 내장 resource와 도구 버전을 점검한다.
+결과는 실제 데이터 경로, 실행 중 앱 또는 정확한 HKCU/HKLM NSIS 등록에서 찾은 설치 build ID, WebView2 등록·파일 근거를 출력한다. 등록됨/파일 존재는 런타임 실행 성공과 구분한다. 사용자 이름을 포함한 경로는 진단을 외부 전달하기 전에 검토/삭제한다. 인증정보나 원문 사례는 진단에 담지 않는다. 개발팀의 `npm run doctor`는 추가로 내장 resource와 도구 버전을 점검한다.
 
 ## 설치·업그레이드·실패 복구
 
@@ -23,7 +23,7 @@ powershell -NoProfile -File scripts/managed-deployment.ps1 -Action install -Mani
 powershell -NoProfile -File scripts/managed-deployment.ps1 -Action upgrade -Manifest '<candidate>\manifest.json' -Installer '<candidate>\setup.exe' -BackupPath '<protected-backups>\before-upgrade'
 ```
 
-`upgrade`와 `rollback`은 설치 전에 AppData를 새 백업 폴더로 복사하고 모든 파일 해시를 기록한다. 기존 백업은 덮어쓰지 않는다. installer 해시/manifest/profile 검사가 실패하면 실행하지 않는다. 설치가 실패하거나 중단되면 백업이 남는다. 성공 exit만 업무 검증으로 인정하지 말고 앱 build ID, 기존 사례 재열기, 메모, 원본 해시를 확인한다. 설치 스크립트는 데이터 schema를 변환하지 않는다. 지원하지 않는 미래 schema는 명시적으로 거부한다.
+`upgrade`와 `rollback`은 설치 전에 AppData를 새 백업 폴더로 복사하고 모든 파일 해시를 기록한다. 기존 백업은 덮어쓰지 않는다. 백업은 데이터 폴더와 명시·발견한 설치 폴더 밖이어야 하며 junction으로 이 경계를 우회할 수 없다. installer 해시/manifest/profile 검사가 실패하면 실행하지 않는다. 설치가 실패하거나 중단되면 백업이 남는다. 성공 exit만 업무 검증으로 인정하지 말고 앱 build ID, 기존 사례 재열기, 메모, 원본 해시를 확인한다. 설치 스크립트는 데이터 schema를 변환하지 않는다. 지원하지 않는 미래 schema는 명시적으로 거부한다.
 
 ## 백업과 원복
 
