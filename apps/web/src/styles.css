@@ -54,7 +54,7 @@
 .review-display-controls label { display: inline; margin-right: var(--krds-semantic-gap-2); }
 .review-display-controls select { width: auto; }
 @media (min-width: 70rem) {
-  .result-workspace:not(.inspecting) .result-layout { display: grid; grid-template-columns: 18rem minmax(0, 1fr); gap: var(--krds-semantic-gap-6); align-items: start; }
+  .result-workspace:not(.inspecting) .result-layout { display: grid; grid-template-columns: 18rem minmax(0, 1fr); gap: var(--krds-semantic-gap-7); align-items: start; }
   .result-workspace:not(.inspecting) .result-summary-panel { padding: var(--krds-semantic-padding-4); border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); border-radius: var(--krds-semantic-radius-control); }
   .result-workspace:not(.inspecting) .result-header { display: flex; flex-direction: column; align-items: stretch; }
   .result-workspace:not(.inspecting) .result-header > .result-completion, .result-workspace:not(.inspecting) .result-header > .result-overview { flex: none; }

@@ -47,6 +47,16 @@ OBSERVED: evidence dist를 별도 보존한 뒤 없는 상태에서 root build�
 그 production UI와 실제 XLSX에서 제한 안내를 확인했다. build-boundary 5개도 통과했다.
 이는 전체 도구 캐시가 빈 Windows 설치 시험이라는 뜻은 아니다.
 
+후속359 Windows 직접 빌드에서도 기존 케이스를 재열어 제한 안내를 확인하고 native
+Save As로 새 XLSX(14,055bytes)를 저장했다. 실제 파일의 점검 범위8열에
+`html-snapshot-truncated`, 페이지 상태에 확인 완료, 공식 상세0행을 확인했다.
+새 공개 스캔이나 설치는 실행하지 않았다. 실제 화면에서 요약 카드와 본문 간격이0인
+문제도 관측했다. 정의되지 않은gap6 토큰을 기존gap7(24px)로 수정했다.
+이 후속 화면 보정의 후보 식별과 native 관찰은 채택 인계에 따로 기록한다.
+OBSERVED: 같은 저장 범위의 production UI에서1366px 간격24px,320px 가로 넘침 없음.
+617건 workflow도 다시 실행해17px/1366×768의 첫3행 하단748.25px, 키보드/원문/메모/
+공식JSON/XLSX 회귀를 통과했다. 실제 카드·목록의 분리 여부를 화면 smoke에 추가했다.
+
 원본 케이스와 native workbook은 로컬 Windows 데이터 및 별도 원본 증거로 보존한다.
 공개 인계에는 연락처·게시자 이름·개인 저장 경로를 복사하지 않고 계약 결과·범위·해시와
 화면 검증을 제공한다. 증거 폴더는 `artifacts/public-batch-20261010/`다.

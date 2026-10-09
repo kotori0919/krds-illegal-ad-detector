@@ -62,6 +62,8 @@ try {
   const initialGeometry = await page.evaluate(() => ({
     bodyFontSize: getComputedStyle(document.body).fontSize,
     search: document.getElementById("result-search").getBoundingClientRect().toJSON(),
+    summary: document.querySelector(".result-summary-panel").getBoundingClientRect().toJSON(),
+    review: document.getElementById("review-workspace").getBoundingClientRect().toJSON(),
     rows: [...document.querySelectorAll(".review-row")].slice(0, 3).map((row) => row.getBoundingClientRect().toJSON()),
     height: window.innerHeight,
   }));
@@ -70,6 +72,7 @@ try {
   await page.getByRole("link", { name: "검토 목록으로 이동 ↓" }).press("Enter");
   assert.equal(await page.getByRole("region", { name: "결과 목록", exact: true }).evaluate((element) => element === document.activeElement), true);
   assert(initialGeometry.search.bottom <= initialGeometry.height, JSON.stringify(initialGeometry));
+  assert(initialGeometry.review.left > initialGeometry.summary.right, "Summary card and review content need visible separation");
   assert(initialGeometry.rows.every((row) => row.bottom <= initialGeometry.height), JSON.stringify(initialGeometry));
   assert.equal(await page.getByRole("navigation", { name: "목록 페이지" }).count(), 0);
   assert.equal(await page.getByRole("button", { name: "근거 보기", exact: true }).count(), 19);
