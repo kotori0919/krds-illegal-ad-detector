@@ -1,16 +1,52 @@
 # 채택 후보와 수신팀 인계
 
-`dev/bootstrap`, Draft PR #2의 현재 후보와 실행 증거를 연결한다. 검토 기준은
-`d14b8feadf60a174d3d74ad47e49ba13072c84c7`, 설치 검증을 마친 네이티브 후보 소스는
-`50941bd99f9d09d1b7abec93417a94d659c5dcb2`다. 이후 UI 변경은 아래 화면 검증과
-구분한다. 최종 UI 후보는 `8b68248240c050df1b9257b6a3f9f939a029e46b`에서 한 번 빌드했고
-Windows·로컬 무결성 검증을 통과했다. 새 후보의 설치·실행 수용은 NOT_RUN이다.
-현재 판정은 **서명 없는 내부 평가
-후보, 운영 채택 조건부**다. 아래 미실행 수용 행이 남아 있으므로 M5 전체 완료,
-NIA 인증, 법적 위반 확정 또는 공개 배포 가능 판정으로 읽어서는 안 된다.
-[역사 RC](RELEASE_CANDIDATE.md)와 중간 GNU/MSVC 후보는 보존한다.
+`dev/bootstrap`, Draft PR #2의 구현·현재 후보와 실행 증거를 연결한다. 검토 기준은
+`d14b8feadf60a174d3d74ad47e49ba13072c84c7`이다. 설치 경계 관측은509, 공개 두 대상의
+실제 점검은3c, 새 보고서의 native 저장은359, 마지막 화면 재열기는565 소스다.
+각 관측을 다른 후보의 설치 수용으로 전용하지 않는다. 반복 설치 대신 변경된 경계를
+실제 Rust/Tauri 빌드·production web·직접 native 실행으로 검증했다.
+현재 판정은 **서명 없는 내부 평가 후보, 운영 채택 조건부**다.
+미실행 행이 남아 있으므로 M5 전체 운영 수용, NIA 인증, 법적 위반 확정 또는 공개
+배포 가능 판정으로 읽어서는 안 된다. [역사 RC](RELEASE_CANDIDATE.md)와 모든 중간
+GNU/MSVC 후보·기존 전달 ZIP은 보존한다.
 
-## 정확한 전달 후보 — 683px 수정 포함
+## 현재 전달 후보 — 공개 범위·보고 제한·화면 간격 수정 포함
+
+앱 `0.2.1`, 공식 tool `0.2.1-policy2`, 공식/Case/detail/config/policy는 `v0/1/2/1/2`다.
+UI·보고서·빌드 경로 변경은 탐지 정책이나 보관 공식 원본을 바꾸지 않는다.
+
+| 항목 | 식별자 |
+| --- | --- |
+| source commit | `565d9f6e49f857c6a0a9aaf2ab3b829452584e1e` |
+| build ID | `0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z` |
+| source SHA-256 | `d33dc9f7c0976e065633234104c5ff39c7907e2d01f3802d43da41506ea5afa0` |
+| installer | `불법광고 탐지 도구_0.2.1_x64-setup.exe` |
+| installer 크기 / SHA-256 | `149813810` bytes / `cb4140382b0496763ac8c728ea400b5618ba2c3804b2f883e942395fb2d59456` |
+| standalone EXE SHA-256 | `99b44dd44b4e4221c4778e8b2de9a489ed756a728cb987529eece5025136667d` |
+| 설치 EXE 유도 SHA-256 | `7b6fc529fc679974aca2a603dd7de616ba89947fea64945e5c71fc9cc467fbba` — 실제 설치 확인값 아님 |
+| manifest SHA-256 | `dc216c083f2e7d803f49357c86af1c811406cadfd75d42cf80a68859a00fa69d` |
+
+폴더는 `artifacts/candidate-0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z/`다.
+OBSERVED: clean receiving checkout에서 canonical `package:windows` 한 번,
+315.93초(같은 VM의 단일 관측), Windows·로컬 artifact verify exit0.
+contracts→evidence→web→worker→Rust/Tauri→NSIS 순서이며 manual prebuild·도구 설치·
+installer 실행·역사 native harness 반복은 없다. 보고서 dist가 없는 실제 root build도
+통과했다. `ui-candidate-565d9f6-report.json`과 단계 로그가 근거다.
+
+최종 직접 실행 EXE와 후보 standalone의 해시·인접 리소스가 일치했다. 실제565 native
+화면에서3c 공개 케이스를 재열어 수집·보관 제한 안내와 카드·본문 간격을 확인했다.
+새 공개 스캔이나 설치는 하지 않았다. 기존48 persistent 파일과 공개 케이스19파일의
+해시가 그대로였다. Case 설정의 source는 원래3c이며 새 앱 source로 다시 쓰지 않았다.
+보고서 변경은 앞선359 직접 빌드의 실제 native Save As(14,055bytes)와8열 확인으로
+검증했고,565의 CSS 보정 때문에 저장을 반복하지 않았다.
+
+[공개 두 대상 결과·제한·후속 수정](PUBLIC_BATCH_OBSERVED_KO.md)과
+`public-batch-20261010/{native-observed,native-359-reopen-observed,native-reopen-observed}.json`이
+실제 스캔·보고서 저장·최종 재열기의 독립 증거다. 원본 HTML 사본 일부 생략과
+공식 탐지0건을 전체 내용 정상·적법 판정으로 해석하지 않는다.
+최신 installer 실행·전체 rollback·사람/AT·기관 운영 수용은 미실행 또는 미완료다.
+
+## 이전 UI 후보 — 683px 수정 포함, 보존
 
 앱 `0.2.1`, 공식 tool `0.2.1-policy2`, 공식/Case/detail/config/policy는 `v0/1/2/1/2`다.
 UI 수정으로 탐지 정책이나 저장된 공식 원본을 바꾸지 않았다.
@@ -101,7 +137,7 @@ STATIC_REVIEW/INFERRED는 실행하지 않은 판단, NOT_RUN은 미실행이다
 | 유지보수자: 별도 Windows source build | OBSERVED. 작성자 캐시를 복사하지 않은 receiving workspace에서 초기 준비 후 clean 50941bd로 갱신. npm/build/production worker/native/desktop/package/verify 15단계 exit 0, native 51 통과 | 자동 실행으로 확인한 범위이며 실제 다른 사람의 사용성 평가를 주장하지 않음 |
 | 운영자: 실제 단일 검사·검토·재열기 | OBSERVED. 최종 MSVC 설치본 일반 사용자 실행의 실제 scan 2 finding·404·OCR durable, graph keyboard·17px 글자/공유 raw inspector, 판단/메모/reading 저장, 정상 종료·새 실행/재열기, 재크롤 없음·공식 JSON byte identity 확인. native harness 다섯 과업 모두 pass | controlled fixture와 자동 조작 범위이며 실제 사람 사용성/공개 batch와 구분 |
 | 운영자: native XLSX와 Excel | OBSERVED. 최종 MSVC 실제 Save As에서 XLSX 14,072 bytes 저장 및 원본 JSON byte identity 확인. 이전 GNU의 `native-review.xlsx` 14,068 bytes는 실제 Excel 16.0.20430.20092에서 한국어 summary wrap/width·review 메모/상태 확인, 로그인/라이선스 prompt 없음, 재저장하지 않음. upgrade 뒤 이전 workbook hash 동일 | 최초 GNU 자동 harness timeout은 후속 실제 저장 성공과 구분한 실패 기록. Excel 렌더링 증거는 앞의 14,068-byte 파일이며 새 MSVC 파일에 전용하지 않음 |
-| 운영자: 승인된 공개 두 대상 batch | NOT_RUN. 대상 주소 미확정 | 사용자/수신팀의 승인된 두 대상 입력 후 실제 설치본으로 수행. 임의 공개 사이트로 대체하지 않음 |
+| 운영자: 공개 두 대상 batch | OBSERVED_DIRECT_BUILT. 사용자 직접 선정 지시에 따라 공개 광고 게시물 두 페이지를 native3c 빌드에서 CSV 가져오기·각1/0/60 점검, HTTP200·각 확인1/실패0/탐지0, 실제 Excel/공식JSON 저장 창, 원본 해시·계약·기존48파일 보존 확인 | 설치본 수용과 구분. 두 페이지 모두 보관용 HTML 사본 제한; [대상·결과·후속 수정](PUBLIC_BATCH_OBSERVED_KO.md). 전체 사이트/적법/광고 없음 판정 아님 |
 | 운영: 최종 MSVC upgrade | OBSERVED. 실제 대화형 NSIS 3.11 종료코드 0, 이전 GNU70 제거 단계의 data delete checkbox 해제 확인. 원래 data 34파일 SHA-256 전부 동일, workbook hash 동일. 설치 EXE 실제 hash가 manifest의 유도 값과 일치 | `preservation-after-021.json`이 파일 보존 근거. 최종 MSVC 새 실행의 운영 과업은 별도 |
 | 운영: rollback·일반 제거 | **NOT_COMPLETED — 사용자 방향 전환에 따라 중단** | 일부 절차를 시작했지만 완전 rollback·일반 제거 수용은 확립하지 않았다. 추가 설치 matrix를 반복하지 않으며 upgrade 보존 결과로 대신하지 않음 |
 | 운영: 중단 후 최종 프로그램 복원 | OBSERVED. 최종 MSVC 0.2.1 프로그램 복원, 위 build ID와 설치 EXE SHA-256 일치. 원래 persistent 33파일과 GNU workbook 해시 동일 | `preservation-restored-021.json`. 앱이 열릴 수 있는 동안 변하는 `cases/.store.lock`은 비교에서 제외. 이 복원을 rollback 전체 완료로 읽지 않음 |
@@ -157,7 +193,7 @@ MSVC source build 로그에서 따로 식별한다.
 | 키보드·검토 | OBSERVED. 검색/기법 필터, 결과 초점·목록 jump, 원문 진입/초점 복귀, 메모·reading, 묶음 확인, 20/50 표시와 f372 원문 확인 |
 | JSON / XLSX | OBSERVED. 공식 canonical JSON bytes 동일, 실제 workbook 617 official 행과 검토 메모 확인. 필터가 export 전체 범위를 줄이지 않음. native Save As만 replay이며 이 시험을 실제 chooser 수용으로 읽지 않음 |
 | BrowserHost preview | OBSERVED. 실제 preview adapter 경로는 Tauri IPC 없이 별도로 실행. 임시 preview 안내, 잘못된 저장 장애 없음, 외부 요청 없음 |
-| 한계 | 관찰 기록의 remote requests 0, errors 0. 후속 UI 바이너리 빌드는 위에서 OBSERVED, 실제 설치 과업과 사람/AT는 NOT_RUN; M5 및 사용자 UI/UX 수용은 아직 완료 판정하지 않음 |
+| 한계 | 관찰 기록의 remote requests0/errors0은 웹 replay 범위다. 이후 실제 공개native3c·보고native359·화면재열기565를 위에서 별도 식별했다. 최신 설치 과업과 사람/AT는 NOT_RUN; M5 전체 운영 수용은 완료 판정하지 않음 |
 
 인계 증거는 `ui-adoption/after/observed.json`과 같은 폴더의
 `workspace-1366x768.png`, `workspace-320px.png`, `workspace-200-percent.png`,

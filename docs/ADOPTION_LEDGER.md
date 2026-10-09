@@ -6,10 +6,12 @@
 과거 RC와 중간 GNU/MSVC 후보를 보존한다. 현재 앱은 `0.2.1`, 공식 tool version은
 `0.2.1-policy2`다. 공식 contract v0, Case 1, detail 2, config 1, policy 2를 구분한다.
 정확한 후보와 운영 수용 판정은 [채택 인계](ADOPTION_HANDOFF_KO.md)가 기준이다.
-후속 UI `2a8356d`와 683px 수정 `8b68248`의 화면 검증을 위 설치 후보와 구분한다.
-최종 UI 후보 build ID는 `0.2.1-x86_64-pc-windows-msvc-7ae9f6144bf9-20261009T173735184Z`이며 receiving에서
-한 번 빌드하고 Windows·로컬 artifact verify를 통과했다. 설치 과업·실제 사람/AT와
-사용자 UI/UX 수용은 아직 완료 판정하지 않는다. 운영 코드 이후 변경은 테스트·문서다.
+후속 UI와683px 수정, 실제 공개native3c·보고서native359·화면재열기565를 위 설치
+후보와 구분한다. 현재 후보 source는 `565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`, build ID는
+`0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z`다. Canonical receiving 빌드와 Windows·로컬 artifact verify를 통과했고
+실제 직접 실행에서 보관 케이스를 재열었다. 최신 설치 과업·실제 사람/AT·기관 운영
+수용은 아직 완료 판정하지 않는다. 이후 공개 두 대상 native 점검에서 범위·보고 누락을 관측해 후속 수정했다.
+[공개 대상 결과와 수정 근거](PUBLIC_BATCH_OBSERVED_KO.md)에 실제3c 점검과 후속 웹 replay를 구분한다.
 
 | ID | 현재 상태 | 구현 커밋 | 실행 근거와 적용 범위 |
 | --- | --- | --- | --- |
@@ -83,3 +85,22 @@ mock/replay, GNU 설치, MSVC source build, 최종 MSVC 설치를 구분한다. 
 서명 없는 내부 평가용이며 [채택 인계](ADOPTION_HANDOFF_KO.md)의 미실행 행을 성공으로
 읽어서는 안 된다. 공식 원본과 선택 기능 장애 격리·공개망·취소·deadline은 구현 회귀와
 설치본 과업 증거를 함께 확인한다.
+
+## 공개 두 대상과 수집·보관 제한 후속 수정
+
+사용자의 직접 선정 지시에 따라 source3c 빌드의 실제 Windows native 화면에서 두 공개
+대상을 각1페이지·깊이0·60초·public-pinned로 점검했다. 각HTTP200, 확인1/실패0/탐지0이며
+HTML 사본 제한을 기록했다. 실제 native CSV/JSON/XLSX chooser, 공식 계약·원본 hash,
+기존48파일 보존을 확인했다. 새 installer 실행으로 읽지 않는다.
+
+b4ca202는 보관된collectionIssues를 점검 범위와 Excel8열/요약에 표시하고320px긴주소
+줄바꿈을 수정했다. 359ef05는 root/desktop 빌드가 contracts→evidence→web을 컴파일하도록
+수정해 이전 dist 의존을 없앴다. OBSERVED: evidence dist 없는 실제 rootbuild, 실제production
+UI1366/320+XLSX 제한 열,23집중회귀/타입/lint,5buildboundary 통과. 공식 정책·원본은 그대로다.
+읽기 전용 별도 scoped review에서 actionable finding은 없었고 추가 실행 검증으로 주장하지 않는다.
+
+565d9f6는 실제native359에서 발견한 정의되지 않은 gap6를 기존gap7(24px)로 수정했다.
+617건production UI smoke의 실제 card/review 좌표 분리 회귀를 추가했고 첫3행하단748.25px와
+나머지 키보드·원문·JSON/XLSX를 통과했다. 현재565 후보는 단회315.93초package/verify와
+native 보관 케이스 재열기·제한 안내/시각 간격 관측을 완료했다. 원래48파일·공개19파일
+해시를 보존했다. 최신 installer와 full rollback/humanAT 수용으로 전용하지 않는다.
