@@ -42,7 +42,7 @@ function Restore-Data {
   if (-not $ConfirmRestore) { throw 'Restore requires -ConfirmRestore; the current data is preserved in a sibling recovery directory.' }
   Assert-NoLinks $BackupPath
   Assert-NoLinks $DataRoot
-  $backup = Get-Content -LiteralPath (Join-Path $BackupPath 'backup-manifest.json') -Raw | ConvertFrom-Json
+  $backup = Get-Content -LiteralPath (Join-Path $BackupPath 'backup-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
   if ($backup.schemaVersion -ne 1) { throw 'Unsupported backup schema.' }
   $base = [IO.Path]::GetFullPath($BackupPath).TrimEnd('\')+'\'
   $actual = @(Get-ChildItem -LiteralPath $BackupPath -Recurse -File | Where-Object { $_.FullName -ne (Join-Path $BackupPath 'backup-manifest.json') })
@@ -70,7 +70,7 @@ if ($Action -eq 'diagnose') {
   if (-not $InstallationRoot -and $running.Count -gt 0) { $InstallationRoot=Split-Path -Parent $running[0].Path }
   $build=$null
   if ($InstallationRoot -and (Test-Path -LiteralPath (Join-Path $InstallationRoot 'binaries\build-manifest.json'))) {
-    $record=Get-Content -LiteralPath (Join-Path $InstallationRoot 'binaries\build-manifest.json') -Raw | ConvertFrom-Json
+    $record=Get-Content -LiteralPath (Join-Path $InstallationRoot 'binaries\build-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     $build=@{appVersion=$record.appVersion;buildId=$record.buildId;target=$record.target;sourceSha256=$record.source.sourceSha256;caseSchemaVersion=$record.caseSchemaVersion;detectorPolicyVersion=$record.detectorPolicyVersion}
   }
   @{schemaVersion=1;dataRoot=$DataRoot;dataExists=(Test-Path -LiteralPath $DataRoot);installationRoot=$InstallationRoot;build=$build;nodeRuntime='22.19.0';webview2=$wv;running=$running} | ConvertTo-Json -Depth 4
@@ -82,7 +82,7 @@ switch ($Action) {
   'restore' { Restore-Data }
   default {
     if (-not $Manifest -or -not $Installer) { throw 'Exact candidate Manifest and Installer are required.' }
-    $candidate = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
+    $candidate = Get-Content -LiteralPath $Manifest -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($candidate.schemaVersion -ne 1 -or $candidate.releaseStatus -ne 'candidate' -or $candidate.signing -ne 'unsigned-internal-candidate') { throw 'Unsupported/incomplete candidate manifest/signing profile.' }
     $name = Split-Path -Leaf $Installer
     $entry = @($candidate.files | Where-Object { $_.path -ceq $name })
