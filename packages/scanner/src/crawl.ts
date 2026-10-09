@@ -219,6 +219,12 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     return { entryUrl: options.entryUrl, pages, externals: [...externals.values()], elapsedMs: performance.now() - t0,
       timedOut: !options.signal?.aborted, cancelled: options.signal?.aborted ?? false };
   }
+  // Standalone callers need the same resource shutdown as an aborted session.
+  // A page-close transport wait must not prevent reaching outer finalization.
+  const deadlineTimer = setTimeout(() => {
+    if (!options.signal?.aborted) timedOut = true;
+    abortPages();
+  }, Math.max(1, deadline.operationTimeoutMs(deadline.remainingMs())));
   try {
     const networkPolicy = options.networkPolicyForTesting ?? (options.publicNetworkOnly ? new PublicNetworkPolicy()
       : await PublicNetworkPolicy.forManualEntry(options.entryUrl, options.signal, deadline.operationTimeoutMs(2000)));
@@ -530,6 +536,15 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       } finally {
         activePages.delete(page);
         if (pageTimer) clearTimeout(pageTimer);
+        // Disposal ends document loading through trusted Chromium control;
+        // page scripts cannot replace this operation as they can window.stop.
+        if (!page.isClosed()) {
+          const session = await activeContext.newCDPSession(page).catch(() => undefined);
+          if (session) {
+            await session.send("Page.stopLoading").catch(() => undefined);
+            await session.detach().catch(() => undefined);
+          }
+        }
         await page.close().catch(() => undefined);
       }
       if (!snapshot) throw new Error("page processing did not produce a snapshot");
@@ -575,6 +590,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     }
     if (!options.signal?.aborted && (frontier.length > 0 || deadline.expired() || !deadline.canStartPage())) timedOut = true;
   } finally {
+    clearTimeout(deadlineTimer);
     options.signal?.removeEventListener("abort", abortPages);
     // Start every closer before awaiting: context disposal must not prevent
     // browser termination or the enforcing proxy from releasing its sockets.

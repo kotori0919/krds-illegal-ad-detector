@@ -150,6 +150,60 @@ describe("public-only runtime navigation", () => {
       await browser?.close();
     }
   }, testTimeoutMs);
+  networkTest("enforces the standalone deadline while page disposal awaits browser disconnect", async ({ network, signal }) => {
+    const originalLaunch = chromium.launch;
+    let browser: Browser | undefined;
+    let disposalStalled = false;
+    let disposalStarted = false;
+    chromium.launch = async (options) => {
+      const launched = await originalLaunch.call(chromium, options);
+      browser = launched;
+      const newContext = launched.newContext.bind(launched);
+      launched.newContext = async (options) => {
+        const context = await newContext(options);
+        const newPage = context.newPage.bind(context);
+        context.newPage = async () => {
+          const page = await newPage();
+          const close = page.close.bind(page);
+          page.close = async () => {
+            disposalStarted = true;
+            let timer: ReturnType<typeof setTimeout> | undefined;
+            let disconnected: (() => void) | undefined;
+            try {
+              if (launched.isConnected()) await new Promise<void>((resolve, reject) => {
+                disconnected = () => resolve();
+                launched.once("disconnected", disconnected);
+                // Test-only release for the failing baseline. Production must
+                // settle through its existing deadline, before this guard.
+                timer = setTimeout(() => { disposalStalled = true; reject(new Error("page disposal outlived standalone deadline")); }, 8000);
+              });
+              await close();
+            } finally {
+              if (timer) clearTimeout(timer);
+              if (disconnected) launched.removeListener("disconnected", disconnected);
+            }
+          };
+          return page;
+        };
+        return context;
+      };
+      return launched;
+    };
+    try {
+      const summary = await crawlSite({ entryUrl: network.origin + "/redirect", publicNetworkOnly: true, signal,
+        networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([network.origin]),
+        deadline: new ScanDeadline(6), limits: { maxPages: 1, maxDepth: 0, timeoutSec: 6 }, settleMs: 0 });
+      expect(disposalStarted).toBe(true);
+      expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
+      expect(summary.timedOut).toBe(true);
+      expect(browser?.isConnected()).toBe(false);
+      expect(network.protectedConnections()).toBe(0);
+      expect(disposalStalled).toBe(false);
+    } finally {
+      chromium.launch = originalLaunch;
+      await browser?.close();
+    }
+  }, testTimeoutMs);
   networkTest("scans exact sitemap-index input pages with original official metadata and no XML checked page", async ({ network, signal }) => {
     const { origin, requests } = network;
     const entryUrl = origin + "/input-index.xml";

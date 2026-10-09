@@ -1,7 +1,7 @@
 /** Frame-owner observations are deliberately distinct from child text style.
  * Serialized trusted function, with bounded ancestor traversal.
  */
-export function observeFrameOwner(el: Element, limits: { ancestors: number }): { transparent: boolean; offscreen: boolean; transparentDetail: string; offscreenDetail: string; unsupported: string[] } {
+export function observeFrameOwner(el: Element, limits: { ancestors: number; tinyClippedExtentCssPx: number }): { transparent: boolean; offscreen: boolean; transparentDetail: string; offscreenDetail: string; unsupported: string[] } {
   const transparent: string[] = [];
   const offscreen: string[] = [];
   const unsupported: string[] = [];
@@ -33,6 +33,10 @@ export function observeFrameOwner(el: Element, limits: { ancestors: number }): {
   }
   if (cursor) unsupported.push("frame ancestor observation limit");
   if (right <= left || bottom <= top) offscreen.push("frame owner fully clipped");
+  const width = right - left; const height = bottom - top; const extent = limits.tinyClippedExtentCssPx;
+  if (owner.width > extent && owner.height > extent && width > 0 && height > 0 && width <= extent && height <= extent) {
+    offscreen.push(`frame owner clipped from ${owner.width}x${owner.height} to ${width}x${height} CSS px (limit ${extent})`);
+  }
   return { transparent: transparent.length > 0, offscreen: offscreen.length > 0,
     transparentDetail: [...new Set(transparent)].join("; "), offscreenDetail: [...new Set(offscreen)].join("; "), unsupported };
 }

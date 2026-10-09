@@ -8,31 +8,34 @@ describe("adversarial fixtures", () => {
     const started = await startFixtureServer();
     const browser = await chromium.launch();
     try {
-      const check = async (path: string): Promise<string[]> => {
+      const check = async (path: string, font?: string): Promise<string[]> => {
         const page = await browser.newPage();
         await page.goto(`${started.url}${path}`, { waitUntil: "commit" });
         await page.waitForTimeout(400);
+        if (font) await page.addStyleTag({ content: `body { font-family: ${font}; }` });
         const found = await detectPageCandidates(page, { pageUrl: `${started.url}${path}` });
         await page.close();
         return found.map((c) => `${c.selector}:${c.technique.technique}`).sort();
       };
-      const adv = await check("/adversarial.html");
-      for (const expected of [
-        "#adv-cyrillic:HOMOGLYPH",
-        "#adv-punct:HOMOGLYPH",
-        "#adv-hyphen:HOMOGLYPH",
-        "#adv-digit:HOMOGLYPH",
-        "#adv-mixed-jamo:JAMO",
-        "#adv-ancestor-child:TRANSPARENT",
-        "#adv-transform:OFFSCREEN",
-        "#adv-clip:OFFSCREEN",
-        "#adv-hidden-overflow:OFFSCREEN",
-      ]) {
-        expect(adv, expected).toContain(expected);
+      for (const font of ["Arial", "serif", "monospace", '"Noto Sans CJK KR"']) {
+        const adv = await check("/adversarial.html", font);
+        for (const expected of [
+          "#adv-cyrillic:HOMOGLYPH",
+          "#adv-punct:HOMOGLYPH",
+          "#adv-hyphen:HOMOGLYPH",
+          "#adv-digit:HOMOGLYPH",
+          "#adv-mixed-jamo:JAMO",
+          "#adv-ancestor-child:TRANSPARENT",
+          "#adv-transform:OFFSCREEN",
+          "#adv-clip:OFFSCREEN",
+          "#adv-hidden-overflow:OFFSCREEN",
+        ]) {
+          expect(adv, `${font} ${expected}; Chromium ${browser.version()}`).toContain(expected);
+        }
+        // Legitimate animation state + brand text: concealment or confusables
+        // without ad semantics must not fire.
+        expect(adv.filter((s) => s.startsWith("#adv-legit"))).toEqual([]);
       }
-      // Legitimate animation state + brand text: concealment or confusables
-      // without ad semantics must not fire.
-      expect(adv.filter((s) => s.startsWith("#adv-legit"))).toEqual([]);
       expect(await check("/negatives.html")).toEqual([]);
     } finally {
       await browser.close();

@@ -29,7 +29,7 @@ export interface FrameVisibilityContext {
   unsupported?: string[];
 }
 
-export interface RenderingObservationLimits { textNodes: number; textRectangles: number; ancestors: number }
+export interface RenderingObservationLimits { textNodes: number; textRectangles: number; ancestors: number; tinyClippedExtentCssPx: number }
 
 export interface ElementSignal {
   selector: string;
@@ -148,6 +148,19 @@ export function collectElementSignals(payload: { inputs: ElementSignalInput[]; f
     if (Number.isFinite(fontSize) && fontSize <= 1) offscreenReasons.push(`font-size:${style.fontSize}`);
     if (textRects.length === 0 && input.rawText.trim() && !renderingIssues.includes("text geometry limit")) offscreenReasons.push("no rendered text ranges");
     if (textRects.length > 0 && visibleRects.every((value) => value.width <= 0 || value.height <= 0)) offscreenReasons.push("text ranges fully clipped");
+    const extent = limits.tinyClippedExtentCssPx;
+    // A positive Range intersection can cover only a sliver of a glyph run.
+    // Its font-dependent top inset must not turn a 2x2 clipping window into
+    // readable text. Require observed reduction, never the container size.
+    if (textRects.some(value => value.width > extent && value.height > extent)
+      && visibleRects.some(value => value.width > 0 && value.height > 0)
+      && visibleRects.every(value => value.width <= extent && value.height <= extent)) {
+      const width = Math.max(...visibleRects.map(value => value.width));
+      const height = Math.max(...visibleRects.map(value => value.height));
+      const sourceWidth = Math.max(...textRects.map(value => value.width));
+      const sourceHeight = Math.max(...textRects.map(value => value.height));
+      offscreenReasons.push(`text ranges clipped to at most ${width}x${height} CSS px from ${sourceWidth}x${sourceHeight} glyph ranges (limit ${extent})`);
+    }
     if (textRects.length > 0 && textRects.every((value) => value.x + value.width <= 0 || value.y + value.height <= 0)) offscreenReasons.push("text ranges above or left of document");
     const transparent = transparentReasons.length > 0;
     const offscreen = offscreenReasons.length > 0;

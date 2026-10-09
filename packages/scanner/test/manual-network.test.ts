@@ -12,7 +12,10 @@ it("authorizes only the exact manual private origin while retaining public resou
   await expect(PublicNetworkPolicy.forManualEntry("http://169.254.169.254/")).rejects.toThrow("policy rejected");
 });
 
-it("blocks actual private subresources and redirects outside a manually entered local origin", async () => {
+const scanTimeoutSec = 30;
+const testTimeoutMs = scanTimeoutSec * 1000 + 30_000;
+
+it.for(["/", "/redirect"])("blocks actual private traffic outside a manually entered local origin (%s)", { timeout: testTimeoutMs }, async (path, { signal }) => {
   let connections = 0;
   const protectedServer = createServer((_request,response) => response.end("protected"));
   protectedServer.on("connection", () => { connections += 1; });
@@ -26,16 +29,21 @@ it("blocks actual private subresources and redirects outside a manually entered 
   });
   await new Promise<void>((resolve) => entryServer.listen(0,"127.0.0.1",resolve));
   const entryOrigin = `http://127.0.0.1:${(entryServer.address() as { port: number }).port}`;
+  const abort = (): void => { entryServer.closeAllConnections(); protectedServer.closeAllConnections(); };
+  signal.addEventListener("abort", abort, { once: true });
   try {
-    const summary = await crawlSite({ entryUrl: entryOrigin + "/", settleMs: 100, limits: { maxPages: 1, maxDepth: 0, timeoutSec: 30 } });
-    expect(summary.pages[0]?.issue).toBeUndefined();
-    expect(summary.pages[0]?.collectionIssues).toContain("network-policy-denied");
-    expect(connections).toBe(0);
-    const redirect = await crawlSite({ entryUrl: entryOrigin + "/redirect", settleMs: 0, limits: { maxPages: 1, maxDepth: 0, timeoutSec: 30 } });
-    expect(redirect.pages[0]?.issue?.kind).toBe("network-policy");
+    const summary = await crawlSite({ entryUrl: entryOrigin + path, signal, settleMs: path === "/" ? 100 : 0,
+      limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } });
+    if (path === "/") {
+      expect(summary.pages[0]?.issue).toBeUndefined();
+      expect(summary.pages[0]?.collectionIssues).toContain("network-policy-denied");
+    } else expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
     expect(connections).toBe(0);
   } finally {
-    entryServer.closeAllConnections(); protectedServer.closeAllConnections();
-    await Promise.all([entryServer,protectedServer].map((server) => new Promise<void>((resolve) => server.close(() => resolve()))));
+    signal.removeEventListener("abort", abort);
+    await Promise.all([entryServer,protectedServer].map((server) => new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+      server.closeAllConnections();
+    })));
   }
 });

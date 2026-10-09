@@ -78,6 +78,7 @@
     "snapshotNodes": 20000
   },
   "visibility": {
+    "tinyClippedExtentCssPx": 2,
     "textNodes": 512,
     "textRectangles": 128,
     "ancestors": 64
