@@ -16,6 +16,33 @@ async function close(server: Server): Promise<void> {
   await new Promise<void>((done) => server.close(() => done()));
 }
 
+it("detects an unmarked externally linked image offer through real capture and offline OCR", async () => {
+  const banner = await readFile("fixtures/ocr/banner.png");
+  const normal = await readFile("fixtures/realistic/ads/creative.png");
+  const server = createServer((request, response) => {
+    if (request.url === "/0722.png" || request.url === "/ordinary.png") {
+      const image = request.url === "/0722.png" ? banner : normal;
+      response.writeHead(200, { "content-type": "image/png", "content-length": image.length });
+      response.end(image);
+    } else {
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      response.end('<a href="https://advertiser.example/?code=0722"><img alt="0722" src="/0722.png"></a>'
+        + '<a href="https://shop.example/"><img alt="logo" src="/ordinary.png"></a>');
+    }
+  });
+  const origin = await listen(server);
+  try {
+    const output = await scanSite({ entryUrl: origin + "/", crawl: { concurrency: 1, settleMs: 100,
+      limits: { maxPages: 1, timeoutSec: 30 } } });
+    expect(output.result.findings).toEqual([]);
+    expect(output.extraResult.findings.map((finding) => finding.extra_finding)).toEqual(["IMAGE_ONLY_ILLEGAL_AD"]);
+    const analyses = output.detailBundle.imageAnalysis ?? [];
+    expect(analyses.find((image) => image.sourceUrl.endsWith("/0722.png"))?.ocr).toMatchObject({ state: "available" });
+    expect(analyses.find((image) => image.sourceUrl.endsWith("/ordinary.png"))?.extraFindingId).toBeUndefined();
+    expect(validateScanDetailBundle(output.detailBundle, output.result, output.extraResult)).toEqual({ ok: true, errors: [] });
+  } finally { await close(server); }
+}, 30_000);
+
 it("calls real OCR for all gated visual sources and preserves an empty official result", async () => {
   const banner = await readFile("fixtures/ocr/banner.png");
   const normal = await readFile("fixtures/realistic/ads/creative.png");

@@ -20,6 +20,25 @@ candidate OCR → structured decision → optional gated VLM.
 OCR/VLM run on gated candidates only, never whole-page default. Official
 operation is offline, no GPU, no external AI service (KODEX §28).
 
+### Image-only additional analysis
+
+`IMAGE_ONLY_ILLEGAL_AD` belongs to `result_extra.json`; it never adds an
+official concealment technique or changes the original `result.json` contract.
+The `image-only-ad-v2` decision requires OCR ad semantics, independent candidate
+corroboration, and no equivalent visible DOM ad text. An unmarked image can
+use its observed external HTTP(S) click destination as corroboration only
+when OCR contains both a supported gambling/loan/cash category and explicit
+solicitation or promotional terms (including high-stakes-only recruitment).
+An opaque advertiser domain or numeric image filename need not match a keyword.
+The destination is observed, not visited. External links alone, category logos,
+public-information images and ordinary product offers remain insufficient.
+
+This corrects an observed Windows false negative: OCR read a casino
+high-stakes recruitment banner, but the previous decision ignored the external
+click target and rejected it at score 2/3. The threshold remains 3/3. Capture,
+OCR, deadline and network bounds remain active; this change does not imply
+recognition of every banner or an exhaustive legal classification of a site.
+
 ### Source text ownership
 
 DOM extraction traverses ordinary text nodes, including elements without IDs.
