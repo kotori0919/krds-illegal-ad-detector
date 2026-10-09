@@ -1,7 +1,7 @@
 {
   "name": "krds-illegal-ad-detector",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "workspaces": [
     "apps/web",
@@ -17,7 +17,7 @@
     "test": "vitest run",
     "build": "npm run build -w apps/web",
     "build:scanner": "npm run build -w packages/contracts && npm run build -w packages/synth-eval && npm run build -w packages/scanner && npm run build -w packages/evidence && npm run build -w packages/detection",
-    "build:sidecar": "esbuild packages/detection/src/worker.ts --bundle --platform=node --format=esm --external:playwright-core --outfile=src-tauri/binaries/scanner-worker-x86_64-pc-windows-gnu.mjs && node scripts/build-ocr-worker.mjs src-tauri/binaries",
+    "build:sidecar": "node scripts/build-sidecar.mjs",
     "prepare:windows-runtime": "node scripts/prepare-windows-runtime.mjs",
     "benchmark:concurrency": "npm run build:scanner && node benchmarks/concurrency.mjs",
     "smoke:worker": "npm run build:scanner && node benchmarks/worker-l3.mjs",
@@ -29,15 +29,25 @@
     "smoke:extra-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-extra-smoke.mjs",
     "smoke:ui-native-zoom": "xvfb-run -a node benchmarks/ui-native-zoom-smoke.mjs",
     "lint": "eslint .",
-    "clean": "rm -rf packages/contracts/dist apps/web/dist packages/synth-eval/dist packages/scanner/dist packages/detection/dist packages/evidence/dist"
+    "clean": "node scripts/clean.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "test:integration": "npm run build:scanner && node scripts/integration-smoke.mjs",
+    "build:desktop": "node scripts/desktop.mjs build",
+    "package:windows": "node scripts/desktop.mjs package",
+    "verify:artifact": "node scripts/verify-artifact.mjs",
+    "supply-chain": "node scripts/supply-chain.mjs"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
+    "@tauri-apps/cli": "^2.12.0",
+    "@types/node": "22.19.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9.34.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.41.0",
-    "vitest": "^3.2.4",
-    "@tauri-apps/cli": "^2.12.0",
-    "esbuild": "^0.28.2"
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": "^22.19.0 || ^24.0.0 || ^26.0.0"
   }
 }

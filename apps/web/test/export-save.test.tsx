@@ -10,7 +10,7 @@ afterEach(cleanup);
 function result(): OfficialResult {
   return {
     meta: {
-      topic: "t",
+      topic: "TOPIC",
       entry_url: "https://example.kr/",
       started_at: "2026-10-01T00:00:00Z",
       finished_at: "2026-10-01T00:01:00Z",

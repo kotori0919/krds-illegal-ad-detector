@@ -13,7 +13,10 @@ pub fn write_workbook(path: &Path, data: &[u8]) -> Result<(), String> {
     let temporary = path.with_file_name(format!(".krds-report-{}.tmp", uuid::Uuid::new_v4()));
     let result = (|| {
         use std::io::Write;
-        let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(&temporary)?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)?;
         file.write_all(data)?;
         file.sync_all()?;
         drop(file);
@@ -37,7 +40,8 @@ mod tests {
         std::fs::write(&target, b"previous report").unwrap();
         assert!(write_workbook(&target, b"not an XLSX").is_err());
         assert_eq!(std::fs::read(&target).unwrap(), b"previous report");
-        let mut data = vec![0; 1024]; data[..4].copy_from_slice(b"PK\x03\x04");
+        let mut data = vec![0; 1024];
+        data[..4].copy_from_slice(b"PK\x03\x04");
         write_workbook(&target, &data).unwrap();
         assert_eq!(std::fs::read(&target).unwrap(), data);
         assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 1);

@@ -9,6 +9,7 @@
 
 import type { ScanEvent, ScanRequest, ScanSession } from "./scan.js";
 import type { BatchScanRequest } from "./batch.js";
+import type { CaseList, OpenCase, CaseReview, ReviewRecord, SupportDiagnostics } from "./case.js";
 import type { ExtraResult, OfficialResult } from "./result.js";
 import type { ImageAnalysisPage, ImageAnalysisQuery, ScanCoverageView, FindingDetailView,
   EvidenceAsset, EvidenceSummary, EvidenceGraphQuery, EvidenceGraphSlice } from "./evidence-access.js";
@@ -52,6 +53,13 @@ export interface ExportPaths {
 }
 
 export interface HostBridge {
+  listCases(): Promise<CaseList>;
+  openCase(caseId: string): Promise<OpenCase>;
+  saveCaseReview(caseId: string, expectedRevision: number, records: ReviewRecord[]): Promise<CaseReview>;
+  exportCase(caseId: string): Promise<string | null>;
+  importCase(): Promise<string | null>;
+  deleteCase(caseId: string): Promise<void>;
+  getDiagnostics(): Promise<SupportDiagnostics>;
   getCapabilities(): Promise<HostCapabilities>;
   startScan(request: ScanRequest): Promise<ScanSession>;
   startBatchScan(request: BatchScanRequest): Promise<ScanSession>;

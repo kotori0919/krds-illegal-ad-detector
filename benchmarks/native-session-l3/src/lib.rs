@@ -7,10 +7,17 @@ mod job_fallback;
 mod session;
 #[path = "../../../src-tauri/src/evidence.rs"]
 mod evidence;
+#[path = "../../../src-tauri/src/case_store.rs"]
+mod case_store;
+#[path = "../../../src-tauri/src/validation.rs"]
+mod validation;
+#[path = "../../../src-tauri/src/config.rs"]
+mod config;
 
 #[cfg(test)]
 mod tests {
-    use super::session::{load_cancelled_bundle, new_session, validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout, ProgressSink, SessionOutcome, SessionRegistry};
+    use super::session::{load_cancelled_bundle, new_session, ProgressSink, SessionOutcome, SessionRegistry};
+    use super::validation::{validate_detail_bundle, validate_extra_bundle, validate_sidecar_stdout};
     use std::collections::BTreeSet;
     use std::path::{Path, PathBuf};
     use std::sync::{Arc, Mutex};

@@ -1,0 +1,121 @@
+{
+  "configVersion": 1,
+  "detectorPolicyVersion": 2,
+  "scan": {
+    "defaults": {
+      "maxPages": 200,
+      "maxDepth": 4,
+      "timeoutSec": 1500,
+      "maxFrameDepth": 4
+    },
+    "operatorBounds": {
+      "maxPages": [
+        1,
+        2000
+      ],
+      "maxDepth": [
+        0,
+        10
+      ],
+      "timeoutSec": [
+        60,
+        1500
+      ],
+      "maxFrameDepth": [
+        0,
+        4
+      ]
+    },
+    "workerBounds": {
+      "maxPages": [
+        1,
+        2000
+      ],
+      "maxDepth": [
+        0,
+        10
+      ],
+      "timeoutSec": [
+        1,
+        1500
+      ],
+      "maxFrameDepth": [
+        0,
+        4
+      ]
+    },
+    "concurrency": {
+      "default": 2,
+      "min": 1,
+      "max": 4
+    },
+    "settleMs": {
+      "default": 1500,
+      "min": 0,
+      "max": 5000
+    }
+  },
+  "deadline": {
+    "hardLimitSec": 1650,
+    "finalizationReserveMs": 30000,
+    "minPageMs": 2000,
+    "hostGraceSec": 150
+  },
+  "collection": {
+    "settleMs": 1500,
+    "perPageMs": 30000,
+    "maxBodyBytes": 4194304,
+    "linkElements": 20000,
+    "linksPerPage": 1000,
+    "externalItems": 10000,
+    "urlCodeUnits": 8192,
+    "frameCount": 15,
+    "maxDomDepth": 128,
+    "maxAttributes": 32,
+    "maxAttributeCodeUnits": 4096,
+    "externalItemsPerPage": 500,
+    "linkUrlCodeUnits": 2048,
+    "snapshotNodes": 20000
+  },
+  "visibility": {
+    "textNodes": 512,
+    "textRectangles": 128,
+    "ancestors": 64
+  },
+  "evidence": {
+    "retainedBytes": 4194304,
+    "findings": 20000
+  },
+  "visual": {
+    "bytesPerPage": 250000,
+    "retainedBytes": 2000000,
+    "retainedRecords": 64,
+    "retainedAssets": 40,
+    "ocrImages": 6,
+    "captureAssets": 24,
+    "captureBytes": 2000000,
+    "candidatesPerDocument": 8,
+    "elementsPerDocument": 10000,
+    "ocrTimeoutMs": 8000,
+    "maxImagePixels": 4000000
+  },
+  "graph": {
+    "maxNodes": 4000,
+    "maxEdges": 8000,
+    "maxPageInputs": 200,
+    "defaultSliceNodes": 100,
+    "maxSliceNodes": 250,
+    "defaultSliceEdges": 200,
+    "maxSliceEdges": 500
+  },
+  "storage": {
+    "rootPolicy": "tauri-app-data",
+    "retention": "manual",
+    "officialBytes": 16000000,
+    "detailBytes": 8000000,
+    "reviewBytes": 4000000
+  },
+  "optionalModels": {
+    "enabled": false
+  }
+}

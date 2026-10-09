@@ -3,20 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { App } from "../src/App.js";
 import { STEPS, stepStates } from "../src/steps.js";
-import type { HostBridge } from "@krds-detector/contracts";
-
-vi.mock("../src/host/index.js", () => ({
-  createHost: async () =>
-    ({
-      startScan: vi.fn(async () => ({ id: "s1" })),
-      cancelScan: vi.fn(async () => {}),
-      onScanEvent: () => () => {},
-      getResult: vi.fn(),
-      getFinding: vi.fn(),
-      exportResult: vi.fn(),
-      saveFile: vi.fn(),
-    }) as unknown as HostBridge,
-}));
+vi.mock("../src/host/index.js", async () => {
+  const { BrowserHost } = await import("../src/host/browser.js");
+  return { createHost: async () => new BrowserHost() };
+});
 
 // Replace screens with plain navigation buttons so the test only exercises
 // step-state derivation in App itself.

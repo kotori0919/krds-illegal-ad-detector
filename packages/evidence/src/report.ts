@@ -1,13 +1,10 @@
 import ExcelJS from "exceljs";
 import { techniqueLabel, scanIssueLabel, discoverySourceLabel, type ExtraResult, type ImageAnalysis, type OfficialResult, type ScanCoverageView, type EvidenceSummary, type VisualAnalysisReason } from "@krds-detector/contracts";
 import { groupReviewPatterns } from "./review-patterns.js";
+import type { ReportExporter } from "./adapters.js";
 
-export interface ReviewRecord {
-  findingId: string;
-  state: "needed" | "reviewed";
-  note: string;
-  at: string;
-}
+export type { ReviewRecord } from "@krds-detector/contracts";
+import type { ReviewRecord } from "@krds-detector/contracts";
 
 export interface ReportSession {
   sessionId: string;
@@ -19,6 +16,7 @@ export interface ReportSession {
   imageAnalysis?: ImageAnalysis[];
   reviews?: ReviewRecord[];
   unavailable?: string[];
+  savedCase?: { caseId: string; directory: string; policyVersion: number; reviewRevision: number };
 }
 export interface ReportTarget {
   key: string; label: string; entryUrl: string; status: string; sessionId?: string; reason?: string;
@@ -56,6 +54,7 @@ function date(raw: string): Date | string {
   return Number.isFinite(parsed.getTime()) ? parsed : raw;
 }
 const reviewLabel = (review?: ReviewRecord): string => review?.state === "reviewed" ? "검토 완료" : "검토 필요";
+const judgmentLabel = (review?: ReviewRecord): string => ({ unjudged: "판단 전", suspected: "위반 의심", "judged-normal": "정상으로 판단", "needs-more-evidence": "추가 근거 필요" })[review?.judgment ?? "unjudged"];
 const visualReasonLabels: Record<VisualAnalysisReason, string> = {
   "page-limit": "이미지 수집 페이지 수 제한", "candidate-limit": "문서별 후보 수 제한",
   "element-limit": "문서별 요소 확인 수 제한", "byte-limit": "페이지별 이미지 용량 제한",
@@ -65,18 +64,18 @@ const visualReasonLabels: Record<VisualAnalysisReason, string> = {
 };
 const visualUnitLabels = { page: "페이지", document: "문서", candidate: "후보", image: "이미지" };
 
-export async function createOperationalWorkbook(sessions: readonly ReportSession[], options: { targets?: readonly ReportTarget[] } = {}): Promise<Uint8Array> {
-  if (!sessions.length || sessions.length > 100 || (options.targets?.length ?? 0) > 100 || sessions.reduce((count, session) => count + session.official.findings.length, 0) > 100_000) {
-    throw new Error("보고서 범위를 초과했습니다. 사이트별 보고서를 저장해 주세요.");
-  }
+export interface WorkbookRequest { sessions: readonly ReportSession[]; options?: { targets?: readonly ReportTarget[] } }
+class ReportLimitError extends Error {}
+const WORKBOOK_LIMITS = { sessions: 100, targets: 100, findings: 100_000, outputBytes: 24 * 1024 * 1024 } as const;
+async function renderOperationalWorkbook(sessions: readonly ReportSession[], options: { targets?: readonly ReportTarget[] } = {}): Promise<Uint8Array> {
   const book = new ExcelJS.Workbook();
   book.creator = "KRDS Illegal Ad Detector";
   const summary = sheet(book, "점검 요약", ["세션", "항목", "내용"], [24, 30, 80]);
   const groups = sheet(book, "반복 항목", ["세션", "업무용 묶음 번호", "관측 문구", "기법명", "공식 기법 코드", "기록 수", "영향 페이지 수", "기록된 링크 주소", "대표 기록", "검토 상태", "범례"], [24, 30, 50, 20, 20, 14, 18, 60, 20, 24, 60]);
-  const details = sheet(book, "탐지 상세", ["세션", "원본 기록 번호", "페이지 주소", "원문", "공식 기법 코드", "기법명", "정확한 요소 위치", "검토 상태", "사람의 검토 메모"], [24, 20, 65, 80, 20, 20, 80, 20, 60]);
+  const details = sheet(book, "탐지 상세", ["세션", "원본 기록 번호", "페이지 주소", "원문", "공식 기법 코드", "기법명", "정확한 요소 위치", "검토 상태", "사람의 검토 메모", "담당자의 판단"], [24, 20, 65, 80, 20, 20, 80, 20, 60, 24]);
   const coverage = sheet(book, "페이지·점검 범위", ["세션", "요청 주소", "최종 주소", "점검 상태", "HTTP 상태", "미점검 사유", "발견 경로"], [24, 65, 65, 24, 14, 70, 24]);
   const extra = sheet(book, "추가 분석", ["세션", "분석 종류", "기록 번호", "관련 주소", "관측 원문", "관측·파생 구분", "설명"], [24, 30, 24, 65, 80, 30, 70]);
-  const reviews = sheet(book, "검토 기록", ["세션", "원본 기록 번호", "사람의 검토 상태", "메모", "기록 시각 (UTC)", "보관 범위"], [24, 20, 24, 80, 26, 65]);
+  const reviews = sheet(book, "검토 기록", ["세션", "원본 기록 번호", "사람의 검토 상태", "메모", "기록 시각 (UTC)", "보관 범위", "담당자의 판단"], [24, 20, 24, 80, 26, 65, 24]);
   const targets = options.targets || sessions.length > 1 ? sheet(book, "대상 요약", ["세션", "사이트명", "시작 주소", "원본 탐지 수", "영향 페이지 수", "확인 페이지 수", "실패 페이지 수", "일괄 대상 번호", "진행 상태", "미완료 사유"], [24, 30, 65, 18, 20, 20, 20, 18, 24, 65]) : undefined;
   for (const session of sessions) {
     const { official } = session;
@@ -84,6 +83,12 @@ export async function createOperationalWorkbook(sessions: readonly ReportSession
     const byId = new Map((session.reviews ?? []).map((review) => [review.findingId, review]));
     const addSummary = (key: string, value: unknown): void => row(summary, [session.sessionId, key, value]);
     addSummary("시작 주소", official.meta.entry_url);
+    if (session.savedCase) {
+      addSummary("보관 케이스 번호", session.savedCase.caseId);
+      addSummary("공식 원본 경로", `${session.savedCase.directory}/result.json`);
+      addSummary("탐지 정책 버전", session.savedCase.policyVersion);
+      addSummary("저장된 검토 수정 번호", session.savedCase.reviewRevision);
+    }
     if (session.label) addSummary("운영자 지정 사이트명", session.label);
     addSummary("점검 시작 (UTC)", date(official.meta.started_at)); addSummary("점검 종료 (UTC)", date(official.meta.finished_at));
     addSummary("경과 시간 (초)", official.meta.elapsed_sec); addSummary("공식 탐지 기록 수", official.findings.length);
@@ -120,7 +125,7 @@ export async function createOperationalWorkbook(sessions: readonly ReportSession
     }
     addSummary("보고서 범례", "반복 묶음은 UI/업무 관리용 파생 정보이며 공식 결과가 아닙니다. 자동 탐지는 법적 위반 확정이 아닙니다. 검토 완료는 사람의 검토 표시이며 조치 완료가 아닙니다.");
     addSummary("원문·날짜·링크 제한", "전체 탐지 집합을 저장합니다. 셀은 32,767자 이내로 제한하며 생략·제어문자 치환 시 원문은 공식 JSON에 보존됩니다. 날짜는 UTC입니다. 주소는 안전한 복사 가능한 텍스트로 저장하며 수식·활성 링크는 생성하지 않습니다.");
-    addSummary("검토 보관 범위", "검토 상태와 메모는 현재 앱 화면 메모리에 보관되며 이 보고서에 복사됩니다. 앱 다시 시작 후 복원을 보장하지 않습니다.");
+    addSummary("검토 보관 범위", "현재 검토 상태·담당자 판단·메모를 이 보고서에 복사합니다. 앱의 저장 완료 표시를 확인한 기록은 케이스에서 복원됩니다. 저장 대기·실패 상태의 수정은 아직 케이스에 반영되지 않았을 수 있습니다.");
     if (session.unavailable?.length) addSummary("보고서 제한", session.unavailable.join("; "));
     for (const pattern of groupReviewPatterns(official.findings)) {
       const count = pattern.findings.filter((finding) => byId.get(finding.id)?.state === "reviewed").length;
@@ -130,7 +135,7 @@ export async function createOperationalWorkbook(sessions: readonly ReportSession
     }
     for (const finding of official.findings) {
       const review = byId.get(finding.id);
-      row(details, [session.sessionId, finding.id, finding.url, finding.evidence_text, finding.technique, techniqueLabel[finding.technique], finding.location, reviewLabel(review), review?.note ?? ""]);
+      row(details, [session.sessionId, finding.id, finding.url, finding.evidence_text, finding.technique, techniqueLabel[finding.technique], finding.location, reviewLabel(review), review?.note ?? "", judgmentLabel(review)]);
     }
     if (!session.coverage) row(coverage, [session.sessionId, official.meta.entry_url, "", "알 수 없음", "", "저장된 점검 범위 기록 없음", "알 수 없음"]);
     else if (session.coverage.pageOutcomes.length) for (const outcome of session.coverage.pageOutcomes) {
@@ -149,7 +154,7 @@ export async function createOperationalWorkbook(sessions: readonly ReportSession
       relation.pageUrls.join("\n"), "관측 관계의 파생 요약", "공동 소유 또는 법적 위반을 증명하지 않음"]);
     if (!session.extra && !session.imageAnalysis) row(extra, [session.sessionId, "알 수 없음", "", "", "", "분석 기록 없음", "추가 분석 완료 또는 탐지 없음으로 해석하지 마세요."]);
     for (const review of session.reviews ?? []) {
-      if (officialIds.has(review.findingId)) row(reviews, [session.sessionId, review.findingId, reviewLabel(review), review.note, date(review.at), "현재 화면의 로컬 사람 판단; 이 보고서에 복사됨"]);
+      if (officialIds.has(review.findingId)) row(reviews, [session.sessionId, review.findingId, reviewLabel(review), review.note, date(review.at), "케이스와 별도인 사람의 검토 기록; 저장 상태는 앱에서 확인", judgmentLabel(review)]);
     }
     if (targets && !options.targets) row(targets, [session.sessionId, session.label ?? "", official.meta.entry_url, official.findings.length,
       new Set(official.findings.map((finding) => finding.url)).size, session.coverage?.coverage.checkedPages ?? "알 수 없음", session.coverage?.coverage.failedPages.length ?? "알 수 없음"]);
@@ -166,6 +171,32 @@ export async function createOperationalWorkbook(sessions: readonly ReportSession
   }
   for (const sheet of book.worksheets) sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, sheet.rowCount), column: sheet.columnCount } };
   const buffer = await book.xlsx.writeBuffer();
-  if (buffer.byteLength > 24 * 1024 * 1024) throw new Error("보고서 파일이 너무 큽니다. 사이트별로 저장해 주세요.");
+  if (buffer.byteLength > WORKBOOK_LIMITS.outputBytes) throw new ReportLimitError();
   return new Uint8Array(buffer);
+}
+
+export const operationalWorkbookExporter: ReportExporter<WorkbookRequest> = {
+  id: "operational-workbook", version: 1, availability: { state: "available" },
+  mediaType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", extension: ".xlsx",
+  limits: WORKBOOK_LIMITS,
+  failurePolicy: "return-unavailable-no-retry",
+  async export({ sessions, options = {} }) {
+    if (!sessions.length || sessions.length > WORKBOOK_LIMITS.sessions || (options.targets?.length ?? 0) > WORKBOOK_LIMITS.targets
+      || sessions.reduce((count, session) => count + session.official.findings.length, 0) > WORKBOOK_LIMITS.findings) {
+      return { state: "unavailable", issue: { code: "REPORT_BOUNDS", retryable: false } };
+    }
+    try {
+      const value = await renderOperationalWorkbook(sessions, options);
+      return { state: "available", value, degradation: sessions.some(session => !session.coverage || session.unavailable?.length)
+        ? [{ code: "PARTIAL_REPORT", retryable: false }] : [] };
+    } catch (error) { return { state: "unavailable", issue: { code: error instanceof ReportLimitError ? "REPORT_BOUNDS" : "REPORT_FAILED", retryable: false } }; }
+  },
+};
+
+/** Public convenience entry point; all workbook production crosses the exporter. */
+export async function createOperationalWorkbook(sessions: readonly ReportSession[], options: { targets?: readonly ReportTarget[] } = {}): Promise<Uint8Array> {
+  const outcome = await operationalWorkbookExporter.export({ sessions, options });
+  if (outcome.state === "unavailable") throw new Error(outcome.issue.code === "REPORT_BOUNDS"
+    ? "보고서 범위를 초과했습니다. 사이트별 보고서를 저장해 주세요." : "보고서 파일을 만들지 못했습니다. 사이트별로 저장해 주세요.");
+  return outcome.value;
 }

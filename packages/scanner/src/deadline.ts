@@ -1,10 +1,10 @@
-import { availableParallelism } from "node:os";
 import { performance } from "node:perf_hooks";
+import { SCAN_POLICY } from "@krds-detector/contracts";
 
 /** One monotonic budget shared by crawl, detection, evidence and finalization. */
 export class ScanDeadline {
-  static readonly hardLimitSec = 1650;
-  static readonly finalizationReserveMs = 30_000;
+  static readonly hardLimitSec = SCAN_POLICY.deadline.hardLimitSec;
+  static readonly finalizationReserveMs = SCAN_POLICY.deadline.finalizationReserveMs;
 
   private readonly expiresAtMs: number;
   private readonly reserveMs: number;
@@ -27,7 +27,7 @@ export class ScanDeadline {
   }
 
   /** Page admission leaves time for one useful page and result finalization. */
-  canStartPage(minPageMs = 2_000): boolean {
+  canStartPage(minPageMs: number = SCAN_POLICY.deadline.minPageMs): boolean {
     return this.remainingMs() > this.reserveMs + minPageMs;
   }
 
@@ -35,10 +35,4 @@ export class ScanDeadline {
   operationTimeoutMs(requestedMs: number): number {
     return Math.max(0, Math.floor(Math.min(requestedMs, this.remainingMs() - this.reserveMs)));
   }
-}
-
-/** Conservative initial policy; benchmarked at 1–4 workers before release. */
-export function pageConcurrency(logicalCpus = availableParallelism()): number {
-  if (!Number.isFinite(logicalCpus) || logicalCpus < 1) throw new RangeError("logical CPU count must be positive");
-  return logicalCpus <= 4 ? 2 : logicalCpus <= 8 ? 3 : 4;
 }

@@ -6,11 +6,10 @@ import { serializeFramePath } from "@krds-detector/contracts";
 import { startFixtureServer } from "@krds-detector/synth-eval/serve.js";
 import { chromium } from "playwright-core";
 
-const PORT = 4171;
 
 describe("selector engine", () => {
   it("round-trips every direct ground-truth positive selector", async () => {
-    const started = startFixtureServer(PORT);
+    const started = await startFixtureServer();
     const browser = await chromium.launch();
     try {
       const truth = JSON.parse(
@@ -84,7 +83,7 @@ describe("selector engine", () => {
   }, 60000);
 
   it("emits nested iframe locations with absolute srcs via contract", async () => {
-    const started = startFixtureServer(PORT + 1);
+    const started = await startFixtureServer();
     try {
       const summary = await crawlSite({
         entryUrl: `${started.url}/structural/outer.html`,
@@ -108,7 +107,7 @@ describe("selector engine", () => {
         selector: "#ad-frame-jamo",
       });
       expect(location).toBe(
-        `iframe[src="${started.url}/structural/middle.html"] >>> iframe[src="${started.url}/structural/inner.html"] >>> #ad-frame-jamo`,
+        '#frame-outer >>> #frame-inner >>> #ad-frame-jamo',
       );
       expect(inner?.html).toContain("ad-frame-jamo");
       const shallow = await crawlSite({

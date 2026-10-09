@@ -8,6 +8,34 @@
  */
 import type { DecisionEvidence } from "@krds-detector/contracts";
 
+export type AdapterIssueCode = "DISABLED" | "INVALID_INPUT" | "BUDGET" | "CANCELLED"
+  | "CAPTURE_FAILED" | "PARTIAL_CAPTURE" | "PARTIAL_REPORT" | "REPORT_BOUNDS" | "REPORT_FAILED" | "SIMILARITY_FAILED";
+export interface AdapterIssue { code: AdapterIssueCode; retryable: false }
+export type AdapterAvailability = { state: "available" } | { state: "unavailable"; issue: AdapterIssue };
+/** Available empty/negative observations differ from an unperformed operation. */
+export type AdapterOutcome<T> = { state: "available"; value: T; degradation: readonly AdapterIssue[] }
+  | { state: "unavailable"; issue: AdapterIssue };
+export interface MaintainedAdapter {
+  readonly id: string;
+  readonly version: number;
+  readonly availability: AdapterAvailability;
+  readonly limits: Readonly<Record<string, number>>;
+  readonly failurePolicy: "return-unavailable-no-retry";
+}
+/** Input ownership includes live handles, deadline and cancellation, where needed. */
+export interface VisualSource<Input, Output> extends MaintainedAdapter {
+  acquire(input: Input): Promise<AdapterOutcome<Output>>;
+}
+export interface ReportExporter<Input> extends MaintainedAdapter {
+  readonly mediaType: string;
+  readonly extension: string;
+  export(input: Input): Promise<AdapterOutcome<Uint8Array>>;
+}
+/** A derived comparison is never identity, ownership or an official decision. */
+export interface SimilarityProvider<Input> extends MaintainedAdapter {
+  compare(left: Input, right: Input): AdapterOutcome<{ distance: number; metric: string }>;
+}
+
 export interface OcrCropRequest {
   /** Source identifier (element selector, creative URL, or crop id). */
   sourceId: string;
@@ -95,15 +123,15 @@ export interface MultimodalFallback {
   readonly name: string;
   readonly enabled: boolean;
   /** Aggressively gated: ambiguous visual candidates only, never per element. */
-  judge(crop: OcrCropRequest): Promise<MultimodalVerdict>;
+  judge(crop: OcrCropRequest): Promise<AdapterOutcome<MultimodalVerdict>>;
 }
 
 /** Disabled-by-default fallback: refuses until a benchmarked backend plugs in. */
 export class DisabledMultimodalFallback implements MultimodalFallback {
   readonly name = "disabled-vlm-v1";
   readonly enabled = false;
-  async judge(crop: OcrCropRequest): Promise<MultimodalVerdict> {
+  async judge(crop: OcrCropRequest): Promise<AdapterOutcome<MultimodalVerdict>> {
     void crop;
-    return { isAd: false, confidence: 0, rationale: "multimodal fallback disabled by default (unbenchmarked)" };
+    return { state: "unavailable", issue: { code: "DISABLED", retryable: false } };
   }
 }

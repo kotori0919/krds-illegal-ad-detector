@@ -12,6 +12,7 @@ export default defineConfig({
         test: {
           name: "packages",
           environment: "node",
+          setupFiles: ["./tests/browser-fixture.ts"],
           include: ["packages/*/test/**/*.test.ts"],
         },
       },

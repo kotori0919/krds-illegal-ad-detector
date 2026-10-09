@@ -39,7 +39,9 @@ const findingKey = (finding: { url: string; location: string; technique: string 
 describe("L2 municipal-style public site", () => {
   it("preserves all five known findings and the failed page at worker counts 1–4", async () => {
     const truth = JSON.parse(await readFile(resolve(root, "ground-truth.json"), "utf8")) as Truth;
-    const expected = new Set(truth.positive.map((item) => `${item.page}\0${item.selector}\0${item.technique}`));
+    // Historical fixture labels the child document; location policy1.1 now
+    // anchors that observed frame occurrence to its checked parent page.
+    const expected = new Set(truth.positive.map((item) => `${item.page === "/frame.html" ? "/post.html" : item.page}\0${item.selector}\0${item.technique}`));
     const sets: string[][] = [];
     const durations: number[] = [];
     for (const concurrency of [1, 2, 3, 4]) {
@@ -61,7 +63,8 @@ describe("L2 municipal-style public site", () => {
         expect(detail.normalizedText.length).toBeGreaterThan(0);
         expect(detail.observed.css.display.length).toBeGreaterThan(0);
         expect(detail.visual.state).toBe("available");
-        const bytes = Buffer.from(detail.visual.dataUrl!.split(",")[1]!, "base64");
+        const dataUrl = detail.visual.dataUrl ?? output.detailBundle.visualAssets?.find((asset) => asset.assetId === detail.visual.assetId)?.dataUrl;
+        const bytes = Buffer.from(dataUrl!.split(",")[1]!, "base64");
         expect([...bytes.subarray(0, 3)]).toEqual([0xff, 0xd8, 0xff]);
       }
       const got = new Set(output.result.findings.map(findingKey));

@@ -11,7 +11,7 @@ import {
 function validResult(): OfficialResult {
   return {
     meta: {
-      topic: "test",
+      topic: "TOPIC",
       entry_url: "https://example.kr/",
       started_at: "2026-09-30T00:00:00.000Z",
       finished_at: "2026-09-30T00:01:00.000Z",

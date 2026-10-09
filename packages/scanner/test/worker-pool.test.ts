@@ -54,7 +54,8 @@ describe("bounded live page worker pool", () => {
   }, 10_000);
 
   it("runs concurrent page callbacks up to the selected cap without losing the frontier", async () => {
-    for (const concurrency of [1, 2, 3, 4]) {
+    for (const concurrency of [undefined, 1, 2, 3, 4]) {
+      const expectedConcurrency = concurrency ?? 2;
       requests.clear();
       let active = 0;
       let peak = 0;
@@ -75,14 +76,14 @@ describe("bounded live page worker pool", () => {
             active += 1;
             peak = Math.max(peak, active);
             entered += 1;
-            if (entered === concurrency) { clearTimeout(gateTimer); release?.(); }
+            if (entered === expectedConcurrency) { clearTimeout(gateTimer); release?.(); }
             try { await gate; } finally { active -= 1; }
           },
         });
         expect(summary.timedOut).toBe(false);
         expect(summary.pages.map((page) => new URL(page.url).pathname).sort())
           .toEqual(["/", ...Array.from({ length: 8 }, (_, index) => `/p${String(index + 1)}`)].sort());
-        expect(peak).toBe(concurrency);
+        expect(peak).toBe(expectedConcurrency);
         for (const path of ["/", ...Array.from({ length: 8 }, (_, index) => `/p${String(index + 1)}`)]) {
           expect(requests.get(path)).toBe(1);
         }

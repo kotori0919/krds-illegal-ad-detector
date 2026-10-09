@@ -1,5 +1,24 @@
 # KRDS Product V2 pattern and release record
 
+## Adoption workspace changes (2026-10-10)
+
+These rows identify the new implementation; historical native observations below
+apply only to their original artifacts. Current candidate evidence belongs to
+ADOPTION_LEDGER.md and the receiving-team handoff.
+
+| Interaction | Official reference | Application and review boundary |
+| --- | --- | --- |
+| Saved case list/reopen | [List browsing](https://www.krds.go.kr/html/site/global/global_04.html) | Recent bounded list, real storage path, empty/error/degraded states, reopen without crawling. |
+| Reading state, judgment and memo | [Detail information](https://www.krds.go.kr/html/site/global/global_06.html) | Separate operator judgment and reading completion; revision-aware save status and conflict recovery; raw finding unchanged. |
+| Relation graph/list/detail | [Detail information](https://www.krds.go.kr/html/site/global/global_06.html) | Stable four-layer local service variation; bounded initial nodes, keyboard Enter/Space, selected node/edge provenance and identical original inspector. Equivalent HTML list remains. This is a relationship review aid, not a blocking or attribution verdict. |
+| Case deletion | [Confirmation](https://www.krds.go.kr/html/site/global/global_11.html) | Explicit case/count confirmation, focus trapping, Escape/cancel and trigger focus return. No automatic deletion. |
+| Diagnostics | [Detail information](https://www.krds.go.kr/html/site/global/global_06.html) | Preview build/storage/network/model/signing state without visiting a site or transmitting evidence. |
+
+Existing semantic tokens, visible focus and non-color status text are reused.
+Automated keyboard/selection/reload checks establish their tested interactions;
+human usability, spoken screen-reader output and organizational KRDS acceptance
+remain external checks unless the candidate handoff explicitly records execution.
+
 ## V2.1 Results Workspace mapping (2026-10-08)
 
 The official pages below were consulted again for this implementation. Existing

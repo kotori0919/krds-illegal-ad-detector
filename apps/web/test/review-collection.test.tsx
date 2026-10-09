@@ -7,6 +7,21 @@ import { ReviewCollection } from "../src/screens/ReviewCollection.js";
 
 const result = JSON.parse(readFileSync("packages/evidence/test/fixtures/sample_result_617_sanitized.json", "utf8")) as OfficialResult;
 afterEach(cleanup);
+it("keeps a relation-selected original open without clearing filters, then honors a new filter change", () => {
+  function Workspace() {
+    const [query, setQuery] = useState("f372");
+    const [selected, setSelected] = useState<string | undefined>(result.findings[0]!.id);
+    return <>{selected ? <h2>열린 원본 {selected}</h2> : null}<ReviewCollection findings={result.findings} query={query} onQueryChange={setQuery}
+      filter="ALL" onFilterChange={() => {}} view="findings" onViewChange={() => {}} reviewedIds={new Set()} onReviewMany={() => {}}
+      onEvidence={() => {}} selectedFindingId={selected} allowHiddenSelection onSelectionHidden={() => setSelected(undefined)} /></>;
+  }
+  render(<Workspace />);
+  expect(screen.getByRole("heading", { name: `열린 원본 ${result.findings[0]!.id}` })).toBeDefined();
+  expect((screen.getByLabelText("결과 검색") as HTMLInputElement).value).toBe("f372");
+  fireEvent.change(screen.getByLabelText("결과 검색"), { target: { value: "no match" } });
+  expect(screen.queryByRole("heading", { name: `열린 원본 ${result.findings[0]!.id}` })).toBeNull();
+  expect((screen.getByLabelText("결과 검색") as HTMLInputElement).value).toBe("no match");
+});
 it("lets an operator find f372, enumerate records, paginate and confirm scoped review without editing JSON", () => {
   const before = JSON.stringify(result);
   let selection: string[] = [];

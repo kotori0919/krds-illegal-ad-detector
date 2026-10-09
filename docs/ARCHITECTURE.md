@@ -1,5 +1,32 @@
 # Architecture — current engine and Product V2 target
 
+## Adoption implementation (0.2.0 / policy 2)
+
+The following historical implementation narrative belongs to its named builds.
+Current ownership is React → typed HostBridge → native session supervisor →
+one Node/Playwright live-page pass. `native validation.rs` owns process/filesystem
+contracts; `case_store.rs` owns durable commit/reopen, exclusive store ownership,
+review revisions and portable directory transfer. `evidence.rs` owns the selected
+metadata index and shared content-addressed image files. Official bytes commit
+before optional evidence and remain separate from operator reading/judgment/memo.
+
+`text-policy.ts` is pure, bounded restoration with UTF-16 source attribution;
+`observation.ts`, `frame-location.ts` and visibility functions own browser facts.
+`candidate-accumulator.ts` and `visual-scheduler.ts` bound retained work before
+insertion. OCR selection follows all-page observation rather than page order.
+The graph has bounded deterministic projections, observed edge witnesses, and
+the same original inspector as the list. No model is required or downloaded.
+
+`packages/contracts/src/policy.json` is the shipped versioned policy consumed by
+TS and Rust. Case schema 1, detail bundle 2, config 1 and detector policy 2 are
+distinct from the official output contract. Shared conformance fixtures exercise
+both validators. See CONTRACTS.md and DETECTORS.md for maintained extension seams.
+
+Incomplete prior transactions move to a preserved quarantine at startup;
+optional corrupt data degrades with a scoped issue while valid official output
+remains exportable. Manual retention and explicit case deletion replace any
+implicit cleanup. Transfer and exports never execute collected HTML or URLs.
+
 Status: partial Product V2 implementation, 2026-10-06. ADR-0010 supersedes
 the product-facing portion of Contract v0's freeze. Contract v0.2 detail and
 coverage types are implemented. The four official techniques, official output

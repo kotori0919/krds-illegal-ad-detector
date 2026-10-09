@@ -1,10 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { scanSite } from "../src/scan.js";
 import { loadGroundTruth } from "@krds-detector/synth-eval/evaluate.js";
 import { validateOfficialResultText } from "@krds-detector/contracts";
+import { startFixtureServer } from "@krds-detector/synth-eval/serve.js";
+
+let fixture: Awaited<ReturnType<typeof startFixtureServer>>;
+beforeAll(async () => { fixture = await startFixtureServer(); });
+afterAll(async () => { await fixture.close(); });
 
 describe("end-to-end scan on synthetic fixtures", () => {
   it("reports exact per-page counters with real page URLs", async () => {
@@ -12,23 +17,22 @@ describe("end-to-end scan on synthetic fixtures", () => {
     const queued: { pending: number; url: string | undefined }[] = [];
     const stages: string[] = [];
     await scanSite({
-      entryUrl: "/",
+      entryUrl: fixture.url + "/",
       crawl: {
         limits: { maxPages: 5, maxDepth: 1, timeoutSec: 120 },
         settleMs: 300,
         perPageMs: 10000,
       },
-      fixturePort: 4193,
       onEvent: (e) => {
         if (["session-started", "stage-changed", "session-finished"].includes(e.kind)) stages.push(e.progress.stage);
-        if (e.kind === "page-visited") visited.push({ pages: e.progress.visitedPages, url: e.pageUrl });
+        if (e.kind === "page-visited" || e.kind === "page-failed") visited.push({ pages: e.progress.visitedPages, url: e.pageUrl });
         if (e.kind === "page-queued") queued.push({ pending: e.progress.queuedPages, url: e.pageUrl });
       },
     });
     // Exact rendered-counter assertions: a label-only check would pass with
     // zeros; these fail if the value stays 0 or the URL is not the page.
     expect(visited.length).toBeGreaterThan(0);
-    // Single-pass processing emits one visit event per completed page.
+    // Completed attempts include checked and failed pages; both advance the visible counter.
     let last = 0;
     for (const v of visited) {
       expect(v.pages).toBe(last + 1);
@@ -47,13 +51,12 @@ describe("end-to-end scan on synthetic fixtures", () => {
     const events: string[] = [];
     const started = Date.now();
     const { result, json, pagesVisited } = await scanSite({
-      entryUrl: "/",
+      entryUrl: fixture.url + "/",
       crawl: {
         limits: { maxPages: 30, maxDepth: 4, timeoutSec: 300 },
         settleMs: 1800,
         perPageMs: 20000,
       },
-      fixturePort: 4191,
       onEvent: (e) => {
         events.push(e.kind);
       },
@@ -66,7 +69,10 @@ describe("end-to-end scan on synthetic fixtures", () => {
       if (c.kind !== "positive") continue;
       for (const t of c.techniques ?? []) {
         // Ground-truth identity: page + selector + technique.
-        expected.add(`${c.page}#${c.selector}#${t}`);
+        // Policy 1.1 anchors a complete frame location to the checked page;
+        // the fixture's historical ground truth records its child document.
+        const page = c.id === "frame-jamo" ? "/structural/outer.html" : c.page;
+        expected.add(`${page}#${c.selector}#${t}`);
       }
     }
     // Result identity: url path + location tail + technique.

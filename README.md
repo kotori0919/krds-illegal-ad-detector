@@ -3,6 +3,16 @@
 Real Windows-capable public-website illegal-advertisement inspection tool for the
 2026 행정안전부 / 한국지능정보사회진흥원 "공공 웹사이트 불법광고 탐지 도구 개발 공모전".
 
+## Current adoption candidate (0.2.0 / policy 2)
+
+Current implementation and evidence: [adoption ledger](docs/ADOPTION_LEDGER.md).
+Receiving maintainers start with [BUILD_MANUAL](docs/BUILD_MANUAL.md),
+[maintainer guide](docs/MAINTAINER_GUIDE_KO.md) and [operations guide](docs/OPERATIONS_GUIDE_KO.md).
+Official output remains unchanged in shape. Newly executed detections use policy 2;
+saved cases, review revisions and shared image assets survive application restart.
+Old release and acceptance records below describe their identified historical builds.
+They do not certify the new candidate or replace its remaining external acceptance.
+
 Product V2 runs a three-stage KRDS workflow: setup, live scan, and results.
 The scanner processes general text owners with unique selectors in one live
 page pass, using a shared deadline and bounded 1–4 workers. Results include
@@ -23,7 +33,9 @@ acceptance is retained in `docs/PRODUCT_V2_ACCEPTANCE.md`.
 
 ## Quickstart
 
-Requires Node.js 22+.
+Canonical build: Node.js 22.19.0. Supported build majors: 22.19+, 24 and 26;
+the packaged worker runtime is pinned independently. See BUILD_MANUAL for Rust,
+Windows tooling, explicit resource preparation and clean-source execution.
 
 ```sh
 npm ci

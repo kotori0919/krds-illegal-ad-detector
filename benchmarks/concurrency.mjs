@@ -6,6 +6,7 @@ import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scanSite } from "../packages/detection/dist/scan.js";
 import { loadGroundTruth } from "../packages/synth-eval/dist/evaluate.js";
+import { startFixtureServer } from "../packages/synth-eval/dist/serve.js";
 import { validateOfficialResultText } from "../packages/contracts/dist/result.js";
 
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -37,6 +38,7 @@ const expected = realistic
   : new Set(cases.flatMap((item) => (item.techniques ?? []).map((technique) => `${item.page}\0${item.selector}\0${technique}`)));
 let server;
 let origin = "";
+let syntheticServer;
 if (realistic) {
   server = createServer((request, response) => {
     const name = new URL(request.url ?? "/", "http://fixture.local").pathname.replace(/^\//, "") || "index.html";
@@ -48,6 +50,9 @@ if (realistic) {
   });
   await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
   origin = `http://127.0.0.1:${server.address().port}`;
+} else {
+  syntheticServer = await startFixtureServer();
+  origin = syntheticServer.url;
 }
 const identity = (finding) => {
   const url = new URL(finding.url);
@@ -69,7 +74,7 @@ const rows = [];
 
 try {
 for (const concurrency of [1, 2, 3, 4]) {
-  const siteOrigin = realistic ? origin : `http://127.0.0.1:${4200 + concurrency}`;
+  const siteOrigin = origin;
   const cpuStart = process.cpuUsage();
   const start = performance.now();
   let peakNodeRss = 0;
@@ -82,7 +87,7 @@ for (const concurrency of [1, 2, 3, 4]) {
       entryUrl: `${origin}/`,
       crawl: { concurrency, limits: { maxPages: 6, maxDepth: 2, timeoutSec: 90 }, settleMs: 1400, perPageMs: 10000 },
     } : {
-      entryUrl: "/", fixturePort: 4200 + concurrency,
+      entryUrl: `${origin}/`,
       crawl: { concurrency, limits: { maxPages: 30, maxDepth: 4, timeoutSec: 300 }, settleMs: 1800, perPageMs: 20000 },
     });
   } finally {
@@ -110,6 +115,7 @@ for (const concurrency of [1, 2, 3, 4]) {
 }
 } finally {
   if (server) await new Promise((resolveClose) => server.close(() => resolveClose()));
+  if (syntheticServer) await syntheticServer.close();
 }
 
 const base = JSON.stringify(rows[0].officialFindingSet);

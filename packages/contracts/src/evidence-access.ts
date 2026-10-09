@@ -9,6 +9,7 @@ export type VisualAnalysisReason = VisualAnalysisLimit | "cancelled" | "capture-
 
 /** Counts of observed work only; uninspected candidate totals remain unknown. */
 export interface VisualAnalysisCoverage {
+  selection?: { policy: string; retainedRecords: number; retainedAssets: number; retainedBytes: number; excludedRecords: number; ocrSha256: string[] };
   pagesConsidered: number;
   pagesNotConsidered: number;
   candidatesObserved: number;
@@ -66,7 +67,7 @@ export interface EvidenceSummary {
   creativeImages: CreativeImageView[];
 }
 
-export interface EvidenceGraph { nodes: EvidenceNode[]; edges: EvidenceEdge[] }
+export interface EvidenceGraph { nodes: EvidenceNode[]; edges: EvidenceEdge[]; truncated?: boolean }
 export interface EvidenceGraphQuery {
   focus?: { kind: "finding" | "page" | "creative" | "domain"; id: string };
   maxNodes?: number;

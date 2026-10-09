@@ -21,6 +21,16 @@ export interface ElementSignalInput {
   href?: string;
 }
 
+export interface FrameVisibilityContext {
+  transparent: boolean;
+  offscreen: boolean;
+  transparentDetail: string;
+  offscreenDetail: string;
+  unsupported?: string[];
+}
+
+export interface RenderingObservationLimits { textNodes: number; textRectangles: number; ancestors: number }
+
 export interface ElementSignal {
   selector: string;
   rawText: string;
@@ -30,100 +40,117 @@ export interface ElementSignal {
   offscreen: boolean;
   offscreenDetail: string;
   collapsedNavigation: boolean;
+  /** Unsupported observations are uncertainty, never proof of concealment. */
+  renderingIssues?: string[];
   box: { x: number; y: number; width: number; height: number };
   css: { color: string; backgroundColor: string; opacity: string; display: string; fontSize: string; position: string };
 }
 
 /** Page-side collector: serializable, runs via page.evaluate. Paste-safe. */
-export function collectElementSignals(inputs: ElementSignalInput[]): ElementSignal[] {
+export function collectElementSignals(payload: { inputs: ElementSignalInput[]; frameVisibility?: FrameVisibilityContext; limits: RenderingObservationLimits }): ElementSignal[] {
+  const { inputs, frameVisibility: frame, limits } = payload;
   const out: ElementSignal[] = [];
   const navigationLinks = new Map<HTMLAnchorElement, { navigation: Element; signals: ElementSignal[]; visible: boolean }>();
+  type Color = { r: number; g: number; b: number; a: number };
+  const color = (value: string): Color | undefined => {
+    if (value === "transparent") return { r: 0, g: 0, b: 0, a: 0 };
+    const match = value.match(/^rgba?\(\s*([\d.]+)[, ]+([\d.]+)[, ]+([\d.]+)(?:\s*[,/]\s*([\d.]+)(%)?)?\s*\)$/);
+    if (!match) return undefined;
+    return { r: Number(match[1]), g: Number(match[2]), b: Number(match[3]), a: match[4] === undefined ? 1 : Number(match[4]) / (match[5] ? 100 : 1) };
+  };
+  type Box = { x: number; y: number; width: number; height: number };
+  const intersect = (a: Box, b: Box): Box => ({ x: Math.max(a.x, b.x), y: Math.max(a.y, b.y),
+    width: Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)),
+    height: Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)) });
   for (const input of inputs) {
     const el = document.querySelector(input.selector) as HTMLElement | undefined;
     if (!el) continue;
     const style = getComputedStyle(el);
     const rect = el.getBoundingClientRect();
 
-    // --- TRANSPARENT ---
-    let transparent = false;
-    const transparentReasons: string[] = [];
-    if (style.color === "rgba(0, 0, 0, 0)" || style.color === "transparent") {
-      transparent = true;
-      transparentReasons.push(`color=${style.color}`);
-    }
-    const opacity = Number.parseFloat(style.opacity);
-    if (Number.isFinite(opacity) && opacity === 0) {
-      transparent = true;
-      transparentReasons.push("opacity:0");
-    }
-    let ancestor = el.parentElement;
-    let depth = 0;
-    while (ancestor && depth < 8) {
-      const aOpacity = Number.parseFloat(getComputedStyle(ancestor).opacity);
-      if (Number.isFinite(aOpacity) && aOpacity === 0) {
-        transparent = true;
-        transparentReasons.push("ancestor opacity:0");
-        break;
-      }
-      ancestor = ancestor.parentElement;
-      depth += 1;
-    }
-    const fg = style.color;
-    const bg = style.backgroundColor;
-    if (fg && bg && fg === bg && fg !== "rgba(0, 0, 0, 0)") {
-      transparent = true;
-      transparentReasons.push(`fg==bg ${fg}`);
-    }
+    const transparentReasons: string[] = frame?.transparent ? [`frame ancestor: ${frame.transparentDetail}`] : [];
+    const offscreenReasons: string[] = frame?.offscreen ? [`frame ancestor: ${frame.offscreenDetail}`] : [];
+    const renderingIssues = [...(frame?.unsupported ?? [])];
+    const paint = style.getPropertyValue("-webkit-text-fill-color") || style.color;
+    const foreground = color(paint);
+    const additionalTextPaint = style.textShadow !== "none" || Number.parseFloat(style.getPropertyValue("-webkit-text-stroke-width")) > 0;
+    if (foreground?.a === 0 && !additionalTextPaint) transparentReasons.push(`text alpha:0 (${paint})`);
+    if (additionalTextPaint) renderingIssues.push("unsupported text shadow or stroke");
+    if (!foreground) renderingIssues.push("unsupported text color");
 
-    // --- OFFSCREEN ---
-    let offscreen = false;
-    const offscreenReasons: string[] = [];
-    if (style.display === "none") {
-      offscreen = true;
-      offscreenReasons.push("display:none");
+    // Ranges measure rendered glyph runs, including display:contents. Do not
+    // confuse an empty container box with absent text. Bound traversal/rects.
+    const textRects: Box[] = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let textNodes = 0;
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+      if (++textNodes > limits.textNodes || textRects.length >= limits.textRectangles) { renderingIssues.push("text geometry limit"); break; }
+      if (!text.textContent?.trim()) continue;
+      const range = document.createRange(); range.selectNodeContents(text);
+      const rects = range.getClientRects();
+      for (let index = 0; index < rects.length && textRects.length < limits.textRectangles; index += 1) {
+        const value = rects[index]!;
+        if (value.width > 0 && value.height > 0) textRects.push({ x: value.x, y: value.y, width: value.width, height: value.height });
+      }
+      range.detach();
     }
-    const fontSize = Number.parseFloat(style.fontSize);
-    if (Number.isFinite(fontSize) && fontSize <= 1) {
-      offscreen = true;
-      offscreenReasons.push(`font-size:${style.fontSize}`);
-    }
-    if (rect.width === 0 && rect.height === 0 && input.rawText.trim().length > 0) {
-      offscreen = true;
-      offscreenReasons.push("zero-size box with text");
-    }
-    if (rect.x + rect.width < 0 || rect.y + rect.height < 0) {
-      offscreen = true;
-      offscreenReasons.push(`negative box x=${String(Math.round(rect.x))} y=${String(Math.round(rect.y))}`);
-    }
-    const transform = style.transform;
-    if (transform && transform !== "none") {
-      const m = transform.match(/matrix\(([^)]+)\)/);
-      if (m?.[1]) {
-        const parts = m[1].split(",").map((s) => Number.parseFloat(s.trim()));
-        const tx = parts[4] ?? 0;
-        const ty = parts[5] ?? 0;
-        if (tx < -2000 || ty < -2000 || tx > 10000 || ty > 10000) {
-          offscreen = true;
-          offscreenReasons.push(`transform translate ${String(tx)},${String(ty)}`);
+    let visibleRects = textRects.map((value) => ({ ...value }));
+    let background: Color = { r: 0, g: 0, b: 0, a: 0 };
+    let backgroundKnown = true;
+    let depth = 0;
+    let cursor: HTMLElement | null = el;
+    for (; cursor && depth < limits.ancestors; cursor = cursor.parentElement, depth += 1) {
+      const current = getComputedStyle(cursor);
+      if (Number.parseFloat(current.opacity) === 0) transparentReasons.push(depth === 0 ? "opacity:0" : "ancestor opacity:0");
+      if (current.display === "none") offscreenReasons.push(depth === 0 ? "display:none" : "ancestor display:none");
+      // Visibility inherits but may be overridden by a visible descendant;
+      // the text owner's computed value already reflects that inheritance.
+      if (depth === 0 && (current.visibility === "hidden" || current.visibility === "collapse")) offscreenReasons.push(`visibility:${current.visibility}`);
+      if (background.a < 1) {
+        if (current.backgroundImage !== "none" || current.mixBlendMode !== "normal" || current.filter !== "none") backgroundKnown = false;
+        const layer = color(current.backgroundColor);
+        if (!layer) backgroundKnown = false;
+        else {
+          const alpha = background.a + layer.a * (1 - background.a);
+          if (alpha > 0) background = { r: (background.r * background.a + layer.r * layer.a * (1 - background.a)) / alpha,
+            g: (background.g * background.a + layer.g * layer.a * (1 - background.a)) / alpha,
+            b: (background.b * background.a + layer.b * layer.a * (1 - background.a)) / alpha, a: alpha };
         }
       }
-    }
-    if (style.clipPath && style.clipPath !== "none" && rect.width > 0) {
-      const inset = style.clipPath.match(/inset\(\s*0/);
-      if (inset && rect.width <= 2 && rect.height <= 2) {
-        offscreen = true;
-        offscreenReasons.push(`clip-path ${style.clipPath}`);
+      const box = cursor.getBoundingClientRect();
+      const clipX = /^(hidden|clip|scroll|auto)$/.test(current.overflowX);
+      const clipY = /^(hidden|clip|scroll|auto)$/.test(current.overflowY);
+      if ((clipX || clipY) && current.display !== "contents" && cursor !== document.body && cursor !== document.documentElement) {
+        const clip = { x: clipX ? box.x + cursor.clientLeft : -1e12, y: clipY ? box.y + cursor.clientTop : -1e12,
+          width: clipX ? cursor.clientWidth : 2e12, height: clipY ? cursor.clientHeight : 2e12 };
+        visibleRects = visibleRects.map((value) => intersect(value, clip));
+      }
+      if (current.clipPath !== "none") {
+        const inset = current.clipPath.match(/^inset\(([^()]+)\)$/);
+        if (inset) {
+          const tokens = inset[1]!.split(/\s+round\s+/)[0]!.trim().split(/\s+/);
+          if (tokens.length >= 1 && tokens.length <= 4 && tokens.every((value) => /^-?[\d.]+(?:px|%)?$/.test(value))) {
+            const values = [tokens[0]!, tokens[1] ?? tokens[0]!, tokens[2] ?? tokens[0]!, tokens[3] ?? tokens[1] ?? tokens[0]!];
+            const lengths = values.map((value, index) => Number.parseFloat(value) * (value.endsWith("%") ? (index % 2 ? box.width : box.height) / 100 : 1));
+            const clip = { x: box.x + lengths[3]!, y: box.y + lengths[0]!, width: Math.max(0, box.width - lengths[1]! - lengths[3]!), height: Math.max(0, box.height - lengths[0]! - lengths[2]!) };
+            visibleRects = visibleRects.map((value) => intersect(value, clip));
+          } else renderingIssues.push("unsupported inset clip");
+        } else renderingIssues.push("unsupported clip-path");
       }
     }
-    if (
-      (style.overflow === "hidden" || style.overflowX === "hidden") &&
-      rect.width <= 1 &&
-      rect.height <= 1 &&
-      input.rawText.trim().length > 0
-    ) {
-      offscreen = true;
-      offscreenReasons.push("overflow-hidden micro box with text");
-    }
+    if (cursor) renderingIssues.push("ancestor observation limit");
+    // The default canvas is white; a non-solid background invalidates this
+    // inference. Composited foreground equivalence is exact, not a contrast score.
+    if (background.a < 1) background = { r: background.r * background.a + 255 * (1 - background.a), g: background.g * background.a + 255 * (1 - background.a), b: background.b * background.a + 255 * (1 - background.a), a: 1 };
+    if (backgroundKnown && !additionalTextPaint && foreground && foreground.a > 0 && (["r", "g", "b"] as const).every((channel) => Math.abs(foreground[channel] - background[channel]) < 0.5)) transparentReasons.push("text matches composited solid background");
+    if (!backgroundKnown) renderingIssues.push("non-solid background or compositing");
+    const fontSize = Number.parseFloat(style.fontSize);
+    if (Number.isFinite(fontSize) && fontSize <= 1) offscreenReasons.push(`font-size:${style.fontSize}`);
+    if (textRects.length === 0 && input.rawText.trim() && !renderingIssues.includes("text geometry limit")) offscreenReasons.push("no rendered text ranges");
+    if (textRects.length > 0 && visibleRects.every((value) => value.width <= 0 || value.height <= 0)) offscreenReasons.push("text ranges fully clipped");
+    if (textRects.length > 0 && textRects.every((value) => value.x + value.width <= 0 || value.y + value.height <= 0)) offscreenReasons.push("text ranges above or left of document");
+    const transparent = transparentReasons.length > 0;
+    const offscreen = offscreenReasons.length > 0;
 
     const signal: ElementSignal = {
       selector: input.selector,
@@ -134,6 +161,7 @@ export function collectElementSignals(inputs: ElementSignalInput[]): ElementSign
       offscreen,
       offscreenDetail: offscreenReasons.join("; ") || "in-flow geometry",
       collapsedNavigation: false,
+      ...(renderingIssues.length ? { renderingIssues: [...new Set(renderingIssues)] } : {}),
       box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
       css: { color: style.color, backgroundColor: style.backgroundColor, opacity: style.opacity,
         display: style.display, fontSize: style.fontSize, position: style.position },

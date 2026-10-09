@@ -1,13 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "불법광고 탐지 도구",
-  "version": "0.1.0",
+  "productName": "\ubd88\ubc95\uad11\uace0 \ud0d0\uc9c0 \ub3c4\uad6c",
+  "version": "0.2.0",
   "identifier": "kr.go.nia.illegal-ad-detector",
   "build": {
     "frontendDist": "../apps/web/dist",
     "devUrl": "http://127.0.0.1:5173",
     "beforeDevCommand": "npm run dev -w apps/web",
-    "beforeBuildCommand": "npm run build -w apps/web && npm run build:sidecar && npm run prepare:windows-runtime"
+    "beforeBuildCommand": "node scripts/desktop.mjs resources"
   },
   "app": {
     "security": {
@@ -36,7 +36,9 @@
       "binaries/node.exe": "binaries/node.exe",
       "binaries/node-LICENSE": "binaries/node-LICENSE",
       "binaries/node_modules/": "binaries/node_modules/",
-      "binaries/ms-playwright/": "binaries/ms-playwright/"
+      "binaries/ms-playwright/": "binaries/ms-playwright/",
+      "binaries/build-manifest.json": "binaries/build-manifest.json",
+      "binaries/resources-manifest.json": "binaries/resources-manifest.json"
     }
   }
 }

@@ -2,23 +2,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { crawlSite } from "../src/crawl.js";
 import { startFixtureServer } from "@krds-detector/synth-eval/serve.js";
 
-const PORT = 4161;
 let base = "";
 let closeServer: () => Promise<void> = async () => undefined;
 
 beforeAll(async () => {
-  const started = startFixtureServer(PORT);
+  const started = await startFixtureServer();
   base = started.url;
   closeServer = started.close;
-  for (let i = 0; i < 50; i += 1) {
-    try {
-      const res = await fetch(`${base}/`);
-      if (res.ok) break;
-    } catch {
-      /* server not ready yet; readiness poll, not a timing assumption */
-    }
-    await new Promise((r) => setTimeout(r, 100));
-  }
+
 });
 
 afterAll(async () => {

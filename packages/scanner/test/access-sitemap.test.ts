@@ -56,7 +56,7 @@ describe("typed access outcomes on real navigation", () => {
       expect(summary.pages[0]?.issue?.kind, path).toBe(kind);
       expect(inspected, path).toEqual(kind ? [] : [base + path]);
       expect(summary.pages[0]?.discoverySource).toBe("entry");
-      if (path === "/rate") expect(summary.pages[0]?.issue?.retryAfterMs).toBe(5000);
+      if (path === "/rate") expect(summary.pages[0]?.issue?.retryAfterMs).toBe(999999999000);
     }
   }, 60000);
 

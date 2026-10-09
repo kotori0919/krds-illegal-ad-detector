@@ -1,7 +1,7 @@
 import type { Frame, Page } from "playwright-core";
 import { createSelectorEngine, type LiveFrame, type LiveImageResponse, type ScanDeadline } from "@krds-detector/scanner";
-import { blockAverageHash, sha256Hex, type CreativeFingerprint } from "@krds-detector/evidence";
-import { normalizeFrameSrc, serializeFramePath, type CreativeImage, type VisualAnalysisCoverage, type VisualAnalysisReason, type VisualAnalysisLimit } from "@krds-detector/contracts";
+import { blockAverageHash, sha256Hex, type CreativeFingerprint, type VisualSource } from "@krds-detector/evidence";
+import { SCAN_POLICY, normalizeFrameSrc, serializeFramePath, type CreativeImage, type VisualAnalysisCoverage, type VisualAnalysisReason, type VisualAnalysisLimit } from "@krds-detector/contracts";
 import { semanticGate } from "./semantic.js";
 
 export interface VisualCandidate {
@@ -15,7 +15,28 @@ export interface VisualCandidate {
   visibleDomAdTexts: string[];
 }
 
-export type CapturedVisualImage = Omit<CreativeImage, "findingId"> & { candidate: VisualCandidate };
+export type CapturedVisualImage = Omit<CreativeImage, "findingId" | "dataUrl"> & { dataUrl: string; candidate: VisualCandidate };
+
+export interface LiveVisualRequest {
+  page: Page; frames: LiveFrame[]; responses: LiveImageResponse[];
+  deadline: ScanDeadline; maxBytes: number; signal?: AbortSignal;
+}
+export const livePageVisualSource: VisualSource<LiveVisualRequest, Awaited<ReturnType<typeof collectPageCreatives>>> = {
+  id: "live-playwright-visuals", version: 1, availability: { state: "available" },
+  limits: { bytesPerPage: SCAN_POLICY.visual.bytesPerPage, candidatesPerDocument: SCAN_POLICY.visual.candidatesPerDocument,
+    elementsPerDocument: SCAN_POLICY.visual.elementsPerDocument, maxImagePixels: SCAN_POLICY.visual.maxImagePixels },
+  failurePolicy: "return-unavailable-no-retry",
+  async acquire({ page, frames, responses, deadline, maxBytes, signal }) {
+    if (!Number.isSafeInteger(maxBytes)) return { state: "unavailable", issue: { code: "INVALID_INPUT", retryable: false } };
+    if (signal?.aborted) return { state: "unavailable", issue: { code: "CANCELLED", retryable: false } };
+    if (maxBytes <= 0 || deadline.operationTimeoutMs(2000) < 500) return { state: "unavailable", issue: { code: "BUDGET", retryable: false } };
+    if (page.isClosed()) return { state: "unavailable", issue: { code: "CAPTURE_FAILED", retryable: false } };
+    try {
+      const value = await collectPageCreatives(page, frames, responses, deadline, Math.min(maxBytes, SCAN_POLICY.visual.bytesPerPage), signal);
+      return { state: "available", value, degradation: value.coverage.skips.length ? [{ code: "PARTIAL_CAPTURE", retryable: false }] : [] };
+    } catch { return { state: "unavailable", issue: { code: signal?.aborted ? "CANCELLED" : "CAPTURE_FAILED", retryable: false } }; }
+  },
+};
 
 interface BrowserCandidate {
   sourceKind: VisualCandidate["sourceKind"];
@@ -26,7 +47,7 @@ interface BrowserCandidate {
 }
 
 /** Trusted browser source; page-controlled values only enter as data. */
-function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { candidates: BrowserCandidate[]; visibleTexts: string[]; candidateLimit: boolean; elementLimit: boolean } {
+function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>, limits: { elementsPerDocument: number; candidatesPerDocument: number; maxImagePixels: number }): { candidates: BrowserCandidate[]; visibleTexts: string[]; candidateLimit: boolean; elementLimit: boolean } {
   const hint = /(?:^|[^a-z])(ad|ads|banner)(?:$|[^a-z])|광고|배너/i;
   const candidates: BrowserCandidate[] = [];
   const textOwners = new Map<Element, string[]>();
@@ -35,17 +56,17 @@ function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { ca
     if (box.width <= 0 || box.height <= 0) return false;
     for (let current: Element | null = el; current; current = current.parentElement) {
       const css = getComputedStyle(current);
-      if (css.display === "none" || css.visibility !== "visible" || Number(css.opacity) === 0 || css.contentVisibility === "hidden") return false;
+      if (css.display === "none" || (current === el && css.visibility !== "visible") || Number(css.opacity) === 0 || css.contentVisibility === "hidden") return false;
     }
     return true;
   }
   // Marker and link checks precede background/style work. Traversal and
   // retained candidates are bounded even on very large documents.
-  const elements = document.querySelectorAll("*");
+  const elements = document.createTreeWalker(document.documentElement, NodeFilter.SHOW_ELEMENT);
   let inspectedElements = 0;
-  for (let index = 0; index < Math.min(elements.length, 10_000) && candidates.length < 8; index += 1) {
+  for (let node = elements.nextNode(); node && inspectedElements < limits.elementsPerDocument && candidates.length < limits.candidatesPerDocument; node = elements.nextNode()) {
     inspectedElements += 1;
-    const el = elements[index]!;
+    const el = node as Element;
     if (el.parentElement?.closest("svg,canvas")) continue;
     const parent = el.parentElement;
     const marker = `${el.getAttribute("alt") ?? ""} ${el.id} ${el.getAttribute("class") ?? ""} ${el.getAttribute("aria-label") ?? ""} ${parent?.id ?? ""} ${parent?.getAttribute("class") ?? ""}`;
@@ -70,7 +91,7 @@ function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { ca
     }
     if (!visible(el)) continue;
     const box = el.getBoundingClientRect();
-    if (box.width < 8 || box.height < 8 || box.width * box.height > 4_000_000) continue;
+    if (box.width < 8 || box.height < 8 || box.width * box.height > limits.maxImagePixels) continue;
     const selector = selectors.buildSelectorFor(el, document);
     if (!selector || !selectors.roundTrips(document, el, selector)) continue;
     // Inline/blob images use page + selector provenance; asset bytes must not
@@ -81,11 +102,14 @@ function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { ca
   }
   const walker = document.createTreeWalker(document.body ?? document.documentElement, NodeFilter.SHOW_TEXT);
   let inspected = 0;
-  while (walker.nextNode() && inspected < 10_000 && textOwners.size < 200) {
+  let textCharacters = 0;
+  while (walker.nextNode() && inspected < limits.elementsPerDocument && textOwners.size < 200 && textCharacters < 65_536) {
     inspected += 1;
     const node = walker.currentNode;
     const parent = node.parentElement;
     if (!parent || parent.closest("svg,canvas,script,style,noscript,template") || !node.textContent?.trim() || !visible(parent)) continue;
+    const text = node.textContent.slice(0, Math.min(4096, 65_536 - textCharacters));
+    textCharacters += text.length;
     const css = getComputedStyle(parent);
     if (Number.parseFloat(css.fontSize) <= 1 || css.color === "rgba(0, 0, 0, 0)" || css.color === "transparent" || css.color === css.backgroundColor) continue;
     const range = document.createRange();
@@ -101,11 +125,11 @@ function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>): { ca
         if (display !== "contents" && !display.startsWith("inline")) break;
       }
       const fragments = textOwners.get(owner);
-      if (fragments) fragments.push(node.textContent); else textOwners.set(owner, [node.textContent]);
+      if (fragments) fragments.push(text); else textOwners.set(owner, [text]);
     }
   }
   return { candidates, visibleTexts: [...textOwners.values()].map((fragments) => fragments.join("")),
-    candidateLimit: candidates.length === 8, elementLimit: inspectedElements === 10_000 };
+    candidateLimit: candidates.length === limits.candidatesPerDocument, elementLimit: inspectedElements === limits.elementsPerDocument };
 }
 
 async function within<T>(promise: Promise<T>, ms: number, signal?: AbortSignal): Promise<T> {
@@ -136,7 +160,7 @@ async function frameIsVisible(frame: Frame, deadline: ScanDeadline, signal?: Abo
         if (box.width <= 0 || box.height <= 0 || box.right <= 0 || box.bottom <= 0) return false;
         for (let ancestor: Element | null = element; ancestor; ancestor = ancestor.parentElement) {
           const css = getComputedStyle(ancestor);
-          if (css.display === "none" || css.visibility !== "visible" || Number(css.opacity) === 0 || css.contentVisibility === "hidden") return false;
+          if (css.display === "none" || (ancestor === element && css.visibility !== "visible") || Number(css.opacity) === 0 || css.contentVisibility === "hidden") return false;
         }
         return true;
       }), Math.max(1, deadline.operationTimeoutMs(500)), signal);
@@ -186,7 +210,7 @@ export async function collectPageCreatives(
     if (!enoughTime()) { skip(unavailableReason(), "document", scopes.length - index); break; }
     try {
       if (!await frameIsVisible(frame, deadline, signal)) { skip(!enoughTime() ? unavailableReason() : "target-unavailable", "document"); continue; }
-      const selected = await within(frame.evaluate(`(${selectVisuals.toString()})(${createSelectorEngine.toString()}())`) as Promise<ReturnType<typeof selectVisuals>>,
+      const selected = await within(frame.evaluate(`(${selectVisuals.toString()})(${createSelectorEngine.toString()}(), ${JSON.stringify(SCAN_POLICY.visual)})`) as Promise<ReturnType<typeof selectVisuals>>,
         Math.max(1, deadline.operationTimeoutMs(500)), signal);
       for (const text of selected.visibleTexts) if (semanticGate(text).passed) pageTexts.add(text);
       coverage.candidatesObserved += selected.candidates.length;
@@ -200,13 +224,13 @@ export async function collectPageCreatives(
   }
   const visibleDomAdTexts = [...pageTexts];
   for (const { frame, path, selected } of selectedScopes) {
-    if (prints.length >= 8 || bytes >= maxBytes || !enoughTime()) {
-      skip(prints.length >= 8 ? "candidate-limit" : bytes >= maxBytes ? "byte-limit" : unavailableReason(), "candidate", selected.candidates.length); continue;
+    if (prints.length >= SCAN_POLICY.visual.candidatesPerDocument || bytes >= maxBytes || !enoughTime()) {
+      skip(prints.length >= SCAN_POLICY.visual.candidatesPerDocument ? "candidate-limit" : bytes >= maxBytes ? "byte-limit" : unavailableReason(), "candidate", selected.candidates.length); continue;
     }
     try {
       for (const [index, selectedCandidate] of selected.candidates.entries()) {
-        if (prints.length >= 8 || bytes >= maxBytes || !enoughTime()) {
-          skip(prints.length >= 8 ? "candidate-limit" : bytes >= maxBytes ? "byte-limit" : unavailableReason(), "candidate", selected.candidates.length - index); break;
+        if (prints.length >= SCAN_POLICY.visual.candidatesPerDocument || bytes >= maxBytes || !enoughTime()) {
+          skip(prints.length >= SCAN_POLICY.visual.candidatesPerDocument ? "candidate-limit" : bytes >= maxBytes ? "byte-limit" : unavailableReason(), "candidate", selected.candidates.length - index); break;
         }
         const candidate: VisualCandidate = { sourceKind: selectedCandidate.sourceKind, pageUrl: page.url(), frameUrl: frame.url(),
           location: serializeFramePath({ framePath: path, selector: selectedCandidate.selector }),
@@ -228,11 +252,11 @@ export async function collectPageCreatives(
           if (observed) {
             mediaType = observed.mediaType; sourceUrl = observed.url;
             const declaredBytes = Number(observed.response.headers()["content-length"] ?? 0);
-            if (declaredBytes > 250_000 || declaredBytes > maxBytes - bytes) { skip("byte-limit", "candidate"); continue; }
+            if (declaredBytes > SCAN_POLICY.visual.bytesPerPage || declaredBytes > maxBytes - bytes) { skip("byte-limit", "candidate"); continue; }
             if (mediaType === "image/svg+xml" && candidate.sourceKind === "img") candidate.sourceKind = "svg";
             if (declaredBytes > 0 && mediaType !== "image/svg+xml") {
               body = await within(observed.response.body(), Math.max(1, deadline.operationTimeoutMs(1000)), signal);
-              if (!body.length || body.length > 250_000 || bytes + body.length > maxBytes) { skip(body.length ? "byte-limit" : "image-unavailable", "candidate"); continue; }
+              if (!body.length || body.length > SCAN_POLICY.visual.bytesPerPage || bytes + body.length > maxBytes) { skip(body.length ? "byte-limit" : "image-unavailable", "candidate"); continue; }
             }
           }
           // Rasterize only candidates already admitted by marker/link/geometry
@@ -243,26 +267,26 @@ export async function collectPageCreatives(
             if (await locator.count() !== 1) { skip("target-unavailable", "candidate"); continue; }
             await locator.scrollIntoViewIfNeeded({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
             const box = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
-            if (!box || box.width < 8 || box.height < 8 || box.width * box.height > 4_000_000) { skip("target-unavailable", "candidate"); continue; }
+            if (!box || box.width < 8 || box.height < 8 || box.width * box.height > SCAN_POLICY.visual.maxImagePixels) { skip("target-unavailable", "candidate"); continue; }
             body = await locator.screenshot({ type: "png", timeout: Math.max(1, deadline.operationTimeoutMs(1000)), animations: "disabled" });
             mediaType = "image/png";
             const after = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
             if (!after || after.x !== box.x || after.y !== box.y || after.width !== box.width || after.height !== box.height) { skip("target-unavailable", "candidate"); continue; }
           }
-          if (!enoughTime() || !body.length || body.length > 250_000 || bytes + body.length > maxBytes) {
+          if (!enoughTime() || !body.length || body.length > SCAN_POLICY.visual.bytesPerPage || bytes + body.length > maxBytes) {
             skip(!enoughTime() ? unavailableReason() : body.length ? "byte-limit" : "image-unavailable", "candidate"); continue;
           }
-          const decoded = await within(page.evaluate(async ({ imageBytes, type }) => {
+          const decoded = await within(page.evaluate(async ({ imageBytes, type, maxImagePixels }) => {
             const bitmap = await createImageBitmap(new Blob([new Uint8Array(imageBytes)], { type }));
             try {
-              if (bitmap.width < 8 || bitmap.height < 8 || bitmap.width * bitmap.height > 4_000_000) return undefined;
+              if (bitmap.width < 8 || bitmap.height < 8 || bitmap.width * bitmap.height > maxImagePixels) return undefined;
               const canvas = document.createElement("canvas"); canvas.width = 8; canvas.height = 8;
               const context = canvas.getContext("2d", { willReadFrequently: true });
               if (!context) return undefined;
               context.drawImage(bitmap, 0, 0, 8, 8);
               return { width: bitmap.width, height: bitmap.height, rgba: Array.from(context.getImageData(0, 0, 8, 8).data) };
             } finally { bitmap.close(); }
-          }, { imageBytes: Array.from(body), type: mediaType }), Math.max(1, deadline.operationTimeoutMs(1000)), signal);
+          }, { imageBytes: Array.from(body), type: mediaType, maxImagePixels: SCAN_POLICY.visual.maxImagePixels }), Math.max(1, deadline.operationTimeoutMs(1000)), signal);
           if (!decoded || signal?.aborted) { skip(signal?.aborted ? "cancelled" : "image-unavailable", "candidate"); continue; }
           bytes += body.length;
           if (bytes === maxBytes && !coverage.limitsReached.includes("byte-limit")) coverage.limitsReached.push("byte-limit");

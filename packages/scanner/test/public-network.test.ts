@@ -5,6 +5,7 @@ import { isPublicAddress, PublicNetworkPolicy, startPublicNetworkProxy } from ".
 import { ScanDeadline } from "../src/deadline.js";
 import { scanSite } from "../../detection/src/scan.js";
 import { request as httpRequest } from "node:http";
+import { chromium, type Browser } from "playwright-core";
 
 const scanTimeoutSec = 30;
 // One scan per test; the outer deadline also allows browser finalization.
@@ -80,7 +81,7 @@ describe("public-only runtime navigation", () => {
     const summary = await crawlSite({ entryUrl: `http://rebinding.fixture.invalid:${new URL(protectedOrigin).port}/`,
       publicNetworkOnly: true, networkPolicyForTesting: policy, settleMs: 0, signal,
       limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } });
-    expect(summary.pages[0]?.issue?.kind).toBe("denied");
+    expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
     expect(lookups).toBeGreaterThanOrEqual(3);
     expect(network.protectedConnections()).toBe(0);
   }, testTimeoutMs);
@@ -99,10 +100,56 @@ describe("public-only runtime navigation", () => {
     const redirected = await crawlSite({ entryUrl: origin + path, publicNetworkOnly: true, signal,
       networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([origin]),
       limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 0 });
-    expect(redirected.pages[0]?.issue?.kind).toMatch(/^(denied|navigation)$/);
+    expect(redirected.pages[0]?.issue?.kind).toBe("network-policy");
     expect(redirected.timedOut).toBe(false);
     expect(network.protectedConnections()).toBe(0);
   });
+  networkTest("settles real browser shutdown when context disposal waits for transport disconnect", async ({ network, signal }) => {
+    const originalLaunch = chromium.launch;
+    let browser: Browser | undefined;
+    let disposalStalled = false;
+    chromium.launch = async (options) => {
+      const launched = await originalLaunch.call(chromium, options);
+      browser = launched;
+      const newContext = launched.newContext.bind(launched);
+      launched.newContext = async (options) => {
+        const context = await newContext(options);
+        const close = context.close.bind(context);
+        context.close = async () => {
+          // Controlled transport fault around a real Chromium context: disposal
+          // cannot settle until the browser disconnects. A guard releases the
+          // failing test without leaving a real child or listener behind.
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          let disconnected: (() => void) | undefined;
+          try {
+            if (launched.isConnected()) await new Promise<void>((resolve, reject) => {
+              disconnected = () => resolve();
+              launched.once("disconnected", disconnected);
+              timer = setTimeout(() => { disposalStalled = true; reject(new Error("context disposal stalled awaiting browser disconnect")); }, 5000);
+            });
+            await close();
+          } finally {
+            if (timer) clearTimeout(timer);
+            if (disconnected) launched.removeListener("disconnected", disconnected);
+          }
+        };
+        return context;
+      };
+      return launched;
+    };
+    try {
+      const summary = await crawlSite({ entryUrl: network.origin + "/redirect", publicNetworkOnly: true, signal,
+        networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([network.origin]),
+        limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 0 });
+      expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
+      expect(browser?.isConnected()).toBe(false);
+      expect(network.protectedConnections()).toBe(0);
+      expect(disposalStalled).toBe(false);
+    } finally {
+      chromium.launch = originalLaunch;
+      await browser?.close();
+    }
+  }, testTimeoutMs);
   networkTest("scans exact sitemap-index input pages with original official metadata and no XML checked page", async ({ network, signal }) => {
     const { origin, requests } = network;
     const entryUrl = origin + "/input-index.xml";

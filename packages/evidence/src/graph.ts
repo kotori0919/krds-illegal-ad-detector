@@ -9,6 +9,7 @@
  */
 import type { EvidenceEdge, EvidenceEdgeKind, EvidenceNode, EvidenceNodeKind, EvidenceGraph,
   EvidenceGraphQuery, EvidenceGraphSlice, InfrastructureRelation } from "@krds-detector/contracts";
+import { SCAN_POLICY } from "@krds-detector/contracts";
 
 export type { EvidenceGraph } from "@krds-detector/contracts";
 
@@ -38,6 +39,8 @@ function compactNodeId(kind: string, key: string): string {
 }
 
 export function buildEvidenceGraph(inputs: GraphInput[]): EvidenceGraph {
+  const { maxNodes, maxEdges, maxPageInputs } = SCAN_POLICY.graph;
+  let truncated = inputs.length > maxPageInputs;
   const nodes = new Map<string, EvidenceNode>();
   const edges: EvidenceEdge[] = [];
   const edgeKeys = new Map<string, EvidenceEdge>();
@@ -47,45 +50,59 @@ export function buildEvidenceGraph(inputs: GraphInput[]): EvidenceGraph {
   const nodeId = (kind: string, key: string): string => {
     const compact = compactNodeId(kind, key);
     const prior = identities.get(compact);
-    if (prior === undefined) { identities.set(compact, key); return compact; }
+    if (prior === undefined) {
+      if (identities.size >= maxNodes) { truncated = true; return ""; }
+      identities.set(compact, key); return compact;
+    }
     if (typeof prior === "string") {
       if (prior === key) return compact;
+      if (nodes.size >= maxNodes) { truncated = true; return ""; }
       const distinct = `${compact}-1`;
       identities.set(compact, new Map([[prior, compact], [key, distinct]]));
       return distinct;
     }
     const existing = prior.get(key);
     if (existing) return existing;
+    if (nodes.size >= maxNodes) { truncated = true; return ""; }
     const distinct = `${compact}-${String(prior.size)}`;
     prior.set(key, distinct);
     return distinct;
   };
-  const link = (from: string, to: string, kind: EvidenceEdgeKind, reason?: string): void => {
-    if (from === to) return;
+  const link = (from: string | undefined, to: string | undefined, kind: EvidenceEdgeKind, reason?: string): void => {
+    if (!from || !to || from === to) return;
     const key = `${from}\0${to}\0${kind}`;
     let edge = edgeKeys.get(key);
     if (!edge) {
+      if (edges.length >= maxEdges) { truncated = true; return; }
       edge = { from, to, kind };
       edgeKeys.set(key, edge);
       edges.push(edge);
     }
     if (reason) { edge.adRelated = true; edge.evidenceKinds = [...new Set([...(edge.evidenceKinds ?? []), reason])].sort(); }
   };
-  const put = (node: EvidenceNode): string => {
+  const put = (node: EvidenceNode): string | undefined => {
+    if (!node.id) { truncated = true; return undefined; }
     const prior = nodes.get(node.id);
-    if (!prior) nodes.set(node.id, node);
+    if (!prior) {
+      if (nodes.size >= maxNodes) { truncated = true; return undefined; }
+      nodes.set(node.id, node);
+    }
     else if (node.adRelated) Object.assign(prior, node, { adRelated: true });
     return node.id;
   };
 
-  for (const input of inputs) {
+  // Witnesses across the full completed scope get admission before unrelated
+  // context resources. Inputs and every relation family have collection caps.
+  for (const pass of ["witness", "context"] as const) for (const input of inputs.slice(0, maxPageInputs)) {
     const pageId = put({ id: nodeId("Page", input.pageUrl), kind: "Page", url: input.pageUrl, label: input.pageUrl });
+    if (!pageId) continue;
+    if (input.frames.length > SCAN_POLICY.collection.frameCount || input.links.length > SCAN_POLICY.collection.linksPerPage || input.externals.length > SCAN_POLICY.collection.externalItemsPerPage || (input.adEvidence?.length ?? 0) > 500) truncated = true;
     const pageHost = hostOf(input.pageUrl);
     if (pageHost) {
       const domainId = put({ id: nodeId("Domain", pageHost), kind: "Domain", url: `https://${pageHost}/`, label: pageHost });
       link(pageId, domainId, "LINKS_TO");
     }
-    for (const frame of input.frames) {
+    for (const frame of pass === "context" ? input.frames.slice(0,SCAN_POLICY.collection.frameCount) : []) {
       const frameId = put({ id: nodeId("Frame", frame.url), kind: "Frame", url: frame.url, label: frame.url });
       link(pageId, frameId, "EMBEDS");
       const frameHost = hostOf(frame.url);
@@ -94,7 +111,7 @@ export function buildEvidenceGraph(inputs: GraphInput[]): EvidenceGraph {
         link(frameId, domainId, "LINKS_TO");
       }
     }
-    for (const raw of input.links) {
+    for (const raw of pass === "context" ? input.links.slice(0,SCAN_POLICY.collection.linksPerPage) : []) {
       const host = hostOf(raw);
       if (!host) continue;
       if (host === pageHost) {
@@ -107,7 +124,7 @@ export function buildEvidenceGraph(inputs: GraphInput[]): EvidenceGraph {
         link(landingId, domainId, "LINKS_TO");
       }
     }
-    for (const ext of input.externals) {
+    for (const ext of pass === "context" ? input.externals.slice(0,SCAN_POLICY.collection.externalItemsPerPage) : []) {
       const kind: EvidenceNodeKind =
         ext.kind === "iframe" ? "Frame" : ext.kind === "redirect" ? "Redirect" : ext.kind === "resource" ? "Resource" : "Landing";
       const id = put({ id: nodeId(kind, ext.url), kind, url: ext.url, label: ext.url });
@@ -118,7 +135,7 @@ export function buildEvidenceGraph(inputs: GraphInput[]): EvidenceGraph {
         link(id, domainId, "LINKS_TO");
       }
     }
-    for (const witness of input.adEvidence ?? []) {
+    for (const witness of pass === "witness" ? (input.adEvidence ?? []).slice(0,500) : []) {
       if (!witness.reason) continue;
       const elementKey = `${input.pageUrl}\0${witness.findingId ?? ""}\0${witness.location
         ?? witness.creativeId ?? witness.resourceUrl ?? witness.destinationUrl ?? witness.reason}`;
@@ -165,7 +182,7 @@ export function buildEvidenceGraph(inputs: GraphInput[]): EvidenceGraph {
       edge.to = canonicalIds.get(edge.to) ?? edge.to;
     }
   }
-  return { nodes: [...nodes.values()], edges };
+  return { nodes: [...nodes.values()], edges, truncated };
 }
 
 /** Summarize exact witnessed references, independently of unrelated page resources. */
@@ -217,8 +234,8 @@ function bounded(name: string, value: number | undefined, fallback: number, maxi
  * focus, only explicitly advertisement-related nodes/edges are exposed.
  */
 export function sliceEvidenceGraph(graph: EvidenceGraph, query: EvidenceGraphQuery = {}): EvidenceGraphSlice {
-  const maxNodes = bounded("maxNodes", query.maxNodes, 100, 250);
-  const maxEdges = bounded("maxEdges", query.maxEdges, 200, 500, 0);
+  const maxNodes = bounded("maxNodes", query.maxNodes, SCAN_POLICY.graph.defaultSliceNodes, SCAN_POLICY.graph.maxSliceNodes);
+  const maxEdges = bounded("maxEdges", query.maxEdges, SCAN_POLICY.graph.defaultSliceEdges, SCAN_POLICY.graph.maxSliceEdges, 0);
   const depth = bounded("depth", query.depth, 2, 2, 0);
   const focus = query.focus;
   if (focus !== undefined && (!focus || typeof focus !== "object"
@@ -241,9 +258,9 @@ export function sliceEvidenceGraph(graph: EvidenceGraph, query: EvidenceGraphQue
     }
   };
   const seeds = sortedNodes.filter(matches);
-  if (!seeds.length) return { nodes: [], edges: [], truncated: false };
+  if (!seeds.length) return { nodes: [], edges: [], truncated: graph.truncated ?? false };
   const selected = new Set<string>();
-  let truncated = false;
+  let truncated = graph.truncated ?? false;
   const add = (id: string): boolean => {
     if (selected.has(id)) return false;
     if (selected.size >= maxNodes) { truncated = true; return false; }

@@ -19,6 +19,9 @@ src-tauri/binaries/llvm-LICENSE
 src-tauri/binaries/*.dll
 src-tauri/binaries/node_modules/
 src-tauri/binaries/ms-playwright/
+src-tauri/binaries/build-manifest.json
+src-tauri/binaries/resources-manifest.json
+artifacts/
 playwright-report/
 test-results/
 result.json

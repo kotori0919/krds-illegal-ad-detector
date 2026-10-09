@@ -2,6 +2,7 @@ import { createServer, type Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { validateOfficialResultText, validateScanDetailBundle } from "@krds-detector/contracts";
 import { scanSite } from "../src/scan.js";
+import { PublicNetworkPolicy } from "@krds-detector/scanner";
 
 let siteServer: Server;
 let frameServer: Server;
@@ -55,6 +56,7 @@ describe("L3 live cross-origin frames", () => {
       const output = await scanSite({
         entryUrl: `${siteOrigin}/`,
         crawl: { concurrency: 2, settleMs: 800, perPageMs: 8_000,
+          networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([siteOrigin,frameOrigin]),
           limits: { maxPages: 1, maxDepth: 0, maxFrameDepth, timeoutSec: 30 } },
       });
       expect(output.pagesVisited).toBe(1);
@@ -62,11 +64,11 @@ describe("L3 live cross-origin frames", () => {
       expect(siteRequests.get("/")).toBe(1);
       expect(frameRequests.get("/outer")).toBe(1);
       expect(frameRequests.get("/inner")).toBe(1);
-      const outerPath = `iframe[src="${frameOrigin}/outer"] >>> #ad-outer`;
-      const innerPath = `iframe[src="${frameOrigin}/outer"] >>> iframe[src="${frameOrigin}/inner"] >>> #ad-inner`;
+      const outerPath = '#outer >>> #ad-outer';
+      const innerPath = '#outer >>> #inner >>> #ad-inner';
       const expected = maxFrameDepth === 2
-        ? [`${frameOrigin}/outer\0${outerPath}\0OFFSCREEN`, `${frameOrigin}/inner\0${innerPath}\0HOMOGLYPH`]
-        : [`${frameOrigin}/outer\0${outerPath}\0OFFSCREEN`];
+        ? [`${siteOrigin}/\0${outerPath}\0OFFSCREEN`, `${siteOrigin}/\0${innerPath}\0HOMOGLYPH`]
+        : [`${siteOrigin}/\0${outerPath}\0OFFSCREEN`];
       const actual = output.result.findings.map((finding) => `${finding.url}\0${finding.location}\0${finding.technique}`).sort();
       expect(actual).toEqual(expected.sort());
       expect(validateOfficialResultText(output.json).ok).toBe(true);

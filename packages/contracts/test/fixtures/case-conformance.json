@@ -1,0 +1,235 @@
+{
+  "contract": "case-v1-policy2",
+  "valid": {
+    "official": {
+      "meta": {
+        "topic": "TOPIC",
+        "entry_url": "https://example.kr/",
+        "started_at": "2026-10-09T00:00:00Z",
+        "finished_at": "2026-10-09T00:00:01Z",
+        "elapsed_sec": 1,
+        "tool_version": "0.2.0-policy2"
+      },
+      "findings": [
+        {
+          "id": "f1",
+          "url": "https://example.kr/",
+          "is_violation": true,
+          "location": "#ad",
+          "evidence_text": "ＣＡＳＩＮＯ 가입",
+          "technique": "HOMOGLYPH"
+        }
+      ]
+    },
+    "manifest": {
+      "schemaVersion": 1,
+      "caseId": "abcdef01-2345-6789-abcd-0123456789ab",
+      "entryUrl": "https://example.kr/",
+      "startedAt": "2026-10-09T00:00:00Z",
+      "finishedAt": "2026-10-09T00:00:01Z",
+      "exportableAt": "2026-10-09T00:00:02Z",
+      "status": "succeeded",
+      "toolVersion": "0.2.0-policy2",
+      "policyVersion": 2,
+      "officialSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "findings": 1,
+      "issues": [],
+      "settings": {
+        "configVersion": 1
+      }
+    },
+    "review": {
+      "schemaVersion": 1,
+      "revision": 1,
+      "updatedAt": "2026-10-09T00:00:03Z",
+      "records": [
+        {
+          "findingId": "f1",
+          "state": "needed",
+          "judgment": "suspected",
+          "note": "원문 확인 필요",
+          "at": "2026-10-09T00:00:03Z"
+        }
+      ]
+    }
+  },
+  "invalid": [
+    {
+      "kind": "manifest",
+      "name": "future-schema",
+      "path": [
+        "schemaVersion"
+      ],
+      "value": 2
+    },
+    {
+      "kind": "manifest",
+      "name": "unknown-critical-field",
+      "path": [
+        "remoteUrl"
+      ],
+      "value": "https://example.kr/"
+    },
+    {
+      "kind": "manifest",
+      "name": "nonterminal",
+      "path": [
+        "status"
+      ],
+      "value": "running"
+    },
+    {
+      "kind": "manifest",
+      "name": "future-policy",
+      "path": [
+        "policyVersion"
+      ],
+      "value": 3
+    },
+    {
+      "kind": "manifest",
+      "name": "export-time",
+      "path": [
+        "exportableAt"
+      ],
+      "value": "bad-date"
+    },
+    {
+      "kind": "manifest",
+      "name": "finding-count-disagrees",
+      "path": [
+        "findings"
+      ],
+      "value": 2
+    },
+    {
+      "kind": "manifest",
+      "name": "start-disagrees",
+      "path": [
+        "startedAt"
+      ],
+      "value": "2026-10-08T00:00:00Z"
+    },
+    {
+      "kind": "manifest",
+      "name": "finish-disagrees",
+      "path": [
+        "finishedAt"
+      ],
+      "value": "2026-10-08T00:00:01Z"
+    },
+    {
+      "kind": "manifest",
+      "name": "tool-disagrees",
+      "path": [
+        "toolVersion"
+      ],
+      "value": "0.1.0"
+    },
+    {
+      "kind": "review",
+      "name": "future-schema",
+      "path": [
+        "schemaVersion"
+      ],
+      "value": 2
+    },
+    {
+      "kind": "review",
+      "name": "unknown-critical-field",
+      "path": [
+        "remoteUrl"
+      ],
+      "value": "https://example.kr/"
+    },
+    {
+      "kind": "review",
+      "name": "unsafe-revision",
+      "path": [
+        "revision"
+      ],
+      "value": 9007199254740992
+    },
+    {
+      "kind": "review",
+      "name": "unknown-finding",
+      "path": [
+        "records",
+        0,
+        "findingId"
+      ],
+      "value": "missing"
+    },
+    {
+      "kind": "review",
+      "name": "unknown-state",
+      "path": [
+        "records",
+        0,
+        "state"
+      ],
+      "value": "maybe"
+    },
+    {
+      "kind": "review",
+      "name": "unknown-judgment",
+      "path": [
+        "records",
+        0,
+        "judgment"
+      ],
+      "value": "illegal"
+    },
+    {
+      "kind": "review",
+      "name": "invalid-record-time",
+      "path": [
+        "records",
+        0,
+        "at"
+      ],
+      "value": "bad-date"
+    },
+    {
+      "kind": "review",
+      "name": "invalid-revision-time",
+      "path": [
+        "updatedAt"
+      ],
+      "value": "bad-date"
+    },
+    {
+      "kind": "review",
+      "name": "duplicate-finding",
+      "path": [
+        "records"
+      ],
+      "value": [
+        {
+          "findingId": "f1",
+          "state": "needed",
+          "judgment": "suspected",
+          "note": "원문 확인 필요",
+          "at": "2026-10-09T00:00:03Z"
+        },
+        {
+          "findingId": "f1",
+          "state": "needed",
+          "judgment": "suspected",
+          "note": "원문 확인 필요",
+          "at": "2026-10-09T00:00:03Z"
+        }
+      ]
+    },
+    {
+      "kind": "review",
+      "name": "note-over-limit",
+      "path": [
+        "records",
+        0,
+        "note"
+      ],
+      "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  ]
+}

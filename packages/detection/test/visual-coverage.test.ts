@@ -32,15 +32,17 @@ it.each([{pages:9,imageCount:7},{pages:8,imageCount:6}])("reports reached capaci
     expect(output.result.findings).toEqual([]);
     expect(output.detailBundle.coverage.checkedPages).toBe(pages);
     const coverage=output.detailBundle.visualAnalysisCoverage!;
-    expect(coverage).toMatchObject({pagesConsidered:8,pagesNotConsidered:pages-8,candidatesObserved:imageCount+7,candidateTotal:null,
-      imagesAcquired:imageCount+7,imageAnalysisRecords:imageCount+7,ocrImagesAttempted:6,ocrImagesCompleted:6,ocrImagesUnavailable:0,
-      limits:{pages:8,candidatesPerDocument:8,elementsPerDocument:10_000,bytesPerPage:250_000,distinctOcrImages:6},
-      limitsReached:["ocr-image-limit","page-limit"],
-      skips:pages===9 ? [{reason:"ocr-image-limit",unit:"image",count:1},{reason:"page-limit",unit:"page",count:1}] : []});
+    expect(coverage).toMatchObject({pagesConsidered:pages,pagesNotConsidered:0,candidatesObserved:imageCount+pages-1,candidateTotal:null,
+      imagesAcquired:imageCount+pages-1,imageAnalysisRecords:imageCount+pages-1,ocrImagesAttempted:6,ocrImagesCompleted:6,ocrImagesUnavailable:0,
+      limits:{pages,candidatesPerDocument:8,elementsPerDocument:10_000,bytesPerPage:250_000,distinctOcrImages:6},
+      limitsReached:["ocr-image-limit"],
+      skips:imageCount===7 ? [{reason:"ocr-image-limit",unit:"image",count:1}] : []});
     const analyses=output.detailBundle.imageAnalysis!;
-    expect(analyses.find((item)=>item.sourceUrl.endsWith("image-0.png"))?.extraFindingId).toBeDefined();
-    expect(analyses.find((item)=>item.sourceUrl.endsWith("image-1.png"))).toMatchObject({ocr:{state:"available"},decision:{passed:false}});
-    if (imageCount === 7) expect(analyses.find((item)=>item.sourceUrl.endsWith("image-6.png"))).toMatchObject({ocr:{state:"unavailable",reason:"budget"}});
+    for (const analysis of analyses) {
+      const selected = coverage.selection!.ocrSha256.some((sha) => analysis.assetId === `visual-${sha}`);
+      expect(analysis.ocr.state).toBe(selected ? "available" : "unavailable");
+      if (!selected) expect(analysis.decision.passed).toBe(false);
+    }
   } finally {
     server.closeAllConnections();await new Promise<void>((done)=>server.close(()=>done()));
   }

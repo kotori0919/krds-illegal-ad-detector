@@ -9,6 +9,8 @@
  */
 import {
   TAURI_HOST_CAPABILITIES,
+  CONFIG_VERSION,
+  isCaseId, isCaseList, isOpenCase, isCaseReview, isReviewRecord, isSupportDiagnostics, parseCaseValue,
   type ExportPaths,
   type ExtraResult,
   type HostBridge,
@@ -28,6 +30,7 @@ import {
   type BatchScanRequest,
   type ScanSession,
   type Unsubscribe,
+  type CaseList, type OpenCase, type CaseReview, type ReviewRecord, type SupportDiagnostics,
 } from "@krds-detector/contracts";
 
 interface TauriInvoke {
@@ -49,6 +52,38 @@ async function loadTauri(): Promise<{ invoke: TauriInvoke; listen: TauriListen }
 }
 
 export class TauriHost implements HostBridge {
+  async listCases(): Promise<CaseList> { return parseCaseValue(await (await this.invoke())<unknown>("case_list"), isCaseList); }
+  async openCase(caseId: string): Promise<OpenCase> {
+    if (!isCaseId(caseId)) throw new Error("INVALID_CASE_ID");
+    const value = parseCaseValue(await (await this.invoke())<unknown>("case_open", { caseId }), isOpenCase);
+    if (value.manifest.caseId !== caseId) throw new Error("INVALID_CASE_CONTRACT: case identity disagrees with request");
+    return value;
+  }
+  async saveCaseReview(caseId: string, expectedRevision: number, records: ReviewRecord[]): Promise<CaseReview> {
+    const normalized = records.map((record) => ({ ...record, judgment: record.judgment ?? "unjudged" }));
+    if (!isCaseId(caseId) || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || expectedRevision >= Number.MAX_SAFE_INTEGER
+      || normalized.length > 20_000 || !normalized.every(isReviewRecord) || new Set(normalized.map(record => record.findingId)).size !== normalized.length) throw new Error("INVALID_REVIEW_REQUEST");
+    const value = parseCaseValue(await (await this.invoke())<unknown>("case_save_review", { caseId, expectedRevision, records: normalized }), isCaseReview);
+    if (value.revision !== expectedRevision + 1) throw new Error("INVALID_CASE_CONTRACT: review revision disagrees with committed successor");
+    return value;
+  }
+  async exportCase(caseId: string): Promise<string | null> {
+    if (!isCaseId(caseId)) throw new Error("INVALID_CASE_ID");
+    const value = await (await this.invoke())<unknown>("case_export", { caseId });
+    if (value !== null && (typeof value !== "string" || !value || value.length > 4096 || value.includes("\0"))) throw new Error("INVALID_CASE_CONTRACT: invalid export path");
+    return value;
+  }
+  async importCase(): Promise<string | null> {
+    const value = await (await this.invoke())<unknown>("case_import");
+    if (value !== null && !isCaseId(value)) throw new Error("INVALID_CASE_CONTRACT: invalid imported case identity");
+    return value;
+  }
+  async deleteCase(caseId: string): Promise<void> {
+    if (!isCaseId(caseId)) throw new Error("INVALID_CASE_ID");
+    await (await this.invoke())("case_delete", { caseId });
+    this.evidenceReads.clear();
+  }
+  async getDiagnostics(): Promise<SupportDiagnostics> { return parseCaseValue(await (await this.invoke())<unknown>("support_diagnostics"), isSupportDiagnostics); }
   private evidenceReads = new Map<string, Promise<unknown>>();
 
   private cachedRead<T>(command: string, args: Record<string, unknown>): Promise<T | undefined> {
@@ -94,7 +129,7 @@ export class TauriHost implements HostBridge {
   async startScan(request: ScanRequest): Promise<ScanSession> {
     await this.ensureSubscribed();
     const invoke = await this.invoke();
-    return invoke<ScanSession>("scan_start", { request });
+    return invoke<ScanSession>("scan_start", { request: { ...request, configVersion: CONFIG_VERSION } });
   }
 
   async cancelScan(sessionId: string): Promise<void> {
@@ -105,7 +140,7 @@ export class TauriHost implements HostBridge {
   async startBatchScan(request: BatchScanRequest): Promise<ScanSession> {
     await this.ensureSubscribed();
     const invoke = await this.invoke();
-    return invoke<ScanSession>("scan_start_batch", { request });
+    return invoke<ScanSession>("scan_start_batch", { request: { ...request, configVersion: CONFIG_VERSION } });
   }
 
   async exportBatchResults(sessionIds: string[]): Promise<string | null> {

@@ -39,14 +39,21 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
   }
 }
 
-export function startFixtureServer(port: number): { url: string; close: () => Promise<void> } {
+export async function startFixtureServer(port = 0): Promise<{ url: string; close: () => Promise<void> }> {
   const server = createServer((req, res) => {
     void handler(req, res);
   });
-  server.listen(port, "127.0.0.1");
+  await new Promise<void>((done,fail)=>{
+    const failed=(error:Error)=>fail(error);
+    server.once("error",failed);
+    server.listen(port,"127.0.0.1",()=>{server.off("error",failed);done();});
+  });
+  const address=server.address();
+  if(!address || typeof address==="string")throw new Error("Fixture TCP listener unavailable");
   return {
-    url: `http://127.0.0.1:${String(port)}`,
+    url: `http://127.0.0.1:${address.port}`,
     close: () => new Promise<void>((resolve, reject) => {
+      server.closeAllConnections();
       server.close((err) => {
         if (err) reject(err);
         else resolve();
@@ -57,6 +64,6 @@ export function startFixtureServer(port: number): { url: string; close: () => Pr
 
 const standalonePort = Number(process.env["SYNTH_PORT"] ?? 4123);
 if (process.argv[1]?.endsWith("serve.js")) {
-  startFixtureServer(standalonePort);
-  console.log(`synthetic fixtures on http://127.0.0.1:${String(standalonePort)}/`);
+  const fixture=await startFixtureServer(standalonePort);
+  console.log(`synthetic fixtures on ${fixture.url}/`);
 }

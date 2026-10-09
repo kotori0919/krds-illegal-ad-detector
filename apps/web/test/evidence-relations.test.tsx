@@ -36,7 +36,7 @@ describe("operator relationship reads", () => {
   it("explains observed relations with readable labels and keeps exact identities in disclosure", async () => {
     const host = hostWith(vi.fn().mockResolvedValue(graph));
     render(<EvidenceRelations host={host} sessionId="s1" focus={{ kind: "finding", id: "f1" }} />);
-    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.queryByRole("region", { name: "근거 관계" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "관계 보기" }));
     const region = await screen.findByRole("region", { name: "근거 관계" });
     const primary = within(region).getAllByRole("list")[0]!;
@@ -61,7 +61,7 @@ describe("operator relationship reads", () => {
     const close = screen.getByRole("button", { name: "관계 닫기" });
     close.focus(); fireEvent.click(close);
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "관계 보기" }));
-    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.queryByRole("region", { name: "근거 관계" })).toBeNull();
   });
 
   it("recovers a failed graph read without changing its bounds or starting a scan", async () => {
@@ -88,9 +88,9 @@ describe("operator relationship reads", () => {
     rerender(<EvidenceRelations host={change === "host" ? nextHost : host} sessionId={change === "session" ? "s2" : "s1"}
       focus={{ kind: "finding", id: change === "focus" ? "f2" : "f1" }} />);
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.queryByRole("region", { name: "근거 관계" })).toBeNull();
     await act(async () => { prior.resolve(graph); });
-    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.queryByRole("region", { name: "근거 관계" })).toBeNull();
     expect(screen.getByRole("button", { name: "관계 보기" }).getAttribute("aria-expanded")).toBe("false");
   });
 
@@ -99,7 +99,7 @@ describe("operator relationship reads", () => {
     const host = hostWith(read);
     const { rerender } = render(<EvidenceRelations host={host} sessionId="s1" focus={{ kind: "finding", id: "f1" }} />);
     fireEvent.click(screen.getByRole("button", { name: "관계 보기" }));
-    await screen.findByRole("region");
+    await screen.findByRole("region", { name: "근거 관계" });
     fireEvent.click(screen.getByRole("button", { name: "관계 닫기" }));
     rerender(<EvidenceRelations host={host} sessionId="s1" focus={{ kind: "finding", id: "f2" }} />);
     fireEvent.click(screen.getByRole("button", { name: "관계 보기" }));
@@ -113,11 +113,11 @@ describe("operator relationship reads", () => {
     const props = { sessionId: "s1", focus: { kind: "finding" as const, id: "f1" } };
     const { rerender } = render(<EvidenceRelations host={host} {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "관계 보기" }));
-    await screen.findByRole("region");
+    await screen.findByRole("region", { name: "근거 관계" });
     rerender(<EvidenceRelations host={other} {...props} />);
-    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.queryByRole("region", { name: "근거 관계" })).toBeNull();
     rerender(<EvidenceRelations host={host} {...props} />);
-    expect(screen.queryByRole("region")).toBeNull();
+    expect(screen.queryByRole("region", { name: "근거 관계" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "관계 보기" }));
     expect(await screen.findByText("선택한 항목에 연결된 관계가 없습니다.")).toBeDefined();
   });

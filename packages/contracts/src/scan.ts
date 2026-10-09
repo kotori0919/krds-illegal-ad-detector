@@ -16,14 +16,13 @@ export interface ScanLimits {
   maxFrameDepth: number;
 }
 
-export const DEFAULT_SCAN_LIMITS: ScanLimits = {
-  maxPages: 200,
-  maxDepth: 4,
-  timeoutSec: 1500,
-  maxFrameDepth: 4,
-};
+import { SCAN_POLICY } from "./config.js";
+
+export const DEFAULT_SCAN_LIMITS: ScanLimits = SCAN_POLICY.scan.defaults;
 
 export interface ScanRequest {
+  /** HostBridge fills the IPC version; ordinary UI inputs may omit it. */
+  configVersion?: 1;
   entryUrl: string;
   limits?: Partial<ScanLimits>;
 }

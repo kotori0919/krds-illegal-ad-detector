@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { validateExtraResult, validateOfficialResultText, validateScanDetailBundle } from "@krds-detector/contracts";
 import { scanSite } from "../src/scan.js";
+import { PublicNetworkPolicy } from "@krds-detector/scanner";
 
 const assetRoot = resolve(import.meta.dirname, "../../../fixtures/realistic/ads");
 const names: Record<string, string> = {
@@ -82,6 +83,8 @@ describe("live creative and infrastructure extra result", () => {
     let inspectedFrames = 0;
     const output = await scanSite({ entryUrl: `${siteOrigin}/`,
       onEvent: (event) => { inspectedFrames = event.progress.framesInspected; }, crawl: {
+        networkPolicyForTesting: PublicNetworkPolicy.forFixtureTargets([siteOrigin,assetOrigin,redirectOrigin,...contentOrigins]
+          .map((origin) => ({ origin, address: "127.0.0.1" as const }))),
         concurrency: 2, settleMs: 700, perPageMs: 7000,
         limits: { maxPages: 5, maxDepth: 1, timeoutSec: 45 },
     } });
@@ -95,7 +98,8 @@ describe("live creative and infrastructure extra result", () => {
     const creativeFinding = output.extraResult.findings.find((item) => item.extra_finding === "REUSED_AD_CREATIVE")!;
     const image = output.detailBundle.creativeImages.find((item) => item.findingId === creativeFinding.id)!;
     expect(image.sourceUrl).toBe(creativeFinding.url);
-    expect(Buffer.from(image.dataUrl.split(",")[1]!, "base64"))
+    const dataUrl = image.dataUrl ?? output.detailBundle.visualAssets?.find((asset) => asset.assetId === image.assetId)?.dataUrl;
+    expect(Buffer.from(dataUrl!.split(",")[1]!, "base64"))
       .toEqual(await readFile(resolve(assetRoot, new URL(image.sourceUrl).pathname.slice(1))));
     const wrongSource = structuredClone(output.detailBundle);
     wrongSource.creativeImages[0]!.sourceUrl = `${assetOrigin}/unobserved.png`;

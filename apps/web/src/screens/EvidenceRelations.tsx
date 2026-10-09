@@ -1,5 +1,6 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import type { EvidenceEdge, EvidenceGraphQuery, EvidenceGraphSlice, EvidenceNode, HostBridge } from "@krds-detector/contracts";
+import { RelationGraph } from "./RelationGraph.js";
 
 type Focus = NonNullable<EvidenceGraphQuery["focus"]>;
 const nodeKinds: Record<EvidenceNode["kind"], string> = {
@@ -37,11 +38,11 @@ function nodeName(node: EvidenceNode | undefined, index: number): string {
 }
 
 /** A new selection starts closed; evidence is read only on operator request. */
-export function EvidenceRelations(props: { host: HostBridge; sessionId: string; focus: Focus }) {
+export function EvidenceRelations(props: { host: HostBridge; sessionId: string; focus: Focus; onSelectFinding?: (id:string)=>void }) {
   return <RelationPanel key={JSON.stringify([props.sessionId, props.focus.kind, props.focus.id])} {...props} />;
 }
 
-function RelationPanel({ host, sessionId, focus }: { host: HostBridge; sessionId: string; focus: Focus }) {
+function RelationPanel({ host, sessionId, focus, onSelectFinding }: { host: HostBridge; sessionId: string; focus: Focus; onSelectFinding?: (id:string)=>void }) {
   const [read, setRead] = useState<{ host: HostBridge; state: "closed" | "loading" | "open" | "error"; slice?: EvidenceGraphSlice; loaded?: true }>();
   const sequence = useRef(0);
   const button = useRef<HTMLButtonElement>(null);
@@ -74,11 +75,12 @@ function RelationPanel({ host, sessionId, focus }: { host: HostBridge; sessionId
       {!slice ? <p>이 결과에 저장된 관계 분석 기록이 없습니다.</p> : !slice.nodes.length ? <p>선택한 항목에 연결된 관계가 없습니다.</p> : <>
         <p>관련 항목 {slice.nodes.length}개 · 연결 {slice.edges.length}개{slice.truncated ? " · 조회 범위에 따라 일부 관계만 표시합니다." : ""}</p>
         <p>연결 기록은 공동 소유나 위반 확정을 뜻하지 않습니다. 링크 목적지는 추출한 주소이며 최종 도착 페이지를 확인한 결과가 아닙니다.</p>
-        <ul>{slice.edges.map((edge, index) => <li key={`${edge.from}-${edge.to}-${index}`}>
+        <ul aria-label="관측 관계 목록">{slice.edges.map((edge, index) => <li key={`${edge.from}-${edge.to}-${index}`}>
           <span>{name(edge.from)} → {name(edge.to)}</span>
           <p>{relations[edge.kind]}{edge.evidenceKinds?.some((reason) => reasons[reason]) ? ` · ${edge.evidenceKinds.flatMap((reason) => reasons[reason] ? [reasons[reason]] : []).join(" · ")}` : ""}</p>
         </li>)}</ul>
         {!slice.edges.length ? <p>이 조회 범위에서 연결 기록이 없습니다.</p> : null}
+        <RelationGraph slice={slice} onSelectFinding={onSelectFinding} />
         <details className="advanced"><summary>관계 기술 정보</summary>
           <p>최대 항목 100개 · 연결 200개 · 연결 깊이 2</p>
           <ul>{slice.nodes.map((node, index) => <li key={node.id}>{nodeName(node, index)}: {node.kind} · {node.id} · {node.label}{node.url && node.url !== node.label ? ` · ${node.url}` : ""}{node.findingId ? ` · ${node.findingId}` : ""}</li>)}</ul>

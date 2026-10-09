@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ReviewRecord } from "@krds-detector/evidence/report";
 import type { HostBridge } from "@krds-detector/contracts";
 import { createHost } from "./host/index.js";
 import { ScanStart } from "./screens/ScanStart.js";
@@ -10,6 +9,8 @@ import { EvidenceView } from "./screens/EvidenceView.js";
 import { ExportDialog } from "./screens/ExportDialog.js";
 import { BatchWorkspace } from "./screens/BatchWorkspace.js";
 import { stepStates, type Phase } from "./steps.js";
+import { useCaseReview } from "./useCaseReview.js";
+import { SavedCases } from "./screens/SavedCases.js";
 
 const narrowInspector = () => window.matchMedia?.("(max-width: 63.999rem)").matches ?? false;
 
@@ -20,26 +21,27 @@ export function App() {
   const [batchMounted, setBatchMounted] = useState(false);
   const [batchResult, setBatchResult] = useState(false);
   const [findingId, setFindingId] = useState<string | undefined>(undefined);
+  const [selectionOrigin, setSelectionOrigin] = useState<"list" | "relation">("list");
   const [findingContext, setFindingContext] = useState<string[]>([]);
   const [restoreFindingId, setRestoreFindingId] = useState<string | undefined>(undefined);
   const [exportOpen, setExportOpen] = useState(false);
   const [resultQuery, setResultQuery] = useState("");
   const [resultFilter, setResultFilter] = useState<OfficialTechnique | "ALL">("ALL");
   const [resultView, setResultView] = useState<"findings" | "pages" | "extra" | "coverage">("findings");
-  const [reviewSessions, setReviewSessions] = useState<Record<string, Record<string, ReviewRecord>>>({});
-  const reviewRecords = reviewSessions[sessionId ?? ""] ?? {};
-  const setReviewRecords = (update: (previous: Record<string, ReviewRecord>) => Record<string, ReviewRecord>): void => {
-    if (sessionId) setReviewSessions((previous) => ({ ...previous, [sessionId]: update(previous[sessionId] ?? {}) }));
-  };
+  const [host, setHost] = useState<HostBridge | undefined>(undefined);
+  const caseReview = useCaseReview(host, sessionId, phase === "result" || phase === "evidence");
+  const reviewRecords = caseReview.records;
+  const reviewSessions = caseReview.sessions;
+  const setReviewRecords = caseReview.edit;
   const reviewedIds = useMemo(() => new Set(Object.values(reviewRecords).filter((record) => record.state === "reviewed").map((record) => record.findingId)), [reviewRecords]);
   const reviewMany = (ids: string[], reviewed: boolean): void => setReviewRecords((previous) => {
     const next = { ...previous };
     const at = new Date().toISOString();
-    for (const id of ids) next[id] = { findingId: id, state: reviewed ? "reviewed" : "needed", note: previous[id]?.note ?? "", at };
+    for (const id of ids) next[id] = { findingId: id, state: reviewed ? "reviewed" : "needed", judgment: previous[id]?.judgment ?? "unjudged", note: previous[id]?.note ?? "", at };
     return next;
   });
-  const [host, setHost] = useState<HostBridge | undefined>(undefined);
   const resultScrollY = useRef(0);
+  const relationInvoker = useRef<HTMLElement | null>(null);
   const scrollFrame = useRef<number | undefined>(undefined);
 
   const scheduleScroll = useCallback((y: number) => {
@@ -82,16 +84,23 @@ export function App() {
     });
   }, [go]);
   const goResultFromEvidence = useCallback(() => {
-    setRestoreFindingId(findingId);
+    setRestoreFindingId(selectionOrigin === "relation" ? undefined : findingId);
     go("result");
     if (narrowInspector()) scheduleScroll(resultScrollY.current);
-  }, [findingId, go, scheduleScroll]);
+    if (selectionOrigin === "relation") requestAnimationFrame(() => {
+      const invoker = relationInvoker.current;
+      const target = invoker?.isConnected && !invoker.closest("[hidden]") ? invoker
+        : document.querySelector<HTMLElement>('.result-navigation button[aria-pressed="true"]');
+      target?.focus({ preventScroll: true });
+    });
+  }, [findingId, selectionOrigin, go, scheduleScroll]);
   /** Cancel/restart resets the whole flow, so completion state resets too. */
   const goStart = useCallback(() => {
     if (scrollFrame.current !== undefined) cancelAnimationFrame(scrollFrame.current);
     scrollFrame.current = undefined;
     setPhase("start");
     resultScrollY.current = 0;
+    relationInvoker.current = null;
     setResultQuery("");
     setResultFilter("ALL");
     setResultView("findings");
@@ -143,6 +152,15 @@ export function App() {
       ) : (phase === "result" || phase === "evidence") && sessionId ? (
         <div className={`result-workspace${phase === "evidence" ? " inspecting" : ""}`}>
         <div className="result-workspace-list">
+        <section aria-label="케이스 보관 상태">
+          <details className="advanced"><summary><span role="status">{caseReview.status === "saved" ? `검토 기록 저장됨 · 수정 번호 ${caseReview.opened?.review.revision ?? 0}`
+            : caseReview.status === "saving" ? "검토 기록 저장 중" : caseReview.status === "unsaved" ? "검토 기록 저장 대기"
+              : caseReview.status === "error" ? "검토 기록 저장 확인 필요" : "케이스 보관 확인 중"}</span> · 보관 정보</summary>
+          {caseReview.opened ? <><p>저장 폴더: {caseReview.opened.directory}</p><p>공식 결과: {caseReview.opened.directory}/result.json · 원본은 검토 판단과 별도로 보존됩니다.</p>
+            {caseReview.opened.manifest.issues.length ? <p role="note">일부 근거 사용 제한: {caseReview.opened.manifest.issues.map((issue) => `${issue.scope} (${issue.code})`).join(" · ")}. 공식 결과를 계속 검토할 수 있습니다.</p> : null}</> : null}
+          </details>
+          {caseReview.status === "error" ? <><p role="alert">검토 기록을 저장하거나 불러오지 못했습니다. 작성 중인 메모는 이 화면에 유지됩니다. 저장 실패·다른 창의 수정 충돌·브라우저 미리보기 여부를 확인해 주세요.</p><button type="button" className="secondary" onClick={caseReview.retry}>현재 메모를 유지하고 저장 재시도</button><p className="hint">다른 창의 변경을 다시 읽고 현재 수정한 항목을 반영합니다. 같은 항목을 수정했다면 현재 화면의 내용을 저장합니다.</p></> : null}
+        </section>
         <ScanResult
           host={host}
           sessionId={sessionId}
@@ -157,11 +175,15 @@ export function App() {
           reviewRecords={Object.values(reviewRecords)}
           restoreFindingId={restoreFindingId}
           selectedFindingId={phase === "evidence" ? findingId : undefined}
+          allowHiddenSelection={selectionOrigin === "relation"}
           onSelectionHidden={closeHiddenSelection}
           onFocusRestored={() => setRestoreFindingId(undefined)}
-          onEvidence={(id, context) => {
+          onEvidence={(id, context, origin = "list") => {
+            relationInvoker.current = origin === "relation" && document.activeElement instanceof HTMLElement
+              ? document.activeElement : null;
             if (phase === "result" && narrowInspector()) resultScrollY.current = window.scrollY;
             setFindingId(id);
+            setSelectionOrigin(origin);
             setFindingContext(context ?? [id]);
             go("evidence");
             if (phase === "result" && narrowInspector()) scheduleScroll(0);
@@ -177,17 +199,20 @@ export function App() {
           sessionId={sessionId}
           findingId={findingId}
           contextIds={findingContext}
-          onSelectFinding={setFindingId}
+          onSelectFinding={(id) => { setFindingId(id); if (!findingContext.includes(id)) { setFindingContext([id]); setSelectionOrigin("relation"); } }}
           reviewed={reviewedIds.has(findingId)}
           onReviewChange={(reviewed) => reviewMany([findingId], reviewed)}
           note={reviewRecords[findingId]?.note ?? ""}
+          judgment={reviewRecords[findingId]?.judgment ?? "unjudged"}
+          onJudgmentChange={(judgment) => setReviewRecords((previous) => ({ ...previous,
+            [findingId]: { findingId, state: previous[findingId]?.state ?? "needed", judgment, note: previous[findingId]?.note ?? "", at: new Date().toISOString() } }))}
           onNoteChange={(note) => setReviewRecords((previous) => ({ ...previous,
-            [findingId]: { findingId, state: previous[findingId]?.state ?? "needed", note, at: new Date().toISOString() } }))}
+            [findingId]: { findingId, state: previous[findingId]?.state ?? "needed", judgment: previous[findingId]?.judgment ?? "unjudged", note, at: new Date().toISOString() } }))}
           onBack={goResultFromEvidence}
         /> : null}
         </div>
       ) : (
-        <ScanStart
+        <><ScanStart
           host={host}
           onBatch={() => { setBatchMounted(true); setBatchOpen(true); }}
           onStarted={(id) => {
@@ -195,7 +220,11 @@ export function App() {
             setSessionId(id);
             go("progress");
           }}
-        />
+        /><SavedCases host={host} onOpen={async (id) => {
+          await host.openCase(id);
+          setBatchResult(false); setSessionId(id); setFindingId(undefined); setResultQuery(""); setResultFilter("ALL");
+          setResultView("findings"); setFindingContext([]); setRestoreFindingId(undefined); go("result");
+        }} /></>
       )}
       </div>
       </div>

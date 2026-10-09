@@ -1,14 +1,13 @@
 import type { ScanIssue } from "@krds-detector/contracts";
 
-/** Bound site-request deferral; this is never an automatic retry policy. */
-export const MAX_RETRY_AFTER_MS = 5000;
-
 export function retryAfterMs(value: string | undefined, now = Date.now()): number | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
   const milliseconds = /^\d+$/.test(trimmed) ? Number(trimmed) * 1000 : Date.parse(trimmed) - now;
   if (!Number.isFinite(milliseconds) || milliseconds < 0) return undefined;
-  return Math.min(MAX_RETRY_AFTER_MS, Math.ceil(milliseconds));
+  // Preserve the server's interval. Admission decides whether the remaining
+  // scan budget can afford it; shortening this value violates Retry-After.
+  return Math.min(Number.MAX_SAFE_INTEGER, Math.ceil(milliseconds));
 }
 
 export interface AccessDocument {

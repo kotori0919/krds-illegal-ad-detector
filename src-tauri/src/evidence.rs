@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::{Hash, Hasher};
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct SessionEvidence {
     coverage: Value,
     findings: HashMap<String, Value>,
@@ -10,125 +11,336 @@ pub struct SessionEvidence {
     assets: HashMap<String, Value>,
     summary: Value,
     graph: Value,
+    #[serde(skip)]
+    asset_root: Option<std::path::PathBuf>,
+}
+
+pub fn is_image_bytes(bytes: &[u8]) -> bool {
+    bytes.starts_with(b"\x89PNG\r\n\x1a\n")
+        || bytes.starts_with(b"\xff\xd8\xff")
+        || (bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP"))
 }
 
 fn take(object: &mut Value, key: &str) -> Value {
-    object.as_object_mut().and_then(|map| map.remove(key)).unwrap_or(Value::Null)
+    object
+        .as_object_mut()
+        .and_then(|map| map.remove(key))
+        .unwrap_or(Value::Null)
 }
 
 fn take_array(object: &mut Value, key: &str) -> Vec<Value> {
-    match take(object,key) { Value::Array(items) => items, _ => Vec::new() }
+    match take(object, key) {
+        Value::Array(items) => items,
+        _ => Vec::new(),
+    }
 }
 
-fn bounded_integer(query: &Value, key: &str, default: usize, min: usize, max: usize) -> Result<usize, String> {
-    let Some(value) = query.get(key) else { return Ok(default); };
-    let value = value.as_u64().and_then(|v| usize::try_from(v).ok())
-        .filter(|v| *v >= min && *v <= max).ok_or_else(|| format!("{key} must be {min}..={max}"))?;
+fn bounded_integer(
+    query: &Value,
+    key: &str,
+    default: usize,
+    min: usize,
+    max: usize,
+) -> Result<usize, String> {
+    let Some(value) = query.get(key) else {
+        return Ok(default);
+    };
+    let value = value
+        .as_u64()
+        .and_then(|v| usize::try_from(v).ok())
+        .filter(|v| *v >= min && *v <= max)
+        .ok_or_else(|| format!("{key} must be {min}..={max}"))?;
     Ok(value)
 }
 
 pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), String> {
-    let string = |value:&Value|value.as_str().is_some_and(|text|!text.is_empty());
-    let strings = |value:&Value|value.as_array().is_some_and(|items|items.iter().all(string));
-    let mut asset_ids=HashSet::new();
-    let mut characters=0;
+    let string = |value: &Value| value.as_str().is_some_and(|text| !text.is_empty());
+    let strings = |value: &Value| {
+        value
+            .as_array()
+            .is_some_and(|items| items.iter().all(string))
+    };
+    let mut asset_ids = HashSet::new();
+    let mut characters = 0;
     for image in detail["creativeImages"].as_array().into_iter().flatten() {
-        characters+=image["dataUrl"].as_str().map_or(0,str::len);
-        if let Some(id)=image.get("assetId") {
-            if !string(id) || !asset_ids.insert(id.as_str().unwrap()) { return Err("creative asset ID invalid".into()); }
+        characters += image["dataUrl"].as_str().map_or(0, str::len);
+        if let Some(id) = image
+            .get("assetId")
+            .filter(|_| image.get("dataUrl").is_some())
+        {
+            if !string(id) || !asset_ids.insert(id.as_str().unwrap()) {
+                return Err("creative asset ID invalid".into());
+            }
         }
     }
-    if let Some(assets)=detail.get("visualAssets") {
-        let assets=assets.as_array().ok_or("visual assets must be an array")?;
-        if assets.len()>64 { return Err("visual assets exceed limit".into()); }
+    if let Some(assets) = detail.get("visualAssets") {
+        let assets = assets.as_array().ok_or("visual assets must be an array")?;
+        if assets.len() > 64 {
+            return Err("visual assets exceed limit".into());
+        }
         for asset in assets {
-            let id=asset["assetId"].as_str().filter(|id|!id.is_empty()).ok_or("visual asset ID invalid")?;
-            let mime=asset["mimeType"].as_str().ok_or("visual asset MIME invalid")?;
-            let data=asset["dataUrl"].as_str().ok_or("visual asset data invalid")?;
-            let encoded=data.split_once(',').map(|(_,data)|data).unwrap_or_default();
-            let content=encoded.trim_end_matches('=');
-            if !asset_ids.insert(id) || !matches!(mime,"image/png"|"image/jpeg"|"image/webp")
-                || !data.starts_with(&format!("data:{mime};base64,")) || data.len()>334_000
-                || content.is_empty() || encoded.len()-content.len()>2
-                || !content.bytes().all(|byte|byte.is_ascii_alphanumeric() || byte==b'+' || byte==b'/') {
+            let id = asset["assetId"]
+                .as_str()
+                .filter(|id| !id.is_empty())
+                .ok_or("visual asset ID invalid")?;
+            let mime = asset["mimeType"]
+                .as_str()
+                .ok_or("visual asset MIME invalid")?;
+            let data = asset["dataUrl"]
+                .as_str()
+                .ok_or("visual asset data invalid")?;
+            let encoded = data
+                .split_once(',')
+                .map(|(_, data)| data)
+                .unwrap_or_default();
+            let content = encoded.trim_end_matches('=');
+            if !asset_ids.insert(id)
+                || !matches!(mime, "image/png" | "image/jpeg" | "image/webp")
+                || !data.starts_with(&format!("data:{mime};base64,"))
+                || data.len() > 700_000
+                || content.is_empty()
+                || encoded.len() - content.len() > 2
+                || !content
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'+' || byte == b'/')
+            {
                 return Err("visual asset representation invalid".into());
             }
-            characters+=data.len();
+            characters += data.len();
         }
     }
-    if characters>2_670_000 { return Err("visual assets exceed capture budget".into()); }
+    if characters > 5_340_000 {
+        return Err("visual assets exceed capture budget".into());
+    }
     for image in detail["imageAnalysis"].as_array().into_iter().flatten() {
-        if let Some(id)=image.get("assetId") {
-            if !id.as_str().is_some_and(|id|asset_ids.contains(id)) { return Err("image asset missing".into()); }
+        if let Some(id) = image.get("assetId") {
+            if !id.as_str().is_some_and(|id| asset_ids.contains(id)) {
+                return Err("image asset missing".into());
+            }
         }
-        if image.get("sourceKind").is_some_and(|kind| !matches!(kind.as_str(),Some("img"|"background-image"|"svg"|"canvas")))
-            || image.get("visibleDomEquivalent").is_some_and(|value|!value.is_boolean())
-            || image.get("candidateEvidence").is_some_and(|value|!strings(value))
-            || ["analysisId","frameUrl","location","destinationUrl"].iter().any(|key|image.get(*key).is_some_and(|value|!string(value))) {
+        if image.get("sourceKind").is_some_and(|kind| {
+            !matches!(
+                kind.as_str(),
+                Some("img" | "background-image" | "svg" | "canvas")
+            )
+        }) || image
+            .get("visibleDomEquivalent")
+            .is_some_and(|value| !value.is_boolean())
+            || image
+                .get("candidateEvidence")
+                .is_some_and(|value| !strings(value))
+            || ["analysisId", "frameUrl", "location", "destinationUrl"]
+                .iter()
+                .any(|key| image.get(*key).is_some_and(|value| !string(value)))
+        {
             return Err("visual candidate metadata invalid".into());
         }
-        if let Some(id)=image.get("extraFindingId") {
-            let finding=extras.iter().find(|finding|finding["id"]==*id).ok_or("image-only extra finding missing")?;
-            if finding["extra_finding"]!="IMAGE_ONLY_ILLEGAL_AD" || finding["location"]!=image["location"]
-                || finding["url"]!=image["frameUrl"] || image["ocr"]["state"]!="available"
-                || finding["evidence_text"]!=image["ocr"]["text"] || image["decision"]["passed"]!=true
-                || image["visibleDomEquivalent"]!=false || image["matchedTerms"].as_array().is_none_or(Vec::is_empty) {
+        if let Some(id) = image.get("extraFindingId") {
+            let finding = extras
+                .iter()
+                .find(|finding| finding["id"] == *id)
+                .ok_or("image-only extra finding missing")?;
+            if finding["extra_finding"] != "IMAGE_ONLY_ILLEGAL_AD"
+                || finding["location"] != image["location"]
+                || finding["url"] != image["frameUrl"]
+                || image["ocr"]["state"] != "available"
+                || finding["evidence_text"] != image["ocr"]["text"]
+                || image["decision"]["passed"] != true
+                || image["visibleDomEquivalent"] != false
+                || image["matchedTerms"].as_array().is_none_or(Vec::is_empty)
+            {
                 return Err("image-only identity invalid".into());
             }
         }
     }
-    if let Some(graph)=detail.get("evidenceGraph") {
-        let nodes=graph["nodes"].as_array().ok_or("graph nodes missing")?;
-        let edges=graph["edges"].as_array().ok_or("graph edges missing")?;
-        let mut ids=HashSet::new();
+    if let Some(graph) = detail.get("evidenceGraph") {
+        let nodes = graph["nodes"].as_array().ok_or("graph nodes missing")?;
+        let edges = graph["edges"].as_array().ok_or("graph edges missing")?;
+        let mut ids = HashSet::new();
         for node in nodes {
-            if !string(&node["id"]) || !node["label"].is_string() || !ids.insert(node["id"].as_str().unwrap())
-                || !matches!(node["kind"].as_str(),Some("Page"|"Frame"|"Element"|"Resource"|"Creative"|"Domain"|"Redirect"|"Landing"))
-                || node.get("adRelated").is_some_and(|value|!value.is_boolean()) {
+            if !string(&node["id"])
+                || !node["label"].is_string()
+                || !ids.insert(node["id"].as_str().unwrap())
+                || !matches!(
+                    node["kind"].as_str(),
+                    Some(
+                        "Page"
+                            | "Frame"
+                            | "Element"
+                            | "Resource"
+                            | "Creative"
+                            | "Domain"
+                            | "Redirect"
+                            | "Landing"
+                    )
+                )
+                || node
+                    .get("adRelated")
+                    .is_some_and(|value| !value.is_boolean())
+            {
                 return Err("graph node invalid".into());
             }
         }
         for edge in edges {
-            if !edge["from"].as_str().is_some_and(|id|ids.contains(id)) || !edge["to"].as_str().is_some_and(|id|ids.contains(id))
-                || !matches!(edge["kind"].as_str(),Some("CONTAINS"|"LOADS"|"EMBEDS"|"DISPLAYS"|"LINKS_TO"|"REDIRECTS_TO"|"SIMILAR_TO"))
-                || edge.get("adRelated").is_some_and(|value|!value.is_boolean())
-                || edge.get("evidenceKinds").is_some_and(|value|!strings(value)) { return Err("graph edge invalid".into()); }
+            if !edge["from"].as_str().is_some_and(|id| ids.contains(id))
+                || !edge["to"].as_str().is_some_and(|id| ids.contains(id))
+                || !matches!(
+                    edge["kind"].as_str(),
+                    Some(
+                        "CONTAINS"
+                            | "LOADS"
+                            | "EMBEDS"
+                            | "DISPLAYS"
+                            | "LINKS_TO"
+                            | "REDIRECTS_TO"
+                            | "SIMILAR_TO"
+                    )
+                )
+                || edge
+                    .get("adRelated")
+                    .is_some_and(|value| !value.is_boolean())
+                || edge
+                    .get("evidenceKinds")
+                    .is_some_and(|value| !strings(value))
+            {
+                return Err("graph edge invalid".into());
+            }
         }
     }
-    if let Some(relations)=detail.get("infrastructure") {
-        for relation in relations.as_array().ok_or("infrastructure summary must be an array")? {
-            if !string(&relation["domain"]) || !string(&relation["nodeId"]) || !strings(&relation["pageUrls"])
-                || relation["pageUrls"].as_array().is_none_or(Vec::is_empty) || !strings(&relation["evidenceKinds"])
-                || relation["evidenceKinds"].as_array().is_none_or(Vec::is_empty) { return Err("infrastructure relation invalid".into()); }
+    if let Some(relations) = detail.get("infrastructure") {
+        for relation in relations
+            .as_array()
+            .ok_or("infrastructure summary must be an array")?
+        {
+            if !string(&relation["domain"])
+                || !string(&relation["nodeId"])
+                || !strings(&relation["pageUrls"])
+                || relation["pageUrls"].as_array().is_none_or(Vec::is_empty)
+                || !strings(&relation["evidenceKinds"])
+                || relation["evidenceKinds"]
+                    .as_array()
+                    .is_none_or(Vec::is_empty)
+            {
+                return Err("infrastructure relation invalid".into());
+            }
         }
     }
-    if detail.get("analysisIssues").is_some_and(|value|!strings(value)) { return Err("analysis issues invalid".into()); }
+    if detail
+        .get("analysisIssues")
+        .is_some_and(|value| !strings(value))
+    {
+        return Err("analysis issues invalid".into());
+    }
     if let Some(c) = detail.get("visualAnalysisCoverage") {
-        let number = |key: &str| c[key].as_u64().filter(|value| *value <= 9_007_199_254_740_991);
-        let counts = ["pagesConsidered", "pagesNotConsidered", "candidatesObserved", "imagesAcquired",
-            "imageAnalysisRecords", "ocrImagesAttempted", "ocrImagesCompleted", "ocrImagesUnavailable"];
-        let limit_keys = ["pages", "candidatesPerDocument", "elementsPerDocument", "bytesPerPage", "distinctOcrImages"];
-        let limits = ["page-limit", "candidate-limit", "element-limit", "byte-limit", "ocr-image-limit", "deadline"];
-        let reasons = ["page-limit", "candidate-limit", "element-limit", "byte-limit", "ocr-image-limit", "deadline",
-            "cancelled", "capture-error", "document-unavailable", "image-unavailable", "target-unavailable"];
-        if counts.iter().any(|key| number(key).is_none()) || c.get("candidateTotal") != Some(&Value::Null)
-            || limit_keys.iter().any(|key| c["limits"][*key].as_u64().is_none_or(|value| value == 0 || value > 9_007_199_254_740_991))
+        if let Some(s) = c.get("selection") {
+            if !s["policy"].as_str().is_some_and(|s| !s.is_empty())
+                || [
+                    ("retainedRecords", 64),
+                    ("retainedAssets", 40),
+                    ("retainedBytes", 2_000_000),
+                    ("excludedRecords", 9_007_199_254_740_991),
+                ]
+                .iter()
+                .any(|(k, max)| !s[*k].as_u64().is_some_and(|v| v <= *max))
+                || s["ocrSha256"].as_array().is_none_or(|hashes| {
+                    let mut seen = HashSet::new();
+                    hashes.len() > 6
+                        || hashes.iter().any(|h| {
+                            h.as_str().is_none_or(|h| {
+                                h.len() != 64
+                                    || !h.bytes().all(|b| b.is_ascii_hexdigit())
+                                    || !seen.insert(h)
+                            })
+                        })
+                })
+            {
+                return Err("visual selection invalid".into());
+            }
+        }
+        let number = |key: &str| {
+            c[key]
+                .as_u64()
+                .filter(|value| *value <= 9_007_199_254_740_991)
+        };
+        let counts = [
+            "pagesConsidered",
+            "pagesNotConsidered",
+            "candidatesObserved",
+            "imagesAcquired",
+            "imageAnalysisRecords",
+            "ocrImagesAttempted",
+            "ocrImagesCompleted",
+            "ocrImagesUnavailable",
+        ];
+        let limit_keys = [
+            "pages",
+            "candidatesPerDocument",
+            "elementsPerDocument",
+            "bytesPerPage",
+            "distinctOcrImages",
+        ];
+        let limits = [
+            "page-limit",
+            "candidate-limit",
+            "element-limit",
+            "byte-limit",
+            "ocr-image-limit",
+            "deadline",
+        ];
+        let reasons = [
+            "page-limit",
+            "candidate-limit",
+            "element-limit",
+            "byte-limit",
+            "ocr-image-limit",
+            "deadline",
+            "cancelled",
+            "capture-error",
+            "document-unavailable",
+            "image-unavailable",
+            "target-unavailable",
+        ];
+        if counts.iter().any(|key| number(key).is_none())
+            || c.get("candidateTotal") != Some(&Value::Null)
+            || limit_keys.iter().any(|key| {
+                c["limits"][*key]
+                    .as_u64()
+                    .is_none_or(|value| value == 0 || value > 9_007_199_254_740_991)
+            })
             || c["limitsReached"].as_array().is_none_or(|items| {
                 let mut seen = HashSet::new();
-                items.iter().any(|value| value.as_str().is_none_or(|value| !limits.contains(&value) || !seen.insert(value)))
+                items.iter().any(|value| {
+                    value
+                        .as_str()
+                        .is_none_or(|value| !limits.contains(&value) || !seen.insert(value))
+                })
             })
-            || c["skips"].as_array().is_none_or(|items| items.iter().any(|skip|
-                skip["reason"].as_str().is_none_or(|value| !reasons.contains(&value))
-                || !matches!(skip["unit"].as_str(), Some("page"|"document"|"candidate"|"image"))
-                || skip["count"].as_u64().is_none_or(|value| value == 0 || value > 9_007_199_254_740_991))) {
+            || c["skips"].as_array().is_none_or(|items| {
+                items.iter().any(|skip| {
+                    skip["reason"]
+                        .as_str()
+                        .is_none_or(|value| !reasons.contains(&value))
+                        || !matches!(
+                            skip["unit"].as_str(),
+                            Some("page" | "document" | "candidate" | "image")
+                        )
+                        || skip["count"]
+                            .as_u64()
+                            .is_none_or(|value| value == 0 || value > 9_007_199_254_740_991)
+                })
+            })
+        {
             return Err("visual analysis coverage invalid".into());
         }
         if number("pagesConsidered").unwrap() > c["limits"]["pages"].as_u64().unwrap()
             || number("imagesAcquired") > number("candidatesObserved")
             || number("imageAnalysisRecords") > number("imagesAcquired")
             || number("ocrImagesAttempted") > number("imageAnalysisRecords")
-            || number("ocrImagesAttempted").unwrap() > c["limits"]["distinctOcrImages"].as_u64().unwrap()
-            || number("ocrImagesCompleted").unwrap() + number("ocrImagesUnavailable").unwrap() != number("ocrImagesAttempted").unwrap() {
+            || number("ocrImagesAttempted").unwrap()
+                > c["limits"]["distinctOcrImages"].as_u64().unwrap()
+            || number("ocrImagesCompleted").unwrap() + number("ocrImagesUnavailable").unwrap()
+                != number("ocrImagesAttempted").unwrap()
+        {
             return Err("visual analysis coverage counts inconsistent".into());
         }
     }
@@ -143,7 +355,9 @@ impl SessionEvidence {
         let mut register = |data: Value, mime: &str| -> Option<String> {
             let data = data.as_str()?;
             if !matches!(mime, "image/jpeg" | "image/png" | "image/webp")
-                || data.len() > 700_000 || !data.starts_with(&format!("data:{mime};base64,")) {
+                || data.len() > 700_000
+                || !data.starts_with(&format!("data:{mime};base64,"))
+            {
                 return None;
             }
             let mut hash = std::collections::hash_map::DefaultHasher::new();
@@ -151,11 +365,16 @@ impl SessionEvidence {
             let hash = hash.finish();
             if let Some(ids) = hashes.get(&hash) {
                 for id in ids {
-                    if assets[id]["dataUrl"] == data { return Some(id.clone()); }
+                    if assets[id]["dataUrl"] == data {
+                        return Some(id.clone());
+                    }
                 }
             }
             let id = format!("asset-{}", assets.len() + 1);
-            assets.insert(id.clone(), json!({"assetId":id,"mimeType":mime,"dataUrl":data}));
+            assets.insert(
+                id.clone(),
+                json!({"assetId":id,"mimeType":mime,"dataUrl":data}),
+            );
             hashes.entry(hash).or_default().push(id.clone());
             Some(id)
         };
@@ -163,16 +382,38 @@ impl SessionEvidence {
         for mut asset in take_array(&mut detail, "visualAssets") {
             let old_id = asset["assetId"].as_str().unwrap_or_default().to_string();
             let mime = asset["mimeType"].as_str().unwrap_or_default().to_string();
-            if let Some(id) = register(take(&mut asset, "dataUrl"), &mime) { asset_ids.insert(old_id, id); }
+            if let Some(id) = register(take(&mut asset, "dataUrl"), &mime) {
+                asset_ids.insert(old_id, id);
+            }
         }
         let mut findings = HashMap::new();
         for mut finding in take_array(&mut detail, "findings") {
-            let id = finding["findingId"].as_str().unwrap_or_default().to_string();
+            let id = finding["findingId"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string();
             if let Some(visual) = finding.get_mut("visual") {
-                let mime = visual["mimeType"].as_str().unwrap_or("image/jpeg").to_string();
-                if let Some(id) = register(take(visual, "dataUrl"), &mime) { visual["assetId"] = json!(id); }
+                if let Some(old_id) = visual["assetId"].as_str().map(str::to_string) {
+                    if let Some(id) = asset_ids.get(&old_id) {
+                        visual["assetId"] = json!(id);
+                    }
+                }
+                let mime = visual["mimeType"]
+                    .as_str()
+                    .unwrap_or("image/jpeg")
+                    .to_string();
+                if let Some(id) = register(take(visual, "dataUrl"), &mime) {
+                    visual["assetId"] = json!(id);
+                }
                 if let Some(element) = visual.get_mut("element") {
-                    if let Some(id) = register(take(element, "dataUrl"), "image/jpeg") { element["assetId"] = json!(id); }
+                    if let Some(old_id) = element["assetId"].as_str().map(str::to_string) {
+                        if let Some(id) = asset_ids.get(&old_id) {
+                            element["assetId"] = json!(id);
+                        }
+                    }
+                    if let Some(id) = register(take(element, "dataUrl"), "image/jpeg") {
+                        element["assetId"] = json!(id);
+                    }
                 }
             }
             findings.insert(id, finding);
@@ -181,7 +422,16 @@ impl SessionEvidence {
         for mut image in take_array(&mut detail, "creativeImages") {
             let mime = image["mimeType"].as_str().unwrap_or_default().to_string();
             if let Some(id) = register(take(&mut image, "dataUrl"), &mime) {
-                if let Some(old_id) = image["assetId"].as_str() { asset_ids.insert(old_id.to_string(),id.clone()); }
+                if let Some(old_id) = image["assetId"].as_str() {
+                    asset_ids.insert(old_id.to_string(), id.clone());
+                }
+                image["assetId"] = json!(id);
+                creative_images.push(image);
+            } else if let Some(id) = image["assetId"]
+                .as_str()
+                .and_then(|id| asset_ids.get(id))
+                .cloned()
+            {
                 image["assetId"] = json!(id);
                 creative_images.push(image);
             }
@@ -189,98 +439,301 @@ impl SessionEvidence {
         let mut images = take_array(&mut detail, "imageAnalysis");
         for image in &mut images {
             if let Some(old_id) = image["assetId"].as_str() {
-                if let Some(id) = asset_ids.get(old_id) { image["assetId"] = json!(id); }
-                else { take(image, "assetId"); }
+                if let Some(id) = asset_ids.get(old_id) {
+                    image["assetId"] = json!(id);
+                } else {
+                    take(image, "assetId");
+                }
             }
         }
         let coverage = json!({"coverage":take(&mut detail,"coverage"),
             "pageOutcomes":take_array(&mut detail,"pageOutcomes")});
         let graph_available = detail.get("evidenceGraph").is_some();
-        let graph = if graph_available { take(&mut detail,"evidenceGraph") } else { json!({"nodes":[],"edges":[]}) };
-        let observed = graph["nodes"].as_array().map_or(0, |nodes| nodes.iter().filter(|n|n["kind"]=="Domain").count());
+        let graph = if graph_available {
+            take(&mut detail, "evidenceGraph")
+        } else {
+            json!({"nodes":[],"edges":[]})
+        };
+        let observed = graph["nodes"].as_array().map_or(0, |nodes| {
+            nodes.iter().filter(|n| n["kind"] == "Domain").count()
+        });
         let mut summary = json!({"observedDomainCount":observed,"graphAvailable":graph_available,
             "analysisIssues":take_array(&mut detail,"analysisIssues"),
             "infrastructure":take_array(&mut detail,"infrastructure"),
             "imageAnalysisCount":images.len(),"creativeImages":creative_images});
         if detail.get("visualAnalysisCoverage").is_some() {
-            summary["visualAnalysisCoverage"] = take(&mut detail,"visualAnalysisCoverage");
+            summary["visualAnalysisCoverage"] = take(&mut detail, "visualAnalysisCoverage");
         }
-        Ok(Self {coverage, findings, images, assets, summary, graph})
+        if detail.get("timing").is_some() {
+            summary["timing"] = take(&mut detail, "timing");
+        }
+        Ok(Self {
+            coverage,
+            findings,
+            images,
+            assets,
+            summary,
+            graph,
+            asset_root: None,
+        })
     }
 
-    pub fn coverage(&self) -> Value { self.coverage.clone() }
-    pub fn finding(&self, id: &str) -> Option<Value> { self.findings.get(id).cloned() }
-    pub fn asset(&self, id: &str) -> Option<Value> { self.assets.get(id).cloned() }
-    pub fn summary(&self) -> Value { self.summary.clone() }
+    pub fn coverage(&self) -> Value {
+        self.coverage.clone()
+    }
+    pub fn finding(&self, id: &str) -> Option<Value> {
+        self.findings.get(id).cloned()
+    }
+    pub fn asset(&self, id: &str) -> Option<Value> {
+        use base64::Engine;
+        let asset = self.assets.get(id)?;
+        if let Some(root) = &self.asset_root {
+            let root_metadata = std::fs::symlink_metadata(root).ok()?;
+            if !root_metadata.is_dir() || crate::case_store::is_link(&root_metadata) {
+                return None;
+            }
+            let hash = asset["sha256"].as_str()?;
+            if hash.len() != 64 || !hash.bytes().all(|c| c.is_ascii_hexdigit()) {
+                return None;
+            }
+            let path = root.join(hash);
+            let metadata = std::fs::symlink_metadata(&path).ok()?;
+            if !metadata.is_file()
+                || crate::case_store::is_link(&metadata)
+                || metadata.len() > 525_000
+            {
+                return None;
+            }
+            let bytes = crate::case_store::read_bounded(&path, 525_000).ok()?;
+            if crate::case_store::digest(&bytes) != hash || !is_image_bytes(&bytes) {
+                return None;
+            }
+            let mime = asset["mimeType"].as_str()?;
+            if !matches!(mime, "image/png" | "image/jpeg" | "image/webp") {
+                return None;
+            }
+            return Some(
+                json!({"assetId":id,"mimeType":mime,"dataUrl":format!("data:{mime};base64,{}",base64::engine::general_purpose::STANDARD.encode(bytes))}),
+            );
+        }
+        Some(asset.clone())
+    }
+
+    /// Store shared bytes once; persisted metadata contains only opaque IDs.
+    pub fn persist(&mut self, directory: &std::path::Path) -> Result<(), String> {
+        use base64::Engine;
+        let root = directory.join("assets");
+        std::fs::create_dir_all(&root).map_err(|e| e.to_string())?;
+        for asset in self.assets.values_mut() {
+            let mime = asset["mimeType"]
+                .as_str()
+                .ok_or("asset MIME missing")?
+                .to_string();
+            let data = asset["dataUrl"].as_str().ok_or("asset data missing")?;
+            let encoded = data.split_once(',').ok_or("asset data invalid")?.1;
+            let bytes = base64::engine::general_purpose::STANDARD
+                .decode(encoded)
+                .map_err(|e| e.to_string())?;
+            if bytes.len() > 525_000 || !is_image_bytes(&bytes) {
+                return Err("asset is not a supported bounded image".into());
+            }
+            let hash = crate::case_store::digest(&bytes);
+            let path = root.join(&hash);
+            if !path.exists() {
+                crate::case_store::write_new(&path, &bytes)?;
+            }
+            *asset = json!({"assetId":asset["assetId"],"mimeType":mime,"sha256":hash,"bytes":bytes.len()});
+        }
+        self.asset_root = Some(root);
+        let bytes = serde_json::to_vec(self).map_err(|e| e.to_string())?;
+        if bytes.len() > 8_000_000 {
+            return Err("evidence index exceeds limit".into());
+        }
+        crate::case_store::write_new(&directory.join("evidence.json"), &bytes)
+    }
+
+    pub fn reopen(
+        directory: &std::path::Path,
+        official: &str,
+        extra: Option<&str>,
+    ) -> Result<Self, String> {
+        let bytes = crate::case_store::read_bounded(&directory.join("evidence.json"), 8_000_000)?;
+        let mut index: Self = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        index.asset_root = Some(directory.join("assets"));
+        // Reconstruct the public bundle and apply the same trust-boundary validator.
+        // Asset data is bounded and loaded once per unique ID, never once per finding.
+        let mut assets = Vec::new();
+        if index.assets.len() > 64 {
+            return Err("evidence asset count exceeds limit".into());
+        }
+        for id in index.assets.keys() {
+            assets.push(
+                index
+                    .asset(id)
+                    .ok_or("evidence asset unavailable or corrupt")?,
+            );
+        }
+        let parsed: Value = serde_json::from_str(official).map_err(|e| e.to_string())?;
+        let empty_extra = json!({"meta":parsed["meta"],"findings":[]}).to_string();
+        let mut bundle = json!({"version":2,"findings":index.findings.values().collect::<Vec<_>>(),"coverage":index.coverage["coverage"],"pageOutcomes":index.coverage["pageOutcomes"],"imageAnalysis":index.images,"creativeImages":index.summary["creativeImages"],"visualAssets":assets,"evidenceGraph":index.graph,"analysisIssues":index.summary["analysisIssues"],"infrastructure":index.summary["infrastructure"]});
+        if let Some(value) = index.summary.get("visualAnalysisCoverage") {
+            bundle["visualAnalysisCoverage"] = value.clone();
+        }
+        if let Some(value) = index.summary.get("timing") {
+            bundle["timing"] = value.clone();
+        }
+        crate::validation::validate_detail_bundle(
+            official,
+            &bundle.to_string(),
+            extra.unwrap_or(&empty_extra),
+        )?;
+        Ok(index)
+    }
+    pub fn summary(&self) -> Value {
+        self.summary.clone()
+    }
 
     pub fn images(&self, query: &Value) -> Result<Value, String> {
-        let cursor = bounded_integer(query,"cursor",0,0,usize::MAX)?;
-        let limit = bounded_integer(query,"limit",12,1,24)?;
-        let page = query.get("pageUrl").map(|v|v.as_str().ok_or("pageUrl must be a string")) .transpose()?;
-        let finding = query.get("extraFindingId").map(|value|value.as_str().ok_or("extraFindingId must be a string")).transpose()?;
-        let items: Vec<_> = self.images.iter().filter(|image| finding.is_none_or(|id|image["extraFindingId"]==id)
-            && page.is_none_or(|page|image["pageUrls"].as_array().is_some_and(|urls|urls.iter().any(|url|url==page)))).collect();
+        let cursor = bounded_integer(query, "cursor", 0, 0, usize::MAX)?;
+        let limit = bounded_integer(query, "limit", 12, 1, 24)?;
+        let page = query
+            .get("pageUrl")
+            .map(|v| v.as_str().ok_or("pageUrl must be a string"))
+            .transpose()?;
+        let finding = query
+            .get("extraFindingId")
+            .map(|value| value.as_str().ok_or("extraFindingId must be a string"))
+            .transpose()?;
+        let items: Vec<_> = self
+            .images
+            .iter()
+            .filter(|image| {
+                finding.is_none_or(|id| image["extraFindingId"] == id)
+                    && page.is_none_or(|page| {
+                        image["pageUrls"]
+                            .as_array()
+                            .is_some_and(|urls| urls.iter().any(|url| url == page))
+                    })
+            })
+            .collect();
         let end = cursor.saturating_add(limit).min(items.len());
         let mut result = json!({"items":items.iter().skip(cursor).take(limit).collect::<Vec<_>>(),"total":items.len()});
-        if end < items.len() { result["nextCursor"] = json!(end); }
+        if end < items.len() {
+            result["nextCursor"] = json!(end);
+        }
         Ok(result)
     }
 
     pub fn graph_slice(&self, query: &Value) -> Result<Value, String> {
-        let max_nodes = bounded_integer(query,"maxNodes",100,1,250)?;
-        let max_edges = bounded_integer(query,"maxEdges",200,0,500)?;
-        let depth = bounded_integer(query,"depth",2,0,2)?;
-        let nodes = self.graph["nodes"].as_array().map(Vec::as_slice).unwrap_or(&[]);
-        let edges = self.graph["edges"].as_array().map(Vec::as_slice).unwrap_or(&[]);
-        let by_id: HashMap<_,_> = nodes.iter().filter_map(|node|node["id"].as_str().map(|id|(id,node))).collect();
+        let max_nodes = bounded_integer(query, "maxNodes", 100, 1, 250)?;
+        let max_edges = bounded_integer(query, "maxEdges", 200, 0, 500)?;
+        let depth = bounded_integer(query, "depth", 2, 0, 2)?;
+        let nodes = self.graph["nodes"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let edges = self.graph["edges"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        let by_id: HashMap<_, _> = nodes
+            .iter()
+            .filter_map(|node| node["id"].as_str().map(|id| (id, node)))
+            .collect();
         let mut seeds = Vec::new();
         if let Some(focus) = query.get("focus") {
             let kind = focus["kind"].as_str().ok_or("invalid graph focus")?;
             let id = focus["id"].as_str().ok_or("invalid graph focus")?;
-            if !matches!(kind,"finding"|"page"|"creative"|"domain") || id.trim().is_empty() { return Err("invalid graph focus".into()); }
+            if !matches!(kind, "finding" | "page" | "creative" | "domain") || id.trim().is_empty() {
+                return Err("invalid graph focus".into());
+            }
             for node in nodes {
-                let matched = node["id"] == id || match kind {
-                    "finding" => node["findingId"] == id,
-                    "page" => node["kind"] == "Page" && (node["url"] == id || node["pageUrl"] == id),
-                    "creative" => node["kind"] == "Creative" && node["creativeId"] == id,
-                    "domain" => node["kind"] == "Domain" && node["label"] == id,
-                    _ => false,
-                };
-                if matched { if let Some(id) = node["id"].as_str() { seeds.push(id); } }
+                let matched = node["id"] == id
+                    || match kind {
+                        "finding" => node["findingId"] == id,
+                        "page" => {
+                            node["kind"] == "Page" && (node["url"] == id || node["pageUrl"] == id)
+                        }
+                        "creative" => node["kind"] == "Creative" && node["creativeId"] == id,
+                        "domain" => node["kind"] == "Domain" && node["label"] == id,
+                        _ => false,
+                    };
+                if matched {
+                    if let Some(id) = node["id"].as_str() {
+                        seeds.push(id);
+                    }
+                }
             }
         } else {
-            seeds.extend(nodes.iter().filter(|node|node["adRelated"]==true).filter_map(|node|node["id"].as_str()));
+            seeds.extend(
+                nodes
+                    .iter()
+                    .filter(|node| node["adRelated"] == true)
+                    .filter_map(|node| node["id"].as_str()),
+            );
         }
         seeds.sort_unstable();
-        let mut adjacency = HashMap::<&str,Vec<&str>>::new();
+        let mut adjacency = HashMap::<&str, Vec<&str>>::new();
         for edge in edges {
-            if query.get("focus").is_none() && edge["adRelated"] != true { continue; }
-            if let (Some(from),Some(to)) = (edge["from"].as_str(),edge["to"].as_str()) {
+            if query.get("focus").is_none() && edge["adRelated"] != true {
+                continue;
+            }
+            if let (Some(from), Some(to)) = (edge["from"].as_str(), edge["to"].as_str()) {
                 if by_id.contains_key(from) && by_id.contains_key(to) {
                     adjacency.entry(from).or_default().push(to);
                     adjacency.entry(to).or_default().push(from);
                 }
             }
         }
-        for neighbors in adjacency.values_mut() { neighbors.sort_unstable(); neighbors.dedup(); }
-        let mut queue: VecDeque<_> = seeds.into_iter().map(|id|(id,0)).collect();
+        for neighbors in adjacency.values_mut() {
+            neighbors.sort_unstable();
+            neighbors.dedup();
+        }
+        let mut queue: VecDeque<_> = seeds.into_iter().map(|id| (id, 0)).collect();
         let mut selected = HashSet::new();
-        let mut truncated = false;
-        while let Some((id,level)) = queue.pop_front() {
-            if selected.contains(id) { continue; }
-            if selected.len() == max_nodes { truncated = true; break; }
+        let mut truncated = self.graph["truncated"] == true;
+        while let Some((id, level)) = queue.pop_front() {
+            if selected.contains(id) {
+                continue;
+            }
+            if selected.len() == max_nodes {
+                truncated = true;
+                break;
+            }
             selected.insert(id);
             if level < depth {
-                for neighbor in adjacency.get(id).into_iter().flatten() { queue.push_back((neighbor,level+1)); }
+                for neighbor in adjacency.get(id).into_iter().flatten() {
+                    queue.push_back((neighbor, level + 1));
+                }
             }
         }
-        let mut selected_nodes: Vec<_> = nodes.iter().filter(|node|node["id"].as_str().is_some_and(|id|selected.contains(id))).collect();
-        selected_nodes.sort_by(|a,b|a["id"].as_str().cmp(&b["id"].as_str()));
-        let mut selected_edges: Vec<_> = edges.iter().filter(|edge|(query.get("focus").is_some() || edge["adRelated"]==true)
-            && edge["from"].as_str().is_some_and(|id|selected.contains(id))
-            && edge["to"].as_str().is_some_and(|id|selected.contains(id))).collect();
-        selected_edges.sort_by_key(|edge|format!("{}\0{}\0{}",edge["from"].as_str().unwrap_or_default(),edge["to"].as_str().unwrap_or_default(),edge["kind"].as_str().unwrap_or_default()));
-        if selected_edges.len() > max_edges { truncated=true; selected_edges.truncate(max_edges); }
+        let mut selected_nodes: Vec<_> = nodes
+            .iter()
+            .filter(|node| node["id"].as_str().is_some_and(|id| selected.contains(id)))
+            .collect();
+        selected_nodes.sort_by(|a, b| a["id"].as_str().cmp(&b["id"].as_str()));
+        let mut selected_edges: Vec<_> = edges
+            .iter()
+            .filter(|edge| {
+                (query.get("focus").is_some() || edge["adRelated"] == true)
+                    && edge["from"]
+                        .as_str()
+                        .is_some_and(|id| selected.contains(id))
+                    && edge["to"].as_str().is_some_and(|id| selected.contains(id))
+            })
+            .collect();
+        selected_edges.sort_by_key(|edge| {
+            format!(
+                "{}\0{}\0{}",
+                edge["from"].as_str().unwrap_or_default(),
+                edge["to"].as_str().unwrap_or_default(),
+                edge["kind"].as_str().unwrap_or_default()
+            )
+        });
+        if selected_edges.len() > max_edges {
+            truncated = true;
+            selected_edges.truncate(max_edges);
+        }
         Ok(json!({"nodes":selected_nodes,"edges":selected_edges,"truncated":truncated}))
     }
 }
@@ -299,13 +752,22 @@ mod tests {
             "limitsReached":["page-limit","ocr-image-limit"],
             "skips":[{"reason":"page-limit","unit":"page","count":1},{"reason":"ocr-image-limit","unit":"image","count":1}]});
         let detail = json!({"findings":[],"creativeImages":[],"coverage":{},"visualAnalysisCoverage":coverage});
-        assert!(validate_extensions(&detail,&[]).is_ok());
+        assert!(validate_extensions(&detail, &[]).is_ok());
         let index = SessionEvidence::from_json(&detail.to_string()).unwrap();
-        assert_eq!(index.summary()["visualAnalysisCoverage"],coverage);
-        for (key,value) in [("candidateTotal",50),("pagesConsidered",9),("ocrImagesCompleted",7),("ocrImagesAttempted",7),("imagesAcquired",8)] {
+        assert_eq!(index.summary()["visualAnalysisCoverage"], coverage);
+        for (key, value) in [
+            ("candidateTotal", 50),
+            ("pagesConsidered", 9),
+            ("ocrImagesCompleted", 7),
+            ("ocrImagesAttempted", 7),
+            ("imagesAcquired", 8),
+        ] {
             let mut invalid = detail.clone();
             invalid["visualAnalysisCoverage"][key] = json!(value);
-            assert!(validate_extensions(&invalid,&[]).is_err(),"accepted {key}");
+            assert!(
+                validate_extensions(&invalid, &[]).is_err(),
+                "accepted {key}"
+            );
         }
     }
 
@@ -319,9 +781,15 @@ mod tests {
         let index = SessionEvidence::from_json(&detail.to_string()).unwrap();
         let selected = index.finding("f1").unwrap();
         assert!(!selected.to_string().contains("data:image"));
-        assert_eq!(selected["visual"]["assetId"], selected["visual"]["element"]["assetId"]);
+        assert_eq!(
+            selected["visual"]["assetId"],
+            selected["visual"]["element"]["assetId"]
+        );
         let asset = selected["visual"]["assetId"].as_str().unwrap();
-        assert_eq!(index.asset(asset).unwrap()["dataUrl"], "data:image/jpeg;base64,YQ==");
+        assert_eq!(
+            index.asset(asset).unwrap()["dataUrl"],
+            "data:image/jpeg;base64,YQ=="
+        );
         assert!(index.asset("../../private.txt").is_none());
         assert!(index.finding("f2").is_none());
         assert_eq!(index.coverage()["pageOutcomes"], json!([]));
@@ -330,10 +798,14 @@ mod tests {
 
     #[test]
     fn image_query_pages_metadata_and_never_transfers_images() {
-        let index = SessionEvidence::from_json(&json!({"findings":[],"creativeImages":[],
+        let index = SessionEvidence::from_json(
+            &json!({"findings":[],"creativeImages":[],
             "imageAnalysis":[{"sourceUrl":"https://a/1","pageUrls":["https://a/"]},
                 {"sourceUrl":"https://a/2","pageUrls":["https://b/"]}],
-            "coverage":{}}).to_string()).unwrap();
+            "coverage":{}})
+            .to_string(),
+        )
+        .unwrap();
         assert_eq!(index.images(&json!({"limit":1})).unwrap()["nextCursor"], 1);
         let filtered = index.images(&json!({"pageUrl":"https://b/"})).unwrap();
         assert_eq!(filtered["total"], 1);
@@ -353,13 +825,26 @@ mod tests {
             "edges":[{"from":"e","to":"r","kind":"LOADS","adRelated":true},
                 {"from":"r","to":"d","kind":"LINKS_TO","adRelated":true},
                 {"from":"p","to":"e","kind":"CONTAINS","adRelated":true}]});
-        let index = SessionEvidence::from_json(&json!({"findings":[],"creativeImages":[],
-            "coverage":{},"evidenceGraph":graph}).to_string()).unwrap();
-        let slice = index.graph_slice(&json!({"focus":{"kind":"domain","id":"ads.example"}})).unwrap();
-        let ids: Vec<_> = slice["nodes"].as_array().unwrap().iter().map(|n| n["id"].as_str().unwrap()).collect();
-        assert_eq!(ids, vec!["d","e","r"]);
+        let index = SessionEvidence::from_json(
+            &json!({"findings":[],"creativeImages":[],
+            "coverage":{},"evidenceGraph":graph})
+            .to_string(),
+        )
+        .unwrap();
+        let slice = index
+            .graph_slice(&json!({"focus":{"kind":"domain","id":"ads.example"}}))
+            .unwrap();
+        let ids: Vec<_> = slice["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["id"].as_str().unwrap())
+            .collect();
+        assert_eq!(ids, vec!["d", "e", "r"]);
         assert_eq!(slice["edges"].as_array().unwrap().len(), 2);
-        let capped = index.graph_slice(&json!({"maxNodes":1,"maxEdges":0})).unwrap();
+        let capped = index
+            .graph_slice(&json!({"maxNodes":1,"maxEdges":0}))
+            .unwrap();
         assert_eq!(capped["nodes"].as_array().unwrap().len(), 1);
         assert_eq!(capped["edges"], json!([]));
         assert_eq!(capped["truncated"], true);

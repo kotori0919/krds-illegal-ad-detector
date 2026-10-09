@@ -24,6 +24,7 @@ import {
   type BatchScanRequest,
   type ScanSession,
   type Unsubscribe,
+  type CaseList, type OpenCase, type CaseReview, type ReviewRecord, type SupportDiagnostics,
 } from "@krds-detector/contracts";
 import { DEMO_ENTRY_URL, demoResult } from "../demo/findings.js";
 import { indexSessionEvidence } from "./session-evidence.js";
@@ -32,6 +33,16 @@ import { sliceEvidenceGraph } from "@krds-detector/evidence/graph";
 let counter = 0;
 
 export class BrowserHost implements HostBridge {
+  async listCases(): Promise<CaseList> { throw new Error("브라우저 미리보기는 저장된 케이스와 영구 보관을 지원하지 않습니다. 데스크톱 앱을 사용해 주세요."); }
+  async openCase(caseId: string): Promise<OpenCase> { void caseId; throw new Error("저장된 케이스는 데스크톱 앱에서 열 수 있습니다."); }
+  async saveCaseReview(caseId: string, expectedRevision: number, records: ReviewRecord[]): Promise<CaseReview> {
+    void caseId; void expectedRevision; void records;
+    throw new Error("브라우저 미리보기 메모는 영구 저장되지 않습니다.");
+  }
+  async exportCase(caseId: string): Promise<string | null> { void caseId; throw new Error("케이스 전달은 데스크톱 앱에서 지원합니다."); }
+  async importCase(): Promise<string | null> { throw new Error("케이스 가져오기는 데스크톱 앱에서 지원합니다."); }
+  async deleteCase(caseId: string): Promise<void> { void caseId; throw new Error("케이스 삭제는 데스크톱 앱에서 지원합니다."); }
+  async getDiagnostics(): Promise<SupportDiagnostics> { throw new Error("설치 진단은 데스크톱 앱에서 지원합니다."); }
   private sessions = new Map<string, ScanSession>();
   private results = new Map<string, OfficialResult>();
   private extraResults = new Map<string, ExtraResult>();

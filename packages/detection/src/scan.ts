@@ -11,12 +11,12 @@ import { performance } from "node:perf_hooks";
 import type { Frame, Page } from "playwright-core";
 import {
   initialProgress,
+  SCAN_POLICY,
   findingIdentityKey,
   validateScanDetailBundle,
   type OfficialResult,
   type ExtraResult,
   type ScanDetailBundle,
-  type CreativeImage,
   type ImageAnalysis,
   type ScanEvent,
   type ScanProgress,
@@ -26,21 +26,22 @@ import {
 } from "@krds-detector/contracts";
 import { crawlSite, ScanDeadline, type CrawlOptions } from "@krds-detector/scanner";
 import { DEFAULT_SCAN_LIMITS } from "@krds-detector/contracts";
-import { startFixtureServer } from "@krds-detector/synth-eval/serve.js";
 import { buildEvidenceGraph, buildExtraResult, groupSimilarCreatives, summarizeInfrastructure, LocalOcrBackend, type CreativeFingerprint, type GraphInput } from "@krds-detector/evidence";
 import { semanticGate } from "./semantic.js";
-import { collectPageCreatives, type CapturedVisualImage } from "./creative.js";
+import { livePageVisualSource, type CapturedVisualImage } from "./creative.js";
 import { decideVisualImage } from "./visual-decision.js";
 import { detectPageCandidates, type DecidedCandidate } from "./pipeline.js";
 import { buildOfficialResult, serializeValidatedResult } from "./result-engine.js";
+import { CaptureStore, VisualScheduler, VISUAL_LIMITS } from "./visual-scheduler.js";
+import { CandidateAccumulator } from "./candidate-accumulator.js";
 
 export interface ScanInput {
   entryUrl: string;
   crawl?: Omit<CrawlOptions, "entryUrl" | "events" | "deadline" | "onLivePage">;
-  /** Serve fixtures in-process when set (tests / local eval). */
-  fixturePort?: number;
   onEvent?: (event: ScanEvent) => void;
   signal?: AbortSignal;
+  /** Mandatory output port, invoked before any optional finalization. */
+  commitOfficial?: (json: string) => void;
 }
 
 export interface ScanOutput {
@@ -73,28 +74,22 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
   };
 
   emit("session-started", `scan started: ${input.entryUrl}`, input.entryUrl);
-  let fixtureClose: (() => Promise<void>) | undefined;
-  let entryUrl = input.entryUrl;
+  const entryUrl = input.entryUrl;
   const ocr = new LocalOcrBackend();
-  if (input.fixturePort) {
-    const started = startFixtureServer(input.fixturePort);
-    fixtureClose = started.close;
-    entryUrl = `${started.url}${input.entryUrl}`;
-  }
   try {
-    const allCandidates: DecidedCandidate[] = [];
+    const candidates = new CandidateAccumulator();
     const adTextSources: { url: string; location: string; evidenceText: string; analysisText: string }[] = [];
-    const confirmedIdentities = new Set<string>();
+    let adTextBytes = 0;
     const creativeOccurrences: { print: CreativeFingerprint; pageUrl: string; image: CapturedVisualImage }[] = [];
-    const creativeImages = new Map<string, Omit<CreativeImage, "findingId">>();
-    const recognizedImages = new Map<string, Promise<ImageAnalysis["ocr"]>>();
-    const observedImages = new Map<string, { image: CapturedVisualImage; pages: Set<string> }>();
-    const candidatePages = new Map<DecidedCandidate, string>();
+    const creativeImages = new Map<string, CapturedVisualImage>();
+    const visualScheduler = new VisualScheduler();
+    const captureStore = new CaptureStore();
     const analysisIssues: string[] = [];
     const visualAnalysisCoverage: VisualAnalysisCoverage = {
       pagesConsidered: 0, pagesNotConsidered: 0, candidatesObserved: 0, candidateTotal: null,
       imagesAcquired: 0, imageAnalysisRecords: 0, ocrImagesAttempted: 0, ocrImagesCompleted: 0, ocrImagesUnavailable: 0,
-      limits: { pages: 8, candidatesPerDocument: 8, elementsPerDocument: 10_000, bytesPerPage: 250_000, distinctOcrImages: 6 },
+      limits: { pages: input.crawl?.limits?.maxPages ?? DEFAULT_SCAN_LIMITS.maxPages, candidatesPerDocument: SCAN_POLICY.visual.candidatesPerDocument, elementsPerDocument: SCAN_POLICY.visual.elementsPerDocument,
+        bytesPerPage: VISUAL_LIMITS.bytesPerPage, distinctOcrImages: VISUAL_LIMITS.ocrImages },
       limitsReached: [], skips: [],
     };
     const visualSkip = (reason: VisualAnalysisReason, unit: "page" | "document" | "candidate" | "image", count = 1): void => {
@@ -104,10 +99,6 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       if (["page-limit", "candidate-limit", "element-limit", "byte-limit", "ocr-image-limit", "deadline"].includes(reason)
         && !visualAnalysisCoverage.limitsReached.includes(reason as VisualAnalysisLimit)) visualAnalysisCoverage.limitsReached.push(reason as VisualAnalysisLimit);
     };
-    const unrecognizedImages = new Set<string>();
-    let capturedPages = 0;
-    let capturedBytes = 0;
-    let capturedElements = 0;
     // Discovery and detection share the same live Page, Frame tree and clock.
     const summary = await crawlSite({
       entryUrl,
@@ -122,57 +113,70 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       networkPolicyForTesting: input.crawl?.networkPolicyForTesting,
       deadline,
       signal: input.signal,
-      onLivePage: async (page, snapshot, liveFrames, images, pageRank) => {
+      onLivePage: async (page, snapshot, liveFrames, images) => {
+        let capturedElements = 0;
+        for (const issue of snapshot.collectionIssues ?? []) analysisIssues.push(issue);
         const pageCandidates: DecidedCandidate[] = [];
         const candidateGroups = new Map<Page | Frame, Map<string, DecidedCandidate[]>>();
+        const addPageIssue = (issue: string): void => {
+          analysisIssues.push(issue);
+          snapshot.collectionIssues = [...new Set([...(snapshot.collectionIssues ?? []), issue])];
+        };
+        const adTextSource = (source: typeof adTextSources[number]): void => {
+          if (!/[\u200B-\u200D\uFEFF]/.test(source.analysisText)) return;
+          const cost = Buffer.byteLength(JSON.stringify(source), "utf8");
+          if (adTextSources.length >= SCAN_POLICY.evidence.findings || adTextBytes + cost > SCAN_POLICY.evidence.retainedBytes) {
+            addPageIssue("AUXILIARY_TEXT_COLLECTION_LIMIT"); return;
+          }
+          adTextSources.push(source); adTextBytes += cost;
+        };
         const collect = (found: DecidedCandidate[], url: string, scope: Page | Frame): void => {
+          const priorCount = candidates.coverage().retainedFindings;
+          candidates.offer(found, snapshot.url);
+          const accepted = found.filter((candidate) => candidates.contains(candidate));
+          if (accepted.length < found.length) addPageIssue("FINDING_COLLECTION_LIMIT");
           let groups = candidateGroups.get(scope);
           if (!groups) { groups = new Map(); candidateGroups.set(scope, groups); }
-          for (const candidate of found) {
-            candidatePages.set(candidate,snapshot.url);
+          for (const candidate of accepted) {
             const targetKey = `${candidate.selector}\0${candidate.evidenceSelector ?? candidate.selector}`;
             const group = groups.get(targetKey);
             if (group) group.push(candidate); else groups.set(targetKey, [candidate]);
           }
-          pageCandidates.push(...found);
-          allCandidates.push(...found);
+          pageCandidates.push(...accepted);
           progress.candidates += found.length;
-          let added = 0;
-          for (const candidate of found) {
-            const identity = findingIdentityKey({ url: candidate.url, location: candidate.location,
-              technique: candidate.technique.technique });
-            if (!confirmedIdentities.has(identity)) { confirmedIdentities.add(identity); added += 1; }
-          }
-          progress.confirmedFindings = confirmedIdentities.size;
+          progress.confirmedFindings = candidates.coverage().retainedFindings;
+          const added = Math.max(0, progress.confirmedFindings - priorCount);
           if (added > 0) emit("finding-confirmed", `${String(added)} findings on ${url}`, url, added);
         };
         collect(await detectPageCandidates(page, {
           pageUrl: snapshot.url,
+          onTextCollectionIssue: (issue) => { addPageIssue(`${issue.code}: ${issue.detail}`); },
           onElementsAnalyzed: (count) => { progress.elementsAnalyzed += count; },
-          onAdText: (source) => { adTextSources.push(source); },
+          onAdText: adTextSource,
         }), snapshot.url, page);
         for (const live of liveFrames) {
           if (!deadline.canStartPage(0)) break;
           const chain = live.srcChain.map((src, index) => ({ src, selector: live.selectorChain[index] ?? "iframe" }));
           try {
             const found = await detectPageCandidates(live.frame, {
-              pageUrl: live.frame.url(),
+              pageUrl: snapshot.finalUrl,
               framePath: chain,
+              frameVisibility: live.visibilityContext,
               baseUrl: snapshot.finalUrl,
+              onTextCollectionIssue: (issue) => { addPageIssue(`${issue.code}: ${issue.detail}`); },
               onElementsAnalyzed: (count) => { progress.elementsAnalyzed += count; },
-              onAdText: (source) => { adTextSources.push(source); },
+              onAdText: adTextSource,
             });
             progress.framesInspected += 1;
-            collect(found, live.frame.url(), live.frame);
+            collect(found, snapshot.finalUrl, live.frame);
           } catch {
-            // A detached or inaccessible frame does not discard page findings.
+            analysisIssues.push("frame-detection-unavailable");
           }
         }
         if (pageCandidates.length > 0) {
           let visual: DecidedCandidate["visual"] = { state: "unavailable", reason: "budget" };
           const beforeBoxes = new Map<DecidedCandidate, DecidedCandidate["observed"]["box"]>();
-          if (capturedPages < 6 && capturedBytes < 2_000_000 && deadline.operationTimeoutMs(5000) >= 1000) {
-            capturedPages += 1;
+          if (deadline.operationTimeoutMs(5000) >= 1000) {
             try {
               const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollX, scrollY, deviceScaleFactor: devicePixelRatio }));
               for (const [scope, groups] of candidateGroups) {
@@ -192,13 +196,10 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
               const afterViewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollX, scrollY }));
               if (viewport.width !== afterViewport.width || viewport.height !== afterViewport.height
                 || viewport.scrollX !== afterViewport.scrollX || viewport.scrollY !== afterViewport.scrollY) throw new Error("viewport changed during capture");
-              // The manifest embeds this page image in every matching
-              // finding. Budget the serialized copies, not just one capture.
-              const embeddedBytes = bytes.length * pageCandidates.length;
-              if (capturedBytes + embeddedBytes <= 2_000_000 && bytes.length <= 500_000) {
-                capturedBytes += embeddedBytes;
+              const assetId = captureStore.add(bytes);
+              if (assetId) {
                 visual = { state: "available", capturedAt: new Date().toISOString(),
-                  mimeType: "image/jpeg", dataUrl: `data:image/jpeg;base64,${bytes.toString("base64")}`, viewport };
+                  mimeType: "image/jpeg", assetId, viewport };
               }
             } catch {
               visual = { state: "unavailable", reason: deadline.operationTimeoutMs(1000) < 100 ? "budget" : "capture-error" };
@@ -259,70 +260,31 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
                 if (!after || after.x !== box.x || after.y !== box.y || after.width !== box.width || after.height !== box.height) {
                   capture.element = { state: "unavailable", reason: "target-unavailable" }; continue;
                 }
-                const copies = group.length;
-                if (bytes.length > 500_000 || capturedBytes + bytes.length * copies > 2_000_000) continue;
-                capturedBytes += bytes.length * copies;
+                const assetId = captureStore.add(bytes);
+                if (!assetId) continue;
                 capture.element = { state: "available", capturedAt: new Date().toISOString(),
-                  mimeType: "image/jpeg", dataUrl: `data:image/jpeg;base64,${bytes.toString("base64")}`, box: clip };
+                  mimeType: "image/jpeg", assetId, box: clip };
               } catch {
                 capture.element = { state: "unavailable", reason: deadline.operationTimeoutMs(1000) < 100 ? "budget" : "capture-error" };
               }
             }
           }
         }
-        if (pageRank < 8 && !input.signal?.aborted) {
+        if (!input.signal?.aborted) {
           visualAnalysisCoverage.pagesConsidered += 1;
-          if (visualAnalysisCoverage.pagesConsidered === 8 && !visualAnalysisCoverage.limitsReached.includes("page-limit")) {
-            visualAnalysisCoverage.limitsReached.push("page-limit");
-          }
-          let captured: Awaited<ReturnType<typeof collectPageCreatives>>;
-          try { captured = await collectPageCreatives(page, liveFrames, images, deadline,250_000,input.signal); }
-          catch {
-            analysisIssues.push("visual-capture-unavailable");
+          const outcome = await livePageVisualSource.acquire({ page, frames: liveFrames, responses: images,
+            deadline, maxBytes: VISUAL_LIMITS.bytesPerPage, signal: input.signal });
+          if (outcome.state === "unavailable") {
+            analysisIssues.push(`visual-source:${outcome.issue.code}`);
             visualSkip(input.signal?.aborted ? "cancelled" : deadline.operationTimeoutMs(2000) < 500 ? "deadline" : "capture-error", "page");
             return;
           }
+          const captured = outcome.value;
+          for (const issue of outcome.degradation) analysisIssues.push(`visual-source:${issue.code}`);
           visualAnalysisCoverage.candidatesObserved += captured.coverage.candidatesObserved;
           visualAnalysisCoverage.imagesAcquired += captured.images.length;
           for (const item of captured.coverage.skips) visualSkip(item.reason, item.unit, item.count);
-          for (const image of captured.images) {
-            const print = captured.prints.find((item)=>item.sha256===image.sha256 && item.sourceUrl===image.sourceUrl);
-            if (print) creativeOccurrences.push({print,pageUrl:snapshot.url,image});
-            const {candidate,...assetImage} = image;
-            creativeImages.set(`${image.sourceUrl}\0${image.sha256}`, assetImage);
-            const key = `${snapshot.url}\0${candidate.frameUrl}\0${candidate.sourceKind}\0${candidate.location}\0${image.sha256}`;
-            const prior = observedImages.get(key);
-            if (prior) prior.pages.add(snapshot.url);
-            else observedImages.set(key, { image, pages: new Set([snapshot.url]) });
-            if (recognizedImages.has(image.sha256)) continue;
-            if (recognizedImages.size >= 6) {
-              if (!unrecognizedImages.has(image.sha256)) { unrecognizedImages.add(image.sha256); visualSkip("ocr-image-limit", "image"); }
-              continue;
-            }
-            const timeoutMs = deadline.operationTimeoutMs(8000);
-            const unavailableBeforeAttempt = timeoutMs < 500 || input.signal?.aborted;
-            if (unavailableBeforeAttempt) visualSkip(input.signal?.aborted ? "cancelled" : "deadline", "image");
-            else {
-              visualAnalysisCoverage.ocrImagesAttempted += 1;
-              if (visualAnalysisCoverage.ocrImagesAttempted === 6 && !visualAnalysisCoverage.limitsReached.includes("ocr-image-limit")) {
-                visualAnalysisCoverage.limitsReached.push("ocr-image-limit");
-              }
-            }
-            recognizedImages.set(image.sha256, timeoutMs < 500 || input.signal?.aborted
-              ? Promise.resolve({ state: "unavailable", backend: ocr.name, reason: "budget" })
-              : ocr.recognize({ sourceId: image.sourceUrl, imageBytes: Buffer.from(image.dataUrl.split(",")[1]!, "base64"),
-                width: image.width, height: image.height, mediaType: image.mimeType }, timeoutMs, input.signal)
-                .then((text): ImageAnalysis["ocr"] => {
-                  visualAnalysisCoverage.ocrImagesCompleted += 1;
-                  return { state: "available", backend: text.backend, text: text.text, confidence: text.confidence };
-                })
-                .catch((error: unknown): ImageAnalysis["ocr"] => {
-                  visualAnalysisCoverage.ocrImagesUnavailable += 1;
-                  const exhausted = error instanceof Error && error.message === "OCR budget exhausted";
-                  visualSkip(input.signal?.aborted ? "cancelled" : exhausted ? "deadline" : "image-unavailable", "image");
-                  return { state: "unavailable", backend: ocr.name, reason: input.signal?.aborted || exhausted ? "budget" : "recognition-error" };
-                }));
-          }
+          visualScheduler.offer(snapshot.url, captured.images, captured.prints);
         } else {
           visualAnalysisCoverage.pagesNotConsidered += 1;
           visualSkip(input.signal?.aborted ? "cancelled" : "page-limit", "page");
@@ -351,11 +313,11 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     progress.visitedPages = summary.pages.length;
     progress.queuedPages = 0;
     progress.currentPages = [];
+    const allCandidates = candidates.values();
+    const limitedPages = new Set(candidates.coverage().limitedPages);
+    for (const page of summary.pages) if (limitedPages.has(page.url)) page.collectionIssues = [...new Set([...(page.collectionIssues ?? []), "FINDING_COLLECTION_LIMIT"])];
+    if (limitedPages.size) analysisIssues.push("FINDING_COLLECTION_LIMIT");
 
-    // OCR started only for bounded image candidates while pages were live.
-    // Its own deadline/abort closes the worker; await it before timestamps
-    // and terminal state so no analysis outlives the preserved session.
-    const recognitions = new Map(await Promise.all([...recognizedImages].map(async ([sha,result])=>[sha,await result] as const)));
     const cancelled = summary.cancelled || (input.signal?.aborted ?? false);
     const finishedAt = new Date().toISOString();
     progress.stage = "finalizing";
@@ -365,7 +327,51 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       allCandidates,
     );
     const json = serializeValidatedResult(result);
-    const observations = [...observedImages.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([,value])=>value);
+    input.commitOfficial?.(json);
+    const officialFinalizedAt = new Date().toISOString();
+    // All useful pages contributed already-acquired bounded bytes. Optional
+    // OCR selects once over the complete retained scope, after official commit.
+    // A closed canvas is never revisited or promised a later acquisition.
+    const retained = [...visualScheduler.retained()];
+    const observations = retained.sort((a,b)=>a.key.localeCompare(b.key)).map((record)=>({image:record.image,pages:new Set([record.pageUrl])}));
+    for (const record of retained) {
+      creativeOccurrences.push({ print: record.print, pageUrl: record.pageUrl, image: record.image });
+      creativeImages.set(`${record.image.sourceUrl}\0${record.image.sha256}`, record.image);
+    }
+    const selection = visualScheduler.coverage();
+    visualAnalysisCoverage.selection = selection;
+    if (selection.excludedRecords > 0) visualSkip("byte-limit", "image", selection.excludedRecords);
+    if (selection.retainedAssets > VISUAL_LIMITS.ocrImages) visualSkip("ocr-image-limit", "image", selection.retainedAssets - VISUAL_LIMITS.ocrImages);
+    const recognitions = new Map<string, ImageAnalysis["ocr"]>();
+    for (const { image } of visualScheduler.selectOcr()) {
+      const timeoutMs = deadline.operationTimeoutMs(SCAN_POLICY.visual.ocrTimeoutMs);
+      if (timeoutMs < 500 || input.signal?.aborted) {
+        visualSkip(input.signal?.aborted ? "cancelled" : "deadline", "image");
+        recognitions.set(image.sha256, { state: "unavailable", backend: ocr.name, reason: "budget" }); continue;
+      }
+      visualAnalysisCoverage.ocrImagesAttempted += 1;
+      if (visualAnalysisCoverage.ocrImagesAttempted === VISUAL_LIMITS.ocrImages && !visualAnalysisCoverage.limitsReached.includes("ocr-image-limit")) visualAnalysisCoverage.limitsReached.push("ocr-image-limit");
+      try {
+        const text = await ocr.recognize({ sourceId: image.sourceUrl, imageBytes: Buffer.from(image.dataUrl.split(",")[1]!, "base64"),
+          width: image.width, height: image.height, mediaType: image.mimeType }, timeoutMs, input.signal);
+        visualAnalysisCoverage.ocrImagesCompleted += 1;
+        recognitions.set(image.sha256, { state: "available", backend: text.backend, text: text.text, confidence: text.confidence });
+      } catch (error) {
+        visualAnalysisCoverage.ocrImagesUnavailable += 1;
+        const exhausted = error instanceof Error && error.message === "OCR budget exhausted";
+        visualSkip(input.signal?.aborted ? "cancelled" : exhausted ? "deadline" : "image-unavailable", "image");
+        recognitions.set(image.sha256, { state: "unavailable", backend: ocr.name, reason: input.signal?.aborted || exhausted ? "budget" : "recognition-error" });
+      }
+    }
+    for (const page of summary.pages) analysisIssues.push(...(page.collectionIssues ?? []));
+    // Evicted capture bytes have already been released. References are now
+    // normalized to an explicit unavailable state rather than dangling IDs.
+    for (const candidate of allCandidates) {
+      const visual = candidate.visual;
+      if (visual?.state !== "available") continue;
+      if (!captureStore.has(visual.assetId)) { candidate.visual = { state: "unavailable", reason: "budget" }; continue; }
+      if (visual.element?.state === "available" && !captureStore.has(visual.element.assetId)) visual.element = { state: "unavailable", reason: "budget" };
+    }
     const eligible = creativeOccurrences.filter(({image}) => image.candidate.candidateEvidence.includes("ad-marker"));
     // Repetition needs advertisement context and distinct observed pages.
     // External-linked logos alone remain observed resources.
@@ -375,7 +381,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     }
     eligible.sort((a,b)=>`${a.print.sourceUrl}\0${a.print.sha256}\0${a.pageUrl}`.localeCompare(`${b.print.sourceUrl}\0${b.print.sha256}\0${b.pageUrl}`));
     const occurrenceByPrint = new Map(eligible.map((entry)=>[entry.print,entry]));
-    const recurringGroups = groupSimilarCreatives(eligible.map((entry)=>entry.print)).filter((group)=>
+    const recurringGroups = groupSimilarCreatives(eligible.map((entry)=>entry.print), 5,
+      { onIssue: (issue) => analysisIssues.push(`similarity:${issue.code}`) }).filter((group)=>
       new Set(group.map((print)=>occurrenceByPrint.get(print)?.pageUrl)).size >= 2);
     const creatives = recurringGroups.flat();
     const recurringShas = new Set(creatives.map((print)=>print.sha256));
@@ -402,7 +409,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     }
     for (const finding of result.findings) {
       const candidate=candidatesByIdentity.get(`${findingIdentityKey(finding)}\0${finding.evidence_text}`);
-      if (candidate) witness(candidatePages.get(candidate) ?? candidate.url,{findingId:finding.id,location:finding.location,
+      if (candidate) witness(candidates.pageOf(candidate) ?? candidate.url,{findingId:finding.id,location:finding.location,
         destinationUrl:candidate.illegalAd.destinationUrl,reason:"official-finding"});
     }
     for (const [index,analysis] of imageAnalysis.entries()) {
@@ -425,6 +432,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         frames:page.frames.map((frame)=>({url:frame.url})),
         externals:page.externals.map((external)=>({url:external.url,kind:external.kind})),adEvidence:adEvidence.get(page.url)})));
       infrastructure=summarizeInfrastructure(graph,[new URL(entryUrl).host]);
+      if (graph.truncated) analysisIssues.push("graph-collection-truncated");
     } catch { analysisIssues.push("graph-analysis-unavailable"); }
     const zeroWidthCases = [...new Map(adTextSources.filter((source) => /[\u200B-\u200D\uFEFF]/.test(source.analysisText)).map((source) => [
       `${source.url}\0${source.location}\0${source.evidenceText}`,
@@ -436,6 +444,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         topic: "TOPIC", entryUrl: input.entryUrl, startedAt, finishedAt,
         creatives: creatives.sort((a, b) => a.sourceUrl.localeCompare(b.sourceUrl) || a.sha256.localeCompare(b.sha256)),
         graph:graph ?? {nodes:[],edges:[]},zeroWidthCases,imageOnlyCases,
+        onIssue: (issue) => { analysisIssues.push(`${issue.code}: ${issue.scope}`); },
       });
     } catch {
       analysisIssues.push("extra-analysis-unavailable");
@@ -451,19 +460,23 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     visualAnalysisCoverage.skips.sort((a,b) => a.reason.localeCompare(b.reason) || a.unit.localeCompare(b.unit));
     const detailBundle: ScanDetailBundle = {
       version: 2,
+      timing: { workerStartedAt: startedAt, officialFinalizedAt, analysisFinishedAt: new Date().toISOString(), analysisElapsedMs: performance.now() - t0 },
       visualAnalysisCoverage,
       imageAnalysis,evidenceGraph:graph,infrastructure,
       pageOutcomes: summary.pages.map((page) => ({ url: page.url, finalUrl: page.finalUrl,
         depth: page.depth, status: page.status,
         outcome: !page.issue && page.status > 0 && page.status < 400 ? "checked" : "failed",
         issue: page.issue, discoverySource: page.discoverySource,
+        collectionIssues: page.collectionIssues,
         reason: page.failureReason ?? (page.status >= 400 ? `HTTP ${String(page.status)}` : undefined) })),
       creativeImages: extraResult.findings.flatMap((finding) => {
         if (finding.extra_finding !== "REUSED_AD_CREATIVE") return [];
         const print = creatives.find((item) => item.sourceUrl === finding.url
           && finding.evidence_text.includes(item.perceptualHash));
         const image = print && creativeImages.get(`${print.sourceUrl}\0${print.sha256}`);
-        return image ? [{ ...image, findingId: finding.id,assetId:`visual-${image.sha256}` }] : [];
+        if (!image) return [];
+        return [{ findingId: finding.id, assetId: `visual-${image.sha256}`, sourceUrl: image.sourceUrl,
+          sha256: image.sha256, mimeType: image.mimeType, width: image.width, height: image.height, capturedAt: image.capturedAt }];
       }),
       findings: result.findings.map((finding) => {
         const key = `${findingIdentityKey(finding)}\0${finding.evidence_text}`;
@@ -475,6 +488,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
           normalizedText: candidate.illegalAd.normalizedText ?? "",
           matchedTerms: candidate.illegalAd.matchedTerms,
           techniqueReason: candidate.technique.detail,
+          textPolicy: candidate.textPolicy,
           destinationUrl: candidate.illegalAd.destinationUrl,
           observed: candidate.observed,
           visual: candidate.visual ?? { state: "unavailable", reason: "budget" },
@@ -489,11 +503,12 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
         cancelled,
       },
     };
-    const creativeShas=new Set(detailBundle.creativeImages.map((image)=>image.sha256));
-    const assets=new Map(observations.filter(({image})=>!creativeShas.has(image.sha256)).map(({image})=>
+    const assets=new Map(observations.map(({image})=>
       [image.sha256,{assetId:`visual-${image.sha256}`,mimeType:image.mimeType,dataUrl:image.dataUrl}] as const));
-    detailBundle.visualAssets=[...assets.values()];
-    detailBundle.analysisIssues=analysisIssues;
+    const captureIds = new Set(detailBundle.findings.flatMap((finding) => finding.visual.state === "available"
+      ? [finding.visual.assetId, finding.visual.element?.state === "available" ? finding.visual.element.assetId : undefined].filter((id): id is string => id !== undefined) : []));
+    detailBundle.visualAssets=[...assets.values(),...captureStore.values().filter((asset) => captureIds.has(asset.assetId))];
+    detailBundle.analysisIssues=[...new Set(analysisIssues)];
     const manifestBytes=():number=>Buffer.byteLength(JSON.stringify(detailBundle),"utf8");
     if (graph && manifestBytes()>8_000_000) {
       const edges=graph.edges.filter((edge)=>edge.adRelated);
@@ -503,7 +518,11 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       if (manifestBytes()>8_000_000) { delete detailBundle.evidenceGraph; analysisIssues.push("graph-unavailable-budget"); }
     }
     const detailVerdict = validateScanDetailBundle(detailBundle, result, extraResult);
-    if (!detailVerdict.ok) throw new Error(`detail validation failed: ${detailVerdict.errors.join("; ")}`);
+    if (!detailVerdict.ok) analysisIssues.push("detail-validation-failed");
+    detailBundle.analysisIssues=[...new Set(analysisIssues)];
+    await ocr.close();
+    detailBundle.timing!.analysisFinishedAt = new Date().toISOString();
+    detailBundle.timing!.analysisElapsedMs = performance.now() - t0;
     progress.stage = cancelled ? "cancelled" : "succeeded";
     emit(cancelled ? "session-cancelled" : "session-finished", `done: ${String(result.findings.length)} findings`);
     return {
@@ -524,6 +543,5 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     throw error;
   } finally {
     await ocr.close();
-    await fixtureClose?.();
   }
 }

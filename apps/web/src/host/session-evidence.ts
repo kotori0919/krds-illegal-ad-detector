@@ -14,20 +14,24 @@ export function indexSessionEvidence(bundle: ScanDetailBundle) {
     return assetId;
   };
   const findings = new Map<string, FindingDetailView>();
+  for (const asset of bundle.visualAssets ?? []) assetReferences.set(asset.assetId, add(asset.mimeType, asset.dataUrl));
   for (const detail of bundle.findings) {
     const { dataUrl, element, ...visual } = detail.visual;
     const view: FindingDetailView = { ...detail, visual: { ...visual } };
     if (visual.state === "available" && dataUrl) view.visual.assetId = add("image/jpeg", dataUrl);
+    else if (visual.assetId) view.visual.assetId = assetReferences.get(visual.assetId);
     if (element?.state === "available") {
       const { dataUrl: crop, ...metadata } = element;
-      view.visual.element = { ...metadata, assetId: add("image/jpeg", crop) };
+      const id = crop ? add("image/jpeg", crop) : element.assetId ? assetReferences.get(element.assetId) : undefined;
+      view.visual.element = id ? { ...metadata, assetId: id } : {state:"unavailable",reason:"capture-error"};
     } else view.visual.element = element;
     findings.set(detail.findingId, view);
   }
-  const creativeImages = bundle.creativeImages.map(({ dataUrl, ...image }) => {
-    const assetId = add(image.mimeType, dataUrl);
+  const creativeImages = bundle.creativeImages.flatMap(({ dataUrl, ...image }) => {
+    const assetId = dataUrl ? add(image.mimeType, dataUrl) : image.assetId ? assetReferences.get(image.assetId) : undefined;
+    if (!assetId) return [];
     if (image.assetId) assetReferences.set(image.assetId, assetId);
-    return { ...image, assetId };
+    return [{ ...image, assetId }];
   });
   for (const asset of bundle.visualAssets ?? []) assetReferences.set(asset.assetId, add(asset.mimeType, asset.dataUrl));
   const analyses = (bundle.imageAnalysis ?? []).map((analysis) => ({ ...analysis,

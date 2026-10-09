@@ -79,7 +79,9 @@ vocabulary, illegal-content vocabulary, structured rules, optional lightweight
 model evidence. Output: `IllegalAdEvidence { rawText, normalizedText?,
 matchedTerms[], destinationUrl?, detail }`.
 
-Rules (frozen):
+Current policy: `text-policy-2`. Historical results keep their original
+engine/policy provenance and are never rewritten to match these decisions.
+Rules:
 
 - A strong ad/illegal category, a generic term supported by concrete offer
   intent, **or** a suspicious ad destination (`destinationUrl`) is required.
@@ -90,8 +92,12 @@ Rules (frozen):
 - Reporting, prevention, education, statistics and accessibility-help text can
   name illegal activities without advertising them. When that context has no
   concrete offer/solicitation and no ad destination, the gate rejects it even
-  if the text is hidden or uses mixed Unicode. A concrete offer or destination
-  still passes when paired with public-information wording.
+  if the text is hidden or uses mixed Unicode. Quoted examples inside this
+  local context do not count as offers or transformed advertisement spans.
+  An unquoted offer or observed destination pattern still passes. A library
+  borrowing/return/ebook service with no financial solicitation is negative.
+  These are per-owner observations: another concealed promotional comment on
+  the same reporting or library page remains eligible.
 - A topic word in a public URL path is not sufficient destination evidence.
   The current deterministic rule requires a gambling host label or both a
   category and conversion/action route signal. Ambiguous destinations remain
@@ -115,9 +121,22 @@ Rules (frozen):
 Deterministic Unicode analysis. Keep raw text, normalized (NFKC) text,
 codepoints, script info, confusable mapping, mixed-script evidence.
 
-Covers: fullwidth forms, Cyrillic/Latin lookalikes, digit/letter
-substitutions, other visual confusables, mixed-script evasion.
-`TechniqueEvidence.detail` records the mapping (e.g. `U+0410→U+0041`).
+Covers a bounded, reviewed subset: fullwidth forms, ASCII case folding for
+match purposes, Cyrillic/Latin lookalikes from Unicode UTS #39 15.1.0,
+punctuation inside a matched term, and complete Latin `casino` leet tokens.
+Numbers in dates/telephone numbers and arbitrary words are never globally
+substituted. Case folding alone is not an evasion technique. The subset and
+its pinned source are recorded in `text-policy.ts`; unsupported confusables
+remain a recall limitation, rather than a general transliteration promise.
+
+Restoration happens before semantic rejection. The explicit `matchText`
+representation is compact and ASCII lowercase; `normalizedText` in new
+Unicode signals uses this representation, rather than the previous readable
+NFKC-only form. Raw evidence remains unchanged. Each term/technique span
+records exact original UTF-16 offsets and transformation kinds. A directly
+attached fullwidth Latin prefix is included in the promotional token
+(`Ｋ카지노`); a separate Cyrillic place name or fullwidth word does not
+establish a technique for `카지노` elsewhere in the sentence.
 
 Negatives: legitimate Unicode confusables (e.g. intentional multilingual
 text), brand names with mixed script but no ad semantics.
@@ -133,12 +152,33 @@ Negatives: legitimate educational/Jamo content (Hangul teaching pages),
 ordinary Korean text that happens to contain isolated Jamo.
 
 A JAMO signal requires vowel-bearing reconstruction that contributes to an
-ad-term occurrence. The canonical NFKC/spacing match form is recomposed after
-spacing/punctuation folding. Normalized term occurrence counts before and
-after Jamo removal prove attribution; a plaintext occurrence elsewhere does
-not suppress a second fragmented spelling of that same term. Aggregate Jamo
-count alone is not a technique: disconnected laughter/shorthand, unrelated
-decomposed names and standalone consonants/vowels remain silent.
+ad-term occurrence. Modern initial/medial/final composition follows the
+Unicode Hangul composition formula, including compatibility consonants used
+as finals (`ㄷㅐㅊㅜㄹ` → `대출`). A consonant before a vowel starts the next
+syllable. Source spans prove which reconstructed occurrence contributes;
+another plain occurrence does not suppress it. Disconnected laughter,
+shorthand, unrelated decomposed names and standalone consonants/vowels remain
+silent, including the historical f372 comment.
+
+### Policy evidence and collection limits
+
+`FindingDetail.textPolicy` stores the version, typed reason codes, owned
+analysis text, term/technique/offer/quote spans and source mapping into the
+unchanged official raw text. Offsets are UTF-16, including after astral
+characters. Owned text can be discontiguous when an independent child block
+occurs inside an owner; the explicit mapping identifies each original segment
+instead of inventing one highlight across unrelated child text. The
+deterministic two-axis score is a rule result, never a calibrated probability.
+
+Pure restoration reads at most 32,768 source code units and reports a limit
+reason. Live collection applies limits during traversal: 10,000 text nodes,
+1,000 owners, 1,048,576 total source code units, 32,768 per owner, and 32 styled
+descendants per owner. Source traversal has its own equal node/total-text
+bounds. An incomplete owner is omitted because its full original evidence
+cannot be represented; the collection reports the limit to scan coverage.
+Omitted text is unknown, not a checked negative. Rendering observations pass
+frame-owner effects through the live adapter, with unsupported composition
+reported separately in `observed.renderingIssues`.
 
 ## 5. TRANSPARENT (`transparent-signal`)
 
@@ -212,6 +252,20 @@ required finding fields, unique IDs, technique ∈ official enum, dedup
 identity `url+location+technique`, URL well-formedness, selector uniqueness
 + round-trip where possible. Any failure blocks release. Extra file
 validated separately (`technique="ETC"` + `extra_finding` string required).
+
+Optional `textPolicy` evidence is checked by both TypeScript and the native
+host before transfer or reopening. Offsets use UTF-16 code units, including
+astral characters; spans cannot split a surrogate pair, and each `raw` span
+must equal its slice of `analysisText`. An exact source mapping covers the
+analysis text in order and matches the original `rawText` slices. Unavailable
+alignment carries no mapping. Analysis text is capped at 32,768 code units,
+source mappings at 10,000 segments, and each span list at 32,768 entries.
+Version, reason codes and transformations use the declared enums.
+`observed.renderingIssues` retains up to 32 nonempty descriptions of at most
+256 code units. Optional worker timing requires valid ordered RFC3339 dates
+and a finite nonnegative analysis duration; it excludes host persistence and
+export. The shared `detail-policy-conformance.json` corpus exercises these
+boundaries in both runtimes.
 
 ## 11. Test contract (Phases 5–9)
 

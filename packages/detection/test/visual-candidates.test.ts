@@ -142,7 +142,7 @@ it("preserves full frame selectors and stops at candidate, byte and abort bounds
     expect(captured!.images).toHaveLength(8);
     expect(captured!.coverage.candidatesObserved).toBe(8);
     expect(captured!.coverage.skips).toContainEqual({reason:"candidate-limit",unit:"document",count:1});
-    expect(captured!.images[0]!.candidate.location).toBe(`iframe[src="${url}outer"] >>> iframe[src="${url}inner"] >>> #banner-0`);
+    expect(captured!.images[0]!.candidate.location).toBe('#outer >>> #inner >>> #banner-0');
     expect(captured!.images[0]!.candidate.frameUrl).toBe(`${url}inner`);
     expect(captured!.images[0]!.sourceUrl).toBe(url);
     expect(unavailable!.images).toEqual([]);

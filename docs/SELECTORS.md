@@ -27,9 +27,19 @@ must match exactly one element and round-trip to the intended element;
 
 Per-frame iframe selectors resolve via `frame.frameElement()` in the live
 browser (`#frame-outer`, `#frame-inner` OBSERVED on fixtures). The contract
-`serializeFramePath` joins them: `iframe[src="ABS"] >>> selector`, repeated
-for nesting. Crawler `FrameSnapshot.selectorChain` carries the per-level
-selectors; `LocatedSnapshot` carries the final contract location.
+Location policy 1.1 uses `OWNER_SELECTOR >>> selector`, repeated for nesting.
+The official URL anchors the top-level checked page. Each owner selector is
+generated and uniquely checked in its parent document; document URLs remain
+internal provenance. Duplicate-src siblings, redirected frames, srcdoc and
+populated about:blank retain distinct occurrences. Historical accepted files
+retain old locations; a new run uses the corrected policy/version.
+
+`resolveFrameLocation(page, location)` starts with the already-open top-level
+page, checks one match at every segment, follows its `contentFrame`, and
+returns the unique terminal element handle. It never navigates or follows
+advertiser destinations. The parser respects quoted/escaped CSS separators.
+Missing, detached and ambiguous segments fail explicitly. Frame count/depth
+or observation omissions appear in `PageSnapshot.collectionIssues`.
 
 ## Verification
 
@@ -40,5 +50,10 @@ selectors; `LocatedSnapshot` carries the final contract location.
   It checks uniqueness and identity against each original DOM element, and
   rejects ambiguous and wrong-element round trips.
 - Nested iframe: `#frame-outer` / `#frame-inner` resolved live; contract
-  serialization matches `iframe[src="ABS"] >>> … >>> #ad-frame-jamo`;
+  serialization matches `#frame-outer >>> #frame-inner >>> #ad-frame-jamo`;
   inner HTML contains the Jamo ad.
+
+OBSERVED: `frame-identity.test.ts` resolves six served duplicate-src/nested/
+relative/srcdoc/populated blank paths to their original element identities in
+Chromium. This establishes the candidate policy, not organizer acceptance of
+the chosen top-level URL interpretation.

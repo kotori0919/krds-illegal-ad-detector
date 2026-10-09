@@ -54,7 +54,8 @@ describe("single-pass live-page processing", () => {
       });
       expect(output.pagesVisited).toBe(3);
       expect(output.failedPages).toBe(0);
-      expect(output.result.findings).toHaveLength(3);
+      // The same frame document on two checked pages is two occurrences.
+      expect(output.result.findings).toHaveLength(4);
       for (const path of ["/", "/a", "/b"]) expect(counts.get(path)).toBe(1);
       for (const path of ["/redirect-frame", "/frame"]) expect(counts.get(path)).toBe(2);
       expect(Math.max(...confirmed)).toBe(output.result.findings.length);
@@ -70,9 +71,8 @@ describe("single-pass live-page processing", () => {
       expect(events.at(-1)?.progress.failedPages).toBe(0);
       expect(counts.has("/c")).toBe(false);
       expect(counts.has("/d")).toBe(false);
-      expect(output.result.findings.some((finding) => finding.location.includes(">>>") && finding.url.endsWith("/frame"))).toBe(true);
-      const frameFinding = output.result.findings.find((finding) => finding.url.endsWith("/frame"));
-      expect(frameFinding?.location).toContain(`iframe[src="${origin}/redirect-frame"]`);
+      const frameFindings = output.result.findings.filter((finding) => finding.location === '#frame-x >>> #ad-frame');
+      expect(frameFindings.map((finding) => finding.url).sort()).toEqual([`${origin}/a`, `${origin}/b`]);
       sets.push(output.result.findings.map((finding) => `${finding.id}|${finding.url}|${finding.location}|${finding.technique}`));
     }
     expect(sets[1]).toEqual(sets[0]);

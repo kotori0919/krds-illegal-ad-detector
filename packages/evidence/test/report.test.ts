@@ -7,6 +7,23 @@ import { createOperationalWorkbook } from "../src/report.js";
 const official = JSON.parse(readFileSync(new URL("./fixtures/sample_result_617_sanitized.json", import.meta.url), "utf8")) as OfficialResult;
 const techniqueNames = { HOMOGLYPH: "유사 문자", JAMO: "자모 분리", TRANSPARENT: "투명 처리", OFFSCREEN: "화면 밖 배치" };
 describe("real operational XLSX", () => {
+  it("keeps operator judgment separate from reading state and exports saved case provenance", async () => {
+    const finding = official.findings[0]!;
+    const bytes = await createOperationalWorkbook([{ sessionId: "case1", official,
+      savedCase: { caseId: "case1", directory: "C:/case-root/case1", policyVersion: 2, reviewRevision: 7 },
+      reviews: [{ findingId: finding.id, state: "reviewed", judgment: "judged-normal", note: "=1+1", at: "2026-10-09T00:00:00Z" }] }]);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes as unknown as ExcelJS.Buffer);
+    const detail = book.getWorksheet("탐지 상세")!.getRow(2);
+    expect(detail.getCell(8).value).toBe("검토 완료");
+    expect(detail.getCell(9).value).toBe("=1+1");
+    expect(detail.getCell(10).value).toBe("정상으로 판단");
+    expect(detail.getCell(9).type).toBe(ExcelJS.ValueType.String);
+    const summary = new Map<string, ExcelJS.CellValue>();
+    book.getWorksheet("점검 요약")!.eachRow((row) => summary.set(String(row.getCell(2).value), row.getCell(3).value));
+    expect(summary.get("보관 케이스 번호")).toBe("case1");
+    expect(summary.get("공식 원본 경로")).toBe("C:/case-root/case1/result.json");
+    expect(summary.get("저장된 검토 수정 번호")).toBe(7);
+  });
   it("round-trips every original record, conservative group and local review note", async () => {
     const before = JSON.stringify(official);
     const bytes = await createOperationalWorkbook([{ sessionId: "s1", official,
@@ -19,7 +36,7 @@ describe("real operational XLSX", () => {
       const finding = official.findings[i]!;
       expect(detail.getRow(i + 2).values).toEqual([undefined, "s1", finding.id, finding.url, finding.evidence_text,
         finding.technique, techniqueNames[finding.technique], finding.location, finding.id === "f372" ? "검토 완료" : "검토 필요",
-        finding.id === "f372" ? "자연스러운 댓글인지 추가 확인 필요" : ""]);
+        finding.id === "f372" ? "자연스러운 댓글인지 추가 확인 필요" : "", "판단 전"]);
     }
     expect(book.getWorksheet("반복 항목")?.rowCount).toBe(20);
     expect(book.getWorksheet("페이지·점검 범위")?.getRow(2).values).toContain("알 수 없음");

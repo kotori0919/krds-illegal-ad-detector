@@ -1,0 +1,36 @@
+param([Parameter(Mandatory=$true)][string]$RuntimeRoot)
+$ErrorActionPreference='Stop'
+$ProgressPreference='SilentlyContinue'
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class RendererToken {
+  [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint access,bool inherit,int id);
+  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
+  [DllImport("advapi32.dll")] static extern bool OpenProcessToken(IntPtr process,uint access,out IntPtr token);
+  [DllImport("advapi32.dll")] static extern bool GetTokenInformation(IntPtr token,int kind,IntPtr data,int size,out int required);
+  [DllImport("advapi32.dll")] static extern IntPtr GetSidSubAuthorityCount(IntPtr sid);
+  [DllImport("advapi32.dll")] static extern IntPtr GetSidSubAuthority(IntPtr sid,uint index);
+  public static int Integrity(int id) {
+    IntPtr process=OpenProcess(0x1000,false,id),token=IntPtr.Zero,buffer=IntPtr.Zero;
+    try {
+      if(process==IntPtr.Zero || !OpenProcessToken(process,8,out token))return -1;
+      int size;GetTokenInformation(token,25,IntPtr.Zero,0,out size);
+      buffer=Marshal.AllocHGlobal(size);
+      if(!GetTokenInformation(token,25,buffer,size,out size))return -1;
+      IntPtr sid=Marshal.ReadIntPtr(buffer);byte count=Marshal.ReadByte(GetSidSubAuthorityCount(sid));
+      return Marshal.ReadInt32(GetSidSubAuthority(sid,(uint)(count-1)));
+    } finally {
+      if(buffer!=IntPtr.Zero)Marshal.FreeHGlobal(buffer);
+      if(token!=IntPtr.Zero)CloseHandle(token);
+      if(process!=IntPtr.Zero)CloseHandle(process);
+    }
+  }
+}
+'@
+$rows=@(Get-CimInstance Win32_Process | Where-Object {
+  $_.ExecutablePath -and $_.ExecutablePath.StartsWith($RuntimeRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.CommandLine -match '--type=renderer'
+} | ForEach-Object {
+  @{pid=$_.ProcessId;integrityRid=[RendererToken]::Integrity($_.ProcessId);noSandbox=($_.CommandLine -match '--no-sandbox');executable=(Split-Path -Leaf $_.ExecutablePath)}
+})
+ConvertTo-Json -InputObject $rows -Compress

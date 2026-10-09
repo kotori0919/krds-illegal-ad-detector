@@ -5,7 +5,7 @@ import { startFixtureServer } from "@krds-detector/synth-eval/serve.js";
 
 describe("adversarial fixtures", () => {
   it("defeats none of the four detectors; legitimate cases stay silent", async () => {
-    const started = startFixtureServer(4185);
+    const started = await startFixtureServer();
     const browser = await chromium.launch();
     try {
       const check = async (path: string): Promise<string[]> => {

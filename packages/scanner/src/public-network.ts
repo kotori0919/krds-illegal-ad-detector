@@ -49,10 +49,43 @@ function bounded<T>(operation: Promise<T>, timeoutMs: number, signal?: AbortSign
 }
 
 export class PublicNetworkPolicy {
-  private fixtureOrigins = new Map<string, { address: string; family: 4 | 6 }>();
+  private pinnedOrigins = new Map<string, { address: string; family: 4 | 6 }>();
 
   /** Resolver injection is trusted test code; no UI/worker argument exposes it. */
   constructor(private readonly resolver: Resolver = (hostname) => lookup(hostname, { all: true, verbatim: true })) {}
+
+  /** A manually entered evaluator target authorizes exactly its origin,
+   * pinned for this scan. Public targets never gain a private-DNS exception.
+   * Other origins still pass public-only DNS checks at every new socket.
+   */
+  static async forManualEntry(raw: string, signal?: AbortSignal, timeoutMs: number = PUBLIC_NETWORK_LIMITS.dnsMs): Promise<PublicNetworkPolicy> {
+    const url = new URL(raw);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || timeoutMs <= 0 || signal?.aborted) throw denied();
+    const hostname = url.hostname.replace(/^\[|\]$/g, "");
+    const policy = new PublicNetworkPolicy();
+    const answers = isIP(hostname) ? [{ address: hostname, family: isIP(hostname) }]
+      : await bounded(policy.resolver(hostname), Math.min(timeoutMs, PUBLIC_NETWORK_LIMITS.dnsMs), signal);
+    const evaluationAddress = (address: string): boolean => {
+      if (isPublicAddress(address)) return true;
+      if (isIP(address) === 4) {
+        const [a,b] = address.split(".").map(Number);
+        return a === 127 || a === 10 || (a === 172 && b! >= 16 && b! <= 31) || (a === 192 && b === 168);
+      }
+      return address === "::1" || (isIP(address) === 6 && /^f[cd][0-9a-f]{2}:/i.test(address));
+    };
+    if (!answers.length || answers.length > PUBLIC_NETWORK_LIMITS.dnsAnswers
+      || answers.some((answer) => isIP(answer.address) !== answer.family || !evaluationAddress(answer.address))) throw denied();
+    // Public entry DNS continues to revalidate normally. A private evaluator
+    // entry pins one exact initial address, never an entire subnet or hostname
+    // wildcard. Metadata/link-local/multicast/reserved targets remain rejected.
+    if (answers.some((answer) => !isPublicAddress(answer.address))) {
+      if (answers.some((answer) => isPublicAddress(answer.address))) throw denied();
+      answers.sort((a,b)=>a.family-b.family || a.address.localeCompare(b.address));
+      const selected = answers[0]!;
+      policy.pinnedOrigins.set(url.origin, { address: selected.address, family: selected.family as 4 | 6 });
+    }
+    return policy;
+  }
 
   /** Exact owned loopback origins only. Not serialized or accepted by the CLI. */
   static forFixtureOrigins(origins: readonly string[]): PublicNetworkPolicy {
@@ -71,7 +104,7 @@ export class PublicNetworkPolicy {
       const url = new URL(binding.origin);
       if (!["http:", "https:"].includes(url.protocol) || !url.port || url.username || url.password
         || url.pathname !== "/" || url.search || url.hash || !["127.0.0.1", "::1"].includes(binding.address)) throw new Error("fixture policy requires an exact owned origin and loopback address");
-      policy.fixtureOrigins.set(url.origin, { address: binding.address, family: binding.address === "::1" ? 6 : 4 });
+      policy.pinnedOrigins.set(url.origin, { address: binding.address, family: binding.address === "::1" ? 6 : 4 });
     }
     return policy;
   }
@@ -82,8 +115,8 @@ export class PublicNetworkPolicy {
     const hostname = url.hostname.replace(/^\[|\]$/g, "");
     const port = Number(url.port || (url.protocol === "https:" ? 443 : 80));
     if (port < 1 || port > 65535 || timeoutMs <= 0 || signal?.aborted) throw denied();
-    const fixture = this.fixtureOrigins.get(url.origin);
-    if (fixture) return { url, ...fixture, port };
+    const pinned = this.pinnedOrigins.get(url.origin);
+    if (pinned) return { url, ...pinned, port };
     if (/^(?:localhost|metadata\.google\.internal)$/i.test(hostname) || /\.(?:localhost|local|internal)$/i.test(hostname)) throw denied();
     const answers = isIP(hostname) ? [{ address: hostname, family: isIP(hostname) }]
       : await bounded(this.resolver(hostname), Math.min(timeoutMs, PUBLIC_NETWORK_LIMITS.dnsMs), signal);
@@ -135,7 +168,8 @@ export interface PublicNetworkProxy {
 }
 
 /** Authenticated loopback HTTP/CONNECT proxy; every new upstream socket is pinned. */
-export async function startPublicNetworkProxy(policy: PublicNetworkBoundary, deadline: ScanDeadline, signal?: AbortSignal): Promise<PublicNetworkProxy> {
+export async function startPublicNetworkProxy(policy: PublicNetworkBoundary, deadline: ScanDeadline, signal?: AbortSignal,
+  onDenied?: (url: string) => void): Promise<PublicNetworkProxy> {
   const username = randomBytes(16).toString("hex");
   const password = randomBytes(32).toString("hex");
   const expectedAuth = Buffer.from(`Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`);
@@ -175,7 +209,7 @@ export async function startPublicNetworkProxy(policy: PublicNetworkBoundary, dea
         upstream.on("error", () => { if (!response.headersSent) response.writeHead(502); response.end(); });
         response.once("close", () => upstream.destroy());
         request.pipe(upstream);
-      } catch { if (!response.headersSent) response.writeHead(403, { Connection: "close" }); response.end("public network policy rejected target"); }
+      } catch { onDenied?.(request.url ?? ""); if (!response.headersSent) response.writeHead(403, { Connection: "close" }); response.end("public network policy rejected target"); }
     })();
   });
   server.on("connection", track);
@@ -202,7 +236,7 @@ export async function startPublicNetworkProxy(policy: PublicNetworkBoundary, dea
           if (head.length) upstream.write(head);
           upstream.pipe(client); client.pipe(upstream);
         });
-      } catch { client.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n"); }
+      } catch { onDenied?.(`https://${request.url ?? ""}`); client.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n"); }
     })();
   });
   let closing: Promise<void> | undefined;

@@ -14,28 +14,28 @@ mod imp {
     use core::ffi::c_void;
     use core::ptr::{null, null_mut};
 
-    type HANDLE = *mut c_void;
-    type BOOL = i32;
-    type DWORD = u32;
-    type LPVOID = *mut c_void;
-    type LPCWSTR = *const u16;
+    type Handle = *mut c_void;
+    type Bool = i32;
+    type Dword = u32;
+    type Lpvoid = *mut c_void;
+    type Lpcwstr = *const u16;
 
-    const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: DWORD = 0x2000;
+    const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: Dword = 0x2000;
     const JOBOBJECTEXTENDEDLIMITINFORMATION_CLASS: i32 = 9;
-    const PROCESS_SET_QUOTA: DWORD = 0x0100;
-    const PROCESS_TERMINATE: DWORD = 0x0001;
+    const PROCESS_SET_QUOTA: Dword = 0x0100;
+    const PROCESS_TERMINATE: Dword = 0x0001;
 
     #[repr(C)]
     struct JobObjectBasicLimitInformation {
         per_process_user_time_limit: i64,
         per_job_user_time_limit: i64,
-        limit_flags: DWORD,
+        limit_flags: Dword,
         minimum_working_set_size: usize,
         maximum_working_set_size: usize,
-        active_process_limit: DWORD,
+        active_process_limit: Dword,
         affinity: usize,
-        priority_class: DWORD,
-        scheduling_class: DWORD,
+        priority_class: Dword,
+        scheduling_class: Dword,
     }
 
     #[repr(C)]
@@ -50,30 +50,25 @@ mod imp {
 
     #[link(name = "kernel32", kind = "raw-dylib")]
     unsafe extern "system" {
-        fn CreateJobObjectW(attrs: LPVOID, name: LPCWSTR) -> HANDLE;
-        fn SetInformationJobObject(
-            job: HANDLE,
-            class: i32,
-            info: LPVOID,
-            len: DWORD,
-        ) -> BOOL;
-        fn AssignProcessToJobObject(job: HANDLE, process: HANDLE) -> BOOL;
-        fn OpenProcess(desired: DWORD, inherit: BOOL, pid: DWORD) -> HANDLE;
-        fn CloseHandle(handle: HANDLE) -> BOOL;
+        fn CreateJobObjectW(attrs: Lpvoid, name: Lpcwstr) -> Handle;
+        fn SetInformationJobObject(job: Handle, class: i32, info: Lpvoid, len: Dword) -> Bool;
+        fn AssignProcessToJobObject(job: Handle, process: Handle) -> Bool;
+        fn OpenProcess(desired: Dword, inherit: Bool, pid: Dword) -> Handle;
+        fn CloseHandle(handle: Handle) -> Bool;
     }
 
     pub struct JobGuard {
-        handle: HANDLE,
+        handle: Handle,
     }
 
-    // SAFETY: the HANDLE is an owned kernel object closed exactly once in
+    // SAFETY: the Handle is an owned kernel object closed exactly once in
     // Drop on the thread that drops the guard. Tauri commands are Send
     // futures, so the guard must be Send+Sync to live in session state.
     unsafe impl Send for JobGuard {}
     unsafe impl Sync for JobGuard {}
 
     impl JobGuard {
-        fn create_kill_on_close() -> Result<HANDLE, String> {
+        fn create_kill_on_close() -> Result<Handle, String> {
             unsafe {
                 let handle = CreateJobObjectW(null_mut(), null());
                 if handle.is_null() {
@@ -100,8 +95,8 @@ mod imp {
                 let ok = SetInformationJobObject(
                     handle,
                     JOBOBJECTEXTENDEDLIMITINFORMATION_CLASS,
-                    &mut info as *mut _ as LPVOID,
-                    size_of::<JobObjectExtendedLimitInformation>() as DWORD,
+                    &mut info as *mut _ as Lpvoid,
+                    size_of::<JobObjectExtendedLimitInformation>() as Dword,
                 );
                 if ok == 0 {
                     CloseHandle(handle);
@@ -117,8 +112,7 @@ mod imp {
         pub fn assign_pid(pid: u32) -> Result<Self, String> {
             unsafe {
                 let handle = Self::create_kill_on_close()?;
-                let child =
-                    OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, 0, pid);
+                let child = OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, 0, pid);
                 if child.is_null() {
                     CloseHandle(handle);
                     return Err(format!("OpenProcess({pid}) failed"));
@@ -132,11 +126,6 @@ mod imp {
                 }
                 Ok(Self { handle })
             }
-        }
-
-        #[must_use]
-        pub fn raw(&self) -> isize {
-            self.handle as isize
         }
     }
 

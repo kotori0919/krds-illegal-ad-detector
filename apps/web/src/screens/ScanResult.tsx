@@ -23,7 +23,7 @@ import type { ReviewRecord } from "@krds-detector/evidence/report";
 interface Props {
   host: HostBridge;
   sessionId: string;
-  onEvidence: (findingId: string, context?: string[]) => void;
+  onEvidence: (findingId: string, context?: string[], origin?: "list" | "relation") => void;
   onExport: () => void;
   onRestart: () => void;
   restartLabel?: string;
@@ -38,6 +38,7 @@ interface Props {
   reviewRecords?: ReviewRecord[];
   restoreFindingId?: string;
   selectedFindingId?: string;
+  allowHiddenSelection?: boolean;
   onSelectionHidden: () => void;
   onFocusRestored?: () => void;
 }
@@ -64,8 +65,8 @@ function extraSummary(finding: ExtraFinding): string {
   return "광고 문구에 보이지 않는 글자가 포함되었습니다.";
 }
 
-function ImageAnalysisView({ analysis, image, host, sessionId, displayAsset = !analysis.extraFindingId }: {
-  analysis: ImageAnalysis; image?: CreativeImageView; host: HostBridge; sessionId: string; displayAsset?: boolean;
+function ImageAnalysisView({ analysis, image, host, sessionId, displayAsset = !analysis.extraFindingId, onSelectFinding }: {
+  analysis: ImageAnalysis; image?: CreativeImageView; host: HostBridge; sessionId: string; displayAsset?: boolean; onSelectFinding?: (id: string) => void;
 }) {
   const assetId = analysis.assetId ?? image?.assetId;
   return <li className="finding-card">
@@ -93,11 +94,11 @@ function ImageAnalysisView({ analysis, image, host, sessionId, displayAsset = !a
       <p>판단 통과 여부: {analysis.decision.passed ? "충족" : "미충족"}</p>
       <p>문자 인식 엔진: {analysis.ocr.backend}</p><p>{analysis.decision.detail}</p>
     </details>
-    <EvidenceRelations host={host} sessionId={sessionId} focus={image ? { kind: "creative", id: image.sha256 } : { kind: "page", id: analysis.pageUrls[0] ?? analysis.sourceUrl }} />
+    <EvidenceRelations host={host} sessionId={sessionId} focus={image ? { kind: "creative", id: image.sha256 } : { kind: "page", id: analysis.pageUrls[0] ?? analysis.sourceUrl }} onSelectFinding={onSelectFinding} />
   </li>;
 }
 
-function ImageOnlyEvidence({ findingId, host, sessionId }: { findingId: string; host: HostBridge; sessionId: string }) {
+function ImageOnlyEvidence({ findingId, host, sessionId, onSelectFinding }: { findingId: string; host: HostBridge; sessionId: string; onSelectFinding: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const read = useCallback(() => host.getImageAnalysis(sessionId, { extraFindingId: findingId, limit: 1 }), [host, sessionId, findingId]);
@@ -109,11 +110,11 @@ function ImageOnlyEvidence({ findingId, host, sessionId }: { findingId: string; 
       : result.state === "error" ? <div><p role="alert">이미지 근거를 불러오지 못했습니다.</p><button className="secondary" type="button" onClick={result.retry}>이미지 근거 다시 불러오기</button></div>
         : result.state === "unavailable" ? <p>이 결과에 저장된 이미지 근거 기록이 없습니다.</p>
           : !analysis ? <p>이 탐지에 연결된 이미지 분석 기록이 없습니다.</p>
-          : <ul className="finding-list"><ImageAnalysisView analysis={analysis} host={host} sessionId={sessionId} displayAsset /></ul> : null}
+          : <ul className="finding-list"><ImageAnalysisView analysis={analysis} host={host} sessionId={sessionId} displayAsset onSelectFinding={onSelectFinding} /></ul> : null}
   </div>;
 }
 
-function ImageAnalysisList({ host, sessionId, images }: { host: HostBridge; sessionId: string; images: CreativeImageView[] }) {
+function ImageAnalysisList({ host, sessionId, images, onSelectFinding }: { host: HostBridge; sessionId: string; images: CreativeImageView[]; onSelectFinding: (id: string) => void }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [cursor, setCursor] = useState(0);
   const [previous, setPrevious] = useState<ImageAnalysis[]>([]);
@@ -123,7 +124,7 @@ function ImageAnalysisList({ host, sessionId, images }: { host: HostBridge; sess
   return <section aria-label="이미지 문자 분석">
     <h2 ref={headingRef} tabIndex={-1}>이미지 문자 분석{page.value ? ` (${String(page.value.total)}건)` : ""}</h2>
     {items.length ? <ol className="finding-list">{items.map((analysis, index) => <ImageAnalysisView key={analysis.analysisId ?? `${analysis.sourceUrl}-${index}`}
-      analysis={analysis} host={host} sessionId={sessionId} image={images.find((image) => image.sourceUrl === analysis.sourceUrl)} />)}</ol> : null}
+      analysis={analysis} host={host} sessionId={sessionId} image={images.find((image) => image.sourceUrl === analysis.sourceUrl)} onSelectFinding={onSelectFinding} />)}</ol> : null}
     {page.state === "loading" ? <p role="status">이미지 문자 분석을 불러오는 중입니다.</p>
       : page.state === "error" ? <p role="alert">저장된 이미지 문자 분석을 불러오지 못했습니다. 공식 탐지는 유지됩니다.</p>
         : page.state === "unavailable" ? <p role="status">이 세션의 이미지 문자 분석 기록을 사용할 수 없습니다.</p>
@@ -140,7 +141,7 @@ export function ScanResult(props: Props) {
   return <SessionResults key={props.sessionId} {...props} />;
 }
 
-function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, restartLabel = "새로 검사하기", query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, reviewRecords = [], restoreFindingId, selectedFindingId, onSelectionHidden, onFocusRestored }: Props) {
+function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, restartLabel = "새로 검사하기", query, onQueryChange, filter, onFilterChange, view, onViewChange, reviewedIds, onReviewMany, reviewRecords = [], restoreFindingId, selectedFindingId, allowHiddenSelection, onSelectionHidden, onFocusRestored }: Props) {
   const summaryHeading = useRef<HTMLHeadingElement>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const [session, setSession] = useState<ScanSession | undefined>(undefined);
@@ -265,7 +266,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
         {result ? <ReviewCollection findings={findings} coverage={detailBundle} query={query} onQueryChange={onQueryChange}
           filter={filter} onFilterChange={onFilterChange} view={view} onViewChange={onViewChange}
           reviewedIds={reviewedIds} onReviewMany={onReviewMany} onEvidence={onEvidence}
-          selectedFindingId={selectedFindingId} restoreFindingId={restoreFindingId}
+          selectedFindingId={selectedFindingId} restoreFindingId={restoreFindingId} allowHiddenSelection={allowHiddenSelection}
           onSelectionHidden={onSelectionHidden} onFocusRestored={onFocusRestored} /> : null}
         {!result && !loadComplete ? (
           <p role="status" className="empty">결과를 불러오는 중입니다.</p>
@@ -279,7 +280,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
               {evidenceSummary.graphAvailable === false ? <p role="status">이 세션의 관계 분석 기록을 사용할 수 없습니다.</p> : <h3>관련 광고 인프라 {evidenceSummary.infrastructure.length}개</h3>}
               {evidenceSummary.infrastructure.length ? <ul>{evidenceSummary.infrastructure.map((relation) => <li key={relation.domain}>
                 <strong>{relation.domain}</strong><p>{relation.pageUrls.length}개 관련 페이지에서 관측</p>
-                <EvidenceRelations host={host} sessionId={sessionId} focus={{ kind: "domain", id: relation.domain }} />
+                <EvidenceRelations host={host} sessionId={sessionId} focus={{ kind: "domain", id: relation.domain }} onSelectFinding={(id) => onEvidence(id, [id], "relation")} />
               </li>)}</ul> : evidenceSummary.graphAvailable !== false ? <p>광고 근거와 연결된 외부 도메인이 없습니다.</p> : null}
               <details className="advanced"><summary>기술 정보</summary><p>관측한 전체 도메인 {evidenceSummary.observedDomainCount}개</p>
                 {evidenceSummary.analysisIssues?.length ? <ul>{evidenceSummary.analysisIssues.map((issue, index) => <li key={index}>{issue}</li>)}</ul> : null}
@@ -299,7 +300,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
                         <p>{extraSummary(finding)}</p>
                         {finding.extra_finding === "IMAGE_ONLY_ILLEGAL_AD" ? <>
                           <dl><div><dt>인식한 원문</dt><dd className="raw">{finding.evidence_text}</dd></div></dl>
-                          <ImageOnlyEvidence findingId={finding.id} host={host} sessionId={sessionId} />
+                          <ImageOnlyEvidence findingId={finding.id} host={host} sessionId={sessionId} onSelectFinding={(id) => onEvidence(id, [id], "relation")} />
                         </> : null}
                         {finding.extra_finding === "REUSED_AD_CREATIVE" ? image ?
                           <figure className="visual-evidence">
@@ -313,11 +314,11 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
                         <details className="advanced"><summary>기술 정보</summary><p>위치: <code>{finding.location}</code></p>
                           {finding.extra_finding !== "IMAGE_ONLY_ILLEGAL_AD" ? <p>{finding.evidence_text}</p> : null}
                         </details>
-                        {image ? <EvidenceRelations host={host} sessionId={sessionId} focus={{ kind: "creative", id: image.sha256 }} /> : null}
+                        {image ? <EvidenceRelations host={host} sessionId={sessionId} focus={{ kind: "creative", id: image.sha256 }} onSelectFinding={(id) => onEvidence(id, [id], "relation")} /> : null}
                       </li>; })}
                     </ol>
                   </>}
-            <ImageAnalysisList host={host} sessionId={sessionId} images={evidenceSummary?.creativeImages ?? []} />
+            <ImageAnalysisList host={host} sessionId={sessionId} images={evidenceSummary?.creativeImages ?? []} onSelectFinding={(id) => onEvidence(id, [id], "relation")} />
           </div>
         ) : view === "coverage" ? (
           <div className="coverage-summary">
@@ -336,7 +337,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
         ) : null}
 
       </section>
-      {result ? <details className="advanced"><summary>검토 표시와 저장 안내</summary><p>검토 완료는 읽고 검토했다는 표시이며 위반 확정이나 조치 완료가 아닙니다. 공식 탐지와 저장 파일은 바뀌지 않습니다. 검토 표시는 현재 화면 메모리에만 보관되어 새 점검이나 앱 새로고침 시 사라집니다. 엑셀 보고서는 검색·필터와 관계없이 전체 기록과 현재 검토 메모를 저장합니다.</p></details> : null}
+      {result ? <details className="advanced"><summary>검토 표시와 저장 안내</summary><p>검토 완료는 읽고 검토했다는 표시이며 위반 확정이나 조치 완료가 아닙니다. 공식 탐지와 원본 파일은 바뀌지 않습니다. 검토 표시·판단·메모는 케이스에 별도로 저장됩니다. 화면 위의 저장 상태를 확인한 뒤 앱을 닫아 주세요. 엑셀 보고서는 검색·필터와 관계없이 전체 기록과 현재 검토 메모를 저장합니다.</p></details> : null}
       <div className="actions">
         <button type="button" onClick={onRestart} className="secondary">
           {restartLabel}

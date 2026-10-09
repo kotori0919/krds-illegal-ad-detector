@@ -10,7 +10,7 @@ import { BrowserHost } from "../src/host/browser.js";
 
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
-const result: OfficialResult = { meta: { topic: "", entry_url: "https://example.kr/",
+const result: OfficialResult = { meta: { topic: "TOPIC", entry_url: "https://example.kr/",
   started_at: "2026-10-07T00:00:00Z", finished_at: "2026-10-07T00:01:00Z", elapsed_sec: 60, tool_version: "0.1.0" }, findings: [] };
 const decision = { rule: "ocr-ad-terms-v1", score: 0.8, threshold: 0.7, passed: true, detail: "OCR text matched advertisement terms" };
 const bundle: ScanDetailBundle = { version: 2, findings: [], creativeImages: [],

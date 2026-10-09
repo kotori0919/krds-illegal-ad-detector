@@ -7,3 +7,4 @@ export * from "./deadline.js";
 export * from "./access.js";
 export * from "./sitemap.js";
 export * from "./public-network.js";
+export * from "./frame-location.js";

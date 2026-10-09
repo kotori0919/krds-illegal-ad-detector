@@ -49,6 +49,17 @@
 }
 .review-note textarea { width: 100%; font: inherit; color: var(--krds-semantic-text); padding: var(--krds-semantic-padding-3); border: var(--krds-semantic-border-width) solid var(--krds-semantic-border); border-radius: var(--krds-semantic-radius-control); }
 .review-note label { display: block; margin-bottom: var(--krds-semantic-padding-3); }
+.relation-drawing { overflow: auto; max-height: 32rem; color: var(--krds-semantic-text-secondary); }
+.relation-drawing svg { width: 100%; min-width: 48rem; display: block; }
+.relation-drawing rect { fill: var(--krds-primitive-gray-0); stroke: var(--krds-semantic-border); }
+.relation-drawing text { fill: var(--krds-semantic-text); font-size: 17px; }
+.relation-drawing g[role="button"] { cursor: pointer; }
+.relation-drawing g[role="button"]:focus { outline: var(--krds-primitive-focus-width) solid var(--krds-primitive-primary-50); }
+.relation-drawing g[aria-pressed="true"] rect { stroke: var(--krds-primitive-primary-60); stroke-width: 3px; }
+.relation-drawing g[role="button"] path { stroke-width: 5px; }
+.relation-graph { padding-block: var(--krds-semantic-padding-3); }
+.evidence-relations { min-width: 0; overflow-wrap: anywhere; }
+.relation-graph nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--krds-semantic-gap-3); }
 
 :root {
   color-scheme: light;

@@ -48,7 +48,7 @@ it("retains HTTP200 challenge coverage while refusing to count it as successfull
   data.pageOutcomes![0]!.outcome = "failed";
   data.coverage = { checkedPages: 0, failedPages: [{ url: result.meta.entry_url, status: 200, reason: "challenge" }], timedOut: false };
   expect(validateScanDetailBundle(data, result, extra).ok).toBe(true);
-  data.pageOutcomes![0]!.issue = { kind: "rate-limit", retryable: true, retryAfterMs: 5001 };
+  data.pageOutcomes![0]!.issue = { kind: "rate-limit", retryable: true, retryAfterMs: Number.MAX_SAFE_INTEGER + 1 };
   expect(validateScanDetailBundle(data, result, extra).ok).toBe(false);
 });
 

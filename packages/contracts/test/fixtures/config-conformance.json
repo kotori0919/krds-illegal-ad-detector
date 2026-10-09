@@ -1,0 +1,16 @@
+{
+  "valid": { "configVersion": 1, "limits": { "maxPages": 2000, "maxDepth": 10, "timeoutSec": 60, "maxFrameDepth": 4 }, "concurrency": 4, "settleMs": 0 },
+  "invalid": [
+    { "name": "future-version", "value": { "configVersion": 2 } },
+    { "name": "unknown-remote-policy", "value": { "configVersion": 1, "remoteRuleUrl": "https://example.test/rules" } },
+    { "name": "zero-pages", "value": { "configVersion": 1, "limits": { "maxPages": 0 } } },
+    { "name": "unbounded-pages", "value": { "configVersion": 1, "limits": { "maxPages": 2001 } } },
+    { "name": "negative-depth", "value": { "configVersion": 1, "limits": { "maxDepth": -1 } } },
+    { "name": "short-operator-budget", "value": { "configVersion": 1, "limits": { "timeoutSec": 59 } } },
+    { "name": "over-ceiling", "value": { "configVersion": 1, "limits": { "timeoutSec": 1501 } } },
+    { "name": "unknown-limit", "value": { "configVersion": 1, "limits": { "disableSandbox": true } } },
+    { "name": "unsafe-frame-depth", "value": { "configVersion": 1, "limits": { "maxFrameDepth": 5 } } },
+    { "name": "fractional-concurrency", "value": { "configVersion": 1, "concurrency": 1.5 } },
+    { "name": "unbounded-settle", "value": { "configVersion": 1, "settleMs": 5001 } }
+  ]
+}

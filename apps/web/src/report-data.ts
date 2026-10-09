@@ -7,6 +7,11 @@ export async function readReportSession(host: HostBridge, sessionId: string, rev
   const official = await host.getOfficialResult(sessionId);
   if (!official) throw new Error("저장된 공식 결과를 불러오지 못했습니다.");
   const result: ReportSession = { sessionId, official, reviews, unavailable: [] };
+  try {
+    const saved = await host.openCase(sessionId);
+    result.savedCase = { caseId: saved.manifest.caseId, directory: saved.directory, policyVersion: saved.manifest.policyVersion, reviewRevision: saved.review.revision };
+    if (!reviews.length) result.reviews = saved.review.records;
+  } catch { result.unavailable!.push("케이스 보관 정보 조회 불가; 현재 화면의 검토 기록을 사용함"); }
   const reads = await Promise.allSettled([host.getScanCoverage(sessionId), host.getExtraResult(sessionId), host.getEvidenceSummary(sessionId)]);
   const coverage = reads[0]!, extra = reads[1]!, summary = reads[2]!;
   if (coverage.status === "fulfilled" && coverage.value) result.coverage = coverage.value;

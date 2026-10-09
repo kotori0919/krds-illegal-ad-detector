@@ -131,7 +131,7 @@ describe("extra results", () => {
     ]);
     const bytes = solidRgba(16, 16, 100);
     const result = buildExtraResult({
-      topic: "test",
+      topic: "TOPIC",
       entryUrl: "https://example.kr/",
       startedAt: "2026-10-01T00:00:00.000Z",
       finishedAt: "2026-10-01T00:01:00.000Z",
@@ -192,6 +192,6 @@ describe("decision adapters", () => {
     const vlm = new DisabledMultimodalFallback();
     expect(vlm.enabled).toBe(false);
     const verdict = await vlm.judge({ sourceId: "x", imageBytes: new Uint8Array([0]), width: 1, height: 1, mediaType: "image/png" });
-    expect(verdict.isAd).toBe(false);
+    expect(verdict).toEqual({ state: "unavailable", issue: { code: "DISABLED", retryable: false } });
   });
 });

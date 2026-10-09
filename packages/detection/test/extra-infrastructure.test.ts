@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { validateExtraResult, validateOfficialResultText } from "@krds-detector/contracts";
 import { scanSite } from "../src/scan.js";
+import { PublicNetworkPolicy } from "@krds-detector/scanner";
 
 let site: Server;
 let asset: Server;
@@ -74,6 +75,8 @@ afterAll(async () => {
 describe("live extra infrastructure result", () => {
   it("retains repeated CDN, analytics, fonts and externally linked logo observations without advertising findings", async () => {
     const output = await scanSite({ entryUrl: `${siteOrigin}/negative`, crawl: {
+      networkPolicyForTesting: PublicNetworkPolicy.forFixtureTargets([siteOrigin, cdnOrigin, analyticsOrigin, fontOrigin, destinationOrigin, documentationOrigin]
+        .map((origin) => ({ origin, address: "127.0.0.1" as const }))),
       concurrency: 2, settleMs: 250, perPageMs: 7000,
       limits: { maxPages: 2, maxDepth: 1, timeoutSec: 45 },
     } });
@@ -101,6 +104,8 @@ describe("live extra infrastructure result", () => {
 
   it("attributes a repeated official advertisement destination without changing official finding objects", async () => {
     const output = await scanSite({ entryUrl: `${siteOrigin}/positive`, crawl: {
+      networkPolicyForTesting: PublicNetworkPolicy.forFixtureTargets([siteOrigin, cdnOrigin, analyticsOrigin, fontOrigin, destinationOrigin, documentationOrigin]
+        .map((origin) => ({ origin, address: "127.0.0.1" as const }))),
       concurrency: 2, settleMs: 250, perPageMs: 7000,
       limits: { maxPages: 2, maxDepth: 1, timeoutSec: 45 },
     } });

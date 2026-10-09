@@ -20,12 +20,8 @@ import {
 } from "@krds-detector/contracts";
 import { groupSimilarCreatives, type CreativeFingerprint } from "./fingerprint.js";
 import { summarizeCorrelatedInfrastructure, type EvidenceGraph } from "./graph.js";
-
-const ZERO_WIDTH_RE = /[\u200B-\u200D\uFEFF]/;
-
-export function zeroWidthSignals(text: string): boolean {
-  return ZERO_WIDTH_RE.test(text);
-}
+import { zeroWidthContribution, type ContributionIssue } from "./contributions.js";
+export { zeroWidthSignals } from "./contributions.js";
 
 export interface ExtraBuildInput {
   topic: string;
@@ -37,6 +33,8 @@ export interface ExtraBuildInput {
   zeroWidthCases: { url: string; location: string; evidenceText: string }[];
   /** Detection owns semantic, corroboration and visible-DOM exclusion gates. */
   imageOnlyCases?: { url: string; location: string; evidenceText: string }[];
+  /** The caller may record typed degradation without changing official JSON. */
+  onIssue?: (issue: ContributionIssue) => void;
 }
 
 export function buildExtraResult(input: ExtraBuildInput): ExtraResult {
@@ -82,16 +80,13 @@ export function buildExtraResult(input: ExtraBuildInput): ExtraResult {
     });
   }
   for (const z of input.zeroWidthCases) {
-    if (!zeroWidthSignals(z.evidenceText)) continue;
-    findings.push({
-      id: nextId(),
-      url: z.url,
-      is_violation: true,
-      location: z.location,
-      evidence_text: z.evidenceText,
-      technique: "ETC",
-      extra_finding: "ZERO_WIDTH_OBFUSCATION",
-    });
+    const outcome = zeroWidthContribution.evaluate({ ...z, semanticAdContext: true });
+    if (outcome.state === "unavailable") {
+      if (!input.onIssue) throw new Error(`${outcome.issue.code}: ${outcome.issue.scope}`);
+      input.onIssue(outcome.issue);
+    } else if (outcome.state === "matched") {
+      findings.push({ id: nextId(), technique: "ETC", ...outcome.finding });
+    }
   }
   const result: ExtraResult = {
     meta: {

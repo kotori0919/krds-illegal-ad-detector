@@ -2,6 +2,7 @@ import { createServer, type Server } from "node:http";
 import { expect, it } from "vitest";
 import { scanSite } from "../../detection/src/scan.js";
 import { validateOfficialResultText } from "@krds-detector/contracts";
+import { PublicNetworkPolicy } from "../src/public-network.js";
 
 async function listen(server: Server): Promise<string> {
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -79,6 +80,7 @@ scopeTest.for([
   const { origin, outside, externalRequests } = site;
   const entryUrl = `${origin}${path}`;
   const output = await scanSite({ entryUrl, signal, crawl: { settleMs: 250, concurrency: 1,
+    networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([origin,outside]),
     limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } } });
   expect(validateOfficialResultText(output.json).ok).toBe(true);
   expect(output.timedOut).toBe(false);
@@ -94,11 +96,12 @@ scopeTest.for([
 scopeTest("retains same-host redirect and external frame findings", async ({ site, signal }) => {
   const { origin, outside, externalRequests } = site;
   const output = await scanSite({ entryUrl: `${origin}/`, signal, crawl: { settleMs: 250, concurrency: 1,
+    networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([origin,outside]),
     limits: { maxPages: 2, maxDepth: 1, timeoutSec: scanTimeoutSec } } });
   expect(validateOfficialResultText(output.json).ok).toBe(true);
   expect(output.timedOut).toBe(false);
   expect(output.result.findings.map((finding) => `${finding.url}|${finding.location.split(">>>").at(-1)?.trim()}`).sort()).toEqual([
-    `${outside}/frame|#external-offer`,
+    `${origin}/|#external-offer`,
     `${origin}/local-redirect|#local-offer`,
   ].sort());
   expect(output.detailBundle.coverage.checkedPages).toBe(2);

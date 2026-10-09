@@ -16,6 +16,7 @@ interface Props {
   onReviewMany: (ids: string[], reviewed: boolean) => void;
   onEvidence: (id: string, context: string[]) => void;
   selectedFindingId?: string;
+  allowHiddenSelection?: boolean;
   restoreFindingId?: string;
   onSelectionHidden: () => void;
   onFocusRestored?: () => void;
@@ -32,7 +33,7 @@ interface Row {
 
 export function ReviewCollection(props: Props) {
   const { findings, coverage, query, onQueryChange, filter, onFilterChange, view, onViewChange,
-    reviewedIds, onReviewMany, onEvidence, selectedFindingId, restoreFindingId, onSelectionHidden, onFocusRestored } = props;
+    reviewedIds, onReviewMany, onEvidence, selectedFindingId, allowHiddenSelection = false, restoreFindingId, onSelectionHidden, onFocusRestored } = props;
   const [mode, setMode] = useState<"patterns" | "records">("patterns");
   const [reviewFilter, setReviewFilter] = useState("ALL");
   const [sort, setSort] = useState("count");
@@ -44,6 +45,8 @@ export function ReviewCollection(props: Props) {
   const bulkInvoker = useRef<HTMLElement | null>(null);
   const listHeading = useRef<HTMLHeadingElement>(null);
   const active = view === "findings" || view === "pages";
+  const selectionContext = useRef<{ id?: string; allowed: boolean; criteria: string }>({ allowed: false, criteria: "" });
+  const criteria = JSON.stringify([query, filter, reviewFilter, view]);
   const patterns = useMemo(() => groupReviewPatterns(findings), [findings]);
   const normalizedQuery = normalizeReviewText(query).toLocaleLowerCase("ko-KR");
   const visible = useMemo(() => findings.filter((finding) => (filter === "ALL" || finding.technique === filter)
@@ -93,11 +96,18 @@ export function ReviewCollection(props: Props) {
   useEffect(() => { if (confirmation) confirmRef.current?.focus(); }, [confirmation]);
   useEffect(() => {
     if (!selectedFindingId) return;
+    if (selectionContext.current.id !== selectedFindingId || selectionContext.current.allowed !== allowHiddenSelection) {
+      selectionContext.current = { id: selectedFindingId, allowed: allowHiddenSelection, criteria };
+    }
+    // Opening original evidence from a relation must not rewrite filters or
+    // immediately close the inspector. A subsequent filter/view change still
+    // uses the ordinary hidden-selection rule.
+    if (allowHiddenSelection && selectionContext.current.criteria === criteria) return;
     if (!active || !visibleIds.has(selectedFindingId)) {
       setNotice(active ? "조건에 맞지 않아 근거를 닫았습니다." : "");
       onSelectionHidden();
     }
-  }, [selectedFindingId, active, visibleIds, onSelectionHidden]);
+  }, [selectedFindingId, allowHiddenSelection, criteria, active, visibleIds, onSelectionHidden]);
   useEffect(() => {
     if (!restoreFindingId || !active) return;
     const rowIndex = rows.findIndex((row) => row.findings.some((f) => f.id === restoreFindingId));

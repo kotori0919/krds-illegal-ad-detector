@@ -7,6 +7,7 @@
  * observed infrastructure, never enqueued.
  */
 import { contentKey, isSameSite, normalizeUrlKey } from "./urls.js";
+import { SCAN_POLICY } from "@krds-detector/contracts";
 
 export interface CrawlLimits {
   maxPages: number;
@@ -35,9 +36,10 @@ export interface ObservedExternal {
 
 export class CrawlQueue {
   private queue: QueuedPage[] = [];
+  private queuedKeys = new Set<string>();
   private visited = new Set<string>();
   private seenContent = new Set<string>();
-  private externals: ObservedExternal[] = [];
+  private externals = new Map<string, ObservedExternal>();
 
   constructor(
     readonly entryUrl: string,
@@ -56,7 +58,7 @@ export class CrawlQueue {
   }
 
   get observedExternals(): readonly ObservedExternal[] {
-    return this.externals;
+    return [...this.externals.values()];
   }
 
   private enqueue(url: string, depth: number, discoverySource: QueuedPage["discoverySource"]): boolean {
@@ -69,14 +71,15 @@ export class CrawlQueue {
       return false;
     }
     if (this.visited.has(key)) return false;
-    if (this.queue.some((q) => q.key === key)) return false;
+    if (this.queuedKeys.has(key)) return false;
     this.queue.push({ url, key, depth, discoverySource });
+    this.queuedKeys.add(key);
     return true;
   }
 
   next(): QueuedPage | undefined {
     const page = this.queue.shift();
-    if (page) this.visited.add(page.key);
+    if (page) { this.visited.add(page.key); this.queuedKeys.delete(page.key); }
     return page;
   }
 
@@ -88,7 +91,7 @@ export class CrawlQueue {
     let count = 0;
     while (this.queue[count]?.depth === depth) count += 1;
     const frontier = this.queue.splice(0, count);
-    for (const page of frontier) this.visited.add(page.key);
+    for (const page of frontier) { this.visited.add(page.key); this.queuedKeys.delete(page.key); }
     return frontier;
   }
 
@@ -112,7 +115,7 @@ export class CrawlQueue {
         continue;
       }
       if (!isSameSite(this.entryHost, absolute)) {
-        this.externals.push({ url: absolute, from: candidate.from, kind: "link" });
+        this.observeExternal(absolute, candidate.from, "link");
         continue;
       }
       if (!allows(absolute)) continue;
@@ -138,6 +141,7 @@ export class CrawlQueue {
   }
 
   observeExternal(url: string, from: string, kind: ObservedExternal["kind"]): void {
-    this.externals.push({ url, from, kind });
+    const key = `${url}\0${kind}`;
+    if (!this.externals.has(key) && this.externals.size < SCAN_POLICY.collection.externalItems && url.length <= SCAN_POLICY.collection.urlCodeUnits) this.externals.set(key, { url, from, kind });
   }
 }

@@ -47,7 +47,7 @@ describe("unicode detectors", () => {
     const sig = homoglyphSignal("Ｋ카지노 신규가입");
     expect(sig?.technique).toBe("HOMOGLYPH");
     expect(sig?.rawText).toBe("Ｋ카지노 신규가입");
-    expect(sig?.normalizedText).toBe("K카지노 신규가입");
+    expect(sig?.normalizedText).toBe("k카지노신규가입");
   });
 
   it("does not flag plain visible Korean as homoglyph", () => {
@@ -72,7 +72,7 @@ describe("unicode detectors", () => {
 
 describe("live page pipeline", () => {
   it("detects HOMOGLYPH + JAMO on fixture positives, silent on negatives", async () => {
-    const started = startFixtureServer(4181);
+    const started = await startFixtureServer();
     const browser = await chromium.launch();
     try {
       const check = async (path: string): Promise<string[]> => {
@@ -98,7 +98,7 @@ describe("live page pipeline", () => {
   it("emits valid result.json with identity dedup", async () => {
     const startedAt = new Date("2026-10-01T00:00:00.000Z").toISOString();
     const finishedAt = new Date("2026-10-01T00:01:00.000Z").toISOString();
-    const started = startFixtureServer(4182);
+    const started = await startFixtureServer();
     const browser = await chromium.launch();
     try {
       const page = await browser.newPage();
@@ -110,7 +110,7 @@ describe("live page pipeline", () => {
       await page.close();
       // Duplicate the candidate list: engine must collapse to 2 findings.
       const result = buildOfficialResult(
-        { topic: "test", entryUrl: `${started.url}/`, startedAt, finishedAt },
+        { topic: "TOPIC", entryUrl: `${started.url}/`, startedAt, finishedAt },
         [...candidates, ...candidates],
       );
       expect(result.findings.length).toBe(2);

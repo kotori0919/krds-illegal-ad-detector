@@ -88,11 +88,11 @@ describe("general source text detection", () => {
       const observed: { url: string; location: string; evidenceText: string }[] = [];
       const found = await detectPageCandidates(frame, { pageUrl: url, framePath: [{ src: frame.url(), selector: "iframe" }], onAdText: (source) => observed.push(source) });
       expect(found.map((candidate) => [candidate.location, candidate.technique.rawText])).toEqual([
-        ['iframe[src="about:srcdoc"] >>> p', "Ｋ카지노 신규가입 frame"],
+        ['iframe >>> p', "Ｋ카지노 신규가입 frame"],
       ]);
       expect(await frame.locator(found[0]!.selector).count()).toBe(1);
       expect(await frame.locator(found[0]!.selector).textContent()).toBe(found[0]!.technique.rawText);
-      expect(observed).toEqual([{ url, location: 'iframe[src="about:srcdoc"] >>> p', evidenceText: "Ｋ카지노 신규가입 frame", analysisText: "Ｋ카지노 신규가입 frame" }]);
+      expect(observed).toEqual([{ url, location: 'iframe >>> p', evidenceText: "Ｋ카지노 신규가입 frame", analysisText: "Ｋ카지노 신규가입 frame" }]);
     });
   }, 60000);
 

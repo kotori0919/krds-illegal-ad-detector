@@ -8,7 +8,7 @@
 
 import { EXTRA_TECHNIQUE, type OfficialTechnique } from "./technique.js";
 
-export const TOOL_VERSION = "0.1.0";
+export const TOOL_VERSION = "0.2.0-policy2";
 export const EXTRA_FINDING_TYPES = ["IMAGE_ONLY_ILLEGAL_AD", "REUSED_AD_CREATIVE",
   "AD_INFRASTRUCTURE_CORRELATION", "ZERO_WIDTH_OBFUSCATION"] as const;
 
@@ -87,6 +87,10 @@ function validateMetaShape(meta: unknown): string[] {
     return ["meta must be an object"];
   }
   const m = meta as LooseMeta;
+  if(m.topic!=="TOPIC") errors.push("meta.topic must be TOPIC");
+  if(typeof m.entry_url!=="string" || !/^https?:\/\/[^\s]+$/i.test(m.entry_url)) errors.push("meta.entry_url must be an HTTP(S) URL");
+  if(typeof m.tool_version!=="string" || !m.tool_version.trim()) errors.push("meta.tool_version must be non-empty");
+  if(typeof m.elapsed_sec!=="number" || !Number.isFinite(m.elapsed_sec) || m.elapsed_sec<0) errors.push("meta.elapsed_sec must be finite and nonnegative");
   if (m.topic === undefined) errors.push("meta.topic is required");
   if (m.entry_url === undefined) errors.push("meta.entry_url is required");
   if (m.started_at === undefined) errors.push("meta.started_at is required");
@@ -148,6 +152,9 @@ export function validateOfficialResult(value: unknown): ValidationOutcome {
       continue;
     }
     const f = item as LooseFinding;
+    if(typeof f.id!=="string" || !f.id.trim()) errors.push(`${where}.id must be non-empty`);
+    if(typeof f.url!=="string" || !/^https?:\/\/[^\s]+$/i.test(f.url)) errors.push(`${where}.url must be an HTTP(S) URL`);
+    if(typeof f.location!=="string" || !f.location.trim()) errors.push(`${where}.location must be non-empty`);
     if (f.id === undefined) errors.push(`${where}.id is required`);
     if (f.url === undefined) errors.push(`${where}.url is required`);
     if (f.is_violation === undefined)

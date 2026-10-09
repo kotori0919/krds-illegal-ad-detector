@@ -7,6 +7,11 @@ pool remains bounded to 1–4 top-level pages. Each admitted page is navigated
 once; live frames and selected image responses remain available to detection
 before the page closes.
 
+The canonical policy is `packages/contracts/src/policy.json`. The default
+pool is two workers on every machine; explicit benchmark/operator selections
+remain bounded to 1–4. Policy 2 removes the previous CPU-dependent default so
+saved effective settings describe the actual worker pool.
+
 ## Modules and admission
 
 - `urls.ts`: canonical fragment/query-order/trailing-slash deduplication;
@@ -16,7 +21,7 @@ before the page closes.
   All normalized candidates are sorted before `maxPages` admission, including
   links and sitemap candidates. Completion timing never chooses the admitted
   set. A link wins a same-depth duplicate's discovery-source tie.
-- `access.ts`: measured page-access classification and bounded `Retry-After`.
+- `access.ts`: measured page-access classification and preserved `Retry-After`.
 - `sitemap.ts`: streamed, sequential HTTP discovery and robots exclusions.
 - `crawl.ts`: the live-page worker pool, containment, access classification,
   deterministic frontier merge, optional snapshots and cancellation cleanup.
@@ -30,7 +35,8 @@ Snapshots/outcomes record `discoverySource: entry | link | sitemap`.
 
 `PageSnapshot.issue` and persisted `PageOutcome.issue` carry `kind`,
 `retryable`, and an optional `retryAfterMs`. Kinds are `challenge`, `denied`,
-`rate-limit`, `login-required`, `timeout`, `navigation`, and `unknown`.
+`rate-limit`, `login-required`, `timeout`, `navigation`, `network-policy`, and
+`unknown`.
 
 `cf-mitigated: challenge` takes precedence over status, including HTTP 200,
 403 and 429. A Cloudflare `Server` or `cf-ray` proxy header alone is not
@@ -51,12 +57,14 @@ successful zero-finding check. Official result fields and serialization do
 not change.
 
 `Retry-After` accepts non-negative integer seconds or HTTP-date. The recorded
-and observed pause is bounded to 5,000 ms. Subsequent same-site page starts
+pause preserves the server interval, including 120 seconds. Subsequent same-site page starts
 wait for the pause if the shared deadline can preserve useful work and its
 finalization reserve; cancellation interrupts the wait. Already-running
 workers may complete. The failed URL is never automatically retried.
 A discovery HTTP 429 stops further discovery requests and applies the same
-bounded pause before page navigation. No CAPTCHA solving, credential entry,
+pause before page navigation. When the delay cannot fit the shared deadline,
+queued pages remain uninspected and the scan ends with partial coverage.
+The server delay is never shortened to fit. No CAPTCHA solving, credential entry,
 proxy rotation or other access evasion is performed.
 
 ## Sitemap and robots boundaries
@@ -100,6 +108,38 @@ unavailable/unparseable robots response contributes no invented rules.
 
 ## Containment
 
+Production explicitly launches with `chromiumSandbox: true` and no disabling
+argument. Isolation failure stops the scan with a useful Korean error and
+does not retry insecurely. This Linux host cannot create the required
+sandbox; only controlled Vitest fixtures use the explicit
+`KRDS_TEST_UNSANDBOXED=1` opt-in in `tests/browser-fixture.ts`. The worker,
+CLI and UI never read that flag. Installed Windows renderer-isolation and
+cleanup acceptance remain external checks on the identified candidate.
+
+Collection limits apply before constructing retained data: 20,000 discovery
+elements, 1,000 links (2,048 characters each), 15 frames, bounded frame depth,
+500 external records/page and 10,000 unique external records/scan. Requests
+are counted without retaining an unbounded URL array. Optional DOM replay is
+serialized incrementally with node/depth/attribute and UTF-8 byte caps, never
+by collecting full `page.content()` then slicing it. Main and frame snapshots
+share the requested byte limit (maximum 4 MiB); live production analysis keeps
+only a 64 KiB content signature and releases it after deduplication. Omissions
+are explicit collection issues. Browser-owned DOM/network memory remains
+outside these retained-data caps.
+
+Rendering collection distinguishes glyph Range rectangles from container
+boxes; observes alpha, solid composited ancestor backgrounds, opacity,
+visibility, overflow and inset clipping, including frame owners. It bounds
+each candidate to 512 text nodes, 128 rectangles and 64 ancestors. Gradients,
+unsupported color/clip/compositing and limits are uncertainty, not proof of
+concealment. Normal content below the viewport is not offscreen evidence.
+
+OBSERVED: Chromium collection matrix varies DOM (100/25,000), frames (0/24)
+and resources (0/600) independently. Whole test-host/browser-descendant RSS
+was sampled every 25 ms; one run per row does not establish percentiles or
+a memory guarantee. `collection-bounds.test.ts` emits reproducible individual
+measurements and can save them with test-only `KRDS_COLLECTION_REPORT`.
+
 Popup/dialog suppression, download cancellation, HTTP(S)-only routes,
 500 requests/page, media/font throttling, per-page budgets, parsed-document
 settle windows, bounded frame inspection and browser cleanup remain. Optional
@@ -109,8 +149,15 @@ infrastructure is observed, never recursively admitted.
 ## Imported-target runtime network boundary
 
 Imported sessions set `CrawlOptions.publicNetworkOnly` through worker
-`--public-network-only`. Ordinary single-URL sessions keep their existing
-network behavior. The worker accepts `--entry-kind site|sitemap`; a sitemap
+`--public-network-only`. A manually entered private/loopback URL authorizes
+only that exact scheme, host and port, pinned to its initially validated
+address. It does not authorize another intranet origin. Public destinations
+remain available through the same checked, pinned transport. Link-local,
+metadata, multicast, reserved and mixed public/private answers are denied
+even for a manual entry. Denials appear as `network-policy` failed navigation
+or a `network-policy-denied` resource collection issue; a resource omission
+does not manufacture a checked finding.
+The worker accepts `--entry-kind site|sitemap`; a sitemap
 input is fetched as the first XML/index discovery seed, never checked as HTML.
 Its discovered pages start at depth 0 and share the configured page limit.
 The official `meta.entry_url` remains the original sitemap input. A sitemap
@@ -119,7 +166,7 @@ with no admissible page URLs produces an explicit discovery error.
 `public-network.ts` owns an authenticated HTTP/CONNECT proxy bound only to
 `127.0.0.1`. Random per-scan credentials remain in process memory and are
 removed before forwarding origin requests. Each upstream connection resolves
-all DNS answers, rejects any non-public answer, and connects to one validated
+all DNS answers, applies the public/manual-entry scope, and connects to one validated
 IP without another DNS lookup. Existing connections remain pinned; new
 connections revalidate DNS. Redirects, frames and HTTP/HTTPS subresources use
 the proxy too. Chromium's implicit localhost/link-local proxy bypass is
@@ -163,6 +210,39 @@ sandbox. Browser exploits and platform/browser changes require independent
 containment and installed-Windows validation. The conservative address policy
 may reject unusual legitimate special-purpose addresses. A public server's own
 internal routing is outside the scanner's socket boundary.
+
+## Retained evidence and visual selection
+
+All admitted pages receive cheap visual candidate observation while live.
+Acquired image bytes share a 250,000-byte page budget. A stable risk/hash
+ordering retains at most 40 unique creative assets, 64 occurrence records and
+2,000,000 bytes across the scan. Six unique images are selected for optional
+OCR after crawling, with page diversity; selection never revisits a page or
+uses completion order as its priority. Coverage records retained assets,
+bytes, excluded records and selected SHA-256 values. A bounded selection is
+not a guarantee that every image was analysed.
+
+Page/element captures share a separate 24-asset, 2,000,000-byte JPEG store.
+Finding metadata references `visualAssets` by asset ID; identical capture
+bytes are stored once. Creative occurrences likewise reference shared image
+assets. Evicted captures become explicit unavailable evidence. HTML replay
+is omitted unless the caller explicitly requests snapshots.
+
+Official raw candidate evidence has a separate aggregate 4 MiB UTF-8 budget
+and a 20,000-occurrence cap. The bound applies before long-lived insertion;
+whole candidates are excluded, never shortened. `FINDING_COLLECTION_LIMIT`
+marks every affected page, including an earlier page whose retained candidate
+is displaced. Auxiliary zero-width source evidence uses its own equal cap
+and reports `AUXILIARY_TEXT_COLLECTION_LIMIT`. Progress distinguishes observed
+candidates from retained confirmed findings. A checked page with a collection
+issue has limited coverage and must not be read as a complete zero-finding
+inspection. Graph construction independently stops insertion at 4,000 nodes
+and 8,000 edges and exposes `truncated`.
+
+Optional timing records worker start, official finalization and completion
+of OCR shutdown, graph construction and detail validation. It excludes the
+worker's final output serialization, native persistence and operator Save As;
+installed acceptance must measure those steps separately.
 
 ## Observed verification
 
