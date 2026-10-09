@@ -22,6 +22,7 @@
     "category": "Utility",
     "windows": {
       "nsis": {
+        "installerIcon": "icons/installer.ico",
         "languages": [
           "Korean",
           "English"
