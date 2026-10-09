@@ -1,6 +1,6 @@
 [package]
 name = "krds-detector"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Tauri 2 thin native host for the illegal-ad detector (scanner lifecycle, filesystem export, process supervision)"
 

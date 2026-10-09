@@ -216,7 +216,14 @@ try{
   report.cancellation.reopenedAfterRestart=true;report.cancellation.noRecrawl=true;report.cancellation.exportByteIdentity=true;
   report.checks.push("real native scan_start/progress/scan_cancel / completed-page partial official / cancelled durable reopen after restart / export byte identity / CIM worker-renderer orphan absence");
   report.passed=true;
-}catch(error){report.passed=false;report.error=String(error);process.exitCode=1;}
+}catch(error){
+  report.passed=false;report.error=String(error);process.exitCode=1;
+  if(page&&!page.isClosed()){
+    report.failureUi=await page.locator("body").innerText().catch(()=>"unavailable");
+    report.failureEvents=await page.evaluate(()=>window.adoptionEvents??[]).catch(()=>[]);
+    await page.screenshot({path:join(output,"native-failure.png"),fullPage:true}).catch(()=>undefined);
+  }
+}
 finally{
   await close().catch(error=>{report.passed=false;report.closeError=String(error);process.exitCode=1;});
   fixture.closeAllConnections();await new Promise(done=>fixture.close(done));
