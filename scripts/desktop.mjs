@@ -14,7 +14,7 @@ if (!["x86_64-pc-windows-msvc", "x86_64-pc-windows-gnullvm"].includes(target)) t
 const msvc=target.endsWith("msvc")?await msvcEnvironment():undefined;
 if (action === "resources") {
   await run(process.execPath, [join(root, "scripts/prepare-windows-runtime.mjs"), "--verify"]);
-  await npm(["run", "build", "-w", "apps/web"]);
+  await npm(["run", "build"]);
   await npm(["run", "build:sidecar"]);
   const source = await sourceIdentity();
   const builtAt = new Date().toISOString();

@@ -29,7 +29,7 @@ npm run verify:artifact -- <candidate-folder>/manifest.json
 
 `doctor`는 도구 버전, 쓰기 가능한 데이터 폴더, 전체 고정 런타임 파일을 확인하고 복구 방법을 출력한다. 도구를 설치하거나 보안 설정을 변경하지 않는다. `check`는 타입/lint/unit 경계를 한 번 검사한다. `test:integration`은 실제 worker를 임시 한글/공백 경로에서 실행하고 루프백 서버의 숨긴 광고와 정상 도서관 문장을 검사한다. 브라우저 sandbox가 불가능하면 실패하며 정상 실행 경로에서 우회하지 않는다. `dev` 웹 미리보기는 네이티브 스캔 증거가 아니다. `clean`은 선언한 생성 dist만 지우며 symlink를 거부한다. 사례, 런타임 준비물, 역사 RC는 지우지 않는다.
 
-`build:desktop`은 실제 네이티브 실행 파일까지, `package:windows`는 NSIS 설치본까지 빌드한다. Tauri beforeBuild는 프런트엔드/worker를 새로 만들고 런타임을 **오프라인 검증**한다. 첫 `package:windows`는 별도로 NSIS/플러그인을 다운로드할 수 있으므로 npm/Cargo/runtime 준비만으로 완전한 cached 오프라인 패키징이 성립하지 않는다. 패키징 도구까지 한 번 준비한 후의 재빌드와 첫 온라인 준비를 구분한다. 소스/lock/frontend/worker/native 설정 혼합은 sourceSha256와 파일 해시로 검출한다. 빌드 중 소스가 변하면 설치 후보 생성을 거부한다.
+`build:desktop`은 실제 네이티브 실행 파일까지, `package:windows`는 NSIS 설치본까지 빌드한다. Tauri beforeBuild는 프런트엔드/worker를 새로 만들고 런타임을 **오프라인 검증**한다. root `npm run build`는 contracts → evidence(보고서 포함) → web 순서로 컴파일하며 desktop도 같은 경로를 사용한다. 이전 workspace의 `packages/evidence/dist`를 수동으로 준비하거나 재사용하지 않는다. 첫 `package:windows`는 별도로 NSIS/플러그인을 다운로드할 수 있으므로 npm/Cargo/runtime 준비만으로 완전한 cached 오프라인 패키징이 성립하지 않는다. 패키징 도구까지 한 번 준비한 후의 재빌드와 첫 온라인 준비를 구분한다. 소스/lock/frontend/worker/native 설정 혼합은 sourceSha256와 파일 해시로 검출한다. 빌드 중 소스가 변하면 설치 후보 생성을 거부한다.
 
 ## 보존하는 별도 경로: GNU LLVM 교차 빌드
 

@@ -15,7 +15,7 @@
     "dev": "npm run dev -w apps/web",
     "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json && tsc --noEmit -p packages/synth-eval/tsconfig.check.json && tsc --noEmit -p packages/scanner/tsconfig.check.json && tsc --noEmit -p packages/detection/tsconfig.check.json && tsc --noEmit -p packages/evidence/tsconfig.check.json",
     "test": "vitest run",
-    "build": "npm run build -w apps/web",
+    "build": "npm run build -w packages/contracts && npm run build -w packages/evidence && npm run build -w apps/web",
     "build:scanner": "npm run build -w packages/contracts && npm run build -w packages/synth-eval && npm run build -w packages/scanner && npm run build -w packages/evidence && npm run build -w packages/detection",
     "build:sidecar": "node scripts/build-sidecar.mjs",
     "prepare:windows-runtime": "node scripts/prepare-windows-runtime.mjs",

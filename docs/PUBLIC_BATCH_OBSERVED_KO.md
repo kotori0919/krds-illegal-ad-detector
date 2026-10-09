@@ -41,6 +41,12 @@ evidence package와 production web 빌드 성공(기존 큰 chunk 경고 있음)
 외부 요청·pageerror는 0이다. 이 replay의 저장 창은 파일 writer로 대체했으며
 앞의 실제 Windows 스캔·native chooser 관찰과 구분한다. 공개 사이트 재검사는 하지 않았다.
 
+보고서 모듈의 이전 dist를 웹 번들이 읽을 수 있는 빌드 의존성도 수정했다.
+root build와 desktop resources는 contracts → evidence → web 순서로 실행한다.
+OBSERVED: evidence dist를 별도 보존한 뒤 없는 상태에서 root build가 새로 생성했고,
+그 production UI와 실제 XLSX에서 제한 안내를 확인했다. build-boundary 5개도 통과했다.
+이는 전체 도구 캐시가 빈 Windows 설치 시험이라는 뜻은 아니다.
+
 원본 케이스와 native workbook은 로컬 Windows 데이터 및 별도 원본 증거로 보존한다.
 공개 인계에는 연락처·게시자 이름·개인 저장 경로를 복사하지 않고 계약 결과·범위·해시와
 화면 검증을 제공한다. 증거 폴더는 `artifacts/public-batch-20261010/`다.
