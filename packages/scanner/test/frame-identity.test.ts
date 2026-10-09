@@ -1,4 +1,4 @@
-import { createServer } from "node:http";
+import { createServer, type ServerResponse } from "node:http";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { serializeFramePath, SCAN_POLICY } from "@krds-detector/contracts";
 import { crawlSite } from "../src/crawl.js";
@@ -6,11 +6,27 @@ import { resolveFrameLocation } from "../src/frame-location.js";
 import { collectElementSignals } from "../../detection/src/visibility.js";
 
 let base = "";
+let fixtureReady = false;
+let readyScript: ServerResponse | undefined;
 const server = createServer((request, response) => {
   response.setHeader("content-type", "text/html; charset=utf-8");
   if (request.url === "/robots.txt") { response.end(""); return; }
   if (request.url === "/same") { response.end('<p id="ad">카지노 가입</p>'); return; }
   if (request.url === "/nested") { response.end('<iframe src="same"></iframe>'); return; }
+  if (request.url === "/ready.js") {
+    response.setHeader("content-type", "text/javascript");
+    if (fixtureReady) response.end("");
+    else {
+      readyScript = response;
+      response.on("close", () => { if (readyScript === response) readyScript = undefined; });
+    }
+    return;
+  }
+  if (request.url === "/fixture-ready") {
+    fixtureReady = true; readyScript?.end(""); response.end(""); return;
+  }
+  if (request.url !== "/") { response.statusCode = 404; response.end(""); return; }
+  fixtureReady = false;
   response.end(`<main>
     <section><iframe id="duplicate" src="same"></iframe></section>
     <aside><iframe id="duplicate" src="same"></iframe></aside>
@@ -18,7 +34,22 @@ const server = createServer((request, response) => {
     <div style="opacity:0"><iframe id="hidden" srcdoc='<p id="ad">카지노 가입</p>'></iframe></div>
     <iframe id="blank"></iframe>
     <div style="clip-path:inset(50%)"><iframe id="clipped" src="same"></iframe></div>
-    <script>document.querySelector('#blank').contentDocument.body.innerHTML='<p id="ad">카지노 가입</p>'</script>
+    <script>
+      document.querySelector('#blank').contentDocument.body.innerHTML='<p id="ad">카지노 가입</p>';
+      function countAds(doc) {
+        return doc.querySelectorAll('#ad').length + [...doc.querySelectorAll('iframe')]
+          .reduce((count, frame) => count + (frame.contentDocument ? countAds(frame.contentDocument) : 0), 0);
+      }
+      let reported = false;
+      function reportReady() {
+        if (!reported && countAds(document) === 6) { reported = true; fetch('/fixture-ready'); }
+      }
+      for (const frame of document.querySelectorAll('iframe')) frame.addEventListener('load', reportReady);
+      reportReady();
+    </script>
+    <!-- Defer gates DOMContentLoaded on actual fixture readiness, not elapsed time.
+         Crawl's existing page timeout and afterAll connection cleanup bound it. -->
+    <script defer src="/ready.js"></script>
   </main>`);
 });
 beforeAll(async () => {
