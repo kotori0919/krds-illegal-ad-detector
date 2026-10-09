@@ -49,6 +49,12 @@ LLVM MinGW는 clang 23.1.1/UCRT 배포의 `bin`, `LICENSE.TXT`, `x86_64-w64-ming
 
 Windows는 C++ Build Tools와 Windows SDK, Rust `x86_64-pc-windows-msvc`가 필요하다. 기본 `package:windows` 대상은 MSVC다. `bundle.useLocalToolsDir=true`로 Tauri 패키징 도구는 프로젝트 target 아래에 준비하며 작성자의 전역 도구 캐시를 요구하지 않는다. 첫 준비에는 Tauri가 고정한 도구 다운로드 연결이 필요하다. Windows CI는 실제 fmt/Clippy/test/link와 패키지 worker smoke를 검사한다. workflow_dispatch의 선택 항목은 서명 없는 내부 MSVC 후보를 만들며 공개 release는 하지 않는다. 새 Windows clone과 task 전용 빈 npm/Cargo 캐시에서 실제 MSVC 네이티브 빌드·NSIS 패키징·공급망 생성·artifact 검증을 실행했다. 최초 도구 준비도 Tauri가 고정한 NSIS 3.11과 플러그인을 프로젝트 target 아래로 다운로드했다. 정확한 후보·도구 해시와 실행 범위는 adoption handoff를 따른다. GNU 증거와 MSVC 증거는 독립적이다.
 
+CI는 모든 PR, 기본 브랜치 `main` push, 수동 `workflow_dispatch`에서 실행한다.
+PR이 열린 개발 브랜치의 push와 PR 이벤트가 같은 Windows 빌드를 중복 실행하지 않도록
+개발 브랜치 push는 별도 실행하지 않는다. PR이 없는 브랜치는 로컬 canonical 명령을
+실행하거나 Actions에서 해당 ref의 수동 실행을 선택한다. Linux·Windows·required
+검사 항목과 후보 package의 수동 opt-in 조건은 그대로 유지한다.
+
 ## 산출물과 한계
 
 `artifacts/candidate-<version>-<target>-<sourceHash>-<buildTime>/`에는 installer, native exe, manifest, build/resource manifest, npm CycloneDX SBOM, Cargo license inventory, third-party notices가 들어간다. 첫 당사자 라이선스는 소유자 결정이 필요하며 이 작업은 라이선스를 선택하지 않는다. dependency inventory는 법률 검토나 취약점 부재 증명서가 아니다.
