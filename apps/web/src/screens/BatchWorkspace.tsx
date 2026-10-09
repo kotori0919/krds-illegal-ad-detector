@@ -18,7 +18,7 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews }: {
   const [error, setError] = useState(false);
   const [batch, setBatch] = useState<BatchState>();
   const [saving, setSaving] = useState(false);
-  const [scope, setScope] = useState("quick");
+  const [scope, setScope] = useState<"entry" | "quick" | "automatic">("quick");
   const [localScan, setLocalScan] = useState(false);
   const coordinator = useRef<BatchCoordinator | undefined>(undefined);
   const unsubscribe = useRef<(() => void) | undefined>(undefined);
@@ -49,8 +49,10 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews }: {
   const start = (): void => {
     if (!preview?.valid || !localScan || coordinator.current) return;
     const targets = preview.rows.flatMap((row) => row.status === "valid" && row.target ? [row.target] : []);
-    const current = new BatchCoordinator(host, targets, scope === "quick"
-      ? { maxPages: 50, maxDepth: 2, timeoutSec: 600 } : { maxPages: 200, maxDepth: 4, timeoutSec: 1500 });
+    const current = new BatchCoordinator(host, targets, scope === "entry"
+      ? { maxPages: 1, maxDepth: 0, timeoutSec: 60 }
+      : scope === "quick" ? { maxPages: 50, maxDepth: 2, timeoutSec: 600 }
+        : { maxPages: 200, maxDepth: 4, timeoutSec: 1500 });
     coordinator.current = current; unsubscribe.current = current.subscribe(setBatch);
     setMessage("사이트를 한 곳씩 점검합니다. 화면을 바꾸어도 현재 작업은 유지됩니다."); setError(false);
     operate(current.start());
@@ -103,6 +105,7 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews }: {
       <h2>2. 미리보기 확인 후 시작</h2><p>{fileName} · 점검 가능 {preview.valid} · 오류 {preview.invalid} · 중복 {preview.duplicate}</p>
       <ul className="batch-targets">{preview.rows.map((row) => <li key={row.row}><strong>{row.row}행 · {rowLabels[row.status]}</strong><span>{row.target?.label}</span><span className="mono">{row.target?.entryUrl}</span>{row.reason ? <span>{row.reason}</span> : null}</li>)}</ul>
       <fieldset className="scope-options"><legend>사이트별 점검 범위</legend>
+        <label><input type="radio" name="batch-scope" checked={scope === "entry"} onChange={() => setScope("entry")} /> 입력한 페이지만 — 1페이지·하위 링크 제외·1분</label>
         <label><input type="radio" name="batch-scope" checked={scope === "quick"} onChange={() => setScope("quick")} /> 빠른 점검 — 최대 50페이지·2단계·10분</label>
         <label><input type="radio" name="batch-scope" checked={scope === "automatic"} onChange={() => setScope("automatic")} /> 자동 점검 — 최대 200페이지·4단계·25분</label>
       </fieldset>
