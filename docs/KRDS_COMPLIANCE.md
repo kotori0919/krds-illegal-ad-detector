@@ -13,11 +13,16 @@ ADOPTION_LEDGER.md and the receiving-team handoff.
 | Relation graph/list/detail | [Detail information](https://www.krds.go.kr/html/site/global/global_06.html) | Stable four-layer local service variation; bounded initial nodes, keyboard Enter/Space, selected node/edge provenance and identical original inspector. Equivalent HTML list remains. This is a relationship review aid, not a blocking or attribution verdict. |
 | Case deletion | [Confirmation](https://www.krds.go.kr/html/site/global/global_11.html) | Explicit case/count confirmation, focus trapping, Escape/cancel and trigger focus return. No automatic deletion. |
 | Diagnostics | [Detail information](https://www.krds.go.kr/html/site/global/global_06.html) | Preview build/storage/network/model/signing state without visiting a site or transmitting evidence. |
+| Setup and result hierarchy (`2a8356d`) | [List browsing](https://www.krds.go.kr/html/site/global/global_04.html), [Filtering/sorting](https://www.krds.go.kr/html/site/global/global_10.html) | Group address/scope/start, retain one search and visible filters, move secondary sorting/display settings into disclosure. Desktop summary rail is a local layout variation, not a new top-level navigation stage. Keep 17px body and existing semantic palette/control roles. |
+| Inspector entry and return (`2a8356d`) | [Detail information](https://www.krds.go.kr/html/site/global/global_06.html) | Sticky top return/review actions, stacked label/value at narrow widths, initial result heading focus once and explicit list jump. Preserve raw evidence and query/filter/invoker focus on return. |
 
 Existing semantic tokens, visible focus and non-color status text are reused.
 Automated keyboard/selection/reload checks establish their tested interactions;
 human usability, spoken screen-reader output and organizational KRDS acceptance
 remain external checks unless the candidate handoff explicitly records execution.
+The linked list/detail/filter pages were checked on 2026-10-10. Current web
+observations, local dimensions and limitations are recorded in [UI adoption](UI_ADOPTION_KO.md).
+These rows map implementation choices to guidance; they do not claim KRDS certification.
 
 ## V2.1 Results Workspace mapping (2026-10-08)
 

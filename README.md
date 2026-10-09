@@ -5,7 +5,9 @@ Real Windows-capable public-website illegal-advertisement inspection tool for th
 
 ## Current adoption candidate (0.2.1 / policy 2)
 
-Current implementation and evidence: [adoption ledger](docs/ADOPTION_LEDGER.md).
+Current candidate, observed acceptance and delivery identities: [Korean adoption handoff](docs/ADOPTION_HANDOFF_KO.md).
+Implementation and A01–A14 evidence: [adoption ledger](docs/ADOPTION_LEDGER.md).
+Current screen changes and web validation: [UI adoption](docs/UI_ADOPTION_KO.md).
 Receiving maintainers start with [BUILD_MANUAL](docs/BUILD_MANUAL.md),
 [maintainer guide](docs/MAINTAINER_GUIDE_KO.md) and [operations guide](docs/OPERATIONS_GUIDE_KO.md).
 Official output remains unchanged in shape. Newly executed detections use policy 2;
