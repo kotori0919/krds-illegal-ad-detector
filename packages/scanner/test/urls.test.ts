@@ -22,6 +22,21 @@ describe("normalizeUrlKey", () => {
       normalizeUrlKey("https://example.kr/b?id=102"),
     );
   });
+
+  it("keeps encoded delimiters and literal plus signs distinct from query structure", () => {
+    for (const [encoded, structured] of [
+      ["a=b%26c%3Dd", "a=b&c=d"],
+      ["a%3Db=c", "a=b%3Dc"],
+      ["a=%2B", "a=+"],
+    ]) {
+      expect(normalizeUrlKey(`https://example.kr/p?${encoded}`)).not.toBe(
+        normalizeUrlKey(`https://example.kr/p?${structured}`),
+      );
+    }
+    expect(normalizeUrlKey("https://example.kr/p?tag=%ED%95%9C%EA%B8%80&tag=x%26y")).toBe(
+      normalizeUrlKey("https://example.kr/p?tag=x%26y&tag=%ED%95%9C%EA%B8%80"),
+    );
+  });
 });
 
 describe("isSameSite", () => {

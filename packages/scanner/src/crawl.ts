@@ -14,7 +14,7 @@ import { performance } from "node:perf_hooks";
 import { DEFAULT_SCAN_LIMITS, type ScanIssue, type ScanLimits } from "@krds-detector/contracts";
 import { CrawlQueue, type DiscoveredPage, type ObservedExternal, type QueuedPage } from "./queue.js";
 import { ScanDeadline, pageConcurrency } from "./deadline.js";
-import { normalizeUrl } from "./urls.js";
+import { isSameSite, normalizeUrl } from "./urls.js";
 import { classifyAccess, classifyPageError } from "./access.js";
 import { CRAWLER_USER_AGENT, discoverSitemaps } from "./sitemap.js";
 import { PublicNetworkPolicy, startPublicNetworkProxy, type PublicNetworkBoundary, type PublicNetworkProxy } from "./public-network.js";
@@ -283,6 +283,13 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       let status = 0;
       let finalUrl = next.url;
       let issue: ScanIssue | undefined;
+      const requireSameSiteDocument = (): void => {
+        finalUrl = page.url();
+        if (isSameSite(entry.host, finalUrl)) return;
+        observeExternal({ url: finalUrl, from: next.url, kind: "redirect" });
+        issue = { kind: "navigation", retryable: false };
+        throw new Error("external-redirect");
+      };
       // Hostile-page caps: abort oversized media/fonts, record externals.
       const seenRequests: string[] = [];
       const decide = (req: Request): "abort" | "continue" => {
@@ -349,7 +356,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           timeout: Math.min(budget, 20000),
         });
         status = response?.status() ?? 0;
-        finalUrl = page.url();
+        requireSameSiteDocument();
         navigating = false;
         const headers = response?.headers() ?? {};
         issue = classifyAccess(status, headers);
@@ -363,6 +370,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         if (loadMs > 0) {
           await page.waitForLoadState("domcontentloaded", { timeout: loadMs }).catch(() => undefined);
         }
+        requireSameSiteDocument();
         const readAccessDocument = async () => page.evaluate(() => ({
           title: document.title,
           passwordForm: document.querySelector("form input[type=password]") !== null,
@@ -372,11 +380,12 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         if (issue) throw new Error(`access-${issue.kind}`);
         const waitMs = Math.min(settleBudget, remainingPageMs(), deadline.operationTimeoutMs(settleBudget));
         if (waitMs > 0) await page.waitForTimeout(waitMs);
+        requireSameSiteDocument();
         if (waitMs > 0) issue = classifyAccess(status, headers, await readAccessDocument());
         if (issue) throw new Error(`access-${issue.kind}`);
         // Frame snapshot after settle: resolve absolute srcs, capture nested html.
         const described = await describePage(page, limits.maxFrameDepth);
-        finalUrl = page.url();
+        requireSameSiteDocument();
         const frameSnapshots: FrameSnapshot[] = [];
         const frameEls = page.frames();
         for (const f of frameEls.slice(1, 16)) {
@@ -461,6 +470,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           elapsedMs: performance.now() - pageStarted,
           discoverySource: next.discoverySource,
         };
+        requireSameSiteDocument();
         if (options.onLivePage) await options.onLivePage(page, snapshot, liveFrames, imageResponses, next.pageRank);
         // Snapshot copies are optional evidence; official live detection has
         // already run and gets the shared deadline first.
@@ -488,7 +498,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           issue,
           discoverySource: next.discoverySource,
           failureReason: options.signal?.aborted ? "cancelled-during-analysis"
-            : error instanceof Error && error.message === "robots-disallowed" ? "robots-disallowed" : `access-${issue.kind}`,
+            : error instanceof Error && ["robots-disallowed", "external-redirect"].includes(error.message) ? error.message : `access-${issue.kind}`,
         };
       } finally {
         activePages.delete(page);

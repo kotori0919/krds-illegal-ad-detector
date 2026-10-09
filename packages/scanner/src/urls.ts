@@ -23,7 +23,7 @@ export function normalizeUrlKey(raw: string): string {
   const params = [...u.searchParams.entries()].sort(([a, ka], [b, kb]) =>
     a < b ? -1 : a > b ? 1 : ka < kb ? -1 : ka > kb ? 1 : 0,
   );
-  const query = params.map(([k, v]) => `${k}=${v}`).join("&");
+  const query = new URLSearchParams(params).toString();
   const path = u.pathname.length > 1 ? u.pathname.replace(/\/+$/, "") : "/";
   return `${u.protocol}//${u.host}${path}${query ? `?${query}` : ""}`;
 }

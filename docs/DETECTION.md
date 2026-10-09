@@ -191,7 +191,19 @@ creates an official finding.
 Trailing-slash, http/https equivalence where evaluation requires it,
 fragment exclusion, query-parameter ordering normalized; query **values**
 preserved (different values may be different pages). No aggressive
-query-stripping merges.
+query-stripping merges. Sorted query pairs are serialized with URL encoding,
+so a value containing `&` or `=` cannot collide with multiple query parameters.
+Literal plus signs remain distinct from spaces; duplicate values and Unicode
+remain represented in the normalized key. The original URL is still visited
+and retained in official records.
+
+Main-frame redirects must retain the entry host (including its port) before
+access-document reads and live detection. An outside final URL is retained as
+an observed redirect and a failed page with reason `external-redirect`; its
+body and links are not analyzed or recursively crawled. This check also runs
+after document parsing and settling to cover script/meta redirects. HTTP and
+HTTPS on the same host remain allowed. External iframe inspection remains
+available with its original frame URL and selector chain.
 
 ## 10. Output validation (release gate)
 
