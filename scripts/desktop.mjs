@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import console from "node:console";
-import { cp, mkdir } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import process from "node:process";
 import { inventory, json, npm, root, run, sha256, sourceIdentity, stage, verifyFiles, workerName, writeJson } from "./build-support.mjs";
@@ -38,6 +39,7 @@ if (action === "resources") {
   await cp(join(root, "scripts/windows-runtime.lock.json"), join(stage, "resources-manifest.json"));
 } else if (action === "build" || action === "package") {
   const env = { ...process.env, KRDS_WINDOWS_TARGET: target };
+  let nsisLauncher;
   if (target === "x86_64-pc-windows-gnullvm") {
     if (!process.env.KRDS_LLVM_MINGW || !process.env.KRDS_NSIS_ROOT) throw new Error("GNU build requires KRDS_LLVM_MINGW and KRDS_NSIS_ROOT; see BUILD_MANUAL.md");
     const llvm = resolve(process.env.KRDS_LLVM_MINGW);
@@ -48,7 +50,12 @@ if (action === "resources") {
     const webview = metadata.packages.find(pkg => pkg.name === "webview2-com-sys");
     if (!webview) throw new Error("Locked WebView2 loader package missing; cargo fetch --locked first");
     await cp(join(resolve(webview.manifest_path,".."),"x64/WebView2Loader.dll"),join(stage,"WebView2Loader.dll"));
-    env.PATH = [join(llvm,"bin"),join(nsis,"bin"),process.env.PATH].join(process.platform === "win32" ? ";" : ":");
+    // Tauri deliberately removes NSISDIR before invoking makensis. Restore the
+    // selected relocatable tool root inside an owned, temporary launcher.
+    nsisLauncher = await mkdtemp(join(tmpdir(), "krds-nsis-"));
+    const quote = value => `'${value.replaceAll("'", "'\\''")}'`;
+    await writeFile(join(nsisLauncher,"makensis"), `#!/bin/sh\nexport NSISDIR=${quote(join(nsis,"share/nsis"))}\nexec ${quote(join(nsis,"bin/makensis"))} "$@"\n`, {mode:0o700});
+    env.PATH = [nsisLauncher,join(llvm,"bin"),process.env.PATH].join(":");
     env.NSISDIR = join(nsis,"share/nsis");
     env.CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_LINKER = "x86_64-w64-mingw32-clang";
     env.CC_x86_64_pc_windows_gnullvm = "x86_64-w64-mingw32-clang";
@@ -59,7 +66,11 @@ if (action === "resources") {
   if (target.endsWith("gnullvm")) args.push("--config","src-tauri/tauri.gnullvm.conf.json");
   if (action === "build") args.push("--no-bundle");
   args.push("--","--locked","--offline");
-  await run(process.execPath,[join(root,"node_modules/@tauri-apps/cli/tauri.js"),...args],{env});
+  try {
+    await run(process.execPath,[join(root,"node_modules/@tauri-apps/cli/tauri.js"),...args],{env});
+  } finally {
+    if (nsisLauncher) await rm(nsisLauncher,{recursive:true,force:true});
+  }
   if (action === "package") {
     const manifest = await json(join(stage,"build-manifest.json"));
     if (manifest.source.sourceSha256 !== (await sourceIdentity()).sourceSha256) throw new Error("Source changed during packaging; reject stale build");

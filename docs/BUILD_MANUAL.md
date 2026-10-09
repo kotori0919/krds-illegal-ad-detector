@@ -43,7 +43,7 @@ npm run build:desktop
 npm run package:windows
 ```
 
-LLVM MinGW는 clang 23.1.1/UCRT 배포의 `bin`, `LICENSE.TXT`, `x86_64-w64-mingw32/bin/libunwind.dll`을 포함해야 한다. NSIS 3.09 루트는 `bin/makensis`와 `share/nsis`를 포함해야 한다. 스크립트가 `NSISDIR`, linker, `RC=llvm-rc`를 해당 자식 프로세스에만 설정한다. WebView2Loader.dll은 **locked Cargo**의 webview2-com-sys에서 얻는다. 배포 루트 파일을 임의 DLL로 교체하지 않는다. 설치본 manifest에 compiler/NSIS 버전과 실행 파일/loader/license 해시를 남긴다. LLVM/NSIS를 저장소가 자동 설치하지 않는다.
+LLVM MinGW는 clang 23.1.1/UCRT 배포의 `bin`, `LICENSE.TXT`, `x86_64-w64-mingw32/bin/libunwind.dll`을 포함해야 한다. NSIS 3.09 루트는 `bin/makensis`와 `share/nsis`를 포함해야 한다. Tauri가 NSIS 환경 변수를 제거하므로 저장소 스크립트가 선택한 루트의 `NSISDIR`을 복원하는 임시 launcher를 만들고 종료 후 제거한다. 사용자 홈의 wrapper를 요구하지 않는다. linker와 `RC=llvm-rc`도 자식 프로세스에만 설정한다. WebView2Loader.dll은 **locked Cargo**의 webview2-com-sys에서 얻는다. 배포 루트 파일을 임의 DLL로 교체하지 않는다. 설치본 manifest에 compiler/NSIS 버전과 실행 파일/loader/license 해시를 남긴다. LLVM/NSIS를 저장소가 자동 설치하지 않는다.
 
 ## 별도 경로: Windows MSVC
 
