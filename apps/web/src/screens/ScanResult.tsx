@@ -170,6 +170,7 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
   const extraLoadError = extraRead.state === "error";
   const accessLimited = detailBundle?.pageOutcomes.filter((page) => page.issue && ["challenge", "denied", "rate-limit", "login-required"].includes(page.issue.kind)) ?? [];
   const noCheckedCoverage = !!detailBundle && detailBundle.coverage.checkedPages === 0;
+  const collectionLimited = detailBundle?.pageOutcomes.filter((page) => page.collectionIssues?.length) ?? [];
 
   useEffect(() => {
     let alive = true;
@@ -344,6 +345,13 @@ function SessionResults({ host, sessionId, onEvidence, onExport, onRestart, rest
               : detailLoadError ? <div><p role="alert" className="error">점검 범위를 불러오지 못했습니다.</p><button type="button" className="secondary" onClick={coverageRead.retry}>점검 범위 다시 불러오기</button></div>
                 : detailBundle ? <>
               <p>확인한 페이지 {String(detailBundle.coverage.checkedPages)}개 · 실패한 페이지 {String(detailBundle.coverage.failedPages.length)}개</p>
+              {collectionLimited.length ? <div role="status">
+                <p>수집·보관 제한이 기록된 페이지 {collectionLimited.length}개. 탐지 0건이 전체 내용의 정상 판정을 뜻하지 않습니다.</p>
+                <ul aria-label="수집·보관 제한">{collectionLimited.map((page) => <li key={page.url}>
+                  {page.url} — {page.collectionIssues!.join(", ")}
+                </li>)}</ul>
+                {collectionLimited.some(page => page.collectionIssues?.some(issue => issue === "html-snapshot-truncated" || issue === "frame-snapshot-truncated")) ? <p>보관용 HTML 사본이 일부 생략됐습니다. 사본 수집 전에 실행한 실시간 탐지의 실패를 뜻하지 않습니다.</p> : null}
+              </div> : null}
               {detailBundle.pageOutcomes.some((page) => page.issue) ? <ul aria-label="접근 및 점검 제한">{detailBundle.pageOutcomes.filter((page) => page.issue).map((page) => <li key={page.url}>
                 {page.url} — {scanIssueLabel[page.issue!.kind]}{page.issue!.retryable ? " · 재시도 가능 (다음 점검에서 다시 확인)" : ""}{page.issue!.retryAfterMs !== undefined ? ` · 서버 대기 시간 ${page.issue!.retryAfterMs / 1000}초 이내 적용` : ""}
               </li>)}</ul> : null}

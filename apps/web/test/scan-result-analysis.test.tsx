@@ -37,6 +37,14 @@ async function renderResult(detail: ScanDetailBundle, options: { status?: ScanSe
 }
 
 describe("stored OCR and partial coverage presentation", () => {
+  it("shows stored collection limits even when the page succeeded with zero findings", async () => {
+    await renderResult({ ...bundle, pageOutcomes: [{ url: result.meta.entry_url, finalUrl: result.meta.entry_url,
+      status: 200, outcome: "checked", depth: 0, discoverySource: "entry", collectionIssues: ["html-snapshot-truncated", "network-policy-denied"] }] }, { view: "coverage" });
+    const limits = screen.getByRole("list", { name: "수집·보관 제한" });
+    expect(within(limits).getByText(/html-snapshot-truncated, network-policy-denied/)).toBeDefined();
+    expect(screen.getByText(/탐지 0건이 전체 내용의 정상 판정을 뜻하지 않습니다/)).toBeDefined();
+    expect(screen.getByText(/확인한 페이지 1개 · 실패한 페이지 0개/)).toBeDefined();
+  });
   it("shows OCR original text and rule decision for an image without a repeated-creative finding", async () => {
     await renderResult(bundle);
     const analysis = screen.getByRole("region", { name: "이미지 문자 분석" });

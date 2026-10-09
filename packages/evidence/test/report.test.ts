@@ -7,6 +7,23 @@ import { createOperationalWorkbook } from "../src/report.js";
 const official = JSON.parse(readFileSync(new URL("./fixtures/sample_result_617_sanitized.json", import.meta.url), "utf8")) as OfficialResult;
 const techniqueNames = { HOMOGLYPH: "유사 문자", JAMO: "자모 분리", TRANSPARENT: "투명 처리", OFFSCREEN: "화면 밖 배치" };
 describe("real operational XLSX", () => {
+  it("retains collection limits separately from successful page status and official findings", async () => {
+    const empty = { ...official, findings: [] };
+    const bytes = await createOperationalWorkbook([{ sessionId: "limited", official: empty, coverage: {
+      coverage: { checkedPages: 1, failedPages: [], timedOut: false }, pageOutcomes: [{
+        url: empty.meta.entry_url, finalUrl: empty.meta.entry_url, status: 200, outcome: "checked", depth: 0,
+        collectionIssues: ["html-snapshot-truncated", "network-policy-denied"], discoverySource: "entry",
+      }],
+    } }]);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes as unknown as ExcelJS.Buffer);
+    const page = book.getWorksheet("페이지·점검 범위")!.getRow(2);
+    expect(page.getCell(4).value).toBe("확인 완료");
+    expect(page.getCell(8).value).toBe("html-snapshot-truncated, network-policy-denied");
+    expect(book.getWorksheet("탐지 상세")!.rowCount).toBe(1);
+    const summary = new Map<string, ExcelJS.CellValue>();
+    book.getWorksheet("점검 요약")!.eachRow(row => summary.set(String(row.getCell(2).value), row.getCell(3).value));
+    expect(summary.get("수집·보관 제한이 기록된 페이지")).toBe(1);
+  });
   it("keeps operator judgment separate from reading state and exports saved case provenance", async () => {
     const finding = official.findings[0]!;
     const bytes = await createOperationalWorkbook([{ sessionId: "case1", official,

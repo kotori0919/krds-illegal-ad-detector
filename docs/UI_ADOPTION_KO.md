@@ -62,4 +62,5 @@ V21_EVIDENCE_DIR=/tmp/krds-ui-evidence node benchmarks/ui-v21-workspace-smoke.mj
 
 이 UI 변경이 포함된 설치본의 native 사용자 과업과 실제 사용자·보조기기 수용은
 아직 실행하지 않았다. 이전 509 설치본의 native 검증과 새 웹 검증을 구분한다.
-외부 두 사이트의 일괄 점검은 사용자가 승인한 정확한 주소가 없어 실행하지 않았다.
+공개 두 대상은 이후 사용자의 직접 선정 지시로 실제 Windows 빌드에서 점검했다.
+[대상·결과·제한과 후속 화면 수정](PUBLIC_BATCH_OBSERVED_KO.md)을 별도로 기록한다.

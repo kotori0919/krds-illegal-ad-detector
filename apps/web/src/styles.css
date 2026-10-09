@@ -335,6 +335,7 @@ body {
 .case-storage summary { padding-block: var(--krds-semantic-padding-1); min-height: auto; }
 .case-storage > [role="alert"] { margin-block: var(--krds-semantic-gap-2); color: var(--krds-semantic-error); }
 .result-site { margin: 0; color: var(--krds-semantic-text-secondary); overflow-wrap: anywhere; }
+.coverage-summary { min-width: 0; overflow-wrap: anywhere; }
 .result-header .eyebrow { margin: 0; }
 .result-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: var(--krds-semantic-padding-4) 0; border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); border-radius: var(--krds-semantic-radius-control); }
 .result-overview > div { display: flex; align-items: center; justify-content: space-between; gap: var(--krds-semantic-gap-3); padding: var(--krds-semantic-padding-1) var(--krds-semantic-padding-3); }

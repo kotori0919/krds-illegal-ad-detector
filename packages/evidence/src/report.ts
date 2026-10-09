@@ -73,7 +73,7 @@ async function renderOperationalWorkbook(sessions: readonly ReportSession[], opt
   const summary = sheet(book, "점검 요약", ["세션", "항목", "내용"], [24, 30, 80]);
   const groups = sheet(book, "반복 항목", ["세션", "업무용 묶음 번호", "관측 문구", "기법명", "공식 기법 코드", "기록 수", "영향 페이지 수", "기록된 링크 주소", "대표 기록", "검토 상태", "범례"], [24, 30, 50, 20, 20, 14, 18, 60, 20, 24, 60]);
   const details = sheet(book, "탐지 상세", ["세션", "원본 기록 번호", "페이지 주소", "원문", "공식 기법 코드", "기법명", "정확한 요소 위치", "검토 상태", "사람의 검토 메모", "담당자의 판단"], [24, 20, 65, 80, 20, 20, 80, 20, 60, 24]);
-  const coverage = sheet(book, "페이지·점검 범위", ["세션", "요청 주소", "최종 주소", "점검 상태", "HTTP 상태", "미점검 사유", "발견 경로"], [24, 65, 65, 24, 14, 70, 24]);
+  const coverage = sheet(book, "페이지·점검 범위", ["세션", "요청 주소", "최종 주소", "점검 상태", "HTTP 상태", "미점검 사유", "발견 경로", "수집·보관 제한"], [24, 65, 65, 24, 14, 70, 24, 70]);
   const extra = sheet(book, "추가 분석", ["세션", "분석 종류", "기록 번호", "관련 주소", "관측 원문", "관측·파생 구분", "설명"], [24, 30, 24, 65, 80, 30, 70]);
   const reviews = sheet(book, "검토 기록", ["세션", "원본 기록 번호", "사람의 검토 상태", "메모", "기록 시각 (UTC)", "보관 범위", "담당자의 판단"], [24, 20, 24, 80, 26, 65, 24]);
   const targets = options.targets || sessions.length > 1 ? sheet(book, "대상 요약", ["세션", "사이트명", "시작 주소", "원본 탐지 수", "영향 페이지 수", "확인 페이지 수", "실패 페이지 수", "일괄 대상 번호", "진행 상태", "미완료 사유"], [24, 30, 65, 18, 20, 20, 20, 18, 24, 65]) : undefined;
@@ -95,6 +95,7 @@ async function renderOperationalWorkbook(sessions: readonly ReportSession[], opt
     addSummary("탐지된 페이지 수", new Set(official.findings.map((finding) => finding.url)).size);
     addSummary("성공적으로 확인한 페이지", session.coverage?.coverage.checkedPages ?? "알 수 없음");
     addSummary("실패한 페이지", session.coverage?.coverage.failedPages.length ?? "알 수 없음");
+    addSummary("수집·보관 제한이 기록된 페이지", session.coverage?.pageOutcomes.filter(page => page.collectionIssues?.length).length ?? "알 수 없음");
     addSummary("점검 범위", !session.coverage ? "범위 기록 없음; 탐지 페이지 수로 점검 범위를 추정하지 않음"
       : session.coverage.coverage.cancelled ? "중지 전 일부 결과" : session.coverage.coverage.timedOut ? "제한 시간 도달; 일부 결과" : "저장된 점검 범위 참조; 전체 사이트 점검을 보장하지 않음");
     const visual = session.summary?.visualAnalysisCoverage;
@@ -140,7 +141,7 @@ async function renderOperationalWorkbook(sessions: readonly ReportSession[], opt
     if (!session.coverage) row(coverage, [session.sessionId, official.meta.entry_url, "", "알 수 없음", "", "저장된 점검 범위 기록 없음", "알 수 없음"]);
     else if (session.coverage.pageOutcomes.length) for (const outcome of session.coverage.pageOutcomes) {
       row(coverage, [session.sessionId, outcome.url, outcome.finalUrl, outcome.issue ? scanIssueLabel[outcome.issue.kind] : outcome.outcome === "checked" ? "확인 완료" : "미점검", outcome.status,
-        outcome.reason ?? "", outcome.discoverySource ? discoverySourceLabel[outcome.discoverySource] : "알 수 없음"]);
+        outcome.reason ?? "", outcome.discoverySource ? discoverySourceLabel[outcome.discoverySource] : "알 수 없음", outcome.collectionIssues?.join(", ") ?? ""]);
     } else {
       row(coverage, [session.sessionId, official.meta.entry_url, "", "페이지별 기록 없음", "", `확인 ${session.coverage.coverage.checkedPages}개; 개별 확인 페이지를 추정하지 않음`, "알 수 없음"]);
       for (const failure of session.coverage.coverage.failedPages) row(coverage, [session.sessionId, failure.url, "", "미점검", failure.status, failure.reason, "알 수 없음"]);
