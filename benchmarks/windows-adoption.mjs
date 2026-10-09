@@ -33,10 +33,16 @@ const pause=ms=>new Promise(done=>globalThis.setTimeout(done,ms));
 let app,browser,page;
 async function launch(){
   app=spawn(executable,[],{stdio:"ignore",env:{...process.env,WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:"--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1"}});
-  for(let i=0;i<120;i++){try{if((await globalThis.fetch("http://127.0.0.1:9222/json/version")).ok)break;}catch{/* WebView is still starting. */}await pause(250);}
+  let launchError;
+  app.once("error",error=>{launchError=error;});
+  for(let i=0;i<120;i++){
+    if(launchError)throw launchError;
+    if(app.exitCode!==null)throw Error(`Native app exited before WebView became available: ${app.exitCode}`);
+    try{if((await globalThis.fetch("http://127.0.0.1:9222/json/version")).ok)break;}catch{/* WebView is still starting. */}await pause(250);
+  }
   browser=await chromium.connectOverCDP("http://127.0.0.1:9222");
   page=browser.contexts()[0].pages()[0];page.setDefaultTimeout(20000);
-  await page.getByLabel("점검할 웹사이트",{exact:true}).waitFor();
+  await page.getByRole("textbox",{name:"점검할 웹사이트 필수",exact:true}).waitFor();
 }
 async function close(){
   await browser?.close();browser=undefined;
@@ -81,8 +87,12 @@ try{
   report.appSha256=createHash("sha256").update(await readFile(executable)).digest("hex");
   report.build=JSON.parse(await readFile(join(dirname(executable),"binaries/build-manifest.json"),"utf8"));
   await launch();
+  const hostToken=JSON.parse(execFileSync("powershell.exe",["-NoProfile","-File",resolve("benchmarks/windows-sandbox-probe.ps1"),"-RuntimeRoot",join(dirname(executable),"binaries"),"-ProcessId",String(app.pid)],{encoding:"utf8"}).replace(/^\uFEFF/,"").trim());
+  assert.equal(hostToken.length,1,"must identify the actual installed host token");
+  assert.equal(hostToken[0].integrityRid,8192,"operator rehearsal must run at ordinary user integrity");
+  report.host=hostToken[0];
   await subscribeEvents();
-  await page.getByLabel("점검할 웹사이트",{exact:true}).fill(entry);
+  await page.getByRole("textbox",{name:"점검할 웹사이트 필수",exact:true}).fill(entry);
   await page.locator("summary").first().click();
   await page.getByLabel("직접 설정",{exact:true}).check();
   await page.getByLabel("최대 페이지 수",{exact:true}).fill("2");
@@ -141,13 +151,13 @@ try{
   assert.deepEqual(await readFile(join(output,"result.json")),original);
   assert.deepEqual(await readFile(join(opened.directory,"result.json")),original);
   report.summary={graphAvailable:summary.graphAvailable,assets:JSON.parse(await readFile(join(opened.directory,"evidence.json"),"utf8")).assets};
-  // Exercise the real save chooser through Windows input; no fabricated native result.
+  // A real operator (or the authorized GUI driver) completes the native chooser.
+  // Do not activate a guessed window or synthesize global keys from this harness.
   await page.getByRole("button",{name:"엑셀 보고서 저장",exact:true}).click();
   await pause(1000);
   const workbook=join(output,"native-review.xlsx");
-  const encoded=Buffer.from(`$w=New-Object -ComObject WScript.Shell; $w.AppActivate(${app.pid}) | Out-Null; Start-Sleep -Milliseconds 300; $w.SendKeys('^a'); $w.SendKeys('${workbook.replace(/'/g,"''")}'); $w.SendKeys('{ENTER}')`,"utf16le").toString("base64");
-  execFileSync("powershell.exe",["-NoProfile","-EncodedCommand",encoded]);
-  await page.getByText(/엑셀 보고서 저장 완료:/).waitFor();
+  process.stdout.write(JSON.stringify({phase:"native-save-dialog",pid:app.pid,path:workbook})+"\n");
+  await page.getByText(/엑셀 보고서 저장 완료:/).waitFor({timeout:120000});
   report.workbookBytes=(await readFile(workbook)).length;
   report.checks.push("real native JSON export byte identity / real workbook save chooser");
   await page.screenshot({path:join(output,"native-case-reopened.png"),fullPage:true});

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$RuntimeRoot)
+param([Parameter(Mandatory=$true)][string]$RuntimeRoot,[int]$ProcessId=0)
 $ErrorActionPreference='Stop'
 $ProgressPreference='SilentlyContinue'
 Add-Type -TypeDefinition @'
@@ -29,7 +29,9 @@ public static class RendererToken {
 }
 '@
 $rows=@(Get-CimInstance Win32_Process | Where-Object {
-  $_.ExecutablePath -and $_.ExecutablePath.StartsWith($RuntimeRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.CommandLine -match '--type=renderer'
+  if($ProcessId -gt 0){$_.ProcessId -eq $ProcessId}else{
+    $_.ExecutablePath -and $_.ExecutablePath.StartsWith($RuntimeRoot,[StringComparison]::OrdinalIgnoreCase) -and $_.CommandLine -match '--type=renderer'
+  }
 } | ForEach-Object {
   @{pid=$_.ProcessId;integrityRid=[RendererToken]::Integrity($_.ProcessId);noSandbox=($_.CommandLine -match '--no-sandbox');executable=(Split-Path -Leaf $_.ExecutablePath)}
 })
