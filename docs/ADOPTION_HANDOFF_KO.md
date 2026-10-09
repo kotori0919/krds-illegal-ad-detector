@@ -147,6 +147,17 @@ STATIC_REVIEW/INFERRED는 실행하지 않은 판단, NOT_RUN은 미실행이다
 | 후속 검사 | OBSERVED: 웹 107 pass, b30 통합 491 pass/1 skip. b30 CI `37967025068`, 683px 수정 8b CI `37967491010`의 Linux verify SUCCESS | 최초 2a CI 취소 fixture timeout과 분리. 683px reflow 수정 후 실제 617건 UI smoke 재통과; 이후 Windows/전체 CI는 해당 실행 상태를 따름 |
 | 실제 사람·AT | NOT_RUN | 수신팀의 실제 사용자/보조기기 평가. keyboard 자동화·관찰된 Excel 렌더링으로 대신하지 않음 |
 
+후속 source `87efa87101420dd8c490e99f1eeee07991cc7739`의 CI 결과는 서로 다르다.
+push [verify job 113980972017](https://github.com/snowman0919/krds-illegal-ad-detector/actions/runs/37977943926/job/113980972017)은
+493 pass/1 skip과 build boundary·web build를 통과했지만,
+PR [verify job 113980993130](https://github.com/snowman0919/krds-illegal-ad-detector/actions/runs/37977950671/job/113980993130)은
+`cancelled-scan.test.ts`의 `Test timed out in 40000ms`로 실패했다(492 pass/1 fail/1 skip).
+같은 소스의 로컬 전체 시험은 493 pass/1 skip이었다. 단계별 로컬 조사 30회와 CPU 1개
+제한 조사 30회에서도 재현되지 않았다. 원인은 미확정이며 통과 기록으로 실패를 덮지 않는다.
+후속 테스트 변경은 실패 시 최대 16개의 진행 단계·경과 시간을 오류에 덧붙인다.
+20초 scan 예산, 40초 harness 제한, 취소 후 5초 이내 settlement 조건은 유지한다.
+진단 자체를 timeout 수정 또는 후보 전체 CI 성공으로 읽지 않는다.
+
 Linux 브라우저 fixture는 Vitest setup 전용 `KRDS_TEST_UNSANDBOXED=1`을 명시했다.
 정상 UI/worker는 이 변수를 읽지 않는다. 이 결과로 production 격리를 주장하지 않는다.
 Windows receiving worker는 우회 없이 실행했고 production `chromiumSandbox:true`

@@ -24,8 +24,8 @@
 | A07 | OBSERVED | `082b552` | 모든 페이지 cheap 관측과 bounded live bytes reservoir. early/9th/final/reorder의 동일 후보 선택·이유·coverage; 재방문 없음 |
 | A08 | OBSERVED | `082b552` | 공유 capture/creative asset 참조와 hash 검증. 1/200 finding 공유 바이트 및 실제 큰 JPEG 두 finding의 native 저장·재열기 |
 | A09 | MEASURED_BOUNDED_FIXTURES | `082b552` | 독립 DOM/frame/resource 수집 상한, 삽입 전 후보·graph cap, truncation issue와 bounded 원문 accumulator. 표본 process-tree RSS이며 보편 메모리 상한·p95 증명은 아님 |
-| A10 | OBSERVED_INSTALLED_MSVC; FOLLOWUP_UI_REPLAY | `082b552`, `2a9d98f`; 후속 UI 변경 별도 | 식별 MSVC 일반 사용자 scan→판단/메모/reading→정상 종료→새 실행/재열기→실제 JSON/XLSX Save As, 재크롤 없음·원본 bytes 동일. 후속 실제 React/Tauri adapter 617개 기록 replay에서 결과 초점·목록 jump·필터·메모와 실제 XLSX 617행 확인. native Save As replay와 실제 chooser를 구분; 후속 UI 바이너리 수용 미실행 |
-| A11 | OBSERVED_CONTROLLED_AND_MSVC_UI; FOLLOWUP_UI_REPLAY | `082b552`, `2a9d98f`; 후속 UI 변경 별도 | bounded graph·공유 inspector의 기존 MSVC keyboard 관찰. 후속 화면은 desktop 요약 rail/검토 목록, setup grouping, 상단 sticky 뒤로/검토, 320px 원문 폭 300px·200% CSS zoom·키보드 복귀 확인. 실제 사람/AT와 후속 native 화면은 미실행 |
+| A10 | OBSERVED_INSTALLED_MSVC; FOLLOWUP_UI_REPLAY_AND_NATIVE_REOPEN | `082b552`, `2a9d98f`, `3c8295e`, `359ef05`, `565d9f6` | 식별 MSVC 일반 사용자 scan→판단/메모/reading→정상 종료→새 실행/재열기→실제 JSON/XLSX Save As, 재크롤 없음·원본 bytes 동일. 후속 React/Tauri adapter 617개 기록 replay와 실제 XLSX 617행 확인. 별도 native3c 공개 batch·JSON/XLSX chooser, native359 제한 열 export, native565 보관 케이스 재열기 관찰. 617개 replay를 native 과업으로 전용하지 않음 |
+| A11 | OBSERVED_CONTROLLED_AND_MSVC_UI; FOLLOWUP_UI_REPLAY_AND_NATIVE_REOPEN | `082b552`, `2a9d98f`, `565d9f6` | bounded graph·공유 inspector의 기존 MSVC keyboard 관찰. 후속 desktop 요약 rail/검토 목록, setup grouping, sticky 뒤로/검토, 320px 원문 폭 300px·200% CSS zoom·키보드 복귀는 web replay에서 확인. 실제 native565 재열기에서 제한 안내·수정된 간격 관찰. 실제 사람/AT 수용은 미실행 |
 | A12 | OBSERVED_BOUNDED_HOLDOUT | `082b552` | 합성 6 template, 네 기법 각 TP1/FP0/FN0, 정상 2 FP0, locator 8/8, C1/C3 동등. 공개 웹 일반화·독립 TP21·확률 calibration 근거 아님 |
 | A13 | OBSERVED_RECEIVING_BUILD_AND_UPGRADE; ROLLBACK_STOPPED_NOT_COMPLETED | `082b552`, `70f3033`, `d94ff28`, `c4bb952`, `559e35a`, `703b473`, `50941bd` | Windows clean source 509의 15단계 exit 0, MSVC/NSIS 후보·SDK/compiler/resource 해시. upgrade 종료 0·34 data파일/hash·workbook 보존. 전체 rollback은 사용자 방향 전환으로 중단. 최종 MSVC 복원 후 persistent 33파일·GNU workbook hash 동일, 앱 실행 중 volatile cases/.store.lock 제외. CI run 37959883958의 verify/windows-native/required 모두 SUCCESS |
 | A14 | OBSERVED | `082b552`, `5fb0adc` | 실제 Retry-After/retryAt, 취소·deadline 회귀. 120초 요청을 5초 재요청으로 축소하지 않음; Chromium disposal 지연 무한 대기 제거 |
@@ -70,7 +70,8 @@ MEASURED: 1366×768에서 첫 3행 마지막 bottom은 이전 830.25px, 변경 �
 320px에서 원문 폭은 300px(이전 관찰 132px)이며 원문을 그대로 유지한다. OBSERVED:
 320 reflow, 200% CSS zoom, 키보드 필터·초점 복귀·결과 초점 1회/목록 jump, 판단/메모/reading,
 f372 원문과 묶음 확인, official canonical JSON bytes 동일, 실제 XLSX 617행 및 검토 메모,
-외부 요청 0·errors 0. Save As만 replay이며 후속 UI native Windows 시험은 NOT_RUN이다.
+외부 요청 0·errors 0. 이 617개 과업의 Save As는 replay다. 이후 native3c·359·565의
+별도 과업은 아래 공개 두 대상 절에 기록하며 617개 과업의 native 실행으로 전용하지 않는다.
 별도 실제 BrowserHost preview는 Tauri IPC 없이 임시 preview로 표시하고 잘못된 영구
 저장 장애를 만들지 않았으며 외부 요청이 없었다. 사용자 사용성/AT 수용을 대신하지 않는다.
 
