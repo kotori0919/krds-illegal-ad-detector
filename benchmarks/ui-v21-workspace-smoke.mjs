@@ -172,13 +172,18 @@ try {
   assert.equal(await preview.getByRole("region", { name: "케이스 보관 상태" }).count(), 0);
   assert.equal(await preview.getByRole("alert").count(), 0);
   await preview.screenshot({ path: `${outputDir}/browser-preview-1366x768.png` });
+  await preview.setViewportSize({ width: 683, height: 384 });
+  const zoomViewportGeometry = await preview.getByRole("heading", { name: "점검 결과", exact: true }).evaluate((element) => element.getBoundingClientRect().toJSON());
+  assert(zoomViewportGeometry.width >= 150 && zoomViewportGeometry.height < 100, JSON.stringify(zoomViewportGeometry));
+  assert(await preview.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+  await preview.screenshot({ path: `${outputDir}/browser-preview-683px.png`, fullPage: true });
   assert.deepEqual(errors, []); assert.deepEqual(remoteRequests, []);
   const report = { mode: "offline fixture through production React and Tauri adapter; explicit IPC replay, not native scanner/export",
     officialRecords: 617, affectedPages: 211, reviewPatterns: 19, repeatedRecords: 197, repeatedPages: 197, initialGeometry,
     f372: "found and reviewed; original retained", recordPagination: "20/50", bulkConfirmation: true,
     narrowReflow: true, inspectorGeometry, zoom200: true, keyboardEntryAndFocusReturn: true, resultFocusAndListJump: true, officialCanonicalBytesUnchanged: true,
     xlsx: { sheets: workbook.worksheets.map((sheet) => sheet.name), officialRows: 617, filteredExportStillFull: true, note: true, formulas: false, mode: "real workbook; native Save As replay only" },
-    browserPreview: "explicit preview; no false durable-storage failure; no external requests", remoteRequests, errors,
+    browserPreview: "explicit preview; no false durable-storage failure; no external requests", zoomViewportGeometry, remoteRequests, errors,
     nativeWindows: "NOT_RUN in this UI smoke; separately identified native acceptance", uninstructedTester: "NOT_RUN" };
   await writeFile(`${outputDir}/observed.json`, JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));
 } finally { await browser?.close(); if (app.listening) await new Promise((done) => app.close(done)); }

@@ -37,9 +37,9 @@
 .review-pagination { display: flex; flex-wrap: wrap; align-items: center; gap: var(--krds-semantic-gap-4); }
 .review-pagination button { margin: 0; }
 .page.result-page { max-width: 70rem; padding-top: var(--krds-semantic-padding-3); }
-.result-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--krds-semantic-gap-2) var(--krds-semantic-gap-4); margin-bottom: var(--krds-semantic-gap-3); }
-.result-header > .result-completion { grid-column: 1; grid-row: 2; margin: 0; }
-.result-header > .result-overview { grid-column: 2; grid-row: 2; margin: 0; }
+.result-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--krds-semantic-gap-2) var(--krds-semantic-gap-4); margin-bottom: var(--krds-semantic-gap-3); }
+.result-header > .result-completion { flex: 1 1 12rem; margin: 0; }
+.result-header > .result-overview { flex: 1 1 30rem; min-width: 0; margin: 0; }
 .result-header .result-site { margin: 0; }
 .result-header h1 { margin: 0; }
 .result-export-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--krds-semantic-gap-3); }
@@ -57,6 +57,7 @@
   .result-workspace:not(.inspecting) .result-layout { display: grid; grid-template-columns: 18rem minmax(0, 1fr); gap: var(--krds-semantic-gap-6); align-items: start; }
   .result-workspace:not(.inspecting) .result-summary-panel { padding: var(--krds-semantic-padding-4); border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); border-radius: var(--krds-semantic-radius-control); }
   .result-workspace:not(.inspecting) .result-header { display: flex; flex-direction: column; align-items: stretch; }
+  .result-workspace:not(.inspecting) .result-header > .result-completion, .result-workspace:not(.inspecting) .result-header > .result-overview { flex: none; }
   .result-workspace:not(.inspecting) .result-export-actions { order: 1; }
   .result-workspace:not(.inspecting) .result-overview { grid-template-columns: 1fr; }
   .result-workspace:not(.inspecting) .result-overview > div + div { border-left: 0; border-top: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); }
