@@ -1,5 +1,17 @@
 # GOAL.md
 
+## Current authorized delivery (2026-10-09)
+
+Implement CODEX_NIA_ADOPTION_GOAL.md M0-M5 against dev/bootstrap and keep PR #2
+Draft. Reviewed baseline d14b8fe; preserve later work and historical RCs. The
+current implementation ledger is docs/ADOPTION_LEDGER.md. Internal adoption
+criteria extend the accepted V2.1 product; they are not NIA certification or
+new competition rules. No new Product Freeze approval gate applies.
+Completion requires the operator, maintainer, operations and evaluator
+demonstrations, a separately identified candidate and Korean handoff. External
+acceptance not run must remain explicit. No merge, release publication,
+submission, licensing change or signing credential acquisition is authorized.
+
 # 공공 웹사이트 불법광고 탐지 도구 개발 공모전
 ## Production Goal
 

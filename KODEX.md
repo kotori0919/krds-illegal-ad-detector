@@ -15,6 +15,24 @@ It applies to:
 
 `GOAL.md` defines the current delivery objective.
 
+## Adoption invariants (2026-10-09)
+
+The current user-authorized adoption goal supersedes historical product freezes
+for internal behavior; the official JSON schema and historical artifacts remain
+immutable. Corrected detector output records a new engine/policy version.
+Raw evidence is never replaced by normalization, operator judgment or graph
+projections. Commit validated official output before publishing an exportable
+terminal state; optional evidence failures degrade independently. Cases belong
+in writable per-user storage, never the installation directory. Review revisions
+must reject stale writes. Reopening never crawls or fetches missing evidence.
+
+Keep browser isolation fail-closed, public-only pinned batch transport, bounded
+single-pass work, monotonic deadlines and owned process cleanup. External models
+remain disabled and optional. React uses typed HostBridge operations only.
+KRDS list/detail/keyboard/error behavior applies to saved cases and graph review.
+Build inputs, source/policy identities, migrations and external NOT_RUN acceptance
+must be explicit so a receiving team can build and operate without chat history.
+
 If a temporary task conflicts with this file, this file wins unless the user
 explicitly overrides the conflicting requirement.
 
