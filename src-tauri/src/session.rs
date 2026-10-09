@@ -23,6 +23,22 @@ fn sidecar_watchdog_sec(worker_timeout_sec: u64) -> u64 {
         .min(crate::config::number("deadline", "hardLimitSec"))
 }
 
+#[cfg(any(windows, test))]
+fn bundled_windows_runtime(
+    sidecar: &std::path::Path,
+) -> Result<(std::path::PathBuf, std::path::PathBuf), String> {
+    let directory = sidecar.parent().ok_or("Invalid worker resource location")?;
+    let node = directory.join("node.exe");
+    let browsers = directory.join("ms-playwright");
+    if !node.is_file() {
+        return Err("BUNDLED_NODE_MISSING: Reinstall the complete application package.".into());
+    }
+    if !browsers.is_dir() {
+        return Err("BUNDLED_BROWSER_MISSING: Reinstall the complete application package.".into());
+    }
+    Ok((node, browsers))
+}
+
 #[cfg(windows)]
 use crate::job::JobGuard;
 #[cfg(not(windows))]
@@ -1027,54 +1043,17 @@ impl SessionRegistry {
                 return Err("session cancelled before worker startup".to_string());
             }
         }
-        // The resource worker resolves npm packages relative to its own path.
-        // Keep Node and its browser beside that worker in installed bundles.
-        // The executable-adjacent layout remains valid for portable runs.
+        // Installed execution uses only the worker-adjacent, inventoried
+        // runtime. Caller environment and per-user caches are not fallbacks.
         #[cfg(windows)]
-        let worker_dir = std::path::Path::new(sidecar_path).parent();
-        #[cfg(windows)]
-        let host_dir = std::env::current_exe()
-            .ok()
-            .and_then(|exe| exe.parent().map(std::path::Path::to_path_buf));
-        #[cfg(windows)]
-        let node_bin = worker_dir
-            .map(|dir| dir.join("node.exe"))
-            .filter(|p| p.is_file())
-            .or_else(|| {
-                host_dir
-                    .as_ref()
-                    .map(|dir| dir.join("node.exe"))
-                    .filter(|p| p.is_file())
-            })
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| "node".to_string());
+        let (node_bin, browser_dir) = bundled_windows_runtime(std::path::Path::new(sidecar_path))?;
         #[cfg(not(windows))]
         let node_bin = "node".to_string();
         let mut cmd = std::process::Command::new(&node_bin);
         cmd.arg(sidecar_path);
-        // Browser resolution follows the worker resource first, then the
-        // portable executable layout, then Playwright's per-user cache.
-        // Never hard-code a user profile path.
         #[cfg(windows)]
         {
-            let shell_dir = std::env::var_os("PLAYWRIGHT_BROWSERS_PATH")
-                .map(std::path::PathBuf::from)
-                .filter(|p| p.is_dir())
-                .or_else(|| {
-                    worker_dir
-                        .map(|d| d.join("ms-playwright"))
-                        .filter(|p| p.is_dir())
-                })
-                .or_else(|| {
-                    host_dir
-                        .map(|d| d.join("ms-playwright"))
-                        .filter(|p| p.is_dir())
-                });
-            if let Some(dir) = shell_dir {
-                cmd.env("PLAYWRIGHT_BROWSERS_PATH", dir);
-            } else {
-                cmd.env_remove("PLAYWRIGHT_BROWSERS_PATH");
-            }
+            cmd.env("PLAYWRIGHT_BROWSERS_PATH", browser_dir);
         }
         cmd.args(args)
             .stdin(SyncStdio::piped())
@@ -1210,6 +1189,25 @@ pub(crate) fn load_cancelled_bundle(
 #[cfg(test)]
 mod tests {
     use super::{new_session, SessionRegistry, SessionStatus};
+
+    #[test]
+    fn incomplete_installed_runtimes_are_rejected_before_spawn() {
+        let directory = std::env::temp_dir().join(format!("krds-runtime-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let worker = directory.join("scanner-worker.mjs");
+        let missing_node = super::bundled_windows_runtime(&worker).unwrap_err();
+        assert!(missing_node.starts_with("BUNDLED_NODE_MISSING:"));
+        std::fs::write(directory.join("node.exe"), []).unwrap();
+        let missing_browser = super::bundled_windows_runtime(&worker).unwrap_err();
+        assert!(missing_browser.starts_with("BUNDLED_BROWSER_MISSING:"));
+        std::fs::remove_file(directory.join("node.exe")).unwrap();
+        std::fs::create_dir(directory.join("node.exe")).unwrap();
+        std::fs::create_dir(directory.join("ms-playwright")).unwrap();
+        assert!(super::bundled_windows_runtime(&worker)
+            .unwrap_err()
+            .starts_with("BUNDLED_NODE_MISSING:"));
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn watchdog_grace_is_bounded_by_the_host_hard_limit() {

@@ -1,6 +1,5 @@
 /** Installed Windows adoption path. Real Tauri IPC/worker/files; no IPC replay. */
 import assert from "node:assert/strict";
-import { Buffer } from "node:buffer";
 import { performance } from "node:perf_hooks";
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -15,6 +14,9 @@ if(process.platform!=="win32")throw Error("Run on the authorized Windows test ma
 const executable=resolve(process.argv[2]);
 const output=resolve(process.argv[3]);
 await mkdir(output,{recursive:true});
+const poisonBrowserRoot=process.argv.includes("--poison-browser-root");
+const unapprovedBrowserRoot=join(output,"unapproved browser root");
+if(poisonBrowserRoot)await mkdir(unapprovedBrowserRoot,{recursive:true});
 const image=await readFile(new URL("../fixtures/ocr/banner.png",import.meta.url));
 let requests=0,slowRequests=0,slowClosed=0;
 const fixture=createServer((request,response)=>{
@@ -32,7 +34,7 @@ const entry=`http://127.0.0.1:${fixture.address().port}/`;
 const pause=ms=>new Promise(done=>globalThis.setTimeout(done,ms));
 let app,browser,page;
 async function launch(){
-  app=spawn(executable,[],{stdio:"ignore",env:{...process.env,WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:"--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1"}});
+  app=spawn(executable,[],{stdio:"ignore",env:{...process.env,...(poisonBrowserRoot?{PLAYWRIGHT_BROWSERS_PATH:unapprovedBrowserRoot}:{}),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:"--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1"}});
   let launchError;
   app.once("error",error=>{launchError=error;});
   for(let i=0;i<120;i++){
@@ -68,9 +70,9 @@ async function until(predicate,timeoutMs,message){
 function processSnapshot(sessionId){
   // CIM identities include creation time so PID reuse cannot fabricate an orphan.
   // Keep command lines/installation paths inside this local classification only.
-  const runtimeRoot=join(dirname(executable),"binaries")+"\\";
-  const script=`$root='${runtimeRoot.replace(/'/g,"''")}';$session='${sessionId}';$rows=@(Get-CimInstance Win32_Process | ForEach-Object { $path=[string]$_.ExecutablePath;$command=[string]$_.CommandLine;[pscustomobject]@{pid=[int]$_.ProcessId;parentPid=[int]$_.ParentProcessId;createdAt=$(if($_.CreationDate){$_.CreationDate.ToUniversalTime().ToString('o')}else{''});name=[string]$_.Name;runtimeOwned=$path.StartsWith($root,[StringComparison]::OrdinalIgnoreCase);sessionOwned=$command.Contains($session);worker=($command.Contains($session) -and $command -match 'scanner-worker');renderer=($command -match '--type=renderer');noSandbox=($command -match '--no-sandbox')}});ConvertTo-Json -InputObject $rows -Depth 3 -Compress`;
-  const text=execFileSync("powershell.exe",["-NoProfile","-EncodedCommand",Buffer.from(script,"utf16le").toString("base64")],{encoding:"utf8"});
+  const args=["-NoProfile","-File",resolve("benchmarks/windows-sandbox-probe.ps1"),"-RuntimeRoot",join(dirname(executable),"binaries"),"-Snapshot"];
+  if(sessionId)args.push("-SessionId",sessionId);
+  const text=execFileSync("powershell.exe",args,{encoding:"utf8"});
   return JSON.parse(text.replace(/^\uFEFF/,"").trim());
 }
 const processIdentity=row=>`${row.pid}:${row.createdAt}`;
@@ -82,7 +84,8 @@ function workerTree(rows,sessionId){
   while(changed){changed=false;for(const row of rows)if(ids.has(row.parentPid)&&!ids.has(row.pid)){ids.add(row.pid);changed=true;}}
   return rows.filter(row=>ids.has(row.pid));
 }
-const report={scope:"installed native Windows UI + worker + filesystem + restart, no fabricated IPC responses",checks:[]};
+const report={scope:"installed native Windows UI + worker + filesystem + restart, no fabricated IPC responses",
+  browserRootMode:poisonBrowserRoot?"poisoned-existing-empty-directory":"inherited-normal",inheritedBrowserRootPresent:Boolean(process.env.PLAYWRIGHT_BROWSERS_PATH),checks:[]};
 try{
   report.appSha256=createHash("sha256").update(await readFile(executable)).digest("hex");
   report.build=JSON.parse(await readFile(join(dirname(executable),"binaries/build-manifest.json"),"utf8"));
@@ -107,7 +110,7 @@ try{
     renderers=JSON.parse(bytes.replace(/^\uFEFF/,"").trim());
   }
   assert.ok(renderers.length>0,"must observe a real scanner renderer");
-  assert.ok(renderers.every(row=>!row.noSandbox&&row.integrityRid>=0&&row.integrityRid<=4096),"renderer must run at low/untrusted Windows integrity without no-sandbox");
+  assert.ok(renderers.every(row=>row.noSandbox===false&&row.integrityRid>=0&&row.integrityRid<=4096),"renderer must run at low/untrusted Windows integrity without no-sandbox");
   report.sandbox={productionLaunch:true,renderers};
   await page.getByRole("heading",{name:"점검 결과",exact:true}).waitFor({timeout:90000});
   report.uiStartToExportableMs=performance.now()-uiStarted;
@@ -172,7 +175,7 @@ try{
   await until(()=>slowRequests>0,10000,"the real fixture must receive the held /slow navigation before cancel");
   const ownedProcesses=workerTree(processSnapshot(cancelled.id),cancelled.id);
   assert.ok(ownedProcesses.some(row=>row.renderer),"must observe the actual cancelling worker renderer");
-  assert.ok(ownedProcesses.filter(row=>row.renderer).every(row=>!row.noSandbox),"cancelled scan must retain production sandbox configuration");
+  assert.ok(ownedProcesses.filter(row=>row.renderer).every(row=>row.noSandbox===false),"cancelled scan must retain production sandbox configuration");
   const cancelStarted=performance.now();
   await invoke("scan_cancel",{sessionId:cancelled.id});
   let terminal;
