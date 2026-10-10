@@ -1,16 +1,17 @@
 # 도입 구현 원장
 
-검토 기준은 `d14b8feadf60a174d3d74ad47e49ba13072c84c7`이다. 설치 검증한 네이티브 후보 소스는
-`50941bd99f9d09d1b7abec93417a94d659c5dcb2`, 브랜치는 `dev/bootstrap`, PR #2는 Draft다.
+검토 기준은 `d14b8feadf60a174d3d74ad47e49ba13072c84c7`이다. 현재 설치 검증한 후보 소스는
+`565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`, 브랜치는 `dev/bootstrap`, PR #2는 Draft다.
 감사 재현 자료를 회귀 입력으로 사용했으며 기준 소스로 현재 checkout을 덮어쓰지 않았다.
 과거 RC와 중간 GNU/MSVC 후보를 보존한다. 현재 앱은 `0.2.1`, 공식 tool version은
 `0.2.1-policy2`다. 공식 contract v0, Case 1, detail 2, config 1, policy 2를 구분한다.
 정확한 후보와 운영 수용 판정은 [채택 인계](ADOPTION_HANDOFF_KO.md)가 기준이다.
-후속 UI와683px 수정, 실제 공개native3c·보고서native359·화면재열기565를 위 설치
-후보와 구분한다. 현재 후보 source는 `565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`, build ID는
+후속 UI와683px 수정, 역사 공개native3c·보고서native359·직접 화면재열기565를 현재 설치
+후보의 실행과 구분한다. 현재 후보 source는 `565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`, build ID는
 `0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z`다. Canonical receiving 빌드와 Windows·로컬 artifact verify를 통과했고
-실제 직접 실행에서 보관 케이스를 재열었다. 최신 설치 과업·실제 사람/AT·기관 운영
-수용은 아직 완료 판정하지 않는다. 이후 공개 두 대상 native 점검에서 범위·보고 누락을 관측해 후속 수정했다.
+실제 직접 실행에서 보관 케이스를 재열었다. 재개 후 전체 installer의 upgrade·build rollback·
+제거·프로그램 fresh install, 일반 사용자 단일/공개batch·검토·재열기·JSON/XLSX·실제 Excel
+관찰을 완료했다. 실제 사람/AT·기관 운영 수용은 NOT_RUN이다. 앞선 공개 두 대상 native 점검에서 범위·보고 누락을 관측해 후속 수정했다.
 [공개 대상 결과와 수정 근거](PUBLIC_BATCH_OBSERVED_KO.md)에 실제3c 점검과 후속 웹 replay를 구분한다.
 
 | ID | 현재 상태 | 구현 커밋 | 실행 근거와 적용 범위 |
@@ -27,7 +28,7 @@
 | A10 | OBSERVED_INSTALLED_MSVC; FOLLOWUP_UI_REPLAY_AND_NATIVE_REOPEN | `082b552`, `2a9d98f`, `3c8295e`, `359ef05`, `565d9f6` | 식별 MSVC 일반 사용자 scan→판단/메모/reading→정상 종료→새 실행/재열기→실제 JSON/XLSX Save As, 재크롤 없음·원본 bytes 동일. 후속 React/Tauri adapter 617개 기록 replay와 실제 XLSX 617행 확인. 별도 native3c 공개 batch·JSON/XLSX chooser, native359 제한 열 export, native565 보관 케이스 재열기 관찰. 617개 replay를 native 과업으로 전용하지 않음 |
 | A11 | OBSERVED_CONTROLLED_AND_MSVC_UI; FOLLOWUP_UI_REPLAY_AND_NATIVE_REOPEN | `082b552`, `2a9d98f`, `565d9f6` | bounded graph·공유 inspector의 기존 MSVC keyboard 관찰. 후속 desktop 요약 rail/검토 목록, setup grouping, sticky 뒤로/검토, 320px 원문 폭 300px·200% CSS zoom·키보드 복귀는 web replay에서 확인. 실제 native565 재열기에서 제한 안내·수정된 간격 관찰. 실제 사람/AT 수용은 미실행 |
 | A12 | OBSERVED_BOUNDED_HOLDOUT | `082b552` | 합성 6 template, 네 기법 각 TP1/FP0/FN0, 정상 2 FP0, locator 8/8, C1/C3 동등. 공개 웹 일반화·독립 TP21·확률 calibration 근거 아님 |
-| A13 | OBSERVED_RECEIVING_BUILD_AND_UPGRADE; ROLLBACK_STOPPED_NOT_COMPLETED | `082b552`, `70f3033`, `d94ff28`, `c4bb952`, `559e35a`, `703b473`, `50941bd` | Windows clean source 509의 15단계 exit 0, MSVC/NSIS 후보·SDK/compiler/resource 해시. upgrade 종료 0·34 data파일/hash·workbook 보존. 전체 rollback은 사용자 방향 전환으로 중단. 최종 MSVC 복원 후 persistent 33파일·GNU workbook hash 동일, 앱 실행 중 volatile cases/.store.lock 제외. CI run 37959883958의 verify/windows-native/required 모두 SUCCESS |
+| A13 | OBSERVED_RECEIVING_BUILD_AND_IDENTIFIED_OPERATIONS | `082b552`, `70f3033`, `d94ff28`, `c4bb952`, `559e35a`, `703b473`, `50941bd`, `565d9f6` | clean Windows source build·MSVC/NSIS provenance와 현재565 package/verify. 재개 후509→565 upgrade67파일 보존,565→509 build rollback·565 복귀·일반 제거·프로그램 fresh install95파일/exports 보존. 일반 사용자565 재열기 전후123파일/14케이스 동일. 실제 installer Completed·설치 build/hash 근거이며 새 upgrade/rollback 명령 종료코드 관측으로 전용하지 않음. 역사 GNU rollback 중단은 별도 유지 |
 | A14 | OBSERVED | `082b552`, `5fb0adc` | 실제 Retry-After/retryAt, 취소·deadline 회귀. 120초 요청을 5초 재요청으로 축소하지 않음; Chromium disposal 지연 무한 대기 제거 |
 
 ## 마일스톤과 검증 범위
@@ -37,9 +38,9 @@
 | M0 | `f81f133` checkout·원격·감사 재현, [ADR 0015](ADR/0015-durable-adoption-boundaries.md) | 없음 |
 | M1 | policy 2 text/rendering/location, production 격리, 명시 네트워크 정책, deadline/retry | 공개 웹 일반화는 주장하지 않음 |
 | M2 | 공식 원본 우선 저장, 공유 자산, Case/review 전달·재열기·손상 격리, 최종 MSVC 저장/재열기/export | 미실행 외부 수용과 구분 |
-| M3 | bounded visual/graph·공유 근거 동선, 후속 desktop 요약 rail/검토 목록·setup grouping·sticky inspector와 좁은 화면 실제 React 검증 | 후속 UI 네이티브 후보·실제 사람·AT 수용 별도 |
+| M3 | bounded visual/graph·공유 근거 동선, desktop 요약 rail/검토 목록·setup grouping·sticky inspector, 좁은 화면 React 검증과 설치565의 실제 graph→원본 검토 | 실제 사람·AT 수용 별도 |
 | M4 | typed 확장, 공통 policy/TS-native corpus, clean Windows MSVC build, 관리 배포/진단 | 조직 서명·offline provisioning·라이선스 결정 별도 |
-| M5 | 분리 holdout, 식별 MSVC 후보, receiving build 증거와 한국어 인계, 후속 UI 화면 관찰·새 UI 후보 단회 빌드 | **완료 미판정**. 사용자 UI/UX 확인·새 후보 설치 과업·미실행 외부 수용을 남김. 전체 rollback은 중단 상태로 기록 |
+| M5 | 분리 holdout, 식별565 후보·receiving build, 네 수신팀 역할의 내부 자동 실행 시연·한국어 인계, 일반 사용자 native UI·실제 Excel·build rollback·제거/재설치 보존 | 내부 구현·시연 완료. 실제 사람/AT·기관 채택·서명·라이선스·WebView2 부재/완전 offline 등 외부 수용은 NOT_RUN이며 완료 주장에 포함하지 않음 |
 
 OBSERVED: 설치 후보 소스 509의 통합 검사에서 타입/lint와 491 테스트 통과, 1 skip(80 파일).
 Linux 브라우저 fixture에만 `KRDS_TEST_UNSANDBOXED=1`을 사용했으며 production 격리
@@ -75,12 +76,13 @@ f372 원문과 묶음 확인, official canonical JSON bytes 동일, 실제 XLSX 
 별도 실제 BrowserHost preview는 Tauri IPC 없이 임시 preview로 표시하고 잘못된 영구
 저장 장애를 만들지 않았으며 외부 요청이 없었다. 사용자 사용성/AT 수용을 대신하지 않는다.
 
-전체 rollback은 사용자 방향 전환 시 **NOT_COMPLETED**로 중단됐다. 이후 최종 MSVC 0.2.1을
+역사 GNU rollback은 사용자 방향 전환 시 **NOT_COMPLETED**로 중단됐다. 당시509 MSVC 0.2.1을
 복원했으며 `preservation-restored-021.json`에 build ID
 `0.2.1-x86_64-pc-windows-msvc-a56389284dba-20261009T163714286Z`, 실제 설치 EXE SHA-256
 `3bceb64e5dcd64925cc3eca398b9145bfcf5c39ea869cfb1e88a34d941396a4f`, persistent 33파일과
 GNU workbook hash 보존을 기록했다. 앱 실행 중의 `cases/.store.lock`은 제외했다.
-이 안전 복원은 rollback/일반 제거의 전체 수용 완료가 아니다.
+이 당시 안전 복원은 rollback/일반 제거의 전체 수용 완료가 아니다. 재개 후 완료한
+565→509 build rollback·제거/재설치는 [현재 후보 시연](ADOPTION_HANDOFF_KO.md#최종-후보의-설치운영-시연--2026-10-10-utc)과 별도 receipt로 식별한다.
 
 mock/replay, GNU 설치, MSVC source build, 최종 MSVC 설치를 구분한다. 현재 후보는
 서명 없는 내부 평가용이며 [채택 인계](ADOPTION_HANDOFF_KO.md)의 미실행 행을 성공으로
@@ -104,4 +106,25 @@ UI1366/320+XLSX 제한 열,23집중회귀/타입/lint,5buildboundary 통과. 공
 617건production UI smoke의 실제 card/review 좌표 분리 회귀를 추가했고 첫3행하단748.25px와
 나머지 키보드·원문·JSON/XLSX를 통과했다. 현재565 후보는 단회315.93초package/verify와
 native 보관 케이스 재열기·제한 안내/시각 간격 관측을 완료했다. 원래48파일·공개19파일
-해시를 보존했다. 최신 installer와 full rollback/humanAT 수용으로 전용하지 않는다.
+해시를 보존했다. 이 직접 실행 증거를 설치 수용으로 전용하지 않는다.
+
+## 현재565 설치본의 운영·인계 마감
+
+OBSERVED: elevated installer 자동화와 일반 사용자 운영을 구분했다. Explorer 시작 host
+RID8192의565에서 실제 단일2finding·확인1/404실패1, graph CONTAINS→f2 원본,
+판단/메모/검토 완료revision3, fixture 서버 중지 후 정상 종료·새 hostRID8192/재열기를
+확인했다. 재열기 전후123 persistent 파일·14케이스 hash 동일이다. 실제 native Save As
+공식JSON708bytes는 계약 통과·원본 동일, XLSX14,125bytes는6시트·수식0·점검 범위8열·
+검토 메모/판단을 포함한다. 실제 Excel 요약·검토 시트에서 한국어 표시를 관측했고 재저장
+없이 동일 hash를 확인했다. 실제 사람·AT 관찰로 읽지 않는다. A05/A10/A11의 현재565 근거다.
+
+동일 일반 사용자 실행의 CSV 공개2대상은 각1/0/60·public-pinned, HTTP200·확인1/실패0/
+공식0·html-snapshot-truncated다. [공개 대상 결과](PUBLIC_BATCH_OBSERVED_KO.md)의 새
+case ID/hash로 식별한다. 기존67파일, rollback 기준95파일, 최종 재열기123파일을 혼동하지 않는다.
+`operations-565-20261010/`의 receipt·권한·검증 요약은 새 operations supplement로 전달한다.
+
+OBSERVED: cb89의 PR CI [37979745618](https://github.com/snowman0919/krds-illegal-ad-detector/actions/runs/37979745618)
+verify/windows-native/required SUCCESS, Linux493pass/1skip·boundary5, Windows native51·
+fmt/Clippy·production packaged worker·MSVC Tauri release 통과. 이전87 PR의 취소 fixture
+40초 timeout 원인은 미확정이며 통과 결과로 지우지 않는다. 마지막 변경은 인계 문서이며
+후보 build ID·bytes·policy2를 다시 발행하거나 변경하지 않았다.

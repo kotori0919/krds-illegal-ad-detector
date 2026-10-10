@@ -4,6 +4,30 @@
 광고성 게시물이 공개된 호스팅 페이지를 선택한 것이며 운영자의 불법성이나 법적
 위반 확정 판정이 아니다. 로그인·결제·접근 제한 우회는 하지 않았다.
 
+## 현재565 설치본 — 일반 사용자 실행
+
+OBSERVED: 2026-10-10 11:23 UTC, source
+`565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`/build
+`0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z`의 실제 설치본을
+Explorer에서 일반 사용자 권한(host RID8192)으로 실행했다. 실제 native CSV chooser로
+아래 두 대상을 불러오고 입력 페이지만 각1페이지/깊이0/60초·public-pinned로 점검했다.
+두 독립 케이스 모두 HTTP200·확인1/실패0/공식 탐지0·html-snapshot-truncated이며
+실제 UI의 완료2/2·결과 검토 동선을 확인했다. 선택 모델은 사용하지 않았다.
+
+| 대상 | 새 case ID | 보관 공식 JSON SHA-256 |
+| --- | --- | --- |
+| 아래 community board | `1fe428d6-0afb-465d-8cfe-f1e0643e0fb6` | `55dce84d4d5d42c958ca6e3fdae39064e57590f9351b1fce9fd9362c699abd84` |
+| 아래 review post | `d76e5feb-8762-4e67-a6dd-639f4482ff4e` | `62855941a1fb01dfdb6a8407bb7e39119b7884659b5ab13a7a618c4da7aeef89` |
+
+`operations-565-20261010/ordinary-records.json`과 실제 native 완료 화면이 이 회차의
+근거다. 같은565의 단일 fixture XLSX/공식 JSON 저장·실제 Excel·재시작 증거는
+[채택 인계](ADOPTION_HANDOFF_KO.md)에 별도로 있다. 이 공개 batch의 통합 workbook을
+실제 Excel에서 열었다는 뜻은 아니다. Cua 직접 시작 경로의 별도 두 대상 결과도
+보존하며 위 일반 사용자 케이스로 전용하지 않는다. 탐지0은 전체 사이트/
+광고 없음/적법 판정이나 공개 웹 재현율 근거가 아니다.
+
+## 역사3c 직접 빌드 실행과 후속 수정
+
 | 입력 주소 | 실제 결과 |
 | --- | --- |
 | https://seogurc.or.kr/bbs/board.php?bo_table=sub4_7 | HTTP 200, 확인 1페이지, 실패 0, 공식 탐지 0 |

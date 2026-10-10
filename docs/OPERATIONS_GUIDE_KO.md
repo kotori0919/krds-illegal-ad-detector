@@ -37,10 +37,25 @@ powershell -NoProfile -File scripts/managed-deployment.ps1 -Action restore -Back
 
 ## 제거, 보관, 공유
 
-Windows 앱 제거에서 프로그램을 제거한 뒤 기존 Save As 내보내기와 AppData 사례가 남는지 해당 후보로 확인한다. 사용자 데이터 삭제는 사례의 명시 삭제 기능 또는 조직 승인을 받은 관리자가 앱 종료/백업 후 정확한 사례 폴더를 삭제하는 별도 작업이다. 자동 보존 기간이나 자동 삭제는 없다. 저장 용량/권한 오류는 원본을 보존하고 쓰기 가능한 경로를 선택해 복구한다.
+Windows 앱 제거에서 **Delete application data를 해제**하고 프로그램을 제거한 뒤 기존 Save As 내보내기와 AppData 사례가 남는지 해당 후보로 확인한다. 사용자 데이터 삭제는 사례의 명시 삭제 기능 또는 조직 승인을 받은 관리자가 앱 종료/백업 후 정확한 사례 폴더를 삭제하는 별도 작업이다. 자동 보존 기간이나 자동 삭제는 없다. 저장 용량/권한 오류는 원본을 보존하고 쓰기 가능한 경로를 선택해 복구한다.
 
 사례 전달은 앱의 버전 지정 사례 내보내기/가져오기 경로를 사용한다. 임의 archive 해제/원문 HTML 실행/외부 URL 자동 열기는 하지 않는다. 빠진 자산은 미확인으로 처리하며 네트워크로 자동 보충하지 않는다. 원본 판정은 수정하지 않고 운영자 판단/메모를 별도로 기록한다.
 
 ## 후보별 실측과 외부 수용
+
+OBSERVED(2026-10-10 UTC): source565/build
+`0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z`의 전체 installer로
+509→565 upgrade,565→509 build rollback,565 복귀, 데이터 삭제 없는 일반 제거,
+프로그램 fresh install을 한 회차 완료했다. upgrade 기존67파일, rollback 이후95파일/
+11케이스 및 JSON/XLSX exports의 해시가 유지됐다. 두 후보는 같은0.2.1이므로 semantic
+version downgrade라고 부르지 않는다. 설치565의 실제 EXE hash는
+`7b6fc529fc679974aca2a603dd7de616ba89947fea64945e5c71fc9cc467fbba`다.
+
+이 회차는 canonical `-Action backup`과 manifest/installer hash 사전 확인 뒤 Cua로
+전체 NSIS를 대화형 실행하고 Completed·설치 build/hash·파일 보존을 읽었다.
+`-Action upgrade/rollback` 명령 자체의 새 실행이나 installer 종료코드0 관측이 아니다.
+설치 자동화는 elevated, 이후 운영은 Explorer 시작 RID8192였다. 기존 AppData와
+WebView2가 남아 있는 프로그램 fresh install이며 빈 프로필/완전 offline 설치를
+입증하지 않는다. 자세한 식별자·제한은 [채택 인계](ADOPTION_HANDOFF_KO.md)에 있다.
 
 관리자는 후보 식별자와 함께 fresh install, N→N+1 기존 사례/메모 보존, 실패/중단 복구, rollback/restore, 일반 제거 후 사용자 데이터 보존을 기록한다. Windows sandbox와 설치 실행, 실제 Excel 렌더링, 보조기기/사람 사용성은 해당 환경에서 실행했을 때만 OBSERVED다. GNU 실행 증거를 MSVC 증거로 옮기지 않는다. SmartScreen/백신/TLS/sandbox/조직 정책을 해제하지 않는다. 미실행 항목은 NOT_RUN으로 남기며 NIA 인증/채택/법적 위반 확정이라고 설명하지 않는다.
