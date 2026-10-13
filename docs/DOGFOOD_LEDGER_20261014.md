@@ -433,3 +433,48 @@ retrievable root documents and different named content groups, but ownership,
 current native access and findings remain unverified. Obtain exact-target
 approval before the native batch; do not automatically follow changed domains
 or substitute unapproved candidates. No build is needed for this ledger update.
+
+## Approved cross-family native batch - 2026-10-14
+
+The user explicitly approved the limited pair above. Fresh installed EXE
+hash matched the original565 candidate. A fresh CSV contained exactly
+https://tvwkwk1.tv/ and https://11toon2.com/. The native picker imported it,
+entry-only1page/depth0/60seconds scope was selected and read back, then the
+batch ran sequentially to two completed independent sessions without bypass,
+login, advertisement clicks or media selection.
+
+OBSERVED_NATIVE_INSTALLED_565: TVWiki case
+`b3b48aa6-fe9f-4d50-bb79-10cee9d3ab05` finished in4.582seconds;
+11Toon2 case `2bdb1661-d93e-48c3-a1d8-091a31e2430c` in3.787seconds.
+Both checked1/failed0, HTTP200, final URL unchanged and zero official findings.
+Both recorded `html-snapshot-truncated`. The native coverage tab explicitly
+explained that this is partial omission of the archived HTML copy, not a
+failure of live detection performed beforehand. Do not infer an engine
+failure or a clean/safe site from these observations.
+
+Native integrated XLSX was saved, SHA256
+`fe4124580a6ad15708739f1df4a7e9a5054d32d99fb18f384a601424717015a3`.
+Parsing confirmed seven sheets, both target/session identities, checked1/
+failed0/findings0 for each, HTTP200 and archival truncation on both coverage
+rows, zero formulas and zero review rows. The workbook contains local paths
+and remains private. It was saved before normal close. A new installed
+process reopened both saved cases with revision0 and the empty finding state,
+then closed normally. Batch group restoration or integrated export after
+restart is not claimed.
+
+One restart probe initially passed the old HWND because a throwaway Python
+default argument captured it; Cua refused the nonexistent window before an
+action. The probe was corrected using the already-launched new process/window;
+the app was not relaunched to hide that orchestration error. No product fix
+was inferred from it. No source/binary change or rebuild was needed.
+
+Final readback compared all160 files of23 preexisting cases: unchanged.
+The installed EXE remained identical,25 cases now exist and no detector
+process remained. Receipts: `native-D08-cross-family-sessions.json`,
+`native-D08-cross-family-ui.json`, `native-D08-cross-family-workbook.json`,
+`native-D08-cross-family-restart.json`, `native-D08-cross-family-preservation.json`.
+
+D08 judgment/memo and saved-judgment integrated reporting remain NOT_RUN:
+there was no actual finding in either approved public pair. Neither a fabricated
+finding nor another site scan is silently substituted. All earlier viewport,
+native DOM-focus and human-usability limitations remain as recorded above.
