@@ -18,18 +18,18 @@ staff usability study. The sprint completion criteria are not yet met.
   The unrelated local `clean11` VM has no configured QEMU guest agent.
 - Preserve historical candidates, official results, existing cases and exports.
   Only newly created synthetic dogfood cases may receive review edits.
-- No push, PR update, deployment, installer change, merge or submission.
+- No push, PR update, deployment, installation/removal, merge or submission.
 
 ## Task outcomes
 
 | ID | Role / task | Evidence class | Expected / observed | Remaining check |
 | --- | --- | --- | --- | --- |
 | D01 | Novice / URL to automatic scan | OBSERVED_NATIVE, partial | Entered controlled loopback URL and invoked scan start without opening settings. Actual installed worker finished in displayed 3 seconds. Default scope text exposed 200 pages / 25 minutes. | Progress-stage screenshot and novice comprehension remain unassessed. |
-| D02 | Reviewer / partial coverage | OBSERVED_NATIVE | Controlled page with hidden and homoglyph offers plus one 404 produced 2 official findings, 1 checked page and 1 failed page. Result explicitly distinguished partial failure and automatic detection from a confirmed violation. | Exercise failed-page destination. |
+| D02 | Reviewer / partial coverage | OBSERVED_NATIVE | Controlled page with hidden and homoglyph offers plus one 404 produced 2 official findings, 1 checked page and 1 failed page. Result explicitly distinguished partial failure and automatic detection from a confirmed violation. The failed-page control opened the actual /missing URL and HTTP 404 coverage record. | Human interpretation remains unassessed. |
 | D03 | Reviewer / 617 records | OBSERVED_NATIVE_IMPORT_AND_UI; OBSERVED_BROWSER_IPC_REPLAY | Native import displayed 617 records / 211 pages / 19 groups. Twenty-case discovery confirmed DF01. Separately, browser at 1366x768 and 17px body text: third complete row ended at y=748.25; search, grouping and keyboard return exercised. | Exact native CSS viewport remains unmeasured. |
 | D04 | Reviewer / twenty consecutive items | OBSERVED_NATIVE; OBSERVED_BROWSER_IPC_REPLAY | In each environment, individually opened/moved through 20 records, wrote distinct synthetic notes, cycled suspected / judged-normal / needs-more-evidence, and marked read. Native file readback retained all 20 notes, all read marks and all three judgment values. New-process reopen restored the first memo; all review bytes retained their hash. | Human interpretation and completion time are not assessed. |
 | D05 | Reviewer / edit, close, restart | OBSERVED_NATIVE, partial | Newly created case `700810b0-8ec0-455b-be13-b903bdeaa6dc`: memo persisted, normal Close followed by a new process and reopen restored the final memo at revision 2. | The sub-300ms exit boundary is UNVERIFIED. Timed automation took 187.70ms for the intervening snapshot and 5956.66ms for the Close call; its response timing does not establish when destruction happened. No native data-loss defect confirmed. |
-| D06 | Reviewer / graph to source and return | OBSERVED_NATIVE, partial | Real persisted graph: Enter selected CONTAINS relation 4, source action opened f2, result-list action returned to the results. No destination advertisement was visited. | Capture final source identity / focus-return state; verify list alternative. |
+| D06 | Reviewer / graph to source and return | OBSERVED_NATIVE, partial | Real persisted graph: Enter selected CONTAINS relation 4, source action opened f2, result-list action returned to the results. Follow-up expanded the list alternative, used Enter to select f2/open its fullwidth source text, and Enter to return. No advertisement destination was visited. | Native DOM focus-return remains unverified; UIA does not expose activeElement. Browser focus-return smoke passed separately. |
 | D08 | Administrator / two public targets | NOT_RUN | Exact permitted public URLs requested asynchronously. | Await target selection; then native batch, review, restart and integrated report. |
 | D10 | Administrator / delivery and Excel | OBSERVED_NATIVE_EXPORT_AND_EXCEL | Native JSON/XLSX/Case exports; official bytes identical, workbook 617 rows / twenty notes / zero formulas; actual Excel summary and review-sheet observation, workbook hash preserved. | General Excel compatibility and human readability acceptance are not claimed. |
 
@@ -118,14 +118,20 @@ separate from observations:
 - Evidence: `saved-cases-before-start-1366.png`,
   `saved-cases-after-filtered-1366.png`, `saved-cases-after-filtered-320.png`
   and matching observed JSON under `artifacts/dogfood-20261014/`.
+- Follow-up OBSERVED_BROWSER_IPC_REPLAY: the changed search also completed
+  keyboard jump/filter/reset at683px and CSS200% zoom, with no horizontal
+  overflow; reset retained input focus and Enter reopened the filtered case
+  at200%. `saved-cases-reflow-observed.json` and its two images record this
+  browser-only D11 impact check; native window zoom is not claimed.
 - OBSERVED: web typecheck, scoped ESLint, all 109 web tests in nineteen files,
   production web build, navigation DOM/keyboard smoke, and changed-built-UI
   617-record smoke passed. The latter retained three visible rows, official
   canonical bytes, workbook notes and zero formula cells, zero remote
   requests and zero page errors.
-- NOT_RUN: updated native candidate. Installed Windows remains the original
-  identified 565 build; no binary rebuild, installer or publication occurred.
-  This local UI fix is not claimed to be installed/native-verified.
+- At the first local fix: updated native candidate was NOT_RUN. The follow-up
+  below identifies the subsequently built and executed native candidate.
+  The original installed565 remains unchanged; no installation or publication
+  has occurred.
 
 Read-only scoped review found no actionable issue; this is STATIC_REVIEW /
 INFERRED evidence only, not an independent runtime verification.
@@ -174,15 +180,66 @@ zero remote requests and zero page errors. No full historical suite, repeated
 installer matrix, benchmark C1-C4, human usability study or accessibility
 technology acceptance was run.
 
+## Native follow-up for the local fix
+
+OBSERVED: clean existing Windows receiving source fast-forwarded from565 to
+`bc4d11f8548ff390c80c5e5652289e5a16b0117d` using a local git bundle, without a
+remote push, new clone, dependency installation or topology change. One
+canonical `npm run package:windows` and Windows/local `verify:artifact` each
+returned exit0. Seven prior Windows candidate directories retained every
+top-level file hash; seven local historical manifest hashes also remained.
+
+| New internal candidate | Value |
+| --- | --- |
+| build ID | `0.2.1-x86_64-pc-windows-msvc-e0b518754aaf-20261013T165637491Z` |
+| source SHA-256 | `e0b518754aaf63e0f13bc2626b653fd6566d39c5a0ee21256bdb82cfb4c17ef7` |
+| manifest SHA-256 | `c73eeaf6abb574aea503d6eadd27719ea9a1b72372298d32b45628d41220577e` |
+| standalone/direct release EXE SHA-256 | `eb86bfd2f70b87e722cae155b216d262a8cd41d3f9d69f90e7c0705887b8b65a` |
+| installation / signing / publication | NOT_RUN; unsigned internal artifact only |
+
+The direct release EXE and its adjacent build manifest matched the packaged
+candidate. OBSERVED_NATIVE_RELEASE_UIA: Enter on the saved-case shortcut
+changed the document hash to `#saved-case-search`; entering `sample.invalid`
+rendered one reopen control; Enter reopened the617 result. A controlled
+loopback scan then exposed real progress and completion and saved a new case
+with this source build, two findings, one checked page and one HTTP404 failure.
+This was a new bounded scan, not a repeated historical benchmark. With21
+cases, the retained617 case was outside the first twenty rendered cards;
+search found it and keyboard Enter reopened it. Original installed565 and
+all123 files in fourteen historical cases retained their hashes afterward.
+
+Native screen-capture limitation: a post-shortcut `get_window_state` capture
+request stopped returning. The live window was independently enumerated and
+fresh UIA-only snapshots returned its actual hash, search value, filtered
+control and reopened result. The app was not restarted to hide that failure.
+The pending capture is not evidence of a completed screenshot or an app defect.
+After normal app closure, the task-owned capture client was cancelled and
+closed; the global driver service and its policy were not changed.
+Existing browser before/after screenshots remain separate. UIA-only native
+observations do not prove DOM focus, exact CSS viewport or visual rendering.
+
+Receipts in `artifacts/dogfood-20261014/`: `native-D02-followup.json`,
+`native-D06-followup.json`, `native-bc4d11f-build-summary.json`,
+`native-bc4d11f-release-identity.json`, `native-bc4d11f-search-observed.json`,
+`native-bc4d11f-progress-scan.json`, `native-bc4d11f-progress-labels.json`,
+`native-bc4d11f-search-boundary.json`, and
+`native-bc4d11f-final-preservation.json`. The617 case's manifest, official and
+twenty-record review bytes also matched their pre-build exported hashes;
+`native-bc4d11f-retained-review-preservation.json`. The candidate is retained separately
+under `artifacts/candidate-0.2.1-x86_64-pc-windows-msvc-e0b518754aaf-20261013T165637491Z/`.
+
 ## Continuation handoff
 
 Goal remains ACTIVE / INCOMPLETE. The first sprint is not declared complete.
 Current source changes are solely DF01 plus its regression and this ledger.
-The native candidate is unchanged. Detector and Excel were closed normally;
-the task-owned loopback fixture is stopped. Final preservation comparison
-retained all 123 original files in fourteen historical cases. Twenty native
-cases now exist; six are explicitly task-created synthetic dogfood fixtures.
-`final-historical-preservation.json` records the final process/data state.
+Original installed565 is unchanged. A separate bc4 native candidate was
+built and exercised as described above, without installation. Detector and
+Excel closed normally; both task-owned loopback fixtures are stopped. Final
+preservation retained all123 files in fourteen historical cases. Twenty-one
+native cases now exist; seven are explicitly task-created synthetic dogfood
+fixtures/results. `native-bc4d11f-final-preservation.json` records the latest
+process/data state. Receiving source remains clean bc4; later ledger commits
+must not be represented as the binary source or trigger another build.
 
 Pending user inputs already requested asynchronously (do not ask again):
 
