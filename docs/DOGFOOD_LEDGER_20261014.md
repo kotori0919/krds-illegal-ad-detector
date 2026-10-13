@@ -1,6 +1,6 @@
 # Product dogfood ledger - 2026-10-14
 
-Status: BLOCKED_PENDING_USER_INPUT. This is autonomous operator simulation, not an NIA
+Status: IN_PROGRESS_AFTER_APPROVAL. This is autonomous operator simulation, not an NIA
 staff usability study. The sprint completion criteria are not yet met.
 
 ## Scope and provenance
@@ -278,3 +278,36 @@ Exact next actions:
    Private `/tmp`/Windows screenshots may contain account paths; do not publish
    them. Browser IPC replay is never native evidence. No remote push/PR update,
    installation, release, merge, signing or submission has been authorized.
+
+## Approved continuation - 2026-10-14
+
+The user explicitly approved both pending requests: foreground D05 Alt+F4
+and D08 example.org/example.com, one page each. The prior blocked audit is
+historical; its missing authorizations are now resolved.
+
+OBSERVED_NATIVE D05: installed565 reopened the previous revision2 memo. An
+initial foreground close returned within239.43ms but input readback was not
+confirmed, so that attempt alone does not prove loss. A subsequent verified
+memo survived a slower3026.31ms close at revision3. The final probe read the
+new `D05 VERIFIED FAST 2` suffix in UIA224-228ms after edit, then foreground
+Alt+F4 returned at276.25ms. The window disappeared and disk review remained
+revision3 without that suffix. This confirms P1 DF02: visible pending memo
+lost on immediate normal application close. Official data was not edited.
+Receipts: `native-D05-approved-before.json`, `native-D05-approved-fast2.json`;
+raw Cua logs remain private in /tmp.
+
+DF02 correction in progress: the native HostBridge registers the Tauri close
+request handler; it awaits the existing per-case serialized writer for all
+pending edits and in-flight successor writes. A save conflict/error retains
+the window and the unsaved record. Window destroy is allowed only through
+the native window API after that handler succeeds. Three regression cases
+cover immediate debounce, in-flight successor and conflict retention. RED
+observed missing prepareClose; GREEN7 writer tests, web typecheck/scoped lint,
+production build and existing617 built-UI IPC replay (zero errors/remote
+requests, official canonical unchanged, workbook617 rows/note/formula0).
+Native fixed-candidate verification is still pending; no fix success claim.
+
+D08 started on installed565 using the native file picker and a fresh CSV
+containing exactly https://example.org/ and https://example.com/. Preview
+accepted2/error0/duplicate0; UIA confirmed entry-only1page/depth0/60seconds
+selected before start. Results, restart and report are still pending.

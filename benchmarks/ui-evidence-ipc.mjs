@@ -53,6 +53,7 @@ export async function installResultReplay(page, { result, detail, extra, session
   });
   await page.addInitScript(() => {
     window.__TAURI_INTERNALS__ = { transformCallback: () => 1, unregisterCallback: () => {},
+      metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main" } },
       invoke: (command, args) => window.resultReplayInvoke(command, args) };
   });
   return reads;

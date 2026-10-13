@@ -35,6 +35,38 @@ const untilSaved = async (writer: CaseReviewWriter) => {
 };
 
 describe("case review transactions", () => {
+  it("saves an immediate close without waiting for the debounce timer", async () => {
+    const host = new ReviewStore(); const writer = writerFor(host); await writer.load("case");
+    writer.edit("case", () => ({ a: record("a", "typed immediately before close") }));
+    expect(await writer.prepareClose()).toBe(true);
+    const reopened = writerFor(host); await reopened.load("case");
+    expect(reopened.state("case").records.a?.note).toBe("typed immediately before close");
+  });
+  it("persists an immediate close before debounce and waits for an in-flight successor edit", async () => {
+    const host = new ReviewStore(); const writer = writerFor(host); await writer.load("case");
+    let release!: () => void; host.delay = new Promise<void>((resolve) => { release = resolve; });
+    writer.edit("case", () => ({ a: record("a", "first") }));
+    const saving = writer.flush("case");
+    writer.edit("case", () => ({ a: record("a", "last edit before close") }));
+    let finished = false;
+    const closing = writer.prepareClose().then((allowed) => { finished = true; return allowed; });
+    await Promise.resolve(); expect(finished).toBe(false);
+    release(); await saving; expect(await closing).toBe(true);
+    const reopened = writerFor(host); await reopened.load("case");
+    expect(reopened.state("case").records.a?.note).toBe("last edit before close");
+    expect(host.maximumInFlight).toBe(1);
+  });
+
+  it("refuses close after a revision conflict and retains the unsaved memo", async () => {
+    const host = new ReviewStore(); const writer = writerFor(host); await writer.load("case");
+    host.stored = { ...host.stored, revision: 1 };
+    writer.edit("case", () => ({ a: record("a", "keep window open") }));
+    expect(await writer.prepareClose()).toBe(false);
+    expect(writer.state("case").status).toBe("error");
+    expect(writer.state("case").records.a?.note).toBe("keep window open");
+    expect(host.stored.records).toEqual([]);
+  });
+
   it("serializes rapid edits and reopens the latest memo and judgment through a fresh writer", async () => {
     const host = new ReviewStore(); const writer = writerFor(host); await writer.load("case");
     let release!: () => void; host.delay = new Promise<void>((resolve) => { release = resolve; });

@@ -53,6 +53,8 @@ export interface ExportPaths {
 }
 
 export interface HostBridge {
+  /** Native close waits for durable review writes; false keeps the window open. */
+  onCloseRequested?(prepare: () => Promise<boolean>): Promise<Unsubscribe>;
   listCases(): Promise<CaseList>;
   openCase(caseId: string): Promise<OpenCase>;
   saveCaseReview(caseId: string, expectedRevision: number, records: ReviewRecord[]): Promise<CaseReview>;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useReducer } from "react";
-import type { HostBridge, OpenCase, ReviewRecord } from "@krds-detector/contracts";
+import type { CaseReview, HostBridge, OpenCase, ReviewRecord } from "@krds-detector/contracts";
 
 type Records = Record<string, ReviewRecord>;
 interface ReviewState {
@@ -7,6 +7,7 @@ interface ReviewState {
   modified: Set<string>; status: "loading" | "saved" | "saving" | "unsaved" | "error";
   error?: string; loaded: boolean; inFlight: boolean; timer?: ReturnType<typeof setTimeout>;
   loadToken: number;
+  pending?: Promise<CaseReview>;
 }
 const index = (records: ReviewRecord[]): Records => Object.fromEntries(records.map((record) => [record.findingId, record]));
 
@@ -58,13 +59,18 @@ export class CaseReviewWriter {
 
   async flush(caseId: string): Promise<void> {
     const state = this.state(caseId);
-    if (state.inFlight || !state.loaded || !state.modified.size || state.status === "error") return;
+    if (state.inFlight) {
+      try { await state.pending; } catch { /* The owning flush exposes the save error. */ }
+      return this.flush(caseId);
+    }
+    if (!state.loaded || !state.modified.size || state.status === "error") return;
     state.inFlight = true; state.status = "saving";
     const snapshotRecords = state.records;
     const snapshot = Object.values(state.records);
     this.changed();
     try {
-      const saved = await this.host.saveCaseReview(caseId, state.revision, snapshot);
+      state.pending = this.host.saveCaseReview(caseId, state.revision, snapshot);
+      const saved = await state.pending;
       state.revision = saved.revision;
       if (state.opened) state.opened = { ...state.opened, review: saved };
       // Clear only edits included in this transaction. A later edit to another
@@ -74,15 +80,31 @@ export class CaseReviewWriter {
     } catch (error) {
       state.status = "error"; state.error = String(error);
     } finally {
-      state.inFlight = false; this.changed();
+      state.inFlight = false; state.pending = undefined; this.changed();
     }
-    if (state.modified.size && state.status !== "error") void this.flush(caseId);
+    if (state.modified.size && state.status !== "error") await this.flush(caseId);
+  }
+
+  async prepareClose(): Promise<boolean> {
+    for (const state of this.states.values()) {
+      if (state.timer) { clearTimeout(state.timer); state.timer = undefined; }
+    }
+    await Promise.all([...this.states.keys()].map((caseId) => this.flush(caseId)));
+    return [...this.states.values()].every((state) => !state.modified.size && !state.inFlight);
   }
 }
 
 export function useCaseReview(host: HostBridge | undefined, caseId: string | undefined, active: boolean) {
   const [, changed] = useReducer((value: number) => value + 1, 0);
   const writer = useMemo(() => host ? new CaseReviewWriter(host, changed) : undefined, [host]);
+  useEffect(() => {
+    if (!writer || !host?.onCloseRequested) return;
+    let disposed = false; let unlisten: (() => void) | undefined;
+    void host.onCloseRequested(() => writer.prepareClose()).then((stop) => {
+      if (disposed) stop(); else unlisten = stop;
+    });
+    return () => { disposed = true; unlisten?.(); };
+  }, [host, writer]);
   useEffect(() => { if (writer && caseId && active) void writer.load(caseId); }, [writer, caseId, active]);
   const current = writer && caseId ? writer.state(caseId) : undefined;
   return {

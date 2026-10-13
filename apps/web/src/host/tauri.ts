@@ -52,6 +52,13 @@ async function loadTauri(): Promise<{ invoke: TauriInvoke; listen: TauriListen }
 }
 
 export class TauriHost implements HostBridge {
+  async onCloseRequested(prepare: () => Promise<boolean>): Promise<Unsubscribe> {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    return getCurrentWindow().onCloseRequested(async (event) => {
+      try { if (!await prepare()) event.preventDefault(); }
+      catch { event.preventDefault(); }
+    });
+  }
   async listCases(): Promise<CaseList> { return parseCaseValue(await (await this.invoke())<unknown>("case_list"), isCaseList); }
   async openCase(caseId: string): Promise<OpenCase> {
     if (!isCaseId(caseId)) throw new Error("INVALID_CASE_ID");
