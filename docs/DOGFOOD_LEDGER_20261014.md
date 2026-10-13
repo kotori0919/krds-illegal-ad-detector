@@ -1,6 +1,6 @@
 # Product dogfood ledger - 2026-10-14
 
-Status: INCOMPLETE_D08_FINDING_COVERAGE. This is autonomous operator simulation, not an NIA
+Status: BLOCKED_D08_FINDING_COVERAGE. This is autonomous operator simulation, not an NIA
 staff usability study. The sprint completion criteria are not yet met.
 
 ## Scope and provenance
@@ -391,3 +391,12 @@ hashes stayed identical, both public case official hashes stayed identical,
 and the installed EXE hash stayed identical. There are23 cases, including
 nine task-created cases. No detector process remained after the final normal
 close. `native-approved-final-preservation.json` records this final readback.
+
+Resumed blocked audit: the approved-continuation turn completed DF02 and the
+two public zero-finding cases, but ended awaiting a qualifying D08 target or
+supplement choice. Two subsequent goal turns revalidated the same missing
+input and clean local tree without receiving an answer. No live job is being
+treated as a wait. The three-turn threshold is now met; the goal is BLOCKED,
+not complete. A local/browser supplement cannot prove the public native batch
+judgment path. Resume with the user's answer and preserve the remaining native
+viewport/focus limitations recorded above.
