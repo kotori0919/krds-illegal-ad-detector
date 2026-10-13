@@ -1,6 +1,6 @@
 # Product dogfood ledger - 2026-10-14
 
-Status: IN_PROGRESS. This is autonomous operator simulation, not an NIA
+Status: BLOCKED_PENDING_USER_INPUT. This is autonomous operator simulation, not an NIA
 staff usability study. The sprint completion criteria are not yet met.
 
 ## Scope and provenance
@@ -230,7 +230,7 @@ under `artifacts/candidate-0.2.1-x86_64-pc-windows-msvc-e0b518754aaf-20261013T16
 
 ## Continuation handoff
 
-Goal remains ACTIVE / INCOMPLETE. The first sprint is not declared complete.
+Goal is BLOCKED / INCOMPLETE pending the two user inputs below. The first sprint is not declared complete.
 Current source changes are solely DF01 plus its regression and this ledger.
 Original installed565 is unchanged. A separate bc4 native candidate was
 built and exercised as described above, without installation. Detector and
@@ -248,6 +248,17 @@ Pending user inputs already requested asynchronously (do not ask again):
    limitation rather than inventing batch judgment/memo coverage.
 2. Foreground delivery permission for the D05 immediate-close Alt+F4 probe.
    Background delivery was rejected; do not bypass or change driver policy.
+
+Blocked audit: these same missing inputs remained at the end of the original
+goal turn, the native follow-up turn, and the next revalidation turn. Safe
+independent work was completed before blocking. Fresh revalidation found
+local HEAD fed3375 clean, Windows receiving HEAD bc4 clean, no running detector,
+and no completed delayed capture file. No build, scan or capture process is
+being treated as a live wait. The retained receipts still prove the observed
+native search boundary and historical preservation, but do not prove D05 or
+D08 completion. No additional scan, rebuild or unchanged-test repetition can
+supply the missing user authorization. Resume on the user's answers; retain
+the exact viewport/focus/capture limitations rather than declaring them passed.
 
 Exact next actions:
 
