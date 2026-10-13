@@ -1,6 +1,6 @@
 # Product dogfood ledger - 2026-10-14
 
-Status: IN_PROGRESS_AFTER_APPROVAL. This is autonomous operator simulation, not an NIA
+Status: INCOMPLETE_D08_FINDING_COVERAGE. This is autonomous operator simulation, not an NIA
 staff usability study. The sprint completion criteria are not yet met.
 
 ## Scope and provenance
@@ -28,9 +28,9 @@ staff usability study. The sprint completion criteria are not yet met.
 | D02 | Reviewer / partial coverage | OBSERVED_NATIVE | Controlled page with hidden and homoglyph offers plus one 404 produced 2 official findings, 1 checked page and 1 failed page. Result explicitly distinguished partial failure and automatic detection from a confirmed violation. The failed-page control opened the actual /missing URL and HTTP 404 coverage record. | Human interpretation remains unassessed. |
 | D03 | Reviewer / 617 records | OBSERVED_NATIVE_IMPORT_AND_UI; OBSERVED_BROWSER_IPC_REPLAY | Native import displayed 617 records / 211 pages / 19 groups. Twenty-case discovery confirmed DF01. Separately, browser at 1366x768 and 17px body text: third complete row ended at y=748.25; search, grouping and keyboard return exercised. | Exact native CSS viewport remains unmeasured. |
 | D04 | Reviewer / twenty consecutive items | OBSERVED_NATIVE; OBSERVED_BROWSER_IPC_REPLAY | In each environment, individually opened/moved through 20 records, wrote distinct synthetic notes, cycled suspected / judged-normal / needs-more-evidence, and marked read. Native file readback retained all 20 notes, all read marks and all three judgment values. New-process reopen restored the first memo; all review bytes retained their hash. | Human interpretation and completion time are not assessed. |
-| D05 | Reviewer / edit, close, restart | OBSERVED_NATIVE, partial | Newly created case `700810b0-8ec0-455b-be13-b903bdeaa6dc`: memo persisted, normal Close followed by a new process and reopen restored the final memo at revision 2. | The sub-300ms exit boundary is UNVERIFIED. Timed automation took 187.70ms for the intervening snapshot and 5956.66ms for the Close call; its response timing does not establish when destruction happened. No native data-loss defect confirmed. |
+| D05 | Reviewer / edit, close, restart | OBSERVED_NATIVE_INSTALLED_BEFORE_AND_SOURCE_CANDIDATE_AFTER | Installed565 lost a UIA-confirmed memo on foreground Alt+F4 at276.25ms. Fixed e833 candidate closed at218.54ms, retained revision4/final memo, and a new process reopened it. Official bytes unchanged. | Fixed source candidate was exercised directly; installed565 was preserved and still has the old behavior. Forced kill/OS shutdown is outside this normal-close check. |
 | D06 | Reviewer / graph to source and return | OBSERVED_NATIVE, partial | Real persisted graph: Enter selected CONTAINS relation 4, source action opened f2, result-list action returned to the results. Follow-up expanded the list alternative, used Enter to select f2/open its fullwidth source text, and Enter to return. No advertisement destination was visited. | Native DOM focus-return remains unverified; UIA does not expose activeElement. Browser focus-return smoke passed separately. |
-| D08 | Administrator / two public targets | NOT_RUN | Exact permitted public URLs requested asynchronously. | Await target selection; then native batch, review, restart and integrated report. |
+| D08 | Administrator / two public targets | OBSERVED_NATIVE_INSTALLED_565, limited | Approved example.org/example.com each1page/depth0/60sec: two independent completed sessions, checked1/failed0/findings0 each. Native integrated XLSX has both targets and seven sheets; a new installed process reopened both cases. | No findings exist to judge/note. Native batch memo persistence and integrated saved judgments remain NOT_RUN; report was exported before restart, batch grouping is not claimed restored. Additional target/fixture choice requested. |
 | D10 | Administrator / delivery and Excel | OBSERVED_NATIVE_EXPORT_AND_EXCEL | Native JSON/XLSX/Case exports; official bytes identical, workbook 617 rows / twenty notes / zero formulas; actual Excel summary and review-sheet observation, workbook hash preserved. | General Excel compatibility and human readability acceptance are not claimed. |
 
 OBSERVED_NATIVE D04 follow-up: completed twenty consecutive records in the
@@ -46,7 +46,7 @@ D05 fast-close follow-up: the background Alt+F4 attempt was refused with
 `background_unavailable`, target class `Tauri Window`, event kind `key_combo`.
 The process remained alive and the sentinel subsequently saved. This is NOT
 a successful close test. Foreground delivery approval was requested; no
-foreground action or permission change has been performed.
+foreground action had been performed at that earlier stage. See the approved continuation below for the subsequent authorized probe.
 
 OBSERVED_NATIVE D10 follow-up: installed Save As exported a 40,847-byte XLSX
 with 617 official rows, twenty distinct native review memos and zero formula
@@ -67,9 +67,10 @@ curated evidence folder. No workbook was uploaded or shared externally.
 
 ## Issue ledger
 
-No native P0/P1 issue has yet been confirmed in the exercised paths. This is not a
-claim that the remaining paths are free of defects. Source hypotheses remain
-separate from observations:
+DF02 confirms native P1 pending-memo loss on installed565 normal close; the
+fixed source candidate passes the same boundary. No P0 was observed in the
+exercised paths. This is not a claim about unexercised paths. The earlier
+hypotheses below are historical and are superseded by the approved continuation:
 
 - H01: BatchWorkspace warning says notes remain in the current screen. Durable
   case persistence and report fallback exist in source. Verify the current
@@ -228,7 +229,7 @@ twenty-record review bytes also matched their pre-build exported hashes;
 `native-bc4d11f-retained-review-preservation.json`. The candidate is retained separately
 under `artifacts/candidate-0.2.1-x86_64-pc-windows-msvc-e0b518754aaf-20261013T165637491Z/`.
 
-## Continuation handoff
+## Historical blocked handoff (superseded by approved continuation)
 
 Goal is BLOCKED / INCOMPLETE pending the two user inputs below. The first sprint is not declared complete.
 Current source changes are solely DF01 plus its regression and this ledger.
@@ -311,3 +312,82 @@ D08 started on installed565 using the native file picker and a fresh CSV
 containing exactly https://example.org/ and https://example.com/. Preview
 accepted2/error0/duplicate0; UIA confirmed entry-only1page/depth0/60seconds
 selected before start. Results, restart and report are still pending.
+
+## DF02 native after-check and current handoff
+
+OBSERVED_NATIVE_FIXED_SOURCE_CANDIDATE: build
+`0.2.1-x86_64-pc-windows-msvc-1213f2cbd294-20261013T222947184Z`, source
+`e8336ddeea2f7c84d746ecbd9f18f8cca766573e`, source digest
+`1213f2cbd294b36feeb6db3d931bca86ea2f6cdce127ac874ae0f3dd828f09bc`.
+The existing clean Windows receiving tree fast-forwarded from bc4 through a
+local git bundle; no network remote was pushed. One canonical package build
+and Windows artifact verifier exited0, preserving all eight earlier Windows
+candidate top-level payload/manifest hashes. An initial bundle-path mismatch
+failed before source mutation/build; the exact path was corrected. A Cua
+session-expired launch was refused without launching; a fresh connection
+then launched the exact new release EXE. No global driver policy changed.
+
+Release EXE and packaged EXE hashes both
+`d668214252f33a897bff5418f6ca9024ce59cadadb541a1934ecf24a311603b1`;
+manifest hash `bbb549f51ad3f1beffcff4b38d762e14e7e9adff01f9ffd165cbc3e45429fe0f`.
+This was a direct source-candidate run, not installation or upgraded-installed
+acceptance. Original installed565 remains byte-identical.
+
+MEASURED native after: UIA saw the final suffix171.27ms after edit;
+foreground Alt+F4 returned218.54ms after edit. Disk retained final suffix and
+revision4; the old process exited. A new process reopened the same final
+memo and then closed normally. Official result hash stayed
+`75eef9e6761126f0cfcc45bad8ab631d8ff2fc8944b70ca57d52e039c14ddf21`.
+Receipts: `native-D05-fixed-close.json`, `native-D05-fixed-disk-readback.json`,
+`native-D05-fixed-restart.json`, `native-close-fix-release-identity.json`,
+`native-close-fix-build-report.json`. Native before loss receipt:
+`native-D05-loss-receipt.json`. Cua command/observation logs are private in /tmp.
+
+OBSERVED regression/impact: seven writer transaction tests pass, including
+three new consumer-visible close cases (immediate debounce, in-flight newer
+edit and conflict retention). All nineteen web test files passed before the
+last direct-debounce case was added (111 tests); the final writer file7/7
+passed after it was added. Root typecheck, scoped ESLint, production web build
+and the built617 DOM/keyboard/export replay passed. Replay stayed network-free,
+with zero page errors, canonical official bytes unchanged, and617 workbook
+rows/retained memo/zero formulas. It remains browser replay evidence.
+INFERRED independent read-only review found no actionable code issue;
+it did not execute native close or failure injection. Native error/conflict
+close retention has unit transaction evidence only, not failure-injection smoke.
+
+OBSERVED D08: installed565 CSV preview2/0/0, entry-only scope confirmed before
+start; public worker produced two distinct durable cases:
+`01343cf9-e98e-4bf6-b3ea-dff241c0b23d` (example.org) and
+`e6f553aa-3df4-48cd-825f-c015843fe191` (example.com). Each checked1/failed0,
+HTTP200, zero official findings. The native integrated workbook SHA256 is
+`384bff3eaa3e34d2f2fdd072cbaf790d3b34cd0e47a0800880cb64f3988fbb7d`;
+seven sheets, both targets, zero review rows and zero formulas. The workbook
+was exported BEFORE restart; both cases then reopened in a new installed
+process with revision0 and no findings. Do not claim batch group restoration
+or integrated report export after restart. The workbook contains local paths
+and is kept privately; only sanitized receipts are curated. Receipts:
+`native-D08-public-sessions.json`, `native-D08-workbook-validation.json`,
+`native-D08-restart.json`.
+
+Current acceptance: DF01 and DF02 implementation/changed-path verification
+are complete. The Sprint remains INCOMPLETE: D08 has no actual finding to
+exercise saved judgment/memo through native batch/restart/report. The user
+has been asked for an additional target/fixture choice; no additional public
+scan or fake finding is authorized by silence. H01 batch-warning hypothesis
+is still unverified on a native batch containing a reviewable finding; no
+wording change was made. Exact native1366x768 CSS viewport and DOM focus
+remain unmeasured; browser measurements never substitute for them. Human
+usability is a separate later activity, not a success claim from automation.
+
+Next action: on a qualifying explicitly permitted public target, continue
+D08 through actual judgment/memo, normal restart, retained review and report;
+if a local/replay supplement is chosen, label it separately and retain the
+native public-batch limitation. Do not rebuild for ledger-only changes. No
+push, PR update, shared-branch merge, installation, signing or publication.
+
+Final OBSERVED preservation: all123 files in fourteen historical cases stayed
+byte-identical, the retained617 case manifest/result/twenty-record review
+hashes stayed identical, both public case official hashes stayed identical,
+and the installed EXE hash stayed identical. There are23 cases, including
+nine task-created cases. No detector process remained after the final normal
+close. `native-approved-final-preservation.json` records this final readback.
