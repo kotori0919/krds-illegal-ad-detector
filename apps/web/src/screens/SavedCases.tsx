@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { CaseList, HostBridge, SavedCase, SupportDiagnostics } from "@krds-detector/contracts";
+import { normalizeReviewText } from "@krds-detector/evidence/review-patterns";
 
 export function SavedCases({ host, onOpen }: { host: HostBridge; onOpen: (caseId: string) => Promise<void> }) {
   const [list, setList] = useState<CaseList>();
@@ -7,6 +8,11 @@ export function SavedCases({ host, onOpen }: { host: HostBridge; onOpen: (caseId
   const [busy, setBusy] = useState(false); const [supported, setSupported] = useState<boolean>();
   const [deleting, setDeleting] = useState<SavedCase>(); const [diagnostics, setDiagnostics] = useState<SupportDiagnostics>();
   const [shown, setShown] = useState(20);
+  const [query, setQuery] = useState("");
+  const search = normalizeReviewText(query).toLocaleLowerCase("ko-KR");
+  const matches = list?.cases.filter(({ manifest }) => !search || normalizeReviewText(
+    `${manifest.entryUrl} ${manifest.finishedAt} ${manifest.caseId}`,
+  ).toLocaleLowerCase("ko-KR").includes(search)) ?? [];
   const dialog = useRef<HTMLElement>(null); const trigger = useRef<HTMLElement | null>(null);
   const refresh = useCallback(async () => {
     setError("");
@@ -44,6 +50,12 @@ export function SavedCases({ host, onOpen }: { host: HostBridge; onOpen: (caseId
     {supported === false ? <p className="hint">브라우저 미리보기는 영구 보관을 지원하지 않습니다. 저장·다시 열기는 데스크톱 앱을 사용해 주세요.</p> : <>
       <p>다시 열기는 저장된 결과와 검토 기록을 읽습니다. 사이트를 새로 점검하지 않습니다.</p>
       {list ? <p className="hint">저장 위치: {list.storageRoot} · 최근 최대 {list.limit}개</p> : <p role="status">저장된 케이스를 불러오는 중입니다.</p>}
+      <div className="field"><label htmlFor="saved-case-search">저장된 케이스 검색</label>
+        <input id="saved-case-search" type="search" placeholder="사이트 주소, 날짜 또는 케이스 번호" value={query}
+          onChange={(event) => { setQuery(event.target.value); setShown(20); }} />
+        {query ? <button type="button" className="secondary" onClick={() => { setQuery(""); setShown(20); document.getElementById("saved-case-search")?.focus(); }}>검색 초기화</button> : null}
+      </div>
+      {list && search ? <p role="status">검색 결과 {matches.length}개 / 저장된 케이스 {list.cases.length}개</p> : null}
       <div className="actions"><button type="button" className="secondary" disabled={busy} onClick={() => void refresh()}>케이스 목록 새로고침</button>
         <button type="button" className="secondary" disabled={busy} onClick={() => void action(async () => {
           const id = await host.importCase(); if (!id) { setMessage("가져오기를 취소했습니다."); return; }
@@ -52,14 +64,15 @@ export function SavedCases({ host, onOpen }: { host: HostBridge; onOpen: (caseId
         <button type="button" className="secondary" disabled={busy} onClick={() => void action(async () => setDiagnostics(await host.getDiagnostics()))}>설치 진단 미리보기</button>
       </div>
       {list?.cases.length === 0 ? <p>저장된 케이스가 없습니다. 점검이 끝나면 이곳에서 다시 열 수 있습니다.</p> : null}
-      <ul className="finding-list">{list?.cases.slice(0, shown).map((saved) => <li className="finding-card" key={saved.manifest.caseId}>
+      {list && list.cases.length > 0 && !matches.length ? <p>검색 조건에 맞는 케이스가 없습니다.</p> : null}
+      <ul className="finding-list">{matches.slice(0, shown).map((saved) => <li className="finding-card" key={saved.manifest.caseId}>
         <h3>{saved.manifest.entryUrl}</h3><p>{saved.manifest.finishedAt} · 원본 탐지 {saved.manifest.findings}건 · {saved.manifest.status === "cancelled" ? "중지 전 일부 결과" : "완료된 결과"}</p>
         {saved.manifest.issues.length ? <p>일부 근거 사용 제한 {saved.manifest.issues.length}건 · 공식 결과는 별도로 보관됩니다.</p> : null}
         <div className="actions"><button type="button" className="primary" disabled={busy} onClick={() => void action(() => onOpen(saved.manifest.caseId))}>케이스 다시 열기<span className="sr-only"> {saved.manifest.entryUrl}</span></button>
           <button type="button" className="secondary" disabled={busy} onClick={() => void action(async () => { const path = await host.exportCase(saved.manifest.caseId); setMessage(path ? `전달 폴더 저장 완료: ${path}` : "전달 저장을 취소했습니다."); })}>전달 폴더 저장<span className="sr-only"> {saved.manifest.entryUrl}</span></button>
           <button type="button" className="secondary" disabled={busy} onClick={(event) => { trigger.current = event.currentTarget; setDeleting(saved); }}>케이스 삭제<span className="sr-only"> {saved.manifest.entryUrl}</span></button></div>
       </li>)}</ul>
-      {list && list.cases.length > shown ? <button type="button" className="secondary" onClick={() => setShown((count) => count + 20)}>저장된 케이스 20개 더 보기</button> : null}
+      {matches.length > shown ? <button type="button" className="secondary" onClick={() => setShown((count) => count + 20)}>저장된 케이스 20개 더 보기</button> : null}
       {list?.issues.length ? <p role="note">읽을 수 없는 케이스 {list.issues.length}개가 있습니다. 목록 새로고침으로 다시 확인할 수 있습니다. 원본 폴더를 보존하고 유지보수 담당자에게 문의해 주세요.</p> : null}
       {diagnostics ? <section aria-label="진단 미리보기"><h3>전달 전 진단 내용 확인</h3><p>원문·주소·쿠키·인증정보는 포함하지 않습니다. 저장 경로에는 사용자명이 있을 수 있으므로 전달 전에 확인해 주세요.</p>
         <pre>{JSON.stringify(diagnostics, null, 2)}</pre><button type="button" className="secondary" onClick={() => void action(async () => { await navigator.clipboard.writeText(JSON.stringify(diagnostics, null, 2)); setMessage("확인한 진단 내용을 복사했습니다. 전달할 위치는 직접 선택해 주세요."); })}>확인한 진단 내용 복사</button></section> : null}

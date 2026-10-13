@@ -222,6 +222,7 @@ export function App() {
       ) : (
         <><ScanStart
           host={host}
+          showSavedCases={!!capabilities?.filesystem}
           onBatch={() => { setBatchMounted(true); setBatchOpen(true); }}
           onStarted={(id) => {
             setBatchResult(false);

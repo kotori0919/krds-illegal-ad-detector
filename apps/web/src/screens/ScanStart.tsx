@@ -5,6 +5,7 @@ interface Props {
   host: HostBridge;
   onStarted: (sessionId: string) => void;
   onBatch?: () => void;
+  showSavedCases?: boolean;
 }
 
 type FieldName = "url" | "maxPages" | "maxDepth" | "timeoutSec";
@@ -13,7 +14,7 @@ type ScopeMode = "automatic" | "quick" | "custom";
 /** DOM order. The first entry carrying an error is the one focused on submit. */
 const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
 
-export function ScanStart({ host, onStarted, onBatch }: Props) {
+export function ScanStart({ host, onStarted, onBatch, showSavedCases }: Props) {
   const [url, setUrl] = useState("");
   const [scopeMode, setScopeMode] = useState<ScopeMode>("automatic");
   const [maxPages, setMaxPages] = useState("200");
@@ -113,6 +114,7 @@ export function ScanStart({ host, onStarted, onBatch }: Props) {
     <main className="page start-page">
       <header className="start-heading"><p className="eyebrow">새 점검</p>
       <h1>공공 웹사이트 점검</h1>
+      {showSavedCases ? <a href="#saved-case-search">저장된 결과 다시 열기 ↓</a> : null}
       <p className="lede">웹사이트 주소를 입력하고, 의심 문구와 숨겨진 광고의 근거를 확인하세요.</p></header>
       <form className="scan-form" onSubmit={onSubmit} aria-label="탐지 시작" noValidate>
         <div className="field">
