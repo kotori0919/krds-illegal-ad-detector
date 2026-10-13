@@ -400,3 +400,36 @@ treated as a wait. The three-turn threshold is now met; the goal is BLOCKED,
 not complete. A local/browser supplement cannot prove the public native batch
 judgment path. Resume with the user's answer and preserve the remaining native
 viewport/focus limitations recorded above.
+
+## Broader public target discovery - pending scan approval
+
+The user requested discovery around Nunu/Newtoki, then rejected the proposed
+Newtoki/Manatoki pair as the same family and requested broader cross-checks.
+Discovery is authorized; the pending scan approval was not granted. No native
+scan, advertisement click, media opening, login or access bypass was performed.
+
+Public web retrieval identified the following separate named candidate groups.
+Different names/source domains do not establish independent ownership. Search
+index freshness and a fetched document do not prove current native reachability
+or the presence of an actual detector finding.
+
+| Group | Exact candidate | Discovery / cross-check | Web-tool observation |
+| --- | --- | --- | --- |
+| TVWiki / streaming | https://tvwkwk1.tv/ | Root page, indexed search page, separate Anyflip references and BuiltWith listing | Root document retrieved259lines; no native reachability/finding claim |
+| 11Toon2 / comics and animation | https://11toon2.com/ | Root page, https://ts.devbj.com/373 and separate domain-directory references | Root document retrieved664lines; no native reachability/finding claim |
+| BlackToon / webtoon | https://blacktoon423.com/ and https://blacktoon424.com/ | https://t.me/s/blacktoonlink names423; ts.devbj.com/373 responses disagree between423/424 | 423 redirected to blacktoonadd.com; a later retrieval could not access that destination.424 retrieval failed. Retain conflict; do not invent a current number |
+| Wolf / webtoon | https://wfwf513.com/ | ts.devbj.com/373, indexed older-domain notices and public @wftoon channel | Direct retrieval failed; not proof of Windows failure |
+| Funbe / webtoon | https://funbe680.com/ | ts.devbj.com/373 and https://itset.co/funbe agree | Direct retrieval failed; not proof of Windows failure |
+| Nunu-named / streaming | https://noonootvx8.store/ | https://tvindex.store/s/noonootv and root document | Initial document available; subsequent retrieval returned503. Source claims July21 update, not verified original Nunu ownership |
+
+Other exclusions: TVWiki12 root initially returned a document but later503;
+TVWiki43 returned403; Tkor067 exposed only a redirect placeholder. Common
+TVindex x8.store brands were not counted as independent corroboration of one
+another. The earlier newto23/mato23 proposal is superseded as a test pair.
+
+PROPOSED first cross-category native pair: https://tvwkwk1.tv/ and
+https://11toon2.com/, exactly one entry page/depth0/60seconds each. These have
+retrievable root documents and different named content groups, but ownership,
+current native access and findings remain unverified. Obtain exact-target
+approval before the native batch; do not automatically follow changed domains
+or substitute unapproved candidates. No build is needed for this ledger update.
