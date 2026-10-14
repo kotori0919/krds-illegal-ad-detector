@@ -1,4 +1,5 @@
 import type { OfficialResult } from "./result.js";
+import { isTransportProvenance, isTransportFailure } from "./warp.js";
 /** Internal case schema 1. Official output schema and review are independent. */
 export const CASE_SCHEMA_VERSION = 1 as const;
 export const DETECTION_POLICY_VERSION = 2 as const;
@@ -6,7 +7,7 @@ export type OperatorJudgment = "unjudged" | "suspected" | "judged-normal" | "nee
 export interface CaseIssue { code: string; scope: string; retryable: boolean }
 export interface CaseManifest {
   schemaVersion: 1; caseId: string; entryUrl: string; startedAt: string; finishedAt: string;
-  status: "succeeded" | "cancelled"; toolVersion: string; policyVersion: number; exportableAt: string; evidenceSha256?: string;
+  status: "succeeded" | "cancelled" | "failed"; toolVersion: string; policyVersion: number; exportableAt: string; evidenceSha256?: string;
   officialSha256: string; findings: number; issues: CaseIssue[]; settings: Record<string, unknown>;
 }
 export interface ReviewRecord {
@@ -43,9 +44,11 @@ export function isCaseManifest(value: unknown, official?: OfficialResult): value
     && value.schemaVersion === CASE_SCHEMA_VERSION && isCaseId(value.caseId) && text(value.entryUrl, 8192)
     && (() => { try { const url = new URL(value.entryUrl); return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password; } catch { return false; } })()
     && timestamp(value.startedAt) && timestamp(value.finishedAt) && timestamp(value.exportableAt)
-    && text(value.status, 32) && ["succeeded", "cancelled"].includes(value.status) && text(value.toolVersion, 128) && value.toolVersion.length > 0
+    && text(value.status, 32) && ["succeeded", "cancelled", "failed"].includes(value.status) && text(value.toolVersion, 128) && value.toolVersion.length > 0
     && value.policyVersion === DETECTION_POLICY_VERSION && hash(value.officialSha256) && (value.evidenceSha256 === undefined || hash(value.evidenceSha256))
     && integer(value.findings, 20_000) && Array.isArray(value.issues) && value.issues.length <= 1000 && value.issues.every(caseIssue) && record(value.settings)
+    && (value.settings.transport === undefined || isTransportProvenance(value.settings.transport))
+    && (value.settings.transportFailure === undefined || value.status === "failed" && isTransportFailure(value.settings.transportFailure))
     && (!official || value.findings === official.findings.length && value.startedAt === official.meta.started_at
       && value.finishedAt === official.meta.finished_at && value.toolVersion === official.meta.tool_version);
 }

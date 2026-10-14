@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { warpHost } from "./evidence-host.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
@@ -32,6 +33,7 @@ function result(): OfficialResult {
 
 function hostWith(over: Partial<HostBridge>): HostBridge {
   return {
+    ...warpHost(),
     getCapabilities: vi.fn(async () => ({
       localScan: true,
       filesystem: true,

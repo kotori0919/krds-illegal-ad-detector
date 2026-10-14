@@ -1,6 +1,9 @@
 //! Linux integration smoke for the real Tauri session registry and Node worker.
 #![cfg(not(windows))]
 
+#[path = "../../../src-tauri/src/warp.rs"]
+mod warp;
+
 #[path = "../../../src-tauri/src/job_fallback.rs"]
 mod job_fallback;
 #[path = "../../../src-tauri/src/session.rs"]

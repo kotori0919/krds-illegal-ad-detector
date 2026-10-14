@@ -13,6 +13,7 @@ import { createInterface } from "node:readline";
 import { parseWorkerArgs } from "./worker-args.js";
 import { PublicNetworkPolicy, ScanDeadline, type PinnedTransport } from "@krds-detector/scanner";
 import { startWarpRuntime, WarpRuntimeError, type WarpRuntime } from "./warp-runtime.js";
+import { initialProgress, type TransportProvenance } from "@krds-detector/contracts";
 
 async function main(): Promise<void> {
   let args;
@@ -34,20 +35,27 @@ async function main(): Promise<void> {
   let runtime: WarpRuntime | undefined;
   let tunnelFailure: Error | undefined;
   let publicTransport: PinnedTransport | undefined;
+  let provenance: TransportProvenance = { kind: "direct", reason: "source-cli" };
+  let preparationEvents = 0;
   try {
   if (args.requireWarp || args.warpExecutable) {
     const policy = args.publicNetworkOnly ? new PublicNetworkPolicy()
       : await PublicNetworkPolicy.forManualEntry(args.entryUrl, controller.signal, deadline.operationTimeoutMs(2000));
     const target = await policy.resolveTarget(args.entryUrl, controller.signal, deadline.operationTimeoutMs(2000));
     if (target.route === "owned-origin") {
+      provenance = { kind: "direct", reason: "owned-origin" };
       publicTransport = { open: async () => { throw new WarpRuntimeError("preparation-failed"); }, close: async () => {} };
     } else {
+      preparationEvents = 1;
+      console.error(`KRDSPROGRESS ${JSON.stringify({ kind: "stage-changed", message: "WARP 연결을 준비하고 있습니다.", progress: { ...initialProgress("running"), sequence: 1 } })}`);
       if (!args.warpExecutable || !args.warpConfigFile) throw new WarpRuntimeError("config-invalid");
       runtime = await startWarpRuntime({ executablePath: args.warpExecutable, configPath: args.warpConfigFile, deadline, signal: controller.signal });
       publicTransport = runtime.transport;
+      provenance = { kind: "warp", backend: "usque", version: "4.2.1" };
       void runtime.failure.then(error => { tunnelFailure = error; controller.abort(); });
     }
   }
+  console.error(`KRDSTRANSPORT ${JSON.stringify(provenance)}`);
   const { json, detailBundle, extraJson } = await scanSite({
     entryUrl: args.entryUrl,
     signal: controller.signal,
@@ -76,7 +84,8 @@ async function main(): Promise<void> {
         kind: e.kind,
         message: e.message ?? null,
         pageUrl: e.pageUrl ?? null,
-        progress: e.progress,
+        progress: preparationEvents ? { ...e.progress, sequence: e.progress.sequence + preparationEvents,
+          recentActivity: e.progress.recentActivity.map(activity => ({ ...activity, sequence: activity.sequence + preparationEvents })) } : e.progress,
       });
       console.error(`KRDSPROGRESS ${payload}`);
     },

@@ -19,6 +19,7 @@ mod job_fallback;
 mod report;
 mod session;
 mod validation;
+mod warp;
 
 use session::{load_cancelled_bundle, SessionOutcome, SessionRegistry};
 use std::sync::Arc;
@@ -27,6 +28,22 @@ use validation::{validate_extra_bundle, validate_sidecar_stdout};
 
 struct AppState {
     registry: Arc<SessionRegistry>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct WarpRegistrationRequest { accept_terms: bool }
+
+#[tauri::command]
+fn get_warp_status(app: tauri::AppHandle) -> Result<warp::WarpStatus, String> {
+    #[cfg(windows)] { warp::status(&app) }
+    #[cfg(not(windows))] { let _ = app; Ok(warp::WarpStatus::Unsupported) }
+}
+
+#[tauri::command]
+async fn register_warp(app: tauri::AppHandle, request: WarpRegistrationRequest) -> Result<warp::WarpStatus, String> {
+    #[cfg(windows)] { warp::register(&app, request.accept_terms).await }
+    #[cfg(not(windows))] { let _ = (app, request); Ok(warp::WarpStatus::Unsupported) }
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -180,6 +197,11 @@ async fn start_scan(
             args.push("--public-network-only".to_string());
         }
         args.extend(["--entry-kind".to_string(), entry_kind.to_string()]);
+        args.push("--require-warp".to_string());
+        #[cfg(windows)]
+        if let Some((executable, configuration)) = warp::worker_paths(&app)? {
+            args.extend(["--warp-executable".into(), executable.to_string_lossy().into_owned(), "--warp-config-file".into(), configuration.to_string_lossy().into_owned()]);
+        }
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
         if let Err(detail) = state
             .registry
@@ -260,7 +282,8 @@ async fn finish_session(
                 .await;
         }
         SessionOutcome::Failed { detail } => {
-            // A later optional failure cannot remove an already validated official file.
+            // Keep validated output. The registry commits typed WARP failures as
+            // failed/incomplete atomically; optional-write failures retain success.
             let retained = std::fs::read_to_string(&result_path)
                 .ok()
                 .filter(|text| validate_sidecar_stdout(entry_url, text).is_ok());
@@ -280,8 +303,7 @@ async fn finish_session(
         }
         SessionOutcome::Cancelled => {}
     }
-    // Acceptance of cancellation is recorded under the same lock as success
-    // and failure. It wins even when it arrives during artifact validation.
+    // Cancellation accepted before the atomic artifact commit wins over completion.
     if registry.cancellation_requested(session_id).await {
         let retained = load_cancelled_bundle(entry_url, &result_path, &detail_path, &extra_path);
         let (bundle, error) = match retained {
@@ -533,9 +555,9 @@ async fn scan_export(
             .file()
             .set_file_name("result.json")
             .add_filter("JSON", &["json"]);
-        if snapshot["status"] == "cancelled" {
+        if snapshot["status"] == "cancelled" || snapshot["status"] == "failed" {
             dlg =
-                dlg.set_title("중지 전 확인한 일부 결과 저장 — 전체 페이지를 확인하지 못했습니다");
+                dlg.set_title("확인한 일부 결과 저장 — 전체 페이지를 확인하지 못했습니다");
         }
         // Default to the INTERACTIVE user's Documents folder. document_dir()
         // resolves for the process user (SYSTEM under the service task),
@@ -817,6 +839,7 @@ fn main() {
             app.manage(AppState {
                 registry: SessionRegistry::persistent(cases)?,
             });
+            app.manage(warp::Registration::default());
             let dir = data_dir.clone().ok_or("no writable WebView profile dir")?;
             std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
             let window: tauri::WebviewWindow =
@@ -844,6 +867,8 @@ fn main() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            get_warp_status,
+            register_warp,
             scan_start,
             scan_cancel,
             scan_get_session,

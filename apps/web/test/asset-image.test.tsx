@@ -3,12 +3,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { HostBridge } from "@krds-detector/contracts";
 import { AssetImage } from "../src/screens/AssetImage.js";
-import { evidenceHost } from "./evidence-host.js";
+import { evidenceHost, warpHost } from "./evidence-host.js";
 
 afterEach(cleanup);
 
 function showAsset(read: HostBridge["getEvidenceAsset"]) {
-  const host = { getEvidenceAsset: read } as HostBridge;
+  const host = { ...warpHost(), getEvidenceAsset: read } as HostBridge;
   render(<AssetImage host={host} sessionId="imported-session" assetId="optional-image" alt="탐지 당시 화면" />);
 }
 

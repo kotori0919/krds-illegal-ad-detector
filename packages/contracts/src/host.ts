@@ -8,6 +8,7 @@
  */
 
 import type { ScanEvent, ScanRequest, ScanSession } from "./scan.js";
+import type { WarpStatus } from "./warp.js";
 import type { BatchScanRequest } from "./batch.js";
 import type { CaseList, OpenCase, CaseReview, ReviewRecord, SupportDiagnostics } from "./case.js";
 import type { ExtraResult, OfficialResult } from "./result.js";
@@ -53,6 +54,8 @@ export interface ExportPaths {
 }
 
 export interface HostBridge {
+  getWarpStatus(): Promise<WarpStatus>;
+  registerWarp(request: { acceptTerms: boolean }): Promise<WarpStatus>;
   /** Native close waits for durable review writes; false keeps the window open. */
   onCloseRequested?(prepare: () => Promise<boolean>): Promise<Unsubscribe>;
   listCases(): Promise<CaseList>;

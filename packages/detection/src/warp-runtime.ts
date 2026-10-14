@@ -2,6 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { win32 } from "node:path";
+import type { WarpFailureCode } from "@krds-detector/contracts";
 import { PublicNetworkPolicy, createConnectTransport, type PinnedTransport, type ScanDeadline } from "@krds-detector/scanner";
 
 const executableSha256 = "122f2e40208e81bb814fcb4be4fbbbdc9246860f1f3784f72ae4512b97667e91";
@@ -14,9 +15,8 @@ interface Dependencies {
   discoverListener: (pid: number, signal: AbortSignal, timeoutMs: number) => Promise<number>;
   networkPolicyFactory: (transport: PinnedTransport) => Pick<PublicNetworkPolicy, "fetch">;
 }
-export type WarpRuntimeErrorCode = "config-permission" | "config-invalid" | "binary-missing" | "binary-integrity" | "preparation-failed" | "tunnel-exited";
 export class WarpRuntimeError extends Error {
-  constructor(readonly code: WarpRuntimeErrorCode) { super("WARP tunnel failed"); this.name="WarpRuntimeError"; }
+  constructor(readonly code: WarpFailureCode) { super("WARP tunnel failed"); this.name="WarpRuntimeError"; }
 }
 const failureError = (): WarpRuntimeError => new WarpRuntimeError("preparation-failed");
 

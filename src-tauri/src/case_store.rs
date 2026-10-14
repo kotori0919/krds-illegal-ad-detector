@@ -224,10 +224,11 @@ impl CaseStore {
             settings,
         } = input;
         safe_id(id)?;
-        if !matches!(status, "succeeded" | "cancelled") {
+        if !matches!(status, "succeeded" | "cancelled" | "failed") || !crate::warp::valid_settings(&settings, status) {
             return Err("invalid case status".into());
         }
         let canonical = validate_sidecar_stdout(entry, official)?;
+        let canonical = if status == "failed" {official.to_string()} else {canonical};
         if canonical.len() as u64 > json_limit() {
             return Err("official result exceeds case limit".into());
         }
@@ -310,7 +311,7 @@ impl CaseStore {
                 .map_err(|e| e.to_string())?;
         if manifest.schema_version != CASE_SCHEMA
             || manifest.case_id != id
-            || !matches!(manifest.status.as_str(), "succeeded" | "cancelled")
+            || !matches!(manifest.status.as_str(), "succeeded" | "cancelled" | "failed")
         {
             return Err("unsupported or mismatched case schema/identity".into());
         }
@@ -371,6 +372,9 @@ impl CaseStore {
     pub fn mark_cancelled(&self, id: &str) -> Result<OpenCase, String> {
         let _guard = self.writes.lock().map_err(|_| "case lock poisoned")?;
         let mut case = self.open(id)?;
+        if !crate::warp::valid_settings(&case.manifest.settings, "cancelled") {
+            return Err("incomplete transport case must remain failed".into());
+        }
         case.manifest.status = "cancelled".into();
         atomic_replace(
             &case.directory.join("manifest.json"),
@@ -615,13 +619,13 @@ fn manifest_metadata_valid(manifest: &CaseManifest) -> bool {
         && timestamp(&manifest.started_at)
         && timestamp(&manifest.finished_at)
         && timestamp(&manifest.exportable_at)
-        && matches!(manifest.status.as_str(), "succeeded" | "cancelled")
+        && matches!(manifest.status.as_str(), "succeeded" | "cancelled" | "failed")
         && bounded(&manifest.tool_version, 128)
         && manifest.policy_version == 2
         && hash(&manifest.official_sha256)
         && manifest.evidence_sha256.as_deref().is_none_or(hash)
         && manifest.findings <= 20_000
-        && manifest.settings.is_object()
+        && crate::warp::valid_settings(&manifest.settings, &manifest.status)
         && manifest.issues.len() <= 1000
         && manifest
             .issues
@@ -937,6 +941,96 @@ mod tests {
             store.list().unwrap()["issues"][0]["code"],
             "INCOMPLETE_TRANSACTION"
         );
+    }
+
+    #[test]
+    fn warp_incomplete_commit_requires_failed_status() {
+        let temp = Temporary::new();
+        let store = CaseStore::new(temp.0.join("cases")).unwrap();
+        for status in ["succeeded", "cancelled"] {
+            let id = uuid::Uuid::new_v4().to_string();
+            assert!(store.commit(NewCase { id: &id, entry_url: "https://example.kr/", official: &official(), detail: None, extra: None, status,
+                settings: json!({"transportFailure":{"code":"tunnel-exited","scope":"incomplete"}}) }).is_err());
+            assert!(!store.root.join(&id).exists());
+        }
+    }
+
+    #[test]
+    fn warp_incomplete_manifest_cannot_reopen_or_import_as_complete() {
+        let temp = Temporary::new();
+        let source = CaseStore::new(temp.0.join("source")).unwrap();
+        let destination = CaseStore::new(temp.0.join("destination")).unwrap();
+        for status in ["succeeded", "cancelled"] {
+            let id = uuid::Uuid::new_v4().to_string();
+            source.commit(NewCase { id: &id, entry_url: "https://example.kr/", official: &official(), detail: None, extra: None, status: "failed",
+                settings: json!({"transportFailure":{"code":"tunnel-exited","scope":"incomplete"}}) }).unwrap();
+            let output = temp.0.join(format!("portable-{status}"));
+            fs::create_dir(&output).unwrap();
+            let portable = source.export_directory(&id, &output).unwrap();
+            for directory in [source.root.join(&id), portable.clone()] {
+                let path = directory.join("manifest.json");
+                let mut manifest: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                manifest["status"] = json!(status);
+                fs::write(path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+            }
+            let reopened = source.open(&id);
+            let imported = destination.import_directory(&portable);
+            assert_eq!((reopened.is_err(), imported.is_err()), (true, true));
+            assert!(!destination.root.join(&id).exists());
+        }
+    }
+
+    #[tokio::test]
+    async fn warp_direct_and_historical_cases_round_trip_without_failure_metadata() {
+        let temp = Temporary::new();
+        let root = temp.0.join("cases");
+        let store = CaseStore::new(root.clone()).unwrap();
+        let original = validate_sidecar_stdout("https://example.kr/", &official()).unwrap();
+        let cases = [
+            ("succeeded", json!({"transport":{"kind":"direct","reason":"owned-origin"}})),
+            ("succeeded", json!({"transport":{"kind":"direct","reason":"source-cli"}})),
+            ("succeeded", json!({})),
+            ("cancelled", json!({})),
+            ("failed", json!({})),
+        ];
+        let mut identities = Vec::new();
+        for (status, settings) in &cases {
+            let id = uuid::Uuid::new_v4().to_string();
+            store.commit(NewCase { id: &id, entry_url: "https://example.kr/", official: &original, detail: None, extra: None, status, settings: settings.clone() }).unwrap();
+            identities.push(id);
+        }
+        drop(store);
+        let restarted = crate::session::SessionRegistry::persistent(root.clone()).unwrap();
+        for (id, (status, settings)) in identities.iter().zip(cases.iter()) {
+            let opened = restarted.open_case(id).await.unwrap();
+            assert_eq!(opened["manifest"]["status"], *status);
+            assert_eq!(opened["manifest"]["settings"], *settings);
+            assert!(opened["manifest"]["settings"].get("transportFailure").is_none());
+            assert_eq!(restarted.snapshot(id).await.unwrap()["status"], *status);
+            assert_eq!(fs::read(root.join(id).join("result.json")).unwrap(), original.as_bytes());
+            assert_eq!(restarted.validated_export_text(id).await.unwrap(), original);
+        }
+    }
+
+    #[test]
+    fn warp_incomplete_case_cannot_be_rewritten_as_cancelled() {
+        let temp = Temporary::new();
+        let store = CaseStore::new(temp.0.join("cases")).unwrap();
+        let id = uuid::Uuid::new_v4().to_string();
+        store.commit(NewCase { id: &id, entry_url: "https://example.kr/", official: &official(), detail: None, extra: None, status: "failed",
+            settings: json!({"transportFailure":{"code":"tunnel-exited","scope":"incomplete"}}) }).unwrap();
+        store.save_review(&id, 0, vec![]).unwrap();
+        let files = ["manifest.json", "result.json", "review.json"];
+        let before: Vec<_> = files.iter().map(|name| fs::read(store.root.join(&id).join(name)).unwrap()).collect();
+        assert!(store.mark_cancelled(&id).is_err());
+        assert_eq!(store.open(&id).unwrap().manifest.status, "failed");
+        for (name, bytes) in files.iter().zip(before) {
+            assert_eq!(fs::read(store.root.join(&id).join(name)).unwrap(), bytes);
+        }
+        let ordinary = uuid::Uuid::new_v4().to_string();
+        store.commit(NewCase { id: &ordinary, entry_url: "https://example.kr/", official: &official(), detail: None, extra: None, status: "succeeded", settings: json!({}) }).unwrap();
+        assert_eq!(store.mark_cancelled(&ordinary).unwrap().manifest.status, "cancelled");
+        assert_eq!(store.open(&ordinary).unwrap().manifest.status, "cancelled");
     }
 
     #[test]

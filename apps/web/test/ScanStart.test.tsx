@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { warpHost } from "./evidence-host.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -8,7 +9,7 @@ import type { HostBridge } from "@krds-detector/contracts";
 afterEach(cleanup);
 
 function hostStub(startScan: HostBridge["startScan"]): HostBridge {
-  return {
+  return { ...warpHost(),
     startScan,
     cancelScan: vi.fn(async () => {}),
     onScanEvent: () => () => {},

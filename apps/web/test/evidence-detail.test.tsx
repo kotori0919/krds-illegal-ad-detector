@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { warpHost } from "./evidence-host.js";
 import { afterEach, describe, expect, it } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { FindingDetailView, HostBridge, OfficialFinding } from "@krds-detector/contracts";
@@ -7,7 +8,7 @@ import { EvidenceView } from "../src/screens/EvidenceView.js";
 afterEach(cleanup);
 
 function renderInspector(finding: OfficialFinding, getFindingDetail: HostBridge["getFindingDetail"]) {
-  const host = {
+  const host = { ...warpHost(),
     getCapabilities: async () => ({ localScan: true }),
     getOfficialResult: async () => ({ findings: [finding] }),
     getFindingDetail,

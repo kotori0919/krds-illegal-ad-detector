@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { warpHost } from "./evidence-host.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { EvidenceGraphSlice, HostBridge } from "@krds-detector/contracts";
@@ -24,7 +25,7 @@ const graph: EvidenceGraphSlice = {
   ],
 };
 function hostWith(read: HostBridge["getEvidenceGraphSlice"]): HostBridge {
-  return { getEvidenceGraphSlice: read } as HostBridge;
+  return { ...warpHost(), getEvidenceGraphSlice: read } as HostBridge;
 }
 function deferred<T>() {
   let resolve!: (value: T) => void;

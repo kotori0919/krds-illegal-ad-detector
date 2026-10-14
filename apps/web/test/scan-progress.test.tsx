@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { warpHost } from "./evidence-host.js";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -14,7 +15,7 @@ function setup() {
     startedAt: "2026-10-06T00:00:00Z", progress: initialProgress("running") };
   let lookupFailed = false;
   let cancelFailed = false;
-  const host = {
+  const host = { ...warpHost(),
     getSession: async () => { if (lookupFailed) throw new Error("private IPC error"); return session; },
     cancelScan: async () => { if (cancelFailed) throw new Error("private IPC error"); },
     onScanEvent: (next: (event: ScanEvent) => void) => { handler = next; return () => { handler = undefined; }; },

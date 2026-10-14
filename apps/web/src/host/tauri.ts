@@ -9,6 +9,7 @@
  */
 import {
   TAURI_HOST_CAPABILITIES,
+  isWarpStatus, type WarpStatus,
   CONFIG_VERSION,
   isCaseId, isCaseList, isOpenCase, isCaseReview, isReviewRecord, isSupportDiagnostics, parseCaseValue,
   type ExportPaths,
@@ -52,6 +53,16 @@ async function loadTauri(): Promise<{ invoke: TauriInvoke; listen: TauriListen }
 }
 
 export class TauriHost implements HostBridge {
+  async getWarpStatus(): Promise<WarpStatus> {
+    const value = await (await this.invoke())<unknown>("get_warp_status");
+    if (!isWarpStatus(value)) throw new Error("Invalid WARP status");
+    return value;
+  }
+  async registerWarp(request: { acceptTerms: boolean }): Promise<WarpStatus> {
+    const value = await (await this.invoke())<unknown>("register_warp", { request: { acceptTerms: request.acceptTerms } });
+    if (!isWarpStatus(value)) throw new Error("Invalid WARP status");
+    return value;
+  }
   async onCloseRequested(prepare: () => Promise<boolean>): Promise<Unsubscribe> {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
     return getCurrentWindow().onCloseRequested(async (event) => {

@@ -11,6 +11,20 @@ afterEach(() => {
   vi.resetModules();
 });
 
+describe("WARP status boundary", () => {
+  it("rejects extra status fields without exposing their contents", async () => {
+    vi.doMock("@tauri-apps/api/core", () => ({ invoke: async () => ({ state: "ready", backend: "usque", version: "4.2.1", token: "private-fixture-value" }) }));
+    const { TauriHost: H } = await import("../src/host/tauri.js");
+    await expect(new H().getWarpStatus()).rejects.toThrow("Invalid WARP status");
+  });
+  it("keeps browser replay unsupported and rejects registration", async () => {
+    const { BrowserHost } = await import("../src/host/browser.js");
+    const host = new BrowserHost();
+    expect(await host.getWarpStatus()).toEqual({ state: "unsupported" });
+    await expect(host.registerWarp({ acceptTerms: true })).rejects.toThrow();
+  });
+});
+
 function session(): ScanSession {
   return {
     id: "s1",
