@@ -11,6 +11,8 @@ import { scanSite } from "./scan.js";
 import { writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { parseWorkerArgs } from "./worker-args.js";
+import { PublicNetworkPolicy, ScanDeadline, type PinnedTransport } from "@krds-detector/scanner";
+import { startWarpRuntime, WarpRuntimeError, type WarpRuntime } from "./warp-runtime.js";
 
 async function main(): Promise<void> {
   let args;
@@ -28,10 +30,28 @@ async function main(): Promise<void> {
   });
   // The command pipe must not keep a settled worker alive.
   process.stdin.unref?.();
+  const deadline = new ScanDeadline(args.timeoutSec);
+  let runtime: WarpRuntime | undefined;
+  let tunnelFailure: Error | undefined;
+  let publicTransport: PinnedTransport | undefined;
   try {
+  if (args.requireWarp || args.warpExecutable) {
+    const policy = args.publicNetworkOnly ? new PublicNetworkPolicy()
+      : await PublicNetworkPolicy.forManualEntry(args.entryUrl, controller.signal, deadline.operationTimeoutMs(2000));
+    const target = await policy.resolveTarget(args.entryUrl, controller.signal, deadline.operationTimeoutMs(2000));
+    if (target.route === "owned-origin") {
+      publicTransport = { open: async () => { throw new WarpRuntimeError("preparation-failed"); }, close: async () => {} };
+    } else {
+      if (!args.warpExecutable || !args.warpConfigFile) throw new WarpRuntimeError("config-invalid");
+      runtime = await startWarpRuntime({ executablePath: args.warpExecutable, configPath: args.warpConfigFile, deadline, signal: controller.signal });
+      publicTransport = runtime.transport;
+      void runtime.failure.then(error => { tunnelFailure = error; controller.abort(); });
+    }
+  }
   const { json, detailBundle, extraJson } = await scanSite({
     entryUrl: args.entryUrl,
     signal: controller.signal,
+    deadline,
     commitOfficial: (json) => {
       if (args.outFile) writeFileSync(args.outFile, json.endsWith("\n") ? json : `${json}\n`,"utf8");
     },
@@ -43,8 +63,12 @@ async function main(): Promise<void> {
       executablePath: args.executablePath,
       publicNetworkOnly: args.publicNetworkOnly,
       entryKind: args.entryKind,
+      publicTransport,
     },
     onEvent: (e) => {
+      if (tunnelFailure && (e.kind === "session-cancelled" || e.kind === "session-finished")) {
+        e = { ...e, kind: "session-failed", message: "WARP tunnel failed", progress: { ...e.progress, stage: "failed" } };
+      }
       // Machine-readable progress for the Tauri host (KODEX §36): the host
       // forwards KRDSPROGRESS lines as scan-event IPC so the progress screen
       // shows real counters. Stdout stays result.json only.
@@ -57,6 +81,7 @@ async function main(): Promise<void> {
       console.error(`KRDSPROGRESS ${payload}`);
     },
   });
+  if (tunnelFailure) throw tunnelFailure;
   // --out-file bypasses shell redirection entirely (PowerShell `>` forces
   // UTF-16); stdout stays a fallback for piped Tauri capture (bytes).
   const text = json.endsWith("\n") ? json : `${json}\n`;
@@ -67,10 +92,11 @@ async function main(): Promise<void> {
     try {writeFileSync(path,value(),"utf8");}
     catch {console.error(`KRDSISSUE ${JSON.stringify({code:"OPTIONAL_WRITE_FAILED",scope,retryable:false})}`);}
   }
-  } finally { commands.close(); }
+  } finally { await runtime?.close(); commands.close(); }
 }
 
 void main().catch((err: unknown) => {
+  if (err instanceof WarpRuntimeError) console.error(`KRDSWARPERROR ${JSON.stringify({ code: err.code })}`);
   console.error(err instanceof Error ? err.message : String(err));
   process.exitCode = 1;
 });

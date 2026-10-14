@@ -3,6 +3,20 @@ import { expect, it, onTestFailed } from "vitest";
 import { scanSite } from "../src/scan.js";
 import { validateOfficialResultText } from "@krds-detector/contracts";
 
+it("keeps an owned page direct while rejecting its public resource through the session transport", async()=>{
+  let opens=0;
+  const server=createServer((_request,response)=>{response.setHeader("content-type","text/html");response.end('<img src="http://1.1.1.1/owned-fixture-never-direct.png"><p>fixture</p>');});
+  await new Promise<void>(resolve=>server.listen(0,"127.0.0.1",resolve));
+  const port=(server.address() as {port:number}).port;
+  try{
+    const output=await scanSite({entryUrl:`http://127.0.0.1:${port}/`,crawl:{settleMs:0,limits:{maxPages:1,maxDepth:0,timeoutSec:10},
+      publicTransport:{open:async()=>{opens++;throw new Error("public transport deliberately unavailable");},close:async()=>{}}}});
+    expect(opens).toBeGreaterThan(0);
+    expect(output.detailBundle.coverage.checkedPages).toBe(1);
+    expect(output.detailBundle.pageOutcomes?.[0]?.outcome).toBe("checked");
+  }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+},15_000);
+
 it("preserves completed findings and page outcomes when cancelled during another navigation", async () => {
   const controller = new AbortController();
   const startedAt = performance.now();

@@ -5,18 +5,21 @@ export interface WorkerArgs {
   timeoutSec: number; settleMs: number; concurrency: number;
   executablePath?: string; channel?: string; outFile?: string; detailOutFile?: string; extraOutFile?: string;
   publicNetworkOnly: boolean; entryKind: "site" | "sitemap";
+  requireWarp: boolean; warpExecutable?: string; warpConfigFile?: string;
 }
 const valueFlags = ["--session", "--entry-url", "--max-pages", "--max-depth", "--max-frame-depth", "--timeout-sec", "--settle-ms", "--concurrency",
-  "--executable-path", "--channel", "--out-file", "--detail-out-file", "--extra-out-file", "--entry-kind"];
+  "--executable-path", "--channel", "--out-file", "--detail-out-file", "--extra-out-file", "--entry-kind", "--warp-executable", "--warp-config-file"];
 
 /** A single, bounded CLI input boundary. Unknown/duplicate flags never become policy overrides. */
 export function parseWorkerArgs(argv: readonly string[]): WorkerArgs {
   if (argv.length > 32) throw new Error("Too many worker arguments");
   const values = new Map<string, string>();
   let publicNetworkOnly = false;
+  let requireWarp = false;
   for (let index = 0; index < argv.length; index++) {
     const flag = argv[index]!;
-    if (values.has(flag) || (flag === "--public-network-only" && publicNetworkOnly)) throw new Error("Duplicate worker flag");
+    if (values.has(flag) || (flag === "--public-network-only" && publicNetworkOnly) || (flag === "--require-warp" && requireWarp)) throw new Error("Duplicate worker flag");
+    if (flag === "--require-warp") { requireWarp = true; continue; }
     if (flag === "--public-network-only") { publicNetworkOnly = true; continue; }
     if (!valueFlags.includes(flag)) throw new Error("Unknown worker flag");
     const value = argv[++index];
@@ -45,8 +48,11 @@ export function parseWorkerArgs(argv: readonly string[]): WorkerArgs {
   const entryKind = values.get("--entry-kind") ?? "site";
   if (entryKind !== "site" && entryKind !== "sitemap") throw new Error("--entry-kind must be site or sitemap");
   const channel = values.get("--channel");
+  const warpExecutable = values.get("--warp-executable");
+  const warpConfigFile = values.get("--warp-config-file");
+  if (Boolean(warpExecutable) !== Boolean(warpConfigFile)) throw new Error("Managed WARP paths must be paired");
   if (channel && !["chrome", "chrome-beta", "chrome-dev", "chrome-canary", "msedge", "msedge-beta", "msedge-dev", "msedge-canary"].includes(channel)) throw new Error("Unsupported installed-browser channel");
   return { session, entryUrl, ...config.value.limits, settleMs: config.value.settleMs, concurrency: config.value.concurrency,
     executablePath: values.get("--executable-path"), channel, outFile: values.get("--out-file"), detailOutFile: values.get("--detail-out-file"),
-    extraOutFile: values.get("--extra-out-file"), publicNetworkOnly, entryKind };
+    extraOutFile: values.get("--extra-out-file"), publicNetworkOnly, entryKind, requireWarp, warpExecutable, warpConfigFile };
 }

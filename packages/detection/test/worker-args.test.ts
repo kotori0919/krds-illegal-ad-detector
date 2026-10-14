@@ -15,3 +15,16 @@ it("does not accept credential-bearing URLs or control characters", () => {
   expect(() => parseWorkerArgs(["--session", "test", "--entry-url", "https://user:secret@example.test/"])).toThrow(/without credentials/);
   expect(() => parseWorkerArgs([...base, "--out-file", "unsafe\npath"])).toThrow(/unsafe/);
 });
+it("accepts paired managed WARP paths and required mode without credentials", () => {
+  expect(parseWorkerArgs([...base, "--require-warp", "--warp-executable", "C:\\app\\usque.exe", "--warp-config-file", "C:\\private\\warp.json"]))
+    .toMatchObject({ requireWarp: true, warpExecutable: "C:\\app\\usque.exe", warpConfigFile: "C:\\private\\warp.json" });
+  expect(parseWorkerArgs([...base, "--require-warp"]).requireWarp).toBe(true);
+});
+it.each([
+  ["--warp-executable", "C:\\app\\usque.exe"], ["--warp-config-file", "C:\\private\\warp.json"],
+  ["--require-warp", "--require-warp"],
+  ["--warp-executable", "a", "--warp-config-file", "b", "--warp-executable", "c"],
+  ["--warp-executable", "unsafe\npath", "--warp-config-file", "b"],
+])("rejects incomplete or malformed managed WARP arguments: %j", (...extra) => {
+  expect(() => parseWorkerArgs([...base, ...extra])).toThrow();
+});

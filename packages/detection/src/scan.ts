@@ -40,6 +40,7 @@ export interface ScanInput {
   crawl?: Omit<CrawlOptions, "entryUrl" | "events" | "deadline" | "onLivePage">;
   onEvent?: (event: ScanEvent) => void;
   signal?: AbortSignal;
+  deadline?: ScanDeadline;
   /** Mandatory output port, invoked before any optional finalization. */
   commitOfficial?: (json: string) => void;
 }
@@ -59,7 +60,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
   const startedAt = new Date().toISOString();
   const t0 = performance.now();
   const sessionId = `scan-${String(Date.now())}`;
-  const deadline = new ScanDeadline(input.crawl?.limits?.timeoutSec ?? DEFAULT_SCAN_LIMITS.timeoutSec);
+  const deadline = input.deadline ?? new ScanDeadline(input.crawl?.limits?.timeoutSec ?? DEFAULT_SCAN_LIMITS.timeoutSec);
   const progress: ScanProgress = initialProgress("running");
   const emit = (kind: ScanEvent["kind"], message?: string, pageUrl?: string, findingCount?: number): void => {
     progress.sequence += 1;
@@ -111,6 +112,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       publicNetworkOnly: input.crawl?.publicNetworkOnly,
       entryKind: input.crawl?.entryKind,
       networkPolicyForTesting: input.crawl?.networkPolicyForTesting,
+      publicTransport: input.crawl?.publicTransport,
       deadline,
       signal: input.signal,
       onLivePage: async (page, snapshot, liveFrames, images) => {

@@ -88,3 +88,17 @@ validate Rust/Tauri, Windows ACLs, packaging, or GUI behavior.
 - Windows test matrix (Phase 19): normal completion, cancel, scanner crash,
   browser crash, app-close-during-scan, repeat-after-failure — all funnel
   through `kill_child` + Job Drop; packaged execution pending rebuild.
+
+## Worker WARP transport
+
+Windows worker는 고정 usque 4.2.1 `http-proxy`를 세션별 자식으로 실행한다.
+실행 파일과 upstream license는 검증된 runtime inventory에 포함하며 검사 중
+내려받지 않는다. `--require-warp` 공개 검사는 관리된 실행 파일·등록 설정이
+없으면 실패한다. 정확한 소유 원점은 직접 연결하며 해당 세션의 공개 요청은
+준비되지 않은 전송으로 나가지 않는다.
+
+준비는 실행 파일 해시, 인증된 loopback 프록시와 고정 HTTPS trace의 `warp=on`
+검증을 포함한다. 준비 시간도 검사 deadline에 포함한다. 동적 포트는 소유 자식
+PID의 Windows 리스너 정보에서 확인한다. 첫 터널 실패·종료 시 직접 fallback이나
+재시작 없이 worker가 정리하고 비밀 없는 `KRDSWARPERROR` 코드로 실패를 전달한다.
+자식 출력·전체 argv·trace의 IP·등록 자격 정보는 진단에 넣지 않는다.

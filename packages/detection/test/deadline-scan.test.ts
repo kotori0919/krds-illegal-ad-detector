@@ -3,6 +3,7 @@ import { performance } from "node:perf_hooks";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { validateOfficialResultText, validateScanDetailBundle } from "@krds-detector/contracts";
 import { scanSite } from "../src/scan.js";
+import { ScanDeadline } from "@krds-detector/scanner";
 
 let server: Server;
 let origin = "";
@@ -34,6 +35,16 @@ beforeAll(async () => {
 afterAll(async () => { await new Promise<void>((resolve) => server.close(() => resolve())); });
 
 describe("L3 global deadline settlement", () => {
+  it("does not restart a shared sixty-second budget consumed by preparation", async () => {
+    let now = 0;
+    const deadline = new ScanDeadline(60, () => now);
+    now = 59_500;
+    const before = requests.length;
+    const output = await scanSite({ entryUrl: `${origin}/`, deadline,
+      crawl: { settleMs: 0, limits: { maxPages: 1, maxDepth: 0, timeoutSec: 60 } } });
+    expect(requests.length).toBe(before);
+    expect(output.detailBundle.coverage).toEqual({ checkedPages: 0, failedPages: [], timedOut: true, cancelled: false });
+  }, 15_000);
   it("retains failed coverage when no attempted page was successfully checked", async () => {
     const output = await scanSite({
       entryUrl: `${origin}/missing`,

@@ -11,7 +11,13 @@
       "url": "https://cdn.playwright.dev/dbazure/download/playwright/builds/winldd/1007/winldd-win64.zip",
       "archiveSha256": "0069f0d11d4ad6df068a068c003d22fe7dbec192a47bba64b2e115e9c8ce41d8"
     },
-    "packages": "package-lock.json resolved URLs/integrity (Tesseract includes WASM and language data)"
+    "packages": "package-lock.json resolved URLs/integrity (Tesseract includes WASM and language data)",
+    "usque": {
+      "version": "4.2.1",
+      "commit": "6aa03fc97d12848dce34eedbd187fb1077b5d1ea",
+      "url": "https://github.com/Diniboy1123/usque/releases/download/v4.2.1/usque_4.2.1_windows_amd64.zip",
+      "archiveSha256": "f6f7f0a1a2bc9bcc15cf563ec1f892d00690a92c086b23ed3211b802209099e7"
+    }
   },
   "files": [
     {
@@ -3363,6 +3369,16 @@
       "path": "node.exe",
       "size": 85268464,
       "sha256": "995a3fb3cefad590cd3f4b321532a4b9582fb9c6575320ed2e3e894caac3e362"
+    },
+    {
+      "path": "usque-LICENSE.md",
+      "size": 1120,
+      "sha256": "b3e9fec720528afc8d92644ee0ec9b2659324970dea9d34d8c547c783124fd4b"
+    },
+    {
+      "path": "usque.exe",
+      "size": 13038080,
+      "sha256": "122f2e40208e81bb814fcb4be4fbbbdc9246860f1f3784f72ae4512b97667e91"
     }
   ]
 }

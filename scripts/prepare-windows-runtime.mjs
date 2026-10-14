@@ -25,12 +25,21 @@ const nodeBase = `https://nodejs.org/dist/v${nodeVersion}/`;
 // From the official v22.19.0 SHASUMS256.txt; keep the runtime pinned offline.
 const nodeSha256 = "995a3fb3cefad590cd3f4b321532a4b9582fb9c6575320ed2e3e894caac3e362";
 const lockPath = join(root, "scripts", "windows-runtime.lock.json");
-const runtimeOnly = name => !["node.exe", "node-LICENSE"].includes(name)
+const usqueSource = "https://github.com/Diniboy1123/usque/releases/download/v4.2.1/usque_4.2.1_windows_amd64.zip";
+const usqueArchiveSha256 = "f6f7f0a1a2bc9bcc15cf563ec1f892d00690a92c086b23ed3211b802209099e7";
+const usqueFiles = [
+  { path: "usque.exe", size: 13038080, sha256: "122f2e40208e81bb814fcb4be4fbbbdc9246860f1f3784f72ae4512b97667e91" },
+  { path: "usque-LICENSE.md", size: 1120, sha256: "b3e9fec720528afc8d92644ee0ec9b2659324970dea9d34d8c547c783124fd4b" },
+];
+const runtimeOnly = name => !["node.exe", "node-LICENSE", "usque.exe", "usque-LICENSE.md"].includes(name)
   && name !== "node_modules" && !name.startsWith("node_modules/")
   && name !== "ms-playwright" && !name.startsWith("ms-playwright/");
 if (process.argv.includes("--verify")) {
   const lock = await json(lockPath);
   if (lock.schemaVersion !== 1) throw new Error("Unsupported runtime lock");
+  if (lock.sources?.usque?.version !== "4.2.1" || lock.sources.usque.commit !== "6aa03fc97d12848dce34eedbd187fb1077b5d1ea"
+    || lock.sources.usque.url !== usqueSource || lock.sources.usque.archiveSha256 !== usqueArchiveSha256) throw new Error("Pinned WARP provenance missing from runtime lock");
+  for (const file of usqueFiles) if (!lock.files.some(item => JSON.stringify(item) === JSON.stringify(file))) throw new Error("Pinned WARP resource missing from runtime lock");
   await clearBrowserValidationCache(stage);
   await verifyFiles(stage, lock.files);
   const actual = await inventory(stage, runtimeOnly);
@@ -70,6 +79,28 @@ async function installWindowsInspector() {
   await mkdir(directory, { recursive: true });
   await writeFile(join(directory, "PrintDeps.exe"), files["PrintDeps.exe"]);
   await writeFile(join(directory, "INSTALLATION_COMPLETE"), "");
+}
+
+async function installUsque() {
+  try { await verifyFiles(stage, usqueFiles); return; } catch { /* Prepare only; never download during a scan. */ }
+  const response = await globalThis.fetch(usqueSource);
+  if (!response.ok || !response.body || Number(response.headers.get("content-length") ?? 0) > 16_000_000) throw new Error("WARP archive download failed");
+  const chunks = []; let bytes = 0;
+  for await (const chunk of Readable.fromWeb(response.body)) {
+    bytes += chunk.byteLength;
+    if (bytes > 16_000_000) throw new Error("WARP archive exceeds limit");
+    chunks.push(chunk);
+  }
+  const archive = Buffer.concat(chunks);
+  if (createHash("sha256").update(archive).digest("hex") !== usqueArchiveSha256) throw new Error("WARP archive mismatch");
+  const files = unzipSync(archive);
+  if (Object.keys(files).sort().join(",") !== "LICENSE.md,README.md,usque.exe") throw new Error("Unexpected WARP archive layout");
+  for (const file of usqueFiles) {
+    const data = files[file.path === "usque.exe" ? "usque.exe" : "LICENSE.md"];
+    if (data?.byteLength !== file.size || createHash("sha256").update(data).digest("hex") !== file.sha256) throw new Error("WARP resource mismatch");
+  }
+  for (const file of usqueFiles) await writeFile(join(stage,file.path),files[file.path === "usque.exe" ? "usque.exe" : "LICENSE.md"]);
+  await verifyFiles(stage,usqueFiles);
 }
 
 async function downloadVerifiedNode() {
@@ -144,6 +175,7 @@ async function installBrowser() {
 }
 
 await mkdir(stage, { recursive: true });
+await installUsque();
 await downloadVerifiedNode();
 const targetPackage = join(stage, "node_modules", "playwright-core");
 await rm(targetPackage, { recursive: true, force: true });
@@ -187,6 +219,7 @@ if (process.argv.includes("--update-lock")) {
       browser: `https://cdn.playwright.dev/builds/cft/${shell.browserVersion}/win64/chrome-headless-shell-win64.zip`,
       ffmpeg: `https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/${ffmpegVersion.revision}/ffmpeg-win64.zip`,
       winldd: { url: winlddSource, archiveSha256: winlddArchiveSha256 },
+      usque: { version: "4.2.1", commit: "6aa03fc97d12848dce34eedbd187fb1077b5d1ea", url: usqueSource, archiveSha256: usqueArchiveSha256 },
       packages: "package-lock.json resolved URLs/integrity (Tesseract includes WASM and language data)" }, files });
 } else {
   const lock = await json(lockPath);
