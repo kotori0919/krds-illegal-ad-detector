@@ -478,3 +478,66 @@ D08 judgment/memo and saved-judgment integrated reporting remain NOT_RUN:
 there was no actual finding in either approved public pair. Neither a fabricated
 finding nor another site scan is silently substituted. All earlier viewport,
 native DOM-focus and human-usability limitations remain as recorded above.
+
+## Direct advertisement inspection and algorithm check - 2026-10-14
+
+The user explicitly requested direct inspection of the proposed sites for
+advertisements and review of the detection algorithm. This authorizes those
+read-only page visits, not a code change or access bypass. Earlier discovery
+proved address references/retrievable documents, not actual advertisement
+presence; selecting them as finding-bearing candidates was unsupported.
+
+OBSERVED_WINDOWS_BROWSER: the in-app browser was unavailable (no enabled
+browser surfaces). Cua Driver prepared a separate owned isolated Chrome
+profile on the existing Windows host; no personal profile was attached or
+copied. An isolated-profile error notice was dismissed without enabling its
+feedback checkbox. Exact PID/window binding was verified. Browser operations
+initially refused an omitted explicit session; they succeeded with the same
+session explicitly supplied. No driver approval policy was changed.
+
+| Requested page | Direct observation | Advertisement conclusion |
+| --- | --- | --- |
+| blacktoon424.com | Chrome navigation failed with ERR_CONNECTION_RESET and showed the corresponding error page | Unknown; page not inspected successfully |
+| wfwf513.com | ERR_CONNECTION_RESET with error page | Unknown |
+| funbe680.com | ERR_CONNECTION_RESET with error page | Unknown |
+| noonootvx8.store | Browser automatically redirected to noonootvx25.store; screenshots of top, middle and footer showed a programme catalogue | No gambling/loan offer observed in those sampled viewports; not proof of absence throughout the site |
+| tvwkwk1.tv (previous scanned target) | Loaded top screenshot showed programme cards/navigation | No gambling/loan banner observed in the top viewport |
+| 11toon2.com (previous scanned target) | Loaded top screenshot showed a Telegram banner and multiple broken image placeholders | Contents of failed images unknown; do not call them inspected advertisements or an ad-free result |
+
+No advertisement or programme link was clicked, no media was opened, and no
+VPN/DNS/security settings were changed. Native browser screenshots and the
+sanitized `native-browser-ad-inspection.json` are under the evidence folder;
+screenshots are from the isolated window with no personal account contents.
+Initial one-node browser snapshots during navigation were not treated as
+loaded-page proof; loaded semantic states and matching images were inspected.
+
+INFERRED_FROM_SOURCE: installed565 and current source have identical runtime
+files under packages/detection and packages/scanner (the only diff in those
+trees is a cancellation test). Official DOM findings require the semantic
+gate AND one of HOMOGLYPH/JAMO/TRANSPARENT/OFFSCREEN, not simply a visible ad.
+See pipeline.ts:177,187,195-225. semantic.ts:12 defines supported terms and
+semantic.ts:113 onward evaluates local offers/destinations/public context.
+
+Image selection is separately restricted to visible marked-ad elements or
+images linked to an external HTTP destination (creative.ts:51-99), at most8
+candidates/document and6 distinct OCR images. A same-site/onclick-only image
+without a marker can therefore be excluded; that is a source-derived coverage
+limitation, not a reproduced miss on these pages. OCR alone is insufficient:
+visual-decision.ts:6-25 also requires corroboration and no equivalent visible
+DOM ad text. Matching image cases enter IMAGE_ONLY_ILLEGAL_AD in the extra
+result, not one of the four official categories (scan.ts:399, extra.ts:50).
+
+OBSERVED_PERSISTED_NATIVE_EVIDENCE: both earlier public cases recorded0 visual
+candidates,0 acquired images,0 attempted OCR,0 image analysis records and0
+extra findings. They did not attempt OCR and fail recognition; no missing
+model/backend can be inferred from these counts. Archived HTML truncation is
+separate from live visual candidate selection. Receipt:
+`native-D08-visual-coverage-review.json`.
+
+OBSERVED_VERIFICATION: targeted existing operator-rules and visual-decision
+tests passed40/40 in two files. They exercise semantic precision, supported
+obfuscation and image corroboration/visible-text/missing-OCR guards. They do
+not prove recall on any live site's failed images. No product code changed.
+The remaining D08 review/judgment path is still unexercised because no
+qualifying live finding was observed. Repeatedly selecting sites by reputation
+or treating official0 as no advertisements would not resolve that gap.
