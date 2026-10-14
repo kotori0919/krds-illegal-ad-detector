@@ -40,6 +40,12 @@ if (process.argv.includes("--verify")) {
   if (lock.sources?.usque?.version !== "4.2.1" || lock.sources.usque.commit !== "6aa03fc97d12848dce34eedbd187fb1077b5d1ea"
     || lock.sources.usque.url !== usqueSource || lock.sources.usque.archiveSha256 !== usqueArchiveSha256) throw new Error("Pinned WARP provenance missing from runtime lock");
   for (const file of usqueFiles) if (!lock.files.some(item => JSON.stringify(item) === JSON.stringify(file))) throw new Error("Pinned WARP resource missing from runtime lock");
+  // Verified staging bytes must also be selected at their installed Tauri paths.
+  const config = await json(join(root, "src-tauri", "tauri.conf.json"));
+  for (const file of usqueFiles) {
+    const resource = `binaries/${file.path}`;
+    if (config.bundle?.resources?.[resource] !== resource) throw new Error(`Pinned WARP resource must be bundled at ${resource}`);
+  }
   await clearBrowserValidationCache(stage);
   await verifyFiles(stage, lock.files);
   const actual = await inventory(stage, runtimeOnly);

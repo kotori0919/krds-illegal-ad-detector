@@ -36,6 +36,8 @@
       "binaries/ocr-data/": "binaries/ocr-data/",
       "binaries/node.exe": "binaries/node.exe",
       "binaries/node-LICENSE": "binaries/node-LICENSE",
+      "binaries/usque.exe": "binaries/usque.exe",
+      "binaries/usque-LICENSE.md": "binaries/usque-LICENSE.md",
       "binaries/node_modules/": "binaries/node_modules/",
       "binaries/ms-playwright/": "binaries/ms-playwright/",
       "binaries/build-manifest.json": "binaries/build-manifest.json",
