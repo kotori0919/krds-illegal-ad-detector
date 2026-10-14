@@ -8,6 +8,25 @@ import type { HostBridge } from "@krds-detector/contracts";
 
 afterEach(cleanup);
 
+it("offers shared connection setup after start failure without registering or losing the URL", async () => {
+  let devices = 0;
+  const host = hostStub(async () => { throw new Error("private config path"); });
+  host.registerWarp = async () => { devices++; return { state: "unregistered" }; };
+  function Workspace() {
+    const [setup, setSetup] = useState(false);
+    return <>{setup ? <h2>공유 연결 설정</h2> : null}<ScanStart host={host} onStarted={() => {}}
+      onWarpSetup={() => setSetup(true)} /></>;
+  }
+  render(<Workspace />);
+  fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
+  submit();
+  fireEvent.click(await screen.findByRole("button", { name: "WARP 연결 설정 확인" }));
+  expect(screen.getByRole("heading", { name: "공유 연결 설정" })).toBeTruthy();
+  expect(byId("entry-url").value).toBe("https://example.kr/");
+  expect(screen.queryByText("private config path")).toBeNull();
+  expect(devices).toBe(0);
+});
+
 function hostStub(startScan: HostBridge["startScan"]): HostBridge {
   return { ...warpHost(),
     startScan,

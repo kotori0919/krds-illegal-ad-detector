@@ -6,6 +6,7 @@ interface Props {
   onStarted: (sessionId: string) => void;
   onBatch?: () => void;
   showSavedCases?: boolean;
+  onWarpSetup?: () => void;
 }
 
 type FieldName = "url" | "maxPages" | "maxDepth" | "timeoutSec";
@@ -14,7 +15,7 @@ type ScopeMode = "automatic" | "quick" | "custom";
 /** DOM order. The first entry carrying an error is the one focused on submit. */
 const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
 
-export function ScanStart({ host, onStarted, onBatch, showSavedCases }: Props) {
+export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetup }: Props) {
   const [url, setUrl] = useState("");
   const [scopeMode, setScopeMode] = useState<ScopeMode>("automatic");
   const [maxPages, setMaxPages] = useState("200");
@@ -146,9 +147,9 @@ export function ScanStart({ host, onStarted, onBatch, showSavedCases }: Props) {
           ) : null}
         </div>
         {formError ? (
-          <p id="scan-form-error" role="alert" className="error">
+          <><p id="scan-form-error" role="alert" className="error">
             {formError}
-          </p>
+          </p>{onWarpSetup ? <button type="button" className="secondary" onClick={onWarpSetup}>WARP 연결 설정 확인</button> : null}</>
         ) : null}
         <details className="advanced" ref={advancedRef}>
           <summary><span>상세 설정</span><span className="scope-current">{scopeMode === "quick" ? "빠른 점검 · 최대 50페이지 · 10분" : scopeMode === "automatic" ? "자동 점검 · 최대 200페이지 · 25분" : `직접 설정 · 최대 ${maxPages}페이지 · ${timeoutSec}초`}</span></summary>

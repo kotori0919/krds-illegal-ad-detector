@@ -54,6 +54,8 @@ export interface ExportPaths {
 }
 
 export interface HostBridge {
+  /** Opens only the fixed official terms page; never accepts terms. */
+  openWarpTerms(): Promise<void>;
   getWarpStatus(): Promise<WarpStatus>;
   registerWarp(request: { acceptTerms: boolean }): Promise<WarpStatus>;
   /** Native close waits for durable review writes; false keeps the window open. */

@@ -1,4 +1,5 @@
 /** Stored readiness describes validated resources, never a live tunnel. */
+export const WARP_TERMS_URL = "https://www.cloudflare.com/application/terms/";
 export type WarpFailureCode = "config-permission" | "config-invalid" | "binary-missing" | "binary-integrity" | "registration-failed" | "preparation-failed" | "tunnel-exited";
 export type WarpStatus = { state: "unsupported" | "unregistered" | "registering" }
   | { state: "ready"; backend: "usque"; version: "4.2.1" }

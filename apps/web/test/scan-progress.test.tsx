@@ -200,7 +200,8 @@ describe("recoverable scan feedback", () => {
     host.setSession({ status: "failed", hasResult: true,
       progress: { ...initialProgress("failed"), sequence: 1, visitedPages: 3 } });
     await tick();
-    fireEvent.click(screen.getByRole("button", { name: "완료된 결과 보기" }));
+    expect(screen.getByText(/미점검/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "보관된 일부 결과 검토" }));
     expect(screen.getByRole("heading", { name: "결과 검토" })).toBeDefined();
   });
 });

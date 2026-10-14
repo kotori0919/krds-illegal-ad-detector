@@ -41,6 +41,28 @@ fn get_warp_status(app: tauri::AppHandle) -> Result<warp::WarpStatus, String> {
 }
 
 #[tauri::command]
+fn open_warp_terms() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use std::ffi::c_void;
+        #[link(name = "shell32")]
+        extern "system" {
+            fn ShellExecuteW(window: *mut c_void, operation: *const u16, file: *const u16,
+                parameters: *const u16, directory: *const u16, show: i32) -> *mut c_void;
+        }
+        let operation = b"open\0".map(u16::from);
+        let url = b"https://www.cloudflare.com/application/terms/\0".map(u16::from);
+        // The command accepts no caller-controlled target or arguments. ShellExecuteW
+        // returns values <= 32 on failure; the browser owns the external document.
+        let result = unsafe { ShellExecuteW(std::ptr::null_mut(), operation.as_ptr(), url.as_ptr(),
+            std::ptr::null(), std::ptr::null(), 1) } as isize;
+        if result > 32 { Ok(()) } else { Err("WARP_TERMS_OPEN_FAILED".into()) }
+    }
+    #[cfg(not(windows))]
+    { Err("WARP_TERMS_UNSUPPORTED".into()) }
+}
+
+#[tauri::command]
 async fn register_warp(app: tauri::AppHandle, request: WarpRegistrationRequest) -> Result<warp::WarpStatus, String> {
     #[cfg(windows)] { warp::register(&app, request.accept_terms).await }
     #[cfg(not(windows))] { let _ = (app, request); Ok(warp::WarpStatus::Unsupported) }
@@ -868,6 +890,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_warp_status,
+            open_warp_terms,
             register_warp,
             scan_start,
             scan_cancel,

@@ -9,6 +9,7 @@
  */
 import {
   BROWSER_HOST_CAPABILITIES,
+  WARP_TERMS_URL,
   type WarpStatus,
   initialProgress,
   type ExportPaths,
@@ -34,6 +35,9 @@ import { sliceEvidenceGraph } from "@krds-detector/evidence/graph";
 let counter = 0;
 
 export class BrowserHost implements HostBridge {
+  async openWarpTerms(): Promise<void> {
+    window.open(WARP_TERMS_URL, "_blank", "noopener,noreferrer");
+  }
   async getWarpStatus(): Promise<WarpStatus> { return { state: "unsupported" }; }
   async registerWarp(_request: { acceptTerms: boolean }): Promise<WarpStatus> { throw new Error("WARP registration requires the Windows app"); }
   async listCases(): Promise<CaseList> { throw new Error("브라우저 미리보기는 저장된 케이스와 영구 보관을 지원하지 않습니다. 데스크톱 앱을 사용해 주세요."); }

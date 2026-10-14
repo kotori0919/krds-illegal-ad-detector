@@ -53,6 +53,9 @@ async function loadTauri(): Promise<{ invoke: TauriInvoke; listen: TauriListen }
 }
 
 export class TauriHost implements HostBridge {
+  async openWarpTerms(): Promise<void> {
+    await (await this.invoke())("open_warp_terms");
+  }
   async getWarpStatus(): Promise<WarpStatus> {
     const value = await (await this.invoke())<unknown>("get_warp_status");
     if (!isWarpStatus(value)) throw new Error("Invalid WARP status");

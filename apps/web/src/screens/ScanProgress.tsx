@@ -12,6 +12,7 @@ interface Props {
   sessionId: string;
   onDone: () => void;
   onCancel: () => void;
+  onWarpSetup?: () => void;
 }
 
 const INITIAL = initialProgress("running");
@@ -28,7 +29,7 @@ function activityLabel(activity: ScanActivity): string {
   }
 }
 
-export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
+export function ScanProgressView({ host, sessionId, onDone, onCancel, onWarpSetup }: Props) {
   const [progress, setProgress] = useState<ScanProgress>(INITIAL);
   const [notice, setNotice] = useState<string>(
     "점검 준비 중",
@@ -172,7 +173,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       {pollUnavailable ? <p role="alert" className="error">진행 상태 조회 실패. 다시 연결하는 중입니다.</p> : null}
       {failed ? (
         <p role="alert" className="error">
-          시작 주소와 접속 상태를 확인해 주세요.
+          점검을 완료하지 못했습니다. 남은 페이지는 미점검이며 탐지 0건이나 정상으로 판정할 수 없습니다. 시작 주소와 외부 연결 허용 상태를 확인해 주세요.
         </p>
       ) : null}
       <section aria-label="탐지 현황">
@@ -216,7 +217,8 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel }: Props) {
       </details>
       <div className="actions">
         {cancelError ? <p role="alert" className="error">{cancelError}</p> : null}
-        {failed ? <>{hasResult ? <button type="button" onClick={onDone} className="primary">완료된 결과 보기</button> : null}
+        {failed ? <>{hasResult ? <button type="button" onClick={onDone} className="primary">보관된 일부 결과 검토</button> : null}
+          {onWarpSetup ? <button type="button" onClick={onWarpSetup} className="secondary">WARP 연결 설정 확인</button> : null}
           <button type="button" onClick={onCancel} className={hasResult ? "secondary" : "primary"}>새로 검사하기</button></>
           : <button ref={cancelButtonRef} type="button" onClick={() => setConfirmCancel(true)} disabled={cancelling} className="secondary">
             {cancelling ? "중지 처리 중…" : "점검 중지"}

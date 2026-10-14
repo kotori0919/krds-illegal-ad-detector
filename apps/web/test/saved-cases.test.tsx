@@ -15,8 +15,8 @@ it("finds a saved case beyond the first page by address, date or identity and re
       schemaVersion: 1, caseId: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
       entryUrl: index === 21 ? "https://archive.invalid/oldest" : `https://recent.invalid/${index}`,
       startedAt: "2026-10-14T00:00:00Z", finishedAt: index === 21 ? "2026-09-01T00:00:00Z" : "2026-10-14T00:00:00Z",
-      exportableAt: "2026-10-14T00:00:00Z", status: "succeeded", toolVersion: "test-fixture",
-      policyVersion: 2, officialSha256: "0".repeat(64), findings: 0, issues: [], settings: {},
+      exportableAt: "2026-10-14T00:00:00Z", status: index === 21 ? "failed" : "succeeded", toolVersion: "test-fixture",
+      policyVersion: 2, officialSha256: "0".repeat(64), findings: 0, issues: [], settings: index === 21 ? { transportFailure: { code: "tunnel-exited", scope: "incomplete" } } : {},
     },
   }));
   class FixtureHost extends BrowserHost {
@@ -32,6 +32,7 @@ it("finds a saved case beyond the first page by address, date or identity and re
     fireEvent.change(search, { target: { value: query } });
     expect(screen.getAllByRole("button", { name: /^케이스 다시 열기/ }).map((button) => button.textContent))
       .toEqual(["케이스 다시 열기 https://archive.invalid/oldest"]);
+    expect(screen.getByText(/점검 미완료 · 보관된 일부 결과/)).toBeTruthy();
   }
   fireEvent.change(search, { target: { value: "no-such-case" } });
   expect(screen.queryByRole("button", { name: /^케이스 다시 열기/ })).toBeNull();

@@ -7,9 +7,10 @@ import { readReportSession } from "../report-data.js";
 
 const labels: Record<TargetStatus, string> = { pending: "대기", running: "점검 중", complete: "완료", partial: "일부 점검", blocked: "미점검·접근 제한", failed: "실패", cancelled: "중지" };
 const rowLabels = { valid: "점검 가능", invalid: "입력 오류", duplicate: "중복 제외" };
-export function BatchWorkspace({ host, onBack, onInspect, reviews }: {
+export function BatchWorkspace({ host, onBack, onInspect, reviews, onWarpSetup }: {
   host: HostBridge; onBack: () => void; onInspect: (sessionId: string) => void;
   reviews: Record<string, Record<string, ReviewRecord>>;
+  onWarpSetup?: () => void;
 }) {
   const [preview, setPreview] = useState<TargetPreview>();
   const [fileName, setFileName] = useState("");
@@ -101,6 +102,7 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews }: {
       <details><summary>파일 형식과 열 이름 안내</summary><p>CSV·XLSX 첫 행: 사이트명, 시작 주소. JSONL: {"{\"label\":\"사이트명\",\"entryUrl\":\"https://example.kr/\"}"}. XML은 urlset·sitemapindex를 지원합니다. url, entryUrl / name, label 영문 열도 사용할 수 있습니다. 대상 URL 열은 한 개여야 합니다.</p></details>
     </section> : null}
     {message ? <p role={error ? "alert" : "status"}>{message}</p> : null}
+    {onWarpSetup && (error || batch?.targets.some((target) => target.status === "failed")) ? <><p>점검하지 못한 페이지는 미점검으로 남습니다. 연결 상태를 확인한 뒤 필요한 대상을 직접 다시 점검해 주세요.</p><button type="button" className="secondary" onClick={onWarpSetup}>WARP 연결 설정 확인</button></> : null}
     {preview && !batch ? <section aria-label="대상 미리보기">
       <h2>2. 미리보기 확인 후 시작</h2><p>{fileName} · 점검 가능 {preview.valid} · 오류 {preview.invalid} · 중복 {preview.duplicate}</p>
       <ul className="batch-targets">{preview.rows.map((row) => <li key={row.row}><strong>{row.row}행 · {rowLabels[row.status]}</strong><span>{row.target?.label}</span><span className="mono">{row.target?.entryUrl}</span>{row.reason ? <span>{row.reason}</span> : null}</li>)}</ul>
@@ -117,7 +119,7 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews }: {
         : batch.targets.some((target) => target.status === "pending") ? <button className="primary" type="button" onClick={() => operate(coordinator.current!.start())}>남은 사이트 점검 계속</button> : null}</div>
       <ol className="batch-targets">{batch.targets.map((target) => <li key={target.key}><strong>{target.label} · {labels[target.status]}</strong><span className="mono">{target.entryUrl}</span>
         {target.session ? <span>확인 시도 {target.session.progress.visitedPages}페이지 · 실패 {target.session.progress.failedPages} · 탐지 {target.session.progress.confirmedFindings}건</span> : null}
-        {target.error ? <><span className="error">{target.error.includes("public network") ? "공개 네트워크 정책에서 주소를 차단했습니다. 내부·비공개 주소는 일괄 점검할 수 없습니다." : "이 사이트의 점검을 완료하지 못했습니다. 다른 사이트의 완료 결과는 유지됩니다."}</span><details><summary>실패 원인 확인</summary><p className="mono">{target.error}</p></details></> : null}
+        {target.error ? <span className="error">{target.error.includes("public network") ? "공개 네트워크 정책에서 주소를 차단했습니다. 내부·비공개 주소는 일괄 점검할 수 없습니다." : "이 사이트의 점검을 완료하지 못했습니다. 다른 사이트의 완료 결과는 유지됩니다."}</span> : null}
         {target.session?.hasResult ? <button type="button" className="secondary" onClick={() => onInspect(target.session!.id)}>{target.label} 결과 검토</button> : null}
         {target.canRetry && !running ? <button type="button" className="secondary" onClick={() => operate(coordinator.current!.retry(target.key))}>{target.label} 재시도 가능 항목 다시 점검</button> : null}
       </li>)}</ol>

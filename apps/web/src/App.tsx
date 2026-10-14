@@ -11,6 +11,7 @@ import { BatchWorkspace } from "./screens/BatchWorkspace.js";
 import { stepStates, type Phase } from "./steps.js";
 import { useCaseReview } from "./useCaseReview.js";
 import { SavedCases } from "./screens/SavedCases.js";
+import { WarpSetup } from "./screens/WarpSetup.js";
 
 const narrowInspector = () => window.matchMedia?.("(max-width: 63.999rem)").matches ?? false;
 
@@ -117,6 +118,10 @@ export function App() {
   }, []);
 
   const steps = stepStates(phase);
+  const showWarpSetup = () => {
+    const setup = document.getElementById("warp-setup");
+    setup?.scrollIntoView?.({ block: "start" }); setup?.focus();
+  };
 
   if (!host) {
     return (
@@ -134,7 +139,8 @@ export function App() {
           {!capabilities?.localScan ? <span className="environment-label">화면 미리보기</span> : null}
         </div>
       </header>
-      {batchMounted ? <div hidden={!batchOpen}><BatchWorkspace host={host} reviews={reviewSessions}
+      {capabilities?.windowsIntegration ? <div hidden={!batchOpen && phase !== "start" && phase !== "progress"}><WarpSetup host={host} /></div> : null}
+      {batchMounted ? <div hidden={!batchOpen}><BatchWorkspace host={host} reviews={reviewSessions} onWarpSetup={showWarpSetup}
         onBack={() => { setBatchOpen(false); setBatchResult(false); goStart(); }}
         onInspect={(id) => { setSessionId(id); setBatchResult(true); setBatchOpen(false); setFindingId(undefined);
           setResultQuery(""); setResultFilter("ALL"); setResultView("findings"); setFindingContext([]); setRestoreFindingId(undefined); go("result"); }} /></div> : null}
@@ -156,6 +162,7 @@ export function App() {
           sessionId={sessionId}
           onDone={goResult}
           onCancel={goStart}
+          onWarpSetup={capabilities?.windowsIntegration ? showWarpSetup : undefined}
         />
       ) : (phase === "result" || phase === "evidence") && sessionId ? (
         <div className={`result-workspace${phase === "evidence" ? " inspecting" : ""}`}>
@@ -223,6 +230,7 @@ export function App() {
         <><ScanStart
           host={host}
           showSavedCases={!!capabilities?.filesystem}
+          onWarpSetup={capabilities?.windowsIntegration ? showWarpSetup : undefined}
           onBatch={() => { setBatchMounted(true); setBatchOpen(true); }}
           onStarted={(id) => {
             setBatchResult(false);

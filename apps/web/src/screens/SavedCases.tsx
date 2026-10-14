@@ -66,7 +66,7 @@ export function SavedCases({ host, onOpen }: { host: HostBridge; onOpen: (caseId
       {list?.cases.length === 0 ? <p>저장된 케이스가 없습니다. 점검이 끝나면 이곳에서 다시 열 수 있습니다.</p> : null}
       {list && list.cases.length > 0 && !matches.length ? <p>검색 조건에 맞는 케이스가 없습니다.</p> : null}
       <ul className="finding-list">{matches.slice(0, shown).map((saved) => <li className="finding-card" key={saved.manifest.caseId}>
-        <h3>{saved.manifest.entryUrl}</h3><p>{saved.manifest.finishedAt} · 원본 탐지 {saved.manifest.findings}건 · {saved.manifest.status === "cancelled" ? "중지 전 일부 결과" : "완료된 결과"}</p>
+        <h3>{saved.manifest.entryUrl}</h3><p>{saved.manifest.finishedAt} · 원본 탐지 {saved.manifest.findings}건 · {saved.manifest.status === "cancelled" ? "중지 전 일부 결과" : saved.manifest.status === "failed" ? "점검 미완료 · 보관된 일부 결과" : "완료된 결과"}</p>
         {saved.manifest.issues.length ? <p>일부 근거 사용 제한 {saved.manifest.issues.length}건 · 공식 결과는 별도로 보관됩니다.</p> : null}
         <div className="actions"><button type="button" className="primary" disabled={busy} onClick={() => void action(() => onOpen(saved.manifest.caseId))}>케이스 다시 열기<span className="sr-only"> {saved.manifest.entryUrl}</span></button>
           <button type="button" className="secondary" disabled={busy} onClick={() => void action(async () => { const path = await host.exportCase(saved.manifest.caseId); setMessage(path ? `전달 폴더 저장 완료: ${path}` : "전달 저장을 취소했습니다."); })}>전달 폴더 저장<span className="sr-only"> {saved.manifest.entryUrl}</span></button>
