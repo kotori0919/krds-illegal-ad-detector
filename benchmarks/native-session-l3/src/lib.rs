@@ -212,7 +212,8 @@ mod tests {
         });
 
         let entry = format!("{origin}/");
-        let registry = SessionRegistry::shared();
+        let case_root = temporary.0.join("cases");
+        let registry = SessionRegistry::persistent(case_root.clone()).unwrap();
         let record = new_session(
             entry.clone(),
             chrono::Utc::now().to_rfc3339(),
@@ -226,6 +227,7 @@ mod tests {
         let detail_name = detail_file.to_string_lossy().to_string();
         let extra_name = extra_file.to_string_lossy().to_string();
         let args = [
+            "--require-warp",
             "--session",
             id.as_str(),
             "--entry-url",
@@ -261,7 +263,7 @@ mod tests {
         let official_text = std::fs::read_to_string(&result_file).unwrap();
         let detail_text = std::fs::read_to_string(&detail_file).unwrap();
         let extra_text = std::fs::read_to_string(&extra_file).unwrap();
-        validate_sidecar_stdout(&entry, &official_text).unwrap();
+        let canonical_official_text = validate_sidecar_stdout(&entry, &official_text).unwrap();
         validate_extra_bundle(&official_text, &extra_text).unwrap();
         validate_detail_bundle(&official_text, &detail_text, &extra_text).unwrap();
         let official: serde_json::Value = serde_json::from_str(&official_text).unwrap();
@@ -279,9 +281,13 @@ mod tests {
             .unwrap()
             .iter()
             .map(|item| {
+                // Historical truth names the child document; location policy1.1
+                // anchors frame observations to the checked parent page.
+                let page = item["page"].as_str().unwrap();
+                let page = if page == "/frame.html" { "/post.html" } else { page };
                 format!(
                     "{}\0{}\0{}",
-                    item["page"].as_str().unwrap(),
+                    page,
                     item["selector"].as_str().unwrap(),
                     item["technique"].as_str().unwrap()
                 )
@@ -301,6 +307,10 @@ mod tests {
             })
             .collect();
         assert_eq!(actual, expected);
+        let frame_finding = findings.iter().find(|finding| {
+            finding["location"] == "#notice-frame >>> #frame-ad"
+        }).expect("frame finding retains its complete owner-selector chain");
+        assert_eq!(frame_finding["url"], format!("{origin}/post.html"));
         assert_eq!(findings.len(), 5);
         assert_eq!(detail_findings.len(), 5);
         assert_eq!(detail["coverage"]["checkedPages"], 5);
@@ -317,12 +327,13 @@ mod tests {
             .map(|finding| finding["findingId"].as_str().unwrap())
             .collect();
         assert_eq!(official_ids, detail_ids);
+        let visual_assets = detail["visualAssets"].as_array().unwrap();
         assert!(detail_findings.iter().all(|finding| {
             finding["visual"]["state"] == "available"
-                && finding["visual"]["dataUrl"]
-                    .as_str()
-                    .unwrap()
-                    .starts_with("data:image/jpeg;base64,/9j/")
+                && visual_assets.iter().any(|asset| {
+                    asset["assetId"] == finding["visual"]["assetId"]
+                        && asset["dataUrl"].as_str().unwrap().starts_with("data:image/jpeg;base64,/9j/")
+                })
         }));
         assert!(events
             .lock()
@@ -352,7 +363,7 @@ mod tests {
         registry
             .store_result(
                 &id,
-                official_text,
+                official_text.clone(),
                 detail_text,
                 extra_text,
                 chrono::Utc::now().to_rfc3339(),
@@ -387,6 +398,15 @@ mod tests {
         let analyses = registry.image_analysis_value(&id, &serde_json::json!({"limit":1})).await.unwrap().unwrap();
         assert!(!analyses.to_string().contains("data:image/"));
         assert_eq!(registry.result_value(&id).await.unwrap(), official);
+        assert_eq!(std::fs::read_to_string(&result_file).unwrap(), official_text);
+        assert_eq!(std::fs::read_to_string(case_root.join(&id).join("result.json")).unwrap(), canonical_official_text);
+        drop(registry);
+        let reopened = SessionRegistry::persistent(case_root).unwrap();
+        let case = reopened.open_case(&id).await.unwrap();
+        assert_eq!(case["manifest"]["settings"]["transport"], serde_json::json!({"kind":"direct","reason":"owned-origin"}));
+        assert_eq!(reopened.result_value(&id).await.unwrap(), official);
+        assert_eq!(reopened.validated_export_text(&id).await.unwrap(), canonical_official_text);
+        assert_eq!(reopened.evidence_asset_value(&id, asset_id).await.unwrap(), asset);
         println!("native L3: official unchanged; selected metadata has no bytes; session-scoped JPEG loaded; foreign/path asset denied; {} progress events", events.lock().unwrap().len());
         server.abort();
     }

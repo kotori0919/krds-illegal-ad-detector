@@ -87,9 +87,15 @@ try {
   if (!extraVerdict.ok) throw new Error(`extra result invalid: ${extraVerdict.errors.join("; ")}`);
   if (JSON.stringify(extra.meta) !== JSON.stringify(official.meta)) throw new Error("extra metadata differs from official result");
 
-  const expected = truth.positive.map((item) => `${item.page}\0${item.selector}\0${item.technique}`).sort();
+  // Historical truth labels the child document; location policy1.1 anchors
+  // frame observations to the checked parent page.
+  const expected = truth.positive.map((item) => `${item.page === "/frame.html" ? "/post.html" : item.page}\0${item.selector}\0${item.technique}`).sort();
   const actual = official.findings.map(findingKey).sort();
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("worker finding set differs from ground truth");
+  if (!official.findings.some((finding) => finding.url === `${origin}/post.html`
+    && finding.location === "#notice-frame >>> #frame-ad")) {
+    throw new Error("worker frame finding lost its checked parent or full selector chain");
+  }
   if (detail.coverage.checkedPages !== truth.expectedCheckedPages
     || detail.coverage.failedPages.length !== truth.expectedFailedPages) {
     throw new Error("worker coverage differs from ground truth");
@@ -104,7 +110,9 @@ try {
   let jpegCount = 0;
   for (const item of detail.findings) {
     if (item.visual.state !== "available") throw new Error(`real evidence unavailable for ${item.findingId}`);
-    const bytes = Buffer.from(item.visual.dataUrl.split(",")[1], "base64");
+    const asset = detail.visualAssets.find((candidate) => candidate.assetId === item.visual.assetId);
+    if (!asset) throw new Error(`real evidence asset missing for ${item.findingId}`);
+    const bytes = Buffer.from(asset.dataUrl.split(",")[1], "base64");
     if (!bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) throw new Error("evidence is not JPEG");
     jpegCount += 1;
   }

@@ -1,4 +1,7 @@
 import { createServer, connect } from "node:net";
+import process from "node:process";
+import { Buffer } from "node:buffer";
+import { setTimeout } from "node:timers";
 const [username, password, destination, mode] = process.argv.slice(2);
 const sockets = new Set();
 const server = createServer((socket) => {
