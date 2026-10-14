@@ -18,6 +18,7 @@ import { isSameSite, normalizeUrl } from "./urls.js";
 import { classifyAccess, classifyPageError } from "./access.js";
 import { CRAWLER_USER_AGENT, discoverSitemaps } from "./sitemap.js";
 import { PublicNetworkPolicy, startPublicNetworkProxy, type PublicNetworkBoundary, type PublicNetworkProxy } from "./public-network.js";
+import type { PinnedTransport } from "./pinned-transport.js";
 import { createSelectorEngine } from "./selectors.js";
 import { collectBoundedHtml, observeFrameOwner } from "./observation.js";
 
@@ -77,6 +78,8 @@ export interface CrawlEvents {
 }
 
 export interface CrawlOptions {
+  /** Trusted source integration only; never accepted from UI/imported data. */
+  publicTransport?: PinnedTransport;
   entryUrl: string;
   limits?: Partial<ScanLimits>;
   events?: CrawlEvents;
@@ -226,8 +229,8 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     abortPages();
   }, Math.max(1, deadline.operationTimeoutMs(deadline.remainingMs())));
   try {
-    const networkPolicy = options.networkPolicyForTesting ?? (options.publicNetworkOnly ? new PublicNetworkPolicy()
-      : await PublicNetworkPolicy.forManualEntry(options.entryUrl, options.signal, deadline.operationTimeoutMs(2000)));
+    const networkPolicy = options.networkPolicyForTesting ?? (options.publicNetworkOnly ? new PublicNetworkPolicy(undefined, options.publicTransport)
+      : await PublicNetworkPolicy.forManualEntry(options.entryUrl, options.signal, deadline.operationTimeoutMs(2000), options.publicTransport));
     if (networkPolicy) {
       await networkPolicy.resolveTarget(options.entryUrl, options.signal, deadline.operationTimeoutMs(2000));
       networkProxy = await startPublicNetworkProxy(networkPolicy, deadline, options.signal, (url) => {

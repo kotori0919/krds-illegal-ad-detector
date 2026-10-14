@@ -8,3 +8,5 @@ export * from "./access.js";
 export * from "./sitemap.js";
 export * from "./public-network.js";
 export * from "./frame-location.js";
+
+export * from "./pinned-transport.js";

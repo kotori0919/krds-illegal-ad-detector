@@ -1,15 +1,17 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { lookup } from "node:dns/promises";
-import { createServer, request as httpRequest, type IncomingHttpHeaders, type RequestOptions } from "node:http";
-import { request as httpsRequest } from "node:https";
-import { connect, isIP, type Socket } from "node:net";
+import { Agent as HttpAgent, createServer, request as httpRequest, type IncomingHttpHeaders } from "node:http";
+import { Agent as HttpsAgent, request as httpsRequest } from "node:https";
+import { isIP, type Socket } from "node:net";
+import { connect as tlsConnect } from "node:tls";
+import { createDirectTransport, type PinnedTransport } from "./pinned-transport.js";
 import { Readable } from "node:stream";
 import type { ScanDeadline } from "./deadline.js";
 
 export const PUBLIC_NETWORK_LIMITS = Object.freeze({ sockets: 64, dnsAnswers: 32, dnsMs: 2000, socketIdleMs: 20000, headerBytes: 16384 });
 interface Address { address: string; family: number }
 type Resolver = (hostname: string) => Promise<Address[]>;
-interface PinnedTarget { url: URL; address: string; family: 4 | 6; port: number }
+export interface PinnedTarget { url: URL; address: string; family: 4 | 6; port: number; route: "public" | "owned-origin" }
 
 function denied(): Error { return new Error("public network policy rejected target"); }
 
@@ -49,20 +51,21 @@ function bounded<T>(operation: Promise<T>, timeoutMs: number, signal?: AbortSign
 }
 
 export class PublicNetworkPolicy {
+  private readonly directTransport = createDirectTransport();
   private pinnedOrigins = new Map<string, { address: string; family: 4 | 6 }>();
 
   /** Resolver injection is trusted test code; no UI/worker argument exposes it. */
-  constructor(private readonly resolver: Resolver = (hostname) => lookup(hostname, { all: true, verbatim: true })) {}
+  constructor(private readonly resolver: Resolver = (hostname) => lookup(hostname, { all: true, verbatim: true }), private readonly publicTransport?: PinnedTransport) {}
 
   /** A manually entered evaluator target authorizes exactly its origin,
    * pinned for this scan. Public targets never gain a private-DNS exception.
    * Other origins still pass public-only DNS checks at every new socket.
    */
-  static async forManualEntry(raw: string, signal?: AbortSignal, timeoutMs: number = PUBLIC_NETWORK_LIMITS.dnsMs): Promise<PublicNetworkPolicy> {
+  static async forManualEntry(raw: string, signal?: AbortSignal, timeoutMs: number = PUBLIC_NETWORK_LIMITS.dnsMs, publicTransport?: PinnedTransport): Promise<PublicNetworkPolicy> {
     const url = new URL(raw);
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || timeoutMs <= 0 || signal?.aborted) throw denied();
     const hostname = url.hostname.replace(/^\[|\]$/g, "");
-    const policy = new PublicNetworkPolicy();
+    const policy = new PublicNetworkPolicy(undefined, publicTransport);
     const answers = isIP(hostname) ? [{ address: hostname, family: isIP(hostname) }]
       : await bounded(policy.resolver(hostname), Math.min(timeoutMs, PUBLIC_NETWORK_LIMITS.dnsMs), signal);
     const evaluationAddress = (address: string): boolean => {
@@ -88,18 +91,18 @@ export class PublicNetworkPolicy {
   }
 
   /** Exact owned loopback origins only. Not serialized or accepted by the CLI. */
-  static forFixtureOrigins(origins: readonly string[]): PublicNetworkPolicy {
+  static forFixtureOrigins(origins: readonly string[], publicTransport?: PinnedTransport): PublicNetworkPolicy {
     const bindings: { origin: string; address: "127.0.0.1" | "::1" }[] = [];
     for (const raw of origins) {
       const url = new URL(raw);
       if (!["127.0.0.1", "[::1]"].includes(url.hostname)) throw new Error("fixture policy requires an exact owned loopback origin and port");
       bindings.push({ origin: raw, address: url.hostname === "[::1]" ? "::1" : "127.0.0.1" });
     }
-    return PublicNetworkPolicy.forFixtureTargets(bindings);
+    return PublicNetworkPolicy.forFixtureTargets(bindings, publicTransport);
   }
 
-  static forFixtureTargets(bindings: readonly { origin: string; address: "127.0.0.1" | "::1" }[]): PublicNetworkPolicy {
-    const policy = new PublicNetworkPolicy();
+  static forFixtureTargets(bindings: readonly { origin: string; address: "127.0.0.1" | "::1" }[], publicTransport?: PinnedTransport): PublicNetworkPolicy {
+    const policy = new PublicNetworkPolicy(undefined, publicTransport);
     for (const binding of bindings) {
       const url = new URL(binding.origin);
       if (!["http:", "https:"].includes(url.protocol) || !url.port || url.username || url.password
@@ -116,23 +119,30 @@ export class PublicNetworkPolicy {
     const port = Number(url.port || (url.protocol === "https:" ? 443 : 80));
     if (port < 1 || port > 65535 || timeoutMs <= 0 || signal?.aborted) throw denied();
     const pinned = this.pinnedOrigins.get(url.origin);
-    if (pinned) return { url, ...pinned, port };
+    if (pinned) return { url, ...pinned, port, route: "owned-origin" };
     if (/^(?:localhost|metadata\.google\.internal)$/i.test(hostname) || /\.(?:localhost|local|internal)$/i.test(hostname)) throw denied();
     const answers = isIP(hostname) ? [{ address: hostname, family: isIP(hostname) }]
       : await bounded(this.resolver(hostname), Math.min(timeoutMs, PUBLIC_NETWORK_LIMITS.dnsMs), signal);
     if (!answers.length || answers.length > PUBLIC_NETWORK_LIMITS.dnsAnswers
       || answers.some((answer) => !isPublicAddress(answer.address) || isIP(answer.address) !== answer.family)) throw denied();
     answers.sort((a, b) => a.family - b.family || a.address.localeCompare(b.address));
-    return { url, address: answers[0]!.address, family: answers[0]!.family as 4 | 6, port };
+    return { url, address: answers[0]!.address, family: answers[0]!.family as 4 | 6, port, route: "public" };
+  }
+
+  openTarget(target: PinnedTarget, options: { signal?: AbortSignal; timeoutMs: number }): Promise<Socket> {
+    return (target.route === "owned-origin" ? this.directTransport : this.publicTransport ?? this.directTransport).open(target, options);
   }
 
   /** Manual redirects, no pool reuse or second DNS lookup, normal TLS validation. */
   async fetch(raw: string, options: { signal?: AbortSignal; headers?: Record<string, string> } = {}): Promise<Response> {
     const target = await this.resolveTarget(raw, options.signal);
+    const connection = await connectedAgent(this, target, { signal: options.signal, timeoutMs: PUBLIC_NETWORK_LIMITS.socketIdleMs });
+    const { agent } = connection;
     return new Promise<Response>((resolve, reject) => {
       const transport = target.url.protocol === "https:" ? httpsRequest : httpRequest;
-      const request = transport(target.url, { ...pinnedOptions(target), signal: options.signal,
+      const request = transport(target.url, { agent, signal: options.signal,
         headers: { ...options.headers, "accept-encoding": "identity" }, maxHeaderSize: PUBLIC_NETWORK_LIMITS.headerBytes }, (response) => {
+        response.once("close", connection.destroy);
         const status = response.statusCode ?? 502;
         const headers = new Headers();
         for (const [key, value] of Object.entries(response.headers)) {
@@ -142,18 +152,27 @@ export class PublicNetworkPolicy {
         try { resolve(new Response(body, { status, headers })); } catch (error) { response.destroy(); reject(error); }
       });
       request.setTimeout(PUBLIC_NETWORK_LIMITS.socketIdleMs, () => request.destroy(new Error("public network request timeout")));
-      request.on("error", reject);
+      request.on("error", (error) => { connection.destroy(); reject(error); });
       request.end();
     });
   }
 }
 
-function pinnedOptions(target: PinnedTarget): RequestOptions {
-  return { agent: false, family: target.family,
-    lookup: (_hostname, _options, callback) => callback(null, target.address, target.family) };
+async function connectedAgent(policy: Pick<PublicNetworkPolicy, "openTarget">, target: PinnedTarget,
+  options: { signal?: AbortSignal; timeoutMs: number }): Promise<{ agent: HttpAgent | HttpsAgent; destroy: () => void }> {
+  const socket = await policy.openTarget(target, options);
+  const secure = target.url.protocol === "https:";
+  const agent = secure ? new HttpsAgent({ keepAlive: false }) : new HttpAgent({ keepAlive: false });
+  agent.createConnection = () => {
+    if (secure) return tlsConnect({ socket, servername: target.url.hostname.replace(/^\[|\]$/g, "") });
+    socket.resume(); return socket;
+  };
+  // The socket is already open before an HTTP request takes it from the agent.
+  // Keep explicit ownership so abandonment before createConnection also closes it.
+  return { agent, destroy: () => { socket.destroy(); agent.destroy(); } };
 }
 
-export type PublicNetworkBoundary = Pick<PublicNetworkPolicy, "resolveTarget" | "fetch">;
+export type PublicNetworkBoundary = Pick<PublicNetworkPolicy, "resolveTarget" | "fetch" | "openTarget">;
 
 function forwardHeaders(headers: IncomingHttpHeaders): IncomingHttpHeaders {
   const result = { ...headers };
@@ -191,25 +210,38 @@ export async function startPublicNetworkProxy(policy: PublicNetworkBoundary, dea
     if (!authenticate(request.headers["proxy-authorization"])) {
       response.writeHead(407, { "Proxy-Authenticate": 'Basic realm="KrdsDetector"', Connection: "close" }); response.end(); return;
     }
+    const requestController = new AbortController();
+    const abortRequest = (): void => requestController.abort();
+    controller.signal.addEventListener("abort", abortRequest, { once: true });
+    response.once("close", () => {
+      abortRequest(); controller.signal.removeEventListener("abort", abortRequest);
+    });
+    if (controller.signal.aborted) abortRequest();
     void (async () => {
       try {
         if (closed || !deadline.canStartPage(0)) throw denied();
-        const target = await policy.resolveTarget(request.url ?? "", controller.signal, deadline.operationTimeoutMs(PUBLIC_NETWORK_LIMITS.dnsMs));
+        const target = await policy.resolveTarget(request.url ?? "", requestController.signal, deadline.operationTimeoutMs(PUBLIC_NETWORK_LIMITS.dnsMs));
         if (target.url.protocol !== "http:" || closed || request.destroyed) throw denied();
         const headers = forwardHeaders(request.headers);
         headers.host = target.url.host;
         headers.connection = "close";
-        const upstream = httpRequest(target.url, { ...pinnedOptions(target), method: request.method, headers,
-          signal: controller.signal, maxHeaderSize: PUBLIC_NETWORK_LIMITS.headerBytes }, (incoming) => {
+        const connection = await connectedAgent(policy, target, { signal: requestController.signal, timeoutMs: deadline.operationTimeoutMs(PUBLIC_NETWORK_LIMITS.socketIdleMs) });
+        if (closed || response.destroyed) { connection.destroy(); return; }
+        const { agent } = connection;
+        const upstream = httpRequest(target.url, { agent, method: request.method, headers,
+          signal: requestController.signal, maxHeaderSize: PUBLIC_NETWORK_LIMITS.headerBytes }, (incoming) => {
           response.writeHead(incoming.statusCode ?? 502, forwardHeaders(incoming.headers));
           incoming.on("error", () => response.destroy());
           incoming.pipe(response);
         });
         upstream.on("socket", (socket) => { track(socket); });
         upstream.on("error", () => { if (!response.headersSent) response.writeHead(502); response.end(); });
-        response.once("close", () => upstream.destroy());
+        response.once("close", () => { upstream.destroy(); connection.destroy(); });
         request.pipe(upstream);
-      } catch { onDenied?.(request.url ?? ""); if (!response.headersSent) response.writeHead(403, { Connection: "close" }); response.end("public network policy rejected target"); }
+      } catch {
+        if (response.destroyed || requestController.signal.aborted) return;
+        onDenied?.(request.url ?? ""); if (!response.headersSent) response.writeHead(403, { Connection: "close" }); response.end("public network policy rejected target");
+      }
     })();
   });
   server.on("connection", track);
@@ -224,18 +256,16 @@ export async function startPublicNetworkProxy(policy: PublicNetworkBoundary, dea
         if (closed || !deadline.canStartPage(0)) throw denied();
         const target = await policy.resolveTarget(`https://${request.url ?? ""}`, controller.signal, deadline.operationTimeoutMs(PUBLIC_NETWORK_LIMITS.dnsMs));
         if (target.url.pathname !== "/" || target.url.search || target.url.hash || closed || client.destroyed) throw denied();
-        const upstream = connect({ host: target.address, port: target.port, family: target.family });
+        const upstream = await policy.openTarget(target, { signal: controller.signal, timeoutMs: deadline.operationTimeoutMs(PUBLIC_NETWORK_LIMITS.socketIdleMs) });
         if (!track(upstream)) { client.destroy(); return; }
         upstream.on("error", () => client.destroy());
         client.on("error", () => upstream.destroy());
         upstream.once("close", () => client.destroy());
         client.once("close", () => upstream.destroy());
-        upstream.once("connect", () => {
-          if (closed || client.destroyed) { upstream.destroy(); return; }
-          client.write("HTTP/1.1 200 Connection Established\r\n\r\n");
-          if (head.length) upstream.write(head);
-          upstream.pipe(client); client.pipe(upstream);
-        });
+        if (closed || client.destroyed) { upstream.destroy(); return; }
+        client.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+        if (head.length) upstream.write(head);
+        upstream.pipe(client); client.pipe(upstream);
       } catch { onDenied?.(`https://${request.url ?? ""}`); client.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n"); }
     })();
   });

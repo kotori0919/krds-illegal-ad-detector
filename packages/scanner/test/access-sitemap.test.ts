@@ -1,15 +1,18 @@
 import { createServer, type ServerResponse } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { crawlSite } from "../src/crawl.js";
+import { createConnectTransport } from "../src/pinned-transport.js";
 
 let base = "";
 let externalBase = "";
 const requests: { path: string; at: number }[] = [];
 let externalRequests = 0;
+let externalConnections = 0;
 const xml = (res: ServerResponse, body: string): void => { res.setHeader("Content-Type", "application/xml"); res.end(body); };
 const urlset = (paths: string[]): string => `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((path) => `<url><loc>${base}${path}</loc></url>`).join("")}</urlset>`;
 const index = (paths: string[]): string => `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((path) => `<sitemap><loc>${path.startsWith("http") ? path : base + path}</loc></sitemap>`).join("")}</sitemapindex>`;
 const external = createServer((_req, res) => { externalRequests += 1; res.end("external"); });
+external.on("connection", () => { externalConnections++; });
 const server = createServer((req, res) => {
   const path = req.url ?? "/";
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -84,21 +87,25 @@ describe("typed access outcomes on real navigation", () => {
 describe("bounded sitemap discovery on real HTTP fixtures", () => {
   it("merges links and nested sitemap pages deterministically while excluding hostile/external/private inputs", async () => {
     const sets: string[][] = [];
-    for (const concurrency of [1, 4]) {
-      const start = requests.length;
-      const summary = await crawlSite({ entryUrl: base + "/ordered", limits: { maxPages: 7, maxDepth: 1, timeoutSec: 30 }, concurrency, settleMs: 0 });
-      sets.push(summary.pages.map((page) => page.url));
-      expect(summary.pages.map((page) => [new URL(page.url).pathname, page.discoverySource])).toEqual([
-        ["/ordered", "entry"], ["/a-map", "sitemap"], ["/aa-link", "link"], ["/ab-link", "link"], ["/board", "sitemap"], ["/private/public", "sitemap"], ["/z-map", "sitemap"],
-      ]);
-      const seen = requests.slice(start).map((r) => r.path);
-      expect(seen.filter((path) => path === "/maps/root.xml")).toHaveLength(1);
-      expect(seen).not.toContain("/private/secret");
-      expect(seen).not.toContain("/bad-page");
-      expect(seen).not.toContain("/entity-page");
-    }
-    expect(sets[0]).toEqual(sets[1]);
-    expect(externalRequests).toBe(0);
+    const publicTransport = createConnectTransport({ port: Number(new URL(externalBase).port), username: "fixture", password: "fixture" });
+    try {
+      for (const concurrency of [1, 4]) {
+        const start = requests.length;
+        const summary = await crawlSite({ entryUrl: base + "/ordered", publicTransport, limits: { maxPages: 7, maxDepth: 1, timeoutSec: 30 }, concurrency, settleMs: 0 });
+        sets.push(summary.pages.map((page) => page.url));
+        expect(summary.pages.map((page) => [new URL(page.url).pathname, page.discoverySource])).toEqual([
+          ["/ordered", "entry"], ["/a-map", "sitemap"], ["/aa-link", "link"], ["/ab-link", "link"], ["/board", "sitemap"], ["/private/public", "sitemap"], ["/z-map", "sitemap"],
+        ]);
+        const seen = requests.slice(start).map((r) => r.path);
+        expect(seen.filter((path) => path === "/maps/root.xml")).toHaveLength(1);
+        expect(seen).not.toContain("/private/secret");
+        expect(seen).not.toContain("/bad-page");
+        expect(seen).not.toContain("/entity-page");
+      }
+      expect(sets[0]).toEqual(sets[1]);
+      expect(externalRequests).toBe(0);
+      expect(externalConnections).toBe(0);
+    } finally { await publicTransport.close(); }
   }, 60000);
 
   it("does not add sitemap pages when depth is zero or the page bound is exhausted", async () => {

@@ -6,6 +6,7 @@ import { ScanDeadline } from "../src/deadline.js";
 import { scanSite } from "../../detection/src/scan.js";
 import { request as httpRequest } from "node:http";
 import { chromium, type Browser } from "playwright-core";
+import { createConnectTransport } from "../src/pinned-transport.js";
 
 const scanTimeoutSec = 30;
 // One scan per test; the outer deadline also allows browser finalization.
@@ -230,8 +231,12 @@ describe("public address and DNS boundaries", () => {
   });
   networkTest("rejects mixed safe/private DNS answers and reevaluates rebinding before every new connection", async ({ network }) => {
     const { protectedOrigin } = network;
-    const mixed = new PublicNetworkPolicy(async () => [{ address: "8.8.8.8", family: 4 }, { address: "127.0.0.1", family: 4 }]);
+    const transport = createConnectTransport({ port: Number(new URL(network.protectedOrigin).port), username: "fixture", password: "fixture" });
+    const mixed = new PublicNetworkPolicy(async () => [{ address: "8.8.8.8", family: 4 }, { address: "127.0.0.1", family: 4 }], transport);
     await expect(mixed.resolveTarget("http://fixture.example/")).rejects.toThrow(/public network/i);
+    await expect(mixed.fetch("http://fixture.example/")).rejects.toThrow(/public network/i);
+    await transport.close();
+    expect(network.protectedConnections()).toBe(0);
     let lookups = 0;
     const rebound = new PublicNetworkPolicy(async () => {
       lookups += 1;

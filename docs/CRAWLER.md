@@ -268,6 +268,16 @@ pages and a retained failed HTTP 200 outcome. It requires the current scanner
 and contracts builds. The immutable RC artifacts and historical measurements
 are unchanged; these checks do not establish installed Windows acceptance.
 
+## Pinned upstream transport
+
+`PublicNetworkPolicy`는 모든 DNS 응답을 검증한 뒤 선택한 숫자 IP를
+`PinnedTransport.open`에 전달한다. 브라우저 HTTP, HTTPS CONNECT와 Node의
+Sitemap 요청이 같은 경계를 사용한다. upstream CONNECT에도 숫자 IP를 보내며
+원래 Host/SNI와 인증서 검증을 유지하고 프록시 인증을 목적지에 전달하지 않는다.
+공급된 전송이 실패하면 직접 연결로 전환하지 않는다. 정확히 허가된 소유 원점은
+직접 연결을 유지한다. 전송을 생성한 세션이 `close()`를 호출하며, 개별 브라우저
+요청의 취소는 아직 HTTP agent에 넘기지 않은 연결까지 정리한다.
+
 ## Protocol sources
 
 - [Cloudflare challenge-response header](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/challenge-pages/detect-response/)
