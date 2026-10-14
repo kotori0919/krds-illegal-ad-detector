@@ -83,7 +83,7 @@ describe("live creative and infrastructure extra result", () => {
     let inspectedFrames = 0;
     const output = await scanSite({ entryUrl: `${siteOrigin}/`,
       onEvent: (event) => { inspectedFrames = event.progress.framesInspected; }, crawl: {
-        networkPolicyForTesting: PublicNetworkPolicy.forFixtureTargets([siteOrigin,assetOrigin,redirectOrigin,...contentOrigins]
+        networkPolicy: PublicNetworkPolicy.forFixtureTargets([siteOrigin,assetOrigin,redirectOrigin,...contentOrigins]
           .map((origin) => ({ origin, address: "127.0.0.1" as const }))),
         concurrency: 2, settleMs: 700, perPageMs: 7000,
         limits: { maxPages: 5, maxDepth: 1, timeoutSec: 45 },

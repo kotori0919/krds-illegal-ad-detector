@@ -134,11 +134,11 @@ it("routes fetch and browser HTTP/HTTPS through numeric tunnels with original Ho
       expect(destinationHost).toBe("fixture.example"); expect(tlsServername).toBe("fixture.example"); expect(destinationAuth).toBeUndefined();
     } finally { await browser.close(); }
     await browserProxy.close(); browserProxy = undefined;
-    const crawl = await crawlSite({ entryUrl: "http://fixture.example/index.xml", entryKind: "sitemap", networkPolicyForTesting: policy,
+    const crawl = await crawlSite({ entryUrl: "http://fixture.example/index.xml", entryKind: "sitemap", networkPolicy: policy,
       publicNetworkOnly: true, settleMs: 0, limits: { maxPages: 1, maxDepth: 0, timeoutSec: 30 } });
     expect(crawl.pages.map((page) => [page.finalUrl, page.status])).toEqual([["http://fixture.example/listed", 200]]);
     const beforeRedirect = authorities.length;
-    const redirected = await crawlSite({ entryUrl: "http://fixture.example/redirect", networkPolicyForTesting: policy,
+    const redirected = await crawlSite({ entryUrl: "http://fixture.example/redirect", networkPolicy: policy,
       publicNetworkOnly: true, settleMs: 0, limits: { maxPages: 1, maxDepth: 0, timeoutSec: 30 } });
     expect(redirected.pages[0]?.issue?.kind).toBe("network-policy");
     expect(authorities.slice(beforeRedirect).every((authority) => authority === "1.1.1.1:80")).toBe(true);

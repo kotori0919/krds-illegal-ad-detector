@@ -56,7 +56,7 @@ describe("L3 live cross-origin frames", () => {
       const output = await scanSite({
         entryUrl: `${siteOrigin}/`,
         crawl: { concurrency: 2, settleMs: 800, perPageMs: 8_000,
-          networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([siteOrigin,frameOrigin]),
+          networkPolicy: PublicNetworkPolicy.forFixtureOrigins([siteOrigin,frameOrigin]),
           limits: { maxPages: 1, maxDepth: 0, maxFrameDepth, timeoutSec: 30 } },
       });
       expect(output.pagesVisited).toBe(1);

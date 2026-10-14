@@ -111,7 +111,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       concurrency: input.crawl?.concurrency,
       publicNetworkOnly: input.crawl?.publicNetworkOnly,
       entryKind: input.crawl?.entryKind,
-      networkPolicyForTesting: input.crawl?.networkPolicyForTesting,
+      networkPolicy: input.crawl?.networkPolicy,
       publicTransport: input.crawl?.publicTransport,
       deadline,
       signal: input.signal,

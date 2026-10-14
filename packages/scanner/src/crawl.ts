@@ -101,8 +101,8 @@ export interface CrawlOptions {
   /** Required for imported targets. Every runtime connection is public-only. */
   publicNetworkOnly?: boolean;
   entryKind?: "site" | "sitemap";
-  /** Trusted owned-fixture code only; never accepted from UI/worker arguments. */
-  networkPolicyForTesting?: PublicNetworkBoundary;
+  /** Trusted prepared authorization or owned-fixture policy; never UI/worker input. */
+  networkPolicy?: PublicNetworkBoundary;
   /** Called while the first and only navigated Page remains live. */
   onLivePage?: (page: Page, snapshot: PageSnapshot, frames: LiveFrame[], images: LiveImageResponse[], pageRank: number) => Promise<void>;
 }
@@ -229,7 +229,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     abortPages();
   }, Math.max(1, deadline.operationTimeoutMs(deadline.remainingMs())));
   try {
-    const networkPolicy = options.networkPolicyForTesting ?? (options.publicNetworkOnly ? new PublicNetworkPolicy(undefined, options.publicTransport)
+    const networkPolicy = options.networkPolicy ?? (options.publicNetworkOnly ? new PublicNetworkPolicy(undefined, options.publicTransport)
       : await PublicNetworkPolicy.forManualEntry(options.entryUrl, options.signal, deadline.operationTimeoutMs(2000), options.publicTransport));
     if (networkPolicy) {
       await networkPolicy.resolveTarget(options.entryUrl, options.signal, deadline.operationTimeoutMs(2000));

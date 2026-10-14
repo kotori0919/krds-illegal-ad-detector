@@ -102,6 +102,8 @@ Windows worker는 고정 usque 4.2.1 `http-proxy`를 세션별 자식으로 실�
 PID의 Windows 리스너 정보에서 확인한다. 첫 터널 실패·종료 시 직접 fallback이나
 재시작 없이 worker가 정리하고 비밀 없는 `KRDSWARPERROR` 코드로 실패를 전달한다.
 자식 출력·전체 argv·trace의 IP·등록 자격 정보는 진단에 넣지 않는다.
+원점 권한은 준비 전에 한 번만 정하고 같은 정책을 crawl까지 유지한다. 소유 원점의
+초기 주소는 고정하며 공개 원점이 준비 후 비공개 주소로 바뀌면 연결 전에 거절한다.
 
 Windows UI의 공유 **앱 전용 WARP 연결 설정**은 단일·일괄 점검에서 동일한
 HostBridge 상태를 사용한다. 최초 사용자는 Cloudflare 애플리케이션 약관을 읽고

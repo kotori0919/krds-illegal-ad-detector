@@ -72,7 +72,7 @@ describe("public-only runtime navigation", () => {
     await expect(policy.fetch(`http://127.0.0.1:${port}/`)).rejects.toThrow(/public network/i);
     await expect(policy.fetch(fixtureOrigin.replace(port, new URL(protectedOrigin).port))).rejects.toThrow();
     const summary = await crawlSite({ entryUrl: fixtureOrigin + "/listed-a", publicNetworkOnly: true, signal,
-      networkPolicyForTesting: policy, settleMs: 0, limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } });
+      networkPolicy: policy, settleMs: 0, limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } });
     expect(summary.pages.map((page) => [page.finalUrl, page.status, page.issue])).toEqual([[fixtureOrigin + "/listed-a", 200, undefined]]);
   }, testTimeoutMs);
   networkTest("rejects actual navigation after an initially public DNS answer rebinds to loopback", async ({ network, signal }) => {
@@ -80,7 +80,7 @@ describe("public-only runtime navigation", () => {
     let lookups = 0;
     const policy = new PublicNetworkPolicy(async () => [{ address: ++lookups === 1 ? "8.8.8.8" : "127.0.0.1", family: 4 }]);
     const summary = await crawlSite({ entryUrl: `http://rebinding.fixture.invalid:${new URL(protectedOrigin).port}/`,
-      publicNetworkOnly: true, networkPolicyForTesting: policy, settleMs: 0, signal,
+      publicNetworkOnly: true, networkPolicy: policy, settleMs: 0, signal,
       limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } });
     expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
     expect(lookups).toBeGreaterThanOrEqual(3);
@@ -89,7 +89,7 @@ describe("public-only runtime navigation", () => {
   networkTest("routes actual Chromium HTTP/HTTPS subresources through the enforcing proxy", async ({ network, signal }) => {
     const { origin } = network;
     const policy = PublicNetworkPolicy.forFixtureOrigins([origin]);
-    const summary = await crawlSite({ entryUrl: origin, publicNetworkOnly: true, networkPolicyForTesting: policy, signal,
+    const summary = await crawlSite({ entryUrl: origin, publicNetworkOnly: true, networkPolicy: policy, signal,
       limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 300 });
     expect(summary.pages[0]?.status).toBe(200);
     expect(summary.pages[0]?.issue).toBeUndefined();
@@ -99,7 +99,7 @@ describe("public-only runtime navigation", () => {
   networkTest.for(["/redirect", "/https-redirect"])("blocks private redirect %s through the enforcing proxy", { timeout: testTimeoutMs }, async (path, { network, signal }) => {
     const { origin } = network;
     const redirected = await crawlSite({ entryUrl: origin + path, publicNetworkOnly: true, signal,
-      networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([origin]),
+      networkPolicy: PublicNetworkPolicy.forFixtureOrigins([origin]),
       limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 0 });
     expect(redirected.pages[0]?.issue?.kind).toBe("network-policy");
     expect(redirected.timedOut).toBe(false);
@@ -140,7 +140,7 @@ describe("public-only runtime navigation", () => {
     };
     try {
       const summary = await crawlSite({ entryUrl: network.origin + "/redirect", publicNetworkOnly: true, signal,
-        networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([network.origin]),
+        networkPolicy: PublicNetworkPolicy.forFixtureOrigins([network.origin]),
         limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 0 });
       expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
       expect(browser?.isConnected()).toBe(false);
@@ -192,7 +192,7 @@ describe("public-only runtime navigation", () => {
     };
     try {
       const summary = await crawlSite({ entryUrl: network.origin + "/redirect", publicNetworkOnly: true, signal,
-        networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([network.origin]),
+        networkPolicy: PublicNetworkPolicy.forFixtureOrigins([network.origin]),
         deadline: new ScanDeadline(6), limits: { maxPages: 1, maxDepth: 0, timeoutSec: 6 }, settleMs: 0 });
       expect(disposalStarted).toBe(true);
       expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
@@ -209,7 +209,7 @@ describe("public-only runtime navigation", () => {
     const { origin, requests } = network;
     const entryUrl = origin + "/input-index.xml";
     const output = await scanSite({ entryUrl, signal, crawl: { publicNetworkOnly: true, entryKind: "sitemap",
-      networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([origin]), settleMs: 0,
+      networkPolicy: PublicNetworkPolicy.forFixtureOrigins([origin]), settleMs: 0,
       limits: { maxPages: 2, maxDepth: 0, timeoutSec: scanTimeoutSec } } });
     expect(output.result.meta.entry_url).toBe(entryUrl);
     expect(output.detailBundle.coverage.checkedPages).toBe(2);

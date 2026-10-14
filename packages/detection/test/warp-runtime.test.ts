@@ -58,6 +58,16 @@ async function closed(f: ReturnType<typeof setup>) {
   expect(f.captured()).not.toContain("Proxy-Authorization");
   for(const secret of f.secrets())expect(f.captured()).not.toContain(secret);
 }
+async function automaticallyClosed(f: ReturnType<typeof setup>) {
+  if (f.child().exitCode === null && f.child().signalCode === null) {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => { f.child().off("close", finish); reject(new Error("owned child did not close automatically")); }, 2000);
+      const finish = (): void => { clearTimeout(timer); resolve(); };
+      f.child().once("close", finish);
+    });
+  }
+  await closed(f);
+}
 function options(signal = new AbortController().signal, timeout = 5) { return { executablePath: fixture, configPath: join(directory,"config.json"), deadline: new ScanDeadline(timeout), signal }; }
 
 it("authenticates a real child proxy, verifies TLS trace and closes idempotently", async () => {
@@ -72,15 +82,27 @@ it.each(["warp=off\n", "warp=on\nwarp=off\n", "x".repeat(16385)])("rejects unver
 it("rejects non-200 trace", async () => { body="warp=on\n";status=403;delay=0;const f=setup();await expect(startWarpRuntimeWithDependencies(options(),f.dependencies)).rejects.toThrow(/WARP/);await closed(f); });
 it.each(["connect","failed","lost"])("terminates a still-running child on fragmented tunnel failure: %s", async mode => {
   body="warp=on\n";status=200;delay=0;const f=setup();const runtime=await startWarpRuntimeWithDependencies(options(),f.dependencies);
-  f.child().stdin.write(`${mode}\n`);expect(await runtime.failure).toMatchObject({message:"WARP tunnel failed",code:"tunnel-exited"});await runtime.close();await closed(f);
+  try {
+    f.child().stdin.write(`${mode}\n`);
+    expect(await runtime.failure).toMatchObject({message:"WARP tunnel failed",code:"tunnel-exited"});
+    await automaticallyClosed(f);
+  } finally { await runtime.close(); }
 });
 it("reports child exit after preparation and closes its listener", async()=>{
   body="warp=on\n";status=200;delay=0;const f=setup();const runtime=await startWarpRuntimeWithDependencies(options(),f.dependencies);
-  f.child().kill();expect(await runtime.failure).toMatchObject({code:"tunnel-exited"});await runtime.close();await closed(f);
+  try { f.child().kill();expect(await runtime.failure).toMatchObject({code:"tunnel-exited"});await automaticallyClosed(f); }
+  finally { await runtime.close(); }
 });
 it("closes an active runtime on cancellation",async()=>{
   body="warp=on\n";status=200;delay=0;const f=setup();const controller=new AbortController();const runtime=await startWarpRuntimeWithDependencies(options(controller.signal),f.dependencies);
-  controller.abort();await runtime.close();await closed(f);
+  try { controller.abort();await automaticallyClosed(f); }
+  finally { await runtime.close(); }
+});
+it("closes an active runtime when its shared deadline expires", async () => {
+  body="warp=on\n";status=200;delay=0;const f=setup();
+  const runtime=await startWarpRuntimeWithDependencies(options(undefined,1),f.dependencies);
+  try { await automaticallyClosed(f); }
+  finally { await runtime.close(); }
 });
 it.each(["cancel", "deadline", "exit"])("closes child on setup %s", async mode => {
   body="warp=on\n";status=200;delay=500;const f=setup(mode);const controller=new AbortController();

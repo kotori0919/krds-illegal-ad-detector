@@ -188,13 +188,18 @@ existing shared deadline and sitemap body/time limits. DNS failure, mixed
 unsafe answers and unsupported addresses fail closed. The proxy has no direct
 connection fallback.
 
-Owned-fixture smoke code can pass `networkPolicyForTesting` using
+Owned-fixture smoke code can pass `networkPolicy` using
 `PublicNetworkPolicy.forFixtureTargets([{ origin, address: "127.0.0.1" }])`
 (or address `"::1"`). Bindings match exact scheme, host and explicit port,
 connect to the supplied loopback address without system DNS, and authorize
 no other origin. `forFixtureOrigins` is the literal-loopback convenience.
-These policies and resolver injection are trusted programmatic test APIs;
-neither is accepted by UI input, native arguments or the worker CLI.
+`networkPolicy` also carries the worker's original authorization into crawl.
+Preparation never recreates a manual-entry policy: an initially owned address
+remains pinned, while an initially public origin continues to reject private
+or mixed DNS answers at every request. Its deferred public transport stays
+closed until the managed runtime is ready. Policies and resolver injection
+are trusted programmatic APIs; neither is accepted by UI input, native
+arguments or the worker CLI.
 
 OBSERVED: real Chromium fixtures prove that HTTP and HTTPS redirects,
 image/iframe/fetch resources, localhost names and mapped-loopback URLs cause

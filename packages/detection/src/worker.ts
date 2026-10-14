@@ -34,23 +34,28 @@ async function main(): Promise<void> {
   const deadline = new ScanDeadline(args.timeoutSec);
   let runtime: WarpRuntime | undefined;
   let tunnelFailure: Error | undefined;
-  let publicTransport: PinnedTransport | undefined;
+  let networkPolicy: PublicNetworkPolicy | undefined;
   let provenance: TransportProvenance = { kind: "direct", reason: "source-cli" };
   let preparationEvents = 0;
   try {
   if (args.requireWarp || args.warpExecutable) {
-    const policy = args.publicNetworkOnly ? new PublicNetworkPolicy()
-      : await PublicNetworkPolicy.forManualEntry(args.entryUrl, controller.signal, deadline.operationTimeoutMs(2000));
-    const target = await policy.resolveTarget(args.entryUrl, controller.signal, deadline.operationTimeoutMs(2000));
+    // Authorization is created once. Its public route stays closed until the
+    // runtime is ready; later DNS can never create a new private-origin grant.
+    const publicTransport: PinnedTransport = {
+      open: (target, options) => runtime && !tunnelFailure ? runtime.transport.open(target, options)
+        : Promise.reject(new WarpRuntimeError("preparation-failed")),
+      close: async () => {}, // The worker owns runtime cleanup in finally.
+    };
+    networkPolicy = args.publicNetworkOnly ? new PublicNetworkPolicy(undefined, publicTransport)
+      : await PublicNetworkPolicy.forManualEntry(args.entryUrl, controller.signal, deadline.operationTimeoutMs(2000), publicTransport);
+    const target = await networkPolicy.resolveTarget(args.entryUrl, controller.signal, deadline.operationTimeoutMs(2000));
     if (target.route === "owned-origin") {
       provenance = { kind: "direct", reason: "owned-origin" };
-      publicTransport = { open: async () => { throw new WarpRuntimeError("preparation-failed"); }, close: async () => {} };
     } else {
       preparationEvents = 1;
       console.error(`KRDSPROGRESS ${JSON.stringify({ kind: "stage-changed", message: "WARP 연결을 준비하고 있습니다.", progress: { ...initialProgress("running"), sequence: 1 } })}`);
       if (!args.warpExecutable || !args.warpConfigFile) throw new WarpRuntimeError("config-invalid");
       runtime = await startWarpRuntime({ executablePath: args.warpExecutable, configPath: args.warpConfigFile, deadline, signal: controller.signal });
-      publicTransport = runtime.transport;
       provenance = { kind: "warp", backend: "usque", version: "4.2.1" };
       void runtime.failure.then(error => { tunnelFailure = error; controller.abort(); });
     }
@@ -71,7 +76,7 @@ async function main(): Promise<void> {
       executablePath: args.executablePath,
       publicNetworkOnly: args.publicNetworkOnly,
       entryKind: args.entryKind,
-      publicTransport,
+      networkPolicy,
     },
     onEvent: (e) => {
       if (tunnelFailure && (e.kind === "session-cancelled" || e.kind === "session-finished")) {

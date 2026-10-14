@@ -57,7 +57,7 @@ const start = (request) => {
   const record = { session, controller }; sessions.set(id, record);
   active++; maxActive = Math.max(maxActive, active);
   record.done = scanSite({ entryUrl: request.entryUrl, signal: controller.signal,
-    crawl: { publicNetworkOnly: true, entryKind: request.kind, networkPolicyForTesting: policy,
+    crawl: { publicNetworkOnly: true, entryKind: request.kind, networkPolicy: policy,
       limits: request.limits, settleMs: 0, concurrency: 2 },
     onEvent: (event) => { session.progress = event.progress; },
   }).then(async (result) => {

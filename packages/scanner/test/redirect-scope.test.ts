@@ -80,7 +80,7 @@ scopeTest.for([
   const { origin, outside, externalRequests } = site;
   const entryUrl = `${origin}${path}`;
   const output = await scanSite({ entryUrl, signal, crawl: { settleMs: 250, concurrency: 1,
-    networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([origin,outside]),
+    networkPolicy: PublicNetworkPolicy.forFixtureOrigins([origin,outside]),
     limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } } });
   expect(validateOfficialResultText(output.json).ok).toBe(true);
   expect(output.timedOut).toBe(false);
@@ -96,7 +96,7 @@ scopeTest.for([
 scopeTest("retains same-host redirect and external frame findings", async ({ site, signal }) => {
   const { origin, outside, externalRequests } = site;
   const output = await scanSite({ entryUrl: `${origin}/`, signal, crawl: { settleMs: 250, concurrency: 1,
-    networkPolicyForTesting: PublicNetworkPolicy.forFixtureOrigins([origin,outside]),
+    networkPolicy: PublicNetworkPolicy.forFixtureOrigins([origin,outside]),
     limits: { maxPages: 2, maxDepth: 1, timeoutSec: scanTimeoutSec } } });
   expect(validateOfficialResultText(output.json).ok).toBe(true);
   expect(output.timedOut).toBe(false);
