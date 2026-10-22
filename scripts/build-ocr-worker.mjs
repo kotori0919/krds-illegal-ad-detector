@@ -1,12 +1,13 @@
 /** Bundle the CPU worker and copy pinned offline language assets beside it. */
 import { build } from "esbuild";
-import { cp, mkdir, readFile, writeFile, rename, rm } from "node:fs/promises";
+import { cp, mkdir, readFile, rm } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { createRequire } from "node:module";
 import { resolve, join } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import process from "node:process";
+import { downloadPinnedAsset } from "./lib/model-download.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const target = resolve(process.argv[2] ?? "packages/evidence/dist");
@@ -29,21 +30,8 @@ for (const model of manifest.models) {
   let bytes;
   try { bytes = await readFile(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
   if (bytes && (bytes.length !== model.bytes || digest(bytes) !== model.sha256)) throw new Error(`Pinned OCR model changed: ${model.file}`);
-  if (!bytes) {
-    const response = await globalThis.fetch(model.url, { signal: globalThis.AbortSignal.timeout(60000) });
-    if (!response.ok || !response.body) throw new Error(`OCR model download failed: ${model.file}`);
-    const chunks = []; let length = 0;
-    for await (const chunk of response.body) {
-      length += chunk.length;
-      if (length > model.bytes) throw new Error(`OCR model size exceeded: ${model.file}`);
-      chunks.push(chunk);
-    }
-    bytes = Buffer.concat(chunks);
-    if (bytes.length !== model.bytes || digest(bytes) !== model.sha256) throw new Error(`OCR model checksum failed: ${model.file}`);
-    const temporary = `${file}.${process.pid}.tmp`;
-    try { await writeFile(temporary, bytes, { flag: "wx" }); await rename(temporary, file); }
-    finally { await rm(temporary, { force: true }); }
-  }
+  if (!bytes) await downloadPinnedAsset(
+    { file, url: model.url, bytes: model.bytes, sha256: model.sha256, label: `ocr-data/${model.file}` });
   await cp(file, join(target, "ocr-data", model.file));
 }
 const vocabulary = await readFile(join(modelRoot, manifest.vocabulary.file));
@@ -55,8 +43,7 @@ for (const name of [manifest.vocabulary.file, "manifest.json", "Tesseract-LICENS
 // The text backbone is ~1 GB. Stream validation/downloads and hardlink
 // immutable build assets on the same filesystem instead of duplicating RAM
 // and disk for every staging directory. EXDEV falls back to a regular copy.
-const { createReadStream, createWriteStream } = await import("node:fs");
-const { pipeline } = await import("node:stream/promises");
+const { createReadStream } = await import("node:fs");
 const { stat, link } = await import("node:fs/promises");
 const embeddingRoot = join(root, "packages/evidence/src/text-embedding-model");
 const embeddingManifest = JSON.parse(await readFile(join(embeddingRoot, "manifest.json"), "utf8"));
@@ -81,21 +68,8 @@ for (const asset of embeddingManifest.files) {
   try { await verify(file); }
   catch (error) {
     if (error.code !== "ENOENT") throw error;
-    const response = await globalThis.fetch(asset.source, { signal: globalThis.AbortSignal.timeout(180000) });
-    if (!response.ok || !response.body) throw new Error(`Text model download failed: ${asset.path}`);
-    const temporary = `${file}.${process.pid}.tmp`;
-    try {
-      let size = 0;
-      async function* bounded(body) {
-        for await (const chunk of body) {
-          size += chunk.length;
-          if (size > asset.bytes) throw new Error(`Text model size exceeded: ${asset.path}`);
-          yield chunk;
-        }
-      }
-      await pipeline(bounded(response.body), createWriteStream(temporary, { flags: "wx" }));
-      await verify(temporary); await rename(temporary, file);
-    } finally { await rm(temporary, { force: true }); }
+    await downloadPinnedAsset(
+      { file, url: asset.source, bytes: asset.bytes, sha256: asset.sha256, label: `text-embedding-data/${asset.path}` });
   }
   await rm(destination, { force: true });
   try { await link(file, destination); }
