@@ -20,6 +20,7 @@ const browserDynamic = [{ selector: `ImportExpression[source.value=/^(node:|(${n
 
 export default defineConfig([
   globalIgnores([
+    "artifacts/**",
     "**/dist/**",
     "**/node_modules/**",
     "**/*.tsbuildinfo",
