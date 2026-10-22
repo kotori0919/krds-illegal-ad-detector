@@ -89,6 +89,8 @@ struct ScanStartRequest {
     #[serde(rename = "entryUrl")]
     entry_url: String,
     limits: Option<ScanLimitsArg>,
+    #[serde(default)]
+    connection: warp::ScanConnection,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -100,6 +102,32 @@ struct BatchScanStartRequest {
     entry_url: String,
     limits: Option<ScanLimitsArg>,
     kind: String,
+    #[serde(default)]
+    connection: warp::ScanConnection,
+}
+
+#[cfg(test)]
+mod scan_request_tests {
+    use super::*;
+
+    #[test]
+    fn connection_is_optional_direct_and_validated_for_single_and_batch_requests() {
+        let mut value = serde_json::json!({"configVersion":1,"entryUrl":"https://example.kr/"});
+        assert_eq!(serde_json::from_value::<ScanStartRequest>(value.clone()).unwrap().connection, warp::ScanConnection::Direct);
+        value["connection"] = serde_json::json!("warp");
+        assert_eq!(serde_json::from_value::<ScanStartRequest>(value.clone()).unwrap().connection, warp::ScanConnection::Warp);
+        value["kind"] = serde_json::json!("site");
+        assert_eq!(serde_json::from_value::<BatchScanStartRequest>(value.clone()).unwrap().connection, warp::ScanConnection::Warp);
+        value.as_object_mut().unwrap().remove("connection");
+        assert_eq!(serde_json::from_value::<BatchScanStartRequest>(value.clone()).unwrap().connection, warp::ScanConnection::Direct);
+        for connection in [serde_json::json!("automatic"), serde_json::json!(null), serde_json::json!({})] {
+            value["connection"] = connection;
+            assert!(serde_json::from_value::<BatchScanStartRequest>(value.clone()).is_err());
+            value.as_object_mut().unwrap().remove("kind");
+            assert!(serde_json::from_value::<ScanStartRequest>(value.clone()).is_err());
+            value["kind"] = serde_json::json!("site");
+        }
+    }
 }
 
 #[tauri::command]
@@ -127,6 +155,7 @@ async fn scan_start_batch(
             config_version: request.config_version,
             entry_url: request.entry_url,
             limits: request.limits,
+            connection: request.connection,
         },
         true,
         &request.kind,
@@ -160,6 +189,14 @@ async fn start_scan(
     let timeout_sec = config::scan_limit(limits.timeout_sec, "timeoutSec")?;
     let max_frame_depth =
         config::scan_limit(limits.max_frame_depth.map(u64::from), "maxFrameDepth")?;
+    // Resolve optional WARP resources before creating a running session. Direct
+    // scans must not inspect registration, configuration, or bundled WARP files.
+    let transport_args = request.connection.worker_args(|| {
+        #[cfg(windows)]
+        { warp::worker_paths(&app) }
+        #[cfg(not(windows))]
+        { Err("WARP_UNSUPPORTED".into()) }
+    })?;
     let started_at = chrono::Utc::now().to_rfc3339();
     let mut record = session::new_session(parsed.clone(), started_at.clone());
     let build = app
@@ -168,7 +205,7 @@ async fn start_scan(
         .ok()
         .and_then(|dir| std::fs::read(dir.join("binaries/build-manifest.json")).ok())
         .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok());
-    record.settings = serde_json::json!({"version":1,"policy":config::policy(),"maxPages":max_pages,"maxDepth":max_depth,"timeoutSec":timeout_sec,"concurrency":config::policy()["scan"]["concurrency"]["default"],"maxFrameDepth":max_frame_depth,"network":if public_network_only{"public-pinned"}else{"manual-entry-origin-pinned"},"entryKind":entry_kind,"build":build.map(|b|serde_json::json!({"sourceCommit":b["source"]["commit"],"sourceSha256":b["source"]["sourceSha256"],"target":b["target"],"appVersion":b["appVersion"]})),"hostStartedAt":started_at});
+    record.settings = serde_json::json!({"version":1,"policy":config::policy(),"maxPages":max_pages,"maxDepth":max_depth,"timeoutSec":timeout_sec,"concurrency":config::policy()["scan"]["concurrency"]["default"],"maxFrameDepth":max_frame_depth,"network":if public_network_only{"public-pinned"}else{"manual-entry-origin-pinned"},"entryKind":entry_kind,"build":build.map(|b|serde_json::json!({"sourceCommit":b["source"]["commit"],"sourceSha256":b["source"]["sourceSha256"],"target":b["target"],"appVersion":b["appVersion"]})),"hostStartedAt":started_at,"connection":request.connection});
     let session_id = record.id.clone();
     state.registry.insert(record).await;
     // Bundled worker script (resources/binaries/scanner-worker*.mjs). No silent
@@ -219,11 +256,7 @@ async fn start_scan(
             args.push("--public-network-only".to_string());
         }
         args.extend(["--entry-kind".to_string(), entry_kind.to_string()]);
-        args.push("--require-warp".to_string());
-        #[cfg(windows)]
-        if let Some((executable, configuration)) = warp::worker_paths(&app)? {
-            args.extend(["--warp-executable".into(), executable.to_string_lossy().into_owned(), "--warp-config-file".into(), configuration.to_string_lossy().into_owned()]);
-        }
+        args.extend(transport_args);
         let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
         if let Err(detail) = state
             .registry

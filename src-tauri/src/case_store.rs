@@ -987,6 +987,9 @@ mod tests {
         let store = CaseStore::new(root.clone()).unwrap();
         let original = validate_sidecar_stdout("https://example.kr/", &official()).unwrap();
         let cases = [
+            ("succeeded", json!({"connection":"direct","transport":{"kind":"direct","reason":"operator"}})),
+            ("succeeded", json!({"connection":"warp","transport":{"kind":"warp","backend":"usque","version":"4.2.1"}})),
+            ("succeeded", json!({"connection":"warp","transport":{"kind":"direct","reason":"owned-origin"}})),
             ("succeeded", json!({"transport":{"kind":"direct","reason":"owned-origin"}})),
             ("succeeded", json!({"transport":{"kind":"direct","reason":"source-cli"}})),
             ("succeeded", json!({})),

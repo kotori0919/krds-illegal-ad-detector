@@ -163,6 +163,15 @@ mod tests {
 
     #[tokio::test]
     async fn real_worker_progress_result_and_evidence_survive_host_persistence() {
+        worker_result_survives_host_persistence("warp", &["--require-warp"], "owned-origin").await;
+    }
+
+    #[tokio::test]
+    async fn real_direct_worker_result_survives_host_persistence() {
+        worker_result_survives_host_persistence("direct", &["--direct-reason", "operator"], "operator").await;
+    }
+
+    async fn worker_result_survives_host_persistence(connection: &str, transport_args: &[&str], expected_reason: &str) {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let temporary = TempDir::new();
         let resource = temporary.0.join("install-dir/binaries");
@@ -214,10 +223,11 @@ mod tests {
         let entry = format!("{origin}/");
         let case_root = temporary.0.join("cases");
         let registry = SessionRegistry::persistent(case_root.clone()).unwrap();
-        let record = new_session(
+        let mut record = new_session(
             entry.clone(),
             chrono::Utc::now().to_rfc3339(),
         );
+        record.settings = serde_json::json!({"connection": connection});
         let id = record.id.clone();
         registry.insert(record).await;
         let result_file = temporary.0.join("result.json");
@@ -226,8 +236,7 @@ mod tests {
         let result_name = result_file.to_string_lossy().to_string();
         let detail_name = detail_file.to_string_lossy().to_string();
         let extra_name = extra_file.to_string_lossy().to_string();
-        let args = [
-            "--require-warp",
+        let mut args = vec![
             "--session",
             id.as_str(),
             "--entry-url",
@@ -247,6 +256,7 @@ mod tests {
             "--extra-out-file",
             extra_name.as_str(),
         ];
+        args.extend_from_slice(transport_args);
         registry
             .spawn_sidecar(&id, worker.to_str().unwrap(), &args)
             .await
@@ -403,11 +413,13 @@ mod tests {
         drop(registry);
         let reopened = SessionRegistry::persistent(case_root).unwrap();
         let case = reopened.open_case(&id).await.unwrap();
-        assert_eq!(case["manifest"]["settings"]["transport"], serde_json::json!({"kind":"direct","reason":"owned-origin"}));
+        assert_eq!(case["manifest"]["settings"]["connection"], connection);
+        assert_eq!(case["manifest"]["settings"]["transport"], serde_json::json!({"kind":"direct","reason":expected_reason}));
+        assert!(case["manifest"]["settings"].get("transportFailure").is_none());
         assert_eq!(reopened.result_value(&id).await.unwrap(), official);
         assert_eq!(reopened.validated_export_text(&id).await.unwrap(), canonical_official_text);
         assert_eq!(reopened.evidence_asset_value(&id, asset_id).await.unwrap(), asset);
-        println!("native L3: official unchanged; selected metadata has no bytes; session-scoped JPEG loaded; foreign/path asset denied; {} progress events", events.lock().unwrap().len());
+        println!("native L3 ({connection}, {expected_reason}): official unchanged; selected metadata has no bytes; session-scoped JPEG loaded; foreign/path asset denied; {} progress events", events.lock().unwrap().len());
         server.abort();
     }
 }

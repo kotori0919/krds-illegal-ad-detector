@@ -53,6 +53,65 @@ fn bounded_integer(
     Ok(value)
 }
 
+fn valid_text_embedding(value: &Value) -> bool {
+    if value["state"] == "unavailable" {
+        return matches!(value["reason"].as_str(), Some("budget" | "model-error" | "invalid-input"));
+    }
+    let cosine = |key: &str| value[key].as_f64().filter(|n| n.is_finite() && (-1.0..=1.0).contains(n));
+    let (Some(positive), Some(negative), Some(margin), Some(elapsed)) =
+        (cosine("positiveSimilarity"), cosine("negativeSimilarity"), value["margin"].as_f64(), value["elapsedMs"].as_f64()) else { return false; };
+    value["state"] == "available" && matches!(value["policy"].as_str(), Some("text-ad-embedding-v1" | "text-ad-embedding-v2" | "text-ad-embedding-v3"))
+        && (value["model"] == "embeddinggemma-2-text-f32" || (value["model"] == "embeddinggemma-2-text-int8" && value["policy"] == "text-ad-embedding-v3"))
+        && value["revision"] == "daa72c51243991dfcaf9f9137d2c573d8f7790c0"
+        && margin.is_finite() && (margin - (positive - negative)).abs() <= 1e-6
+        && value["threshold"].as_f64() == Some(0.0)
+        && value["passed"].as_bool() == Some(margin >= 0.0)
+        && elapsed.is_finite() && (0.0..=8000.0).contains(&elapsed)
+}
+
+fn valid_text_review(image: &Value) -> bool {
+    if image["decision"]["score"].as_f64() != Some(3.0) || image["decision"]["threshold"].as_f64() != Some(3.0)
+        || image["decision"]["passed"] != true || !valid_text_embedding(&image["textEmbedding"]) || image["textEmbedding"]["state"] != "available"
+        || image["textEmbedding"]["passed"] != true || image["ocr"]["state"] != "available"
+        || !image["ocr"]["text"].as_str().is_some_and(|text| !text.trim().is_empty() && text.encode_utf16().count() <= 4096)
+        || image["visibleDomEquivalent"] != false
+        || !image["candidateEvidence"].as_array().is_some_and(|items| items.iter().any(|item| item == "external-destination")) {
+        return false;
+    }
+    let (Some(destination), Some(page)) = (image["destinationUrl"].as_str(), image["frameUrl"].as_str()) else { return false; };
+    let (Ok(destination), Ok(page)) = (url::Url::parse(destination), url::Url::parse(page)) else { return false; };
+    matches!(destination.scheme(), "http" | "https") && destination.host_str().is_some()
+        && destination.username().is_empty() && destination.password().is_none()
+        && matches!(page.scheme(), "http" | "https") && page.host_str().is_some()
+        && destination.host_str() != page.host_str()
+}
+
+fn valid_visual_embedding(value: &Value) -> bool {
+    if value["state"] == "unavailable" { return matches!(value["reason"].as_str(), Some("budget" | "model-error" | "invalid-input")); }
+    let cosine = |key: &str| value[key].as_f64().filter(|n| n.is_finite() && (-1.0..=1.0).contains(n));
+    let (Some(p),Some(n),Some(m),Some(sp),Some(sn),Some(sm),Some(elapsed)) =
+        (cosine("positiveSimilarity"),cosine("negativeSimilarity"),value["margin"].as_f64(),cosine("shuffledPositiveSimilarity"),cosine("shuffledNegativeSimilarity"),value["shuffledMargin"].as_f64(),value["elapsedMs"].as_f64()) else { return false; };
+    value["state"] == "available" && matches!(value["policy"].as_str(),Some("image-ad-embedding-v1" | "image-ad-embedding-v2" | "image-ad-embedding-v3")) && (value["model"] == "embeddinggemma-2-image-text-f32" || (matches!(value["model"].as_str(), Some("embeddinggemma-2-image-text-int8" | "embeddinggemma-2-image-text-f32-vision-int8")) && value["policy"] == "image-ad-embedding-v3"))
+        && value["revision"] == "daa72c51243991dfcaf9f9137d2c573d8f7790c0"
+        && value["imageSha256"].as_str().is_some_and(|s| s.len()==64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+        && m.is_finite() && sm.is_finite() && (m-(p-n)).abs()<=1e-6 && (sm-(sp-sn)).abs()<=1e-6
+        && value["threshold"].as_f64()==Some(0.0) && value["control"]=="pixel-shuffle-v1" && value["seed"]==1701
+        && value["passed"].as_bool()==Some(m>=0.0 && sm<0.0) && elapsed.is_finite() && (0.0..=16000.0).contains(&elapsed)
+}
+
+fn valid_visual_review(image: &Value) -> bool {
+    let value=&image["visualEmbedding"];
+    if image["decision"]["score"].as_f64()!=Some(3.0) || image["decision"]["threshold"].as_f64()!=Some(3.0)
+        || image["decision"]["passed"]!=true || !valid_visual_embedding(value) || value["state"]!="available" || value["passed"]!=true
+        || image["assetId"].as_str()!=value["imageSha256"].as_str().map(|s|format!("visual-{s}")).as_deref()
+        || image["ocr"]["state"]!="available" || !image["ocr"]["text"].as_str().is_some_and(|s|s.encode_utf16().count()<=4096)
+        || image["visibleDomEquivalent"]!=false || !image["candidateEvidence"].as_array().is_some_and(|a|a.iter().any(|v|v=="external-destination")) { return false; }
+    let (Some(target),Some(page))=(image["destinationUrl"].as_str(),image["frameUrl"].as_str()) else {return false;};
+    let (Ok(target),Ok(page))=(url::Url::parse(target),url::Url::parse(page)) else {return false;};
+    matches!(target.scheme(),"http"|"https") && target.host_str().is_some() && target.username().is_empty() && target.password().is_none()
+        && matches!(page.scheme(),"http"|"https") && page.host_str().is_some() && target.host_str()!=page.host_str()
+}
+
 pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), String> {
     let string = |value: &Value| value.as_str().is_some_and(|text| !text.is_empty());
     let strings = |value: &Value| {
@@ -113,6 +172,32 @@ pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), Strin
         return Err("visual assets exceed capture budget".into());
     }
     for image in detail["imageAnalysis"].as_array().into_iter().flatten() {
+        if let Some(alternatives) = image.get("ocrAlternatives") {
+            let valid = alternatives.as_array().is_some_and(|items| items.len() <= 1 && items.iter().all(|item| {
+                item["backend"].as_str().is_some_and(|s| !s.is_empty() && s.encode_utf16().count() <= 128)
+                    && if item["state"] == "available" {
+                        item["text"].as_str().is_some_and(|s| s.encode_utf16().count() <= 4096)
+                            && item["confidence"].as_f64().is_some_and(|n| n.is_finite() && (0.0..=1.0).contains(&n))
+                    } else { item["state"] == "unavailable" && matches!(item["reason"].as_str(), Some("budget" | "recognition-error")) }
+            }));
+            if !valid { return Err("OCR alternatives invalid".into()); }
+        }
+
+        if image.get("visualEmbedding").is_some_and(|v| !valid_visual_embedding(v)) { return Err("image embedding evidence invalid".into()); }
+        if image["visualEmbedding"]["state"]=="available" && image["assetId"].as_str()!=image["visualEmbedding"]["imageSha256"].as_str().map(|s|format!("visual-{s}")).as_deref() { return Err("image embedding asset mismatch".into()); }
+        if image["decision"]["rule"]=="image-only-ad-v5-image-review" && !valid_visual_review(image) { return Err("image embedding review invalid".into()); }
+        if image.get("textEmbedding").is_some_and(|value| !valid_text_embedding(value)) {
+            return Err("text embedding evidence invalid".into());
+        }
+        if image["decision"]["rule"] == "image-only-ad-v4-text-review" && !valid_text_review(image) {
+            return Err("text embedding review invalid".into());
+        }
+        if let Some(frame) = image.get("animationFrame") {
+            if frame["index"].as_u64().is_none_or(|value| value >= crate::config::number("visual", "animationFrames"))
+                || frame["timestampMs"].as_f64().is_none_or(|value| !value.is_finite() || !(0.0..=86_400_000.0).contains(&value)) {
+                return Err("animation frame invalid".into());
+            }
+        }
         if let Some(id) = image.get("assetId") {
             if !id.as_str().is_some_and(|id| asset_ids.contains(id)) {
                 return Err("image asset missing".into());
@@ -147,7 +232,9 @@ pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), Strin
                 || finding["evidence_text"] != image["ocr"]["text"]
                 || image["decision"]["passed"] != true
                 || image["visibleDomEquivalent"] != false
-                || image["matchedTerms"].as_array().is_none_or(Vec::is_empty)
+                || (image["matchedTerms"].as_array().is_none_or(Vec::is_empty)
+                    && !(image["decision"]["rule"] == "image-only-ad-v4-text-review" && valid_text_review(image))
+                    && !(image["decision"]["rule"] == "image-only-ad-v5-image-review" && valid_visual_review(image)))
             {
                 return Err("image-only identity invalid".into());
             }
@@ -244,7 +331,7 @@ pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), Strin
                 .any(|(k, max)| !s[*k].as_u64().is_some_and(|v| v <= *max))
                 || s["ocrSha256"].as_array().is_none_or(|hashes| {
                     let mut seen = HashSet::new();
-                    hashes.len() > 6
+                    hashes.len() as u64 > crate::config::number("visual", "ocrImages")
                         || hashes.iter().any(|h| {
                             h.as_str().is_none_or(|h| {
                                 h.len() != 64
@@ -287,6 +374,7 @@ pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), Strin
             "ocr-image-limit",
             "deadline",
         ];
+        let frames_per_candidate = c["limits"].get("framesPerCandidate").map_or(Some(1), Value::as_u64);
         let reasons = [
             "page-limit",
             "candidate-limit",
@@ -300,7 +388,8 @@ pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), Strin
             "image-unavailable",
             "target-unavailable",
         ];
-        if counts.iter().any(|key| number(key).is_none())
+        if frames_per_candidate.is_none_or(|value| value == 0 || value > crate::config::number("visual", "framesPerCandidate"))
+            || counts.iter().any(|key| number(key).is_none())
             || c.get("candidateTotal") != Some(&Value::Null)
             || limit_keys.iter().any(|key| {
                 c["limits"][*key]
@@ -333,7 +422,7 @@ pub fn validate_extensions(detail: &Value, extras: &[Value]) -> Result<(), Strin
             return Err("visual analysis coverage invalid".into());
         }
         if number("pagesConsidered").unwrap() > c["limits"]["pages"].as_u64().unwrap()
-            || number("imagesAcquired") > number("candidatesObserved")
+            || number("imagesAcquired").unwrap() as u128 > number("candidatesObserved").unwrap() as u128 * frames_per_candidate.unwrap() as u128
             || number("imageAnalysisRecords") > number("imagesAcquired")
             || number("ocrImagesAttempted") > number("imageAnalysisRecords")
             || number("ocrImagesAttempted").unwrap()
@@ -769,6 +858,71 @@ mod tests {
                 "accepted {key}"
             );
         }
+        let mut animated = detail.clone();
+        animated["visualAnalysisCoverage"]["limits"]["framesPerCandidate"] = json!(4);
+        animated["visualAnalysisCoverage"]["imagesAcquired"] = json!(28);
+        assert!(validate_extensions(&animated, &[]).is_ok());
+        animated["visualAnalysisCoverage"]["imagesAcquired"] = json!(29);
+        assert!(validate_extensions(&animated, &[]).is_err());
+        animated["visualAnalysisCoverage"]["imagesAcquired"] = json!(7);
+        for invalid in [json!(0), json!(5), Value::Null] {
+            animated["visualAnalysisCoverage"]["limits"]["framesPerCandidate"] = invalid;
+            assert!(validate_extensions(&animated, &[]).is_err());
+        }
+    }
+
+    #[test]
+    fn text_review_requires_consistent_scores_and_observed_external_ocr_without_fabricated_terms() {
+        let embedding = json!({"state":"available","policy":"text-ad-embedding-v1","model":"embeddinggemma-2-text-f32",
+            "revision":"daa72c51243991dfcaf9f9137d2c573d8f7790c0","positiveSimilarity":0.6,"negativeSimilarity":0.4,
+            "margin":0.2,"threshold":0,"passed":true,"elapsedMs":100});
+        let detail = json!({"imageAnalysis":[{"textEmbedding":embedding,"frameUrl":"https://site.example/", "location":"#banner",
+            "destinationUrl":"https://advertiser.example/join","candidateEvidence":["external-destination"],
+            "visibleDomEquivalent":false,"matchedTerms":[],"extraFindingId":"x1",
+            "ocr":{"state":"available","text":"actual OCR"},"decision":{"rule":"image-only-ad-v4-text-review","score":3,"threshold":3,"passed":true}}]});
+        let extras = [json!({"id":"x1","extra_finding":"IMAGE_ONLY_ILLEGAL_AD","url":"https://site.example/","location":"#banner","evidence_text":"actual OCR"})];
+        assert!(validate_extensions(&detail, &extras).is_ok());
+        let mut education_policy = detail.clone();
+        education_policy["imageAnalysis"][0]["textEmbedding"]["policy"] = json!("text-ad-embedding-v2");
+        assert!(validate_extensions(&education_policy, &extras).is_ok());
+        education_policy["imageAnalysis"][0]["textEmbedding"]["policy"] = json!("text-ad-embedding-v3");
+        education_policy["imageAnalysis"][0]["textEmbedding"]["model"] = json!("embeddinggemma-2-text-int8");
+        assert!(validate_extensions(&education_policy, &extras).is_ok());
+        for (key, value) in [("margin", json!(0.3)), ("positiveSimilarity", json!(1.1)),
+            ("passed", json!(false)), ("policy", json!("unknown")), ("model", json!("other")), ("revision", json!("main")),
+            ("elapsedMs", json!(8001)), ("threshold", json!(0.05))] {
+            let mut invalid = detail.clone(); invalid["imageAnalysis"][0]["textEmbedding"][key] = value;
+            assert!(validate_extensions(&invalid, &extras).is_err(), "accepted forged {key}");
+        }
+        for (key, value) in [("destinationUrl", json!("https://user:secret@advertiser.example/")),
+            ("destinationUrl", json!("javascript:alert(1)")), ("destinationUrl", json!("https://site.example/join")),
+            ("candidateEvidence", json!([])), ("visibleDomEquivalent", json!(true)),
+            ("decision", json!({"rule":"image-only-ad-v4-text-review","score":0.2,"threshold":0,"passed":true})),
+            ("textEmbedding", json!({"state":"unavailable","reason":"budget"})),
+            ("ocr", json!({"state":"available","text":" "})),
+            ("ocr", json!({"state":"available","text":"x".repeat(4097)}))] {
+            let mut invalid = detail.clone(); invalid["imageAnalysis"][0][key] = value;
+            assert!(validate_extensions(&invalid, &extras).is_err(), "accepted missing review boundary {key}");
+        }
+        let mut legacy = detail.clone(); legacy["imageAnalysis"][0]["decision"]["rule"] = json!("image-only-ad-v3");
+        assert!(validate_extensions(&legacy, &extras).is_err());
+        for reason in ["budget", "model-error", "invalid-input"] {
+            assert!(valid_text_embedding(&json!({"state":"unavailable","reason":reason})));
+        }
+        assert!(!valid_text_embedding(&json!({"state":"unavailable","reason":"other"})));
+    }
+
+    #[test]
+    fn animation_frame_metadata_is_bounded_and_legacy_images_remain_valid() {
+        let mut detail = json!({"imageAnalysis":[{}]});
+        assert!(validate_extensions(&detail, &[]).is_ok());
+        detail["imageAnalysis"][0]["animationFrame"] = json!({"index":119,"timestampMs":40});
+        assert!(validate_extensions(&detail, &[]).is_ok());
+        for invalid in [Value::Null, json!({"index":120,"timestampMs":40}),
+            json!({"index":-1,"timestampMs":40}), json!({"index":1,"timestampMs":-1})] {
+            detail["imageAnalysis"][0]["animationFrame"] = invalid;
+            assert!(validate_extensions(&detail, &[]).is_err());
+        }
     }
 
     #[test]
@@ -852,4 +1006,35 @@ mod tests {
         assert!(index.graph_slice(&json!({"maxEdges":501})).is_err());
         assert!(index.graph_slice(&json!({"depth":3})).is_err());
     }
+    #[test]
+    fn independent_ocr_alternatives_are_bounded_and_optional() {
+        let mut detail = json!({"imageAnalysis":[{"ocrAlternatives":[{"state":"available","backend":"small-banner","text":"40%15%","confidence":0.8}]}]});
+        assert!(validate_extensions(&detail, &[]).is_ok());
+        for invalid in [json!([{"state":"available","backend":"cpu","text":"x".repeat(4097),"confidence":0.8}]),
+            json!([{"state":"available","backend":"cpu","text":"raw","confidence":1.1}]),
+            json!([{"state":"unavailable","backend":"cpu","reason":"other"}]), json!(false)] {
+            detail["imageAnalysis"][0]["ocrAlternatives"] = invalid;
+            assert!(validate_extensions(&detail, &[]).is_err());
+        }
+        detail["imageAnalysis"][0]["ocrAlternatives"] = json!([{"state":"unavailable","backend":"small-banner","reason":"budget"}]);
+        assert!(validate_extensions(&detail, &[]).is_ok());
+    }
+
+    #[test]
+    fn pixel_review_requires_bound_asset_and_layout_control_without_fabricated_words() {
+        let embedding=json!({"state":"available","policy":"image-ad-embedding-v1","model":"embeddinggemma-2-image-text-f32","revision":"daa72c51243991dfcaf9f9137d2c573d8f7790c0","imageSha256":"a".repeat(64),"positiveSimilarity":0.8,"negativeSimilarity":0.7,"margin":0.1,"shuffledPositiveSimilarity":0.6,"shuffledNegativeSimilarity":0.7,"shuffledMargin":-0.1,"threshold":0,"control":"pixel-shuffle-v1","seed":1701,"passed":true,"elapsedMs":9000});
+        let image=json!({"assetId":format!("visual-{}","a".repeat(64)),"visualEmbedding":embedding,"frameUrl":"https://site.example/","destinationUrl":"https://offer.example/","candidateEvidence":["external-destination"],"visibleDomEquivalent":false,"ocr":{"state":"available","text":"7474 30+10"},"decision":{"rule":"image-only-ad-v5-image-review","score":3,"threshold":3,"passed":true}});
+        assert!(valid_visual_review(&image));
+        let mut revised=image.clone();revised["visualEmbedding"]["policy"]=json!("image-ad-embedding-v2");assert!(valid_visual_review(&revised));
+        revised["visualEmbedding"]["policy"]=json!("image-ad-embedding-v3");assert!(valid_visual_review(&revised));
+        revised["visualEmbedding"]["model"]=json!("embeddinggemma-2-image-text-int8");assert!(valid_visual_review(&revised));
+        revised["visualEmbedding"]["model"]=json!("embeddinggemma-2-image-text-f32-vision-int8");assert!(valid_visual_review(&revised));
+        revised["visualEmbedding"]["policy"]=json!("image-ad-embedding-v2");assert!(!valid_visual_review(&revised));
+        for (key,value) in [("shuffledMargin",json!(0.1)),("elapsedMs",json!(16001)),("passed",json!(false)),("imageSha256",json!("invalid"))] {
+            let mut invalid=image.clone();invalid["visualEmbedding"][key]=value;assert!(!valid_visual_review(&invalid));
+        }
+        let mut invalid=image.clone();invalid["assetId"]=json!("visual-wrong");assert!(!valid_visual_review(&invalid));
+        invalid=image.clone();invalid["destinationUrl"]=json!("https://user:secret@offer.example/");assert!(!valid_visual_review(&invalid));
+    }
+
 }

@@ -34,6 +34,7 @@
       "binaries/scanner-worker-x86_64-pc-windows-gnu.mjs": "binaries/scanner-worker-x86_64-pc-windows-gnu.mjs",
       "binaries/ocr-worker.mjs": "binaries/ocr-worker.mjs",
       "binaries/ocr-data/": "binaries/ocr-data/",
+      "binaries/text-embedding-data/": "binaries/text-embedding-data/",
       "binaries/node.exe": "binaries/node.exe",
       "binaries/node-LICENSE": "binaries/node-LICENSE",
       "binaries/usque.exe": "binaries/usque.exe",
