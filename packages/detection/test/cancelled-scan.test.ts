@@ -57,6 +57,8 @@ it("preserves completed findings and page outcomes when cancelled during another
     await closed;
     record("fixture-closed");
   }
-  // The harness must outlive the unchanged whole-scan budget and cleanup.
-  // Assert cancellation settlement above instead of timing browser startup.
+  // Bounds: each navigation has perPageMs: 1000 inside a 20 s whole-scan
+  // deadline, and the harness timeout below is a deliberate 2x backstop over
+  // that deadline. Cancellation is asserted by settlement, so a genuine
+  // cancellation hang must fail here rather than hang the CI job.
 }, 40_000);

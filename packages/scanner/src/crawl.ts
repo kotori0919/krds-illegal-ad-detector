@@ -201,6 +201,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
   let context: BrowserContext | undefined;
   let networkProxy: PublicNetworkProxy | undefined;
   let timedOut = false;
+  let teardownRequested = false;
   let queuedPages = 0;
   const activePages = new Set<Page>();
   const policyDeniedTargets = new Set<string>();
@@ -209,6 +210,7 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
     catch { return false; }
   };
   const abortPages = (): void => {
+    teardownRequested = true;
     for (const page of activePages) void page.close().catch(() => undefined);
     // Page/context disposal can wait for transport settlement. Cancellation
     // must start independent resource shutdown without waiting for either.
@@ -541,7 +543,11 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         if (pageTimer) clearTimeout(pageTimer);
         // Disposal ends document loading through trusted Chromium control;
         // page scripts cannot replace this operation as they can window.stop.
-        if (!page.isClosed()) {
+        // A page already closed by the page timer or by scan cancellation has
+        // no loader left to stop, and attaching a CDP session while the
+        // browser is being torn down can wait forever: the attach request
+        // never settles once the closing connection drops it.
+        if (!page.isClosed() && !pageTimedOut && !teardownRequested) {
           const session = await activeContext.newCDPSession(page).catch(() => undefined);
           if (session) {
             await session.send("Page.stopLoading").catch(() => undefined);
