@@ -74,3 +74,23 @@ scanner build, typecheck, lint, all 367 tests in 59 files, and the web build.
 The web build retained its existing advisory about a chunk larger than 500 kB.
 Dependency reinstallation was not repeated locally; GitHub CI performs its
 normal clean `npm ci` and Chromium installation on the pushed revision.
+
+## Serialized package test files
+
+Two `verify` failures shared one 4-vCPU runner: an animated GIF frame was
+missing from a visual capture, and `packages/evidence/test/image-embedding.test.ts`
+reported `OCR recognition failed`. The OCR worker had produced valid evidence;
+under CPU starvation its cold ONNX session plus first inference reported
+`elapsedMs` above the contract's 8 s text window, which `LocalOcrBackend`
+converts to `OCR recognition failed`.
+
+**CORRECTION:** `vitest.config.ts` sets `fileParallelism: false` (a run-level
+Vitest option, not a per-project one) so a file owns the runner while it
+launches Chromium and 1.3 GiB of ONNX sessions. No retries, skips, or assertion
+changes are introduced.
+
+**OBSERVED:** With serialized files, `npm run check` passed 704 tests on two
+pinned CPUs (241 s wall) and on the full host (194 s wall), and the focused
+`visual-candidates` + `image-embedding` pair passed under a 5 GB cgroup cap.
+The CI failure itself was **NOT_REPRODUCED** locally; the local model assets were
+warm and the reported mechanism was confirmed with an oversubscribed core.
