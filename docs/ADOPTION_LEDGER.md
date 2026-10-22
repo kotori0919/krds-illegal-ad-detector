@@ -688,6 +688,8 @@ cold-call 증거.
 
 ### Linux 교차 빌드 후보 (OBSERVED_CROSS_BUILD)
 
+**이 후보는 아래 `### 재빌드 (85a286f)`로 대체(superseded)되었다. 다음은 당시 관측 기록이다.**
+
 호스트 Linux, `KRDS_WINDOWS_TARGET=x86_64-pc-windows-gnullvm`, LLVM-MinGW 20260908
 (clang 23.1.1, sha256 `bab7f174d7e136ae093ad232d5a894ee00f0a8f9051bcff4eb6a70c132898248`),
 NSIS 3.09-4(makensis sha256 `ca9f28d9726d38d33b403187871af920b59c265eade7fa463684cf1e8b322d3e`).
@@ -717,6 +719,40 @@ hash 차이는 Tauri의 UNK→NSS marker 변환에 따른 예상된 차이다(Ha
 NOT_RUN: Windows에서의 설치, 대화형 UI 수용, MSVC 빌드/제품 경로(CI 결제 차단),
 WebView2 부재 offline 설치, 코드 서명.
 
+### 재빌드 (85a286f)
+
+16d4b56 뒤 source commit 세 개 때문에 같은 날 다시 빌드했다: `95bb51d` credential-bearing
+entry URL 거부, `2ea59e4` stale case-store import-status 시험 기대값 수정(제품 동작 변경
+없음), `85a286f` clippy `div_ceil`. 위 3fb23 후보는 이 재빌드로 대체되었다.
+
+후보 `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z`
+(디렉터리 819,665,685 B):
+
+| 항목 | 값 |
+| --- | --- |
+| buildId | `0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z` |
+| appVersion / target | `0.2.1` / `x86_64-pc-windows-gnullvm` |
+| source.commit / dirty | `85a286f5fcaf125fcadec155eac729bfe019db92` / `false` |
+| sourceSha256 | `76e7d5ec6ce4f9d2b7b5446b2ae29f934a2c85f98dc76821b4225a106af90b19` |
+| installer `불법광고 탐지 도구_0.2.1_x64-setup.exe` | 796,348,611 B(759.46 MiB), sha256 `54c8f1cdff25e9077a2432b8e75af14cef7597fe1fb21eb8325fbb6b6dfdf406` |
+| standalone `krds-detector.exe` | 20,220,928 B, sha256 `bd57296b8823ff79d0aa9da6c7e9dc578cb3ac853a086be1f1b690cc69bac121` |
+| 설치본 exe(marker 변환 후, markerOffset 13455874) | sha256 `8059cb5d93fecccf013b3645d046bc9d8f8ae26bbe498896492b4dee8f61413e` |
+| verify | `node scripts/verify-artifact.mjs <candidate>/manifest.json` EXIT 0, 8 files, 8/8 hash 일치, 목록 밖 파일 없음, `unsigned-internal-candidate` |
+
+검증 실행: `node scripts/prepare-windows-runtime.mjs --verify` 1197 files(runtime lock
+미변경), `npm run build:desktop` EXIT 0, `npm run package:windows` EXIT 0,
+`cargo check --target x86_64-pc-windows-gnullvm --all-targets` EXIT 0, Windows target
+clippy(CI와 같은 명령) EXIT 0, `cargo test --bins` 78 passed / 0 failed / 2 ignored,
+`cargo fmt --check` EXIT 0.
+
+NOT_RUN: Windows에서의 시험 실행(cross sysroot 없음), MSVC CI(계정 결제 차단), Windows
+설치·대화형 UI 수용, WebView2 부재 offline 설치, 코드 서명.
+
+predecessor `candidate-0.2.1-x86_64-pc-windows-gnullvm-3fb23ff998ea-20261022T160030222Z`는
+삭제하지 않고 `/mnt/nas/illegal-ad-artifacts-archive-20261023/`로 이동했다(819,612,236 B,
+9개 파일 sha256은 이동 manifest에 기록). 빌드 후 호스트 루트 여유는 약 1.3 GB이며
+staging/target은 NAS에 있다.
+
 ### 실측 잔여 위험 (MEASURED; 이번에 수정하지 않음)
 
 cold-start embedding(Linux, 2 CPU 고정, page cache evict): text 3.65초(상한 8초,
@@ -739,5 +775,6 @@ symlink를 거부했으므로(`git ls-files --others`에서 EISDIR) 로컬 `.git
 
 gitignore 대상이던 오래된 증거 4건을 삭제하지 않고 이동했다: `artifacts/detection-improvement-20261021`과
 `artifacts/NIA_ADOPTION_*_CANDIDATE_20261010.zip` 번들(+ 공개 batch `.sha256`) →
-`/mnt/nas/illegal-ad-artifacts-archive-20261023`. `artifacts/candidate-*`는 건드리지 않았다.
+`/mnt/nas/illegal-ad-artifacts-archive-20261023`. 당시 `artifacts/candidate-*`는 건드리지 않았고,
+이후 85a286f 재빌드에서 predecessor 후보만 같은 archive로 이동했다(위 재빌드 절).
 이동 manifest: `/mnt/nas/illegal-ad-build/moved-artifacts-20261023.txt`, `/tmp/moved-artifacts-20261023.txt`.

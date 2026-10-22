@@ -14,9 +14,9 @@
 | 미실행 | 설계·소스만 있고 실제 실행 기록이 없는 항목 | 아래 12절 참조 |
 
 가장 중요한 구분은 다음과 같다. **WARP 전송과 간단·고급 모드가 포함된 최신 소스
-`16d4b56`은 Windows용 설치 후보로 만들어 검증했지만, Windows에서 설치·조작해 관측한
+`85a286f`은 Windows용 설치 후보로 만들어 검증했지만, Windows에서 설치·조작해 관측한
 기록은 아직 없다.** 2026-10-23 Linux 교차 빌드(`x86_64-pc-windows-gnullvm`)로 만든
-서명 없는 NSIS 후보(759.44 MiB, sha256 `c76c133f…b439d8`)는 artifact verify를 통과했다.
+서명 없는 NSIS 후보(759.46 MiB, sha256 `54c8f1cd…df406`)는 artifact verify를 통과했다.
 이 후보는 Tauri가 "실험적"으로 표시하는 교차 컴파일 산출물이며 MSVC 배포 경로가 아니다.
 Windows MSVC CI와 실제 설치·화면 수용, WebView2 부재 offline 설치는 NOT_RUN이다(CI는
 계정 결제 차단으로 job이 시작되지 않았다). Windows에서 마지막으로 관측된 것은 2026-10-09
@@ -416,9 +416,9 @@ Windows에서 실제로 관측된 것은 2026-10-09 빌드(후보 565)다. 다�
 
 그러나 다음은 **미실행**이다.
 
-- WARP 전송과 간단·고급 모드가 포함된 최신 소스 `16d4b56`의 Windows 설치·화면 수용.
+- WARP 전송과 간단·고급 모드가 포함된 최신 소스 `85a286f`의 Windows 설치·화면 수용.
   2026-10-23 Linux 교차 빌드(`x86_64-pc-windows-gnullvm`)로 서명 없는 NSIS 후보
-  (759.44 MiB, sha256 `c76c133f…b439d8`)를 만들어 artifact verify까지 통과했으나,
+  (759.46 MiB, sha256 `54c8f1cd…df406`)를 만들어 artifact verify까지 통과했으나,
   Windows MSVC CI와 실제 설치·조작 관측은 NOT_RUN이다. 이 후보는 Tauri가 "실험적"으로
   표시하는 교차 컴파일 산출물이며 수신팀 MSVC 배포 경로가 아니다(ADOPTION_LEDGER.md
   2026-10-23 절).
