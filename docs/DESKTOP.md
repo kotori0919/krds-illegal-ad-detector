@@ -5,10 +5,12 @@ Thin Tauri 2 host reusing the canonical React UI via `HostBridge`.
 ## Frontend (`apps/web/src/host/`)
 
 - `browser.ts` — demo/preview host (unchanged behavior).
-- `tauri.ts` — `TauriHost`: six narrow IPC commands (`scan_start`,
-  `scan_cancel`, `scan_get_session`, `scan_get_result`,
-  `scan_get_extra_result`, `scan_export`) + `scan-event` subscription. No
-  arbitrary shell execution exposed.
+- `tauri.ts` — `TauriHost`: calls the 26 IPC commands registered in
+  `src-tauri/src/main.rs` `generate_handler!` (authoritative list) covering
+  scan lifecycle and batch start, session/result/detail/evidence reads,
+  export and save dialogs, case store, WARP setup and diagnostics, plus a
+  `scan-event` subscription. No arbitrary shell execution exposed: no shell
+  plugin or shell capability is registered.
 - `index.ts` — `createHost()`: Tauri internals marker → `TauriHost`,
   otherwise `BrowserHost`. Dynamic import keeps `@tauri-apps/api` out of
   the browser bundle.
@@ -27,10 +29,11 @@ no BOM.
 
 ## Rust host (`src-tauri/`)
 
-- `main.rs` — six commands, `scan-event` emit, `CREATE_NO_WINDOW` on
-  Windows, exit-cleanup hook. `scan_export` rejects empty directories;
-  session/result read-back returns `None` until the result-store slice lands
-  (explicit, not silent).
+- `main.rs` — 26 registered commands (authoritative list in its
+  `generate_handler!`), `scan-event` emit, `CREATE_NO_WINDOW` on Windows,
+  exit-cleanup hook. `scan_export` opens the native save dialog when the
+  directory is empty or `.`; session/result read-back returns `None` when no
+  value is stored (explicit, not silent).
 - `session.rs` — registry owns children: `kill_on_drop(true)`, `kill_child`
   on cancel, descendant cleanup via Job on Windows.
 - `job.rs` — Windows Job Object `KILL_ON_JOB_CLOSE` guard (KODEX §15):
@@ -91,7 +94,9 @@ validate Rust/Tauri, Windows ACLs, packaging, or GUI behavior.
 
 ## Worker WARP transport
 
-Windows worker는 고정 usque 4.2.1 `http-proxy`를 세션별 자식으로 실행한다.
+일반 native 점검 요청은 `connection=direct`가 기본이며 WARP 자원·등록 정보를 조회하지 않는다. 선택한 `connection`은 HostBridge에서 native 단일·일괄 요청과 저장 설정으로 전달한다. 일반 UI 직접 연결의 관측 출처는 `operator`, 기존 CLI는 `source-cli`로 구분한다.
+
+앱 전용 WARP를 선택한 Windows worker는 고정 usque 4.2.1 `http-proxy`를 세션별 자식으로 실행한다.
 실행 파일과 upstream license는 검증된 runtime inventory에 포함하며 검사 중
 내려받지 않는다. `--require-warp` 공개 검사는 관리된 실행 파일·등록 설정이
 없으면 실패한다. 정확한 소유 원점은 직접 연결하며 해당 세션의 공개 요청은
@@ -105,10 +110,10 @@ PID의 Windows 리스너 정보에서 확인한다. 첫 터널 실패·종료 �
 원점 권한은 준비 전에 한 번만 정하고 같은 정책을 crawl까지 유지한다. 소유 원점의
 초기 주소는 고정하며 공개 원점이 준비 후 비공개 주소로 바뀌면 연결 전에 거절한다.
 
-Windows UI의 공유 **앱 전용 WARP 연결 설정**은 단일·일괄 점검에서 동일한
+고급 모드 **설정·도움말**의 **앱 전용 WARP 연결 설정**은 단일·일괄 점검에서 동일한
 HostBridge 상태를 사용한다. 최초 사용자는 Cloudflare 애플리케이션 약관을 읽고
 동의를 선택한 뒤 등록을 직접 실행한다. 상태 조회·점검 시작·실패 화면은 등록을
-호출하지 않는다. 저장된 설정 검증은 활성 터널을 뜻하지 않는다. 각 공개 점검은
+호출하지 않는다. 저장된 설정 검증은 활성 터널을 뜻하지 않는다. WARP를 선택한 공개 점검만
 세션별 준비·연결 검증 후 시작하고 취소·종료·실패 때 자식을 정리한다. 등록
 서비스, WARP 연결, 고정 HTTPS trace 및 대상 공개 사이트로의 외부 통신이 필요하다.
 

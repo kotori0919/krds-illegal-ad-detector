@@ -1,5 +1,22 @@
 # Product spec V2 — operator workflow
 
+## 2026-10-20 design proposal: simple and advanced modes
+
+Status: initial scope implemented in working-tree source; latest Windows package acceptance is NOT_RUN. The user authorized concrete
+screen/flow design, ordinary inspection without mandatory WARP, and an explicit
+split between existing infrastructure analysis and additional development.
+Implementation now covers default direct inspection, both UI modes and stored single-case infrastructure. Cross-case aggregation and active external discovery remain out of scope. Acceptance evidence is tracked in ADOPTION_LEDGER.md.
+
+The user subsequently authorized the initial implementation; multiple-case aggregation and active external discovery remain deferred.
+
+The screen source of truth is the dated opening section of
+`SCREEN_SPEC.md`; interaction paths and recovery are in the dated opening
+section of `UX_FLOW.md`. ADR-0016 records the rationale and tradeoffs.
+The implemented initial scope revises the earlier single-surface design and mandatory
+app-WARP direction. Remaining design proposals are not capability claims.
+The official four-technique output, public
+network boundary, saved originals and review revisions remain invariant.
+
 Status: target behavior, revised 2026-10-06 for concise operator copy. Implementation and remaining acceptance evidence are tracked in `ARCHITECTURE.md`, `KRDS_COMPLIANCE.md` and `DRY_RUN.md`.
 
 ## User, job, success

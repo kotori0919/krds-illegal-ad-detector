@@ -64,3 +64,113 @@ V21_EVIDENCE_DIR=/tmp/krds-ui-evidence node benchmarks/ui-v21-workspace-smoke.mj
 아직 실행하지 않았다. 이전 509 설치본의 native 검증과 새 웹 검증을 구분한다.
 공개 두 대상은 이후 사용자의 직접 선정 지시로 실제 Windows 빌드에서 점검했다.
 [대상·결과·제한과 후속 화면 수정](PUBLIC_BATCH_OBSERVED_KO.md)을 별도로 기록한다.
+
+
+## 2026-10-22 화면과 실행 비용을 함께 개선
+
+사용자 우선순위는 UI/UX 다듬기와 성능 최적화를 함께 진행하는 것이다. Windows는 내일로
+미뤘고 이번에는 Linux의 실제 빌드 React/Tauri-adapter replay로 검증했다.
+FP32 고정 문구 계산 제거의 품질·시간·메모리 결과는
+[성능 비교](EMBEDDING_PRECOMPUTE_20261022.md)에 기록했다.
+
+실제 저해상도 배너6개의 저장된 점검 기록을 연결하자 공식 문구0건·추가 후보6건인데
+간단 모드는 처음에 빈 공식 목록과 탐지0건을 보여줬다. 이제 문구 탐지와 배너·추가 단서를
+각각 표시하고, 문구0건에 추가 단서가 있을 때 처음 결과는 추가 목록으로 연다.
+사용자가 목록이나 범위를 먼저 선택했다면 늦게 도착한 조회 결과가 화면을 바꾸지 않는다.
+고급 모드의 공식/추가 구분과 원본 저장 데이터는 유지한다.
+
+간단 모드에서는 각 배너 후보의 선택적 이미지 근거를 사용하며 같은 OCR 전체 목록을
+아래에 중복 출력하지 않는다. 전체 이미지 분석은 고급 모드에서 계속 볼 수 있고,
+후보가 없거나 기록을 사용할 수 없을 때의 상태 안내·다시 읽기 경로는 유지한다.
+별도 이미지 근거를 열기 전 전체 이미지 분석 IPC 조회는 이6배너 사례에서1회→0회였다.
+이는 조회 횟수 관측이며 사용자 체감 지연/프레임 속도의 통계적 개선 주장과 구분한다.
+
+기본 JSON은 배너 분석 전에 확정되므로 meta.elapsed_sec만 쓰면20초 분석도00:00으로
+보였다. 화면은 공식 기록과 세션 progress.elapsedSec 중 큰 값을 사용해 실제 관측된 전체
+시간을 표시한다. 원본 JSON 시간은 수정하지 않는다. finalizing 안내에 추가 단서 확인이
+진행 중임을 표시하고, 0건 숫자는 문구 탐지 건수임을 명시한다. 공식 파일이 있어도 세션이
+정리 중이면 진행 화면을 유지한다. backend scan.ts는 OCRclose 뒤 session-finished를
+emit하므로 완료 시 elapsedSec은 추가 분석을 포함한다.
+
+최초 모드 선택은 이름/설명을 구분하고 선택/초점 상태를 KRDS토큰으로 표시했다.
+간단 시작 화면의 연결 설명은 현재 PC 인터넷 연결을 쓴다는 말로 줄였다.
+320px에서는 이미지 근거의 항목명·값을 세로로 배치한다. 기존 inspector에만 있던 규칙을
+.evidence에 적용해 배너 근거 값 영역을88→256px로 확보했다. h1 초점 표시도 실제 제목
+너비를 사용하며 키보드 초점을 유지한다.
+
+현재 증거 위치는 artifacts/ui-polish-20261022/이다. before-build는 수정 전 실제 웹 산출물,
+before/after는617건 검토 흐름, before-banner/after-banner는 실제6배너 기록의 부분 투영이다.
+후자는 보존된 원시 imageAnalysis와 정확한 PNG/SHA를 사용하지만 그래프/creative색인은 생략한
+UI fixture이며 새 현장 탐지나 native 실행이 아니다. validateScanDetailBundle도 통과했다.
+보관 스크린샷은 직접 열어 확인했다. 초기 이미지 alt 선택자 오류와 중간 검사 실패 로그는
+보존했고 최종 통과 로그와 구분했다.
+
+관측·검증:
+
+- 첫 결과에서 배너 후보 표시 false→true, 별도 단추 없이6건이 보임.
+- 320/768/1024/1440 CSS viewport 가로 넘침0. 320px근거값 최소폭88→256px.
+- 1366×768의617건 목록은 전후 모두 첫3행 전체가759.875px 안에 보임.
+- 실제 빌드 화면에서 이미지 근거를 키보드 Enter로 열고 원본 PNG를 표시함.
+- 모드 변경/재실행에서 검토 메모·필터/관계 이동·저장 상태 보존,
+  XLSX618행과 검토 메모·공식 JSON 바이트 동일, WARP호출0/외부요청0/pageerror0.
+- 웹 전체152tests/22파일 통과, root typecheck/full lint/web build 통과.
+  고정 벡터 변경 직후 전체690passed1skipped 및190입력/N5비교도 별도 완료했다.
+- source identity와 원시 값/명령/제한은 각 receipt에 보존. 실제 사람/보조기기 수용,
+  Windows 설치·native 파일 저장창·양자화는 NOT_RUN이다. 기존 큰 export/worker청크 경고는 남는다.
+
+재현은 `npm run build -w apps/web`, `node benchmarks/ui-polish-smoke.mjs after`,
+`UI_MODES_EVIDENCE_DIR=artifacts/ui-polish-20261022/after node benchmarks/ui-modes-smoke.mjs`,
+`npx vitest run --project web`이다. 전후 비교의 before는 보관된 before-build를 사용하며
+현재 빌드로 덮어쓰면 안 된다. 실제 이미지 source URL은 기록에 남은 loopback fixture주소이고
+외부 광고주나 차단된 사이트에 접속하지 않는다. 화면 캡처만으로 접근성 인증을 주장하지 않는다.
+
+### 2026-10-22 양자화와 함께 진행한 결과 화면 정리
+
+반복되는 이미지 근거 버튼에 추가 단서 번호와 고유 aria-controls/hidden 영역을 연결했다.
+긴 원문(240자/4줄 초과)은 전체 보기로 접고 짧은 원문은 바로 표시해 검토 동작이
+밀려 내려가는 문제를 줄였다. 원문을 요약·변경하거나 저장JSON을 수정하지 않았다.
+동일6배너 화면의 첫3카드 하단1910.89→1575.64px, 전체 높이3324→2988px,
+320/768/1024/1440px 넘침0/320px 값너비256px. 지연조회0/키보드 열기·닫기/원문·PNG 동일 확인.
+실제 FP32문자+INT8vision 결과6건의 UI연동도 확인했다. 기술정보의 모델 ID는 실제정밀도를구분한다.
+617건 기존 흐름의 모드/메모/필터/단일사례 관계복귀/JSON·XLSX 보존을 다시확인했고
+첫3행759.875px/360px넘침0/WARP0/pageerror0을 유지했다.
+전체회귀696passed1skipped/Rust8/typecheck/lint/build통과.
+증거 artifacts/embedding-quantization-20261022/{ui,ui-selected}, 상세 EMBEDDING_QUANTIZATION_20261022.md.
+
+
+### 2026-10-22 반복 안내·주소 구분 정리
+
+간단 모드의 이미지 검토 안내를 목록 위 한 번으로 모으고, 상단 진입URL과 정확히 같은
+카드 관련 주소만 생략했다. 서로 다른 하위 페이지 주소·긴/짧은 원문·고급 기술 정보는 유지했다.
+이미지 근거에 저장된 destinationUrl을 관측 연결 주소로 표시해 이미지 파일 주소/관측 페이지와
+구분한다. 평문이므로 자동 광고주 접속은 없다. 주소가 없는 옛 기록은 없음을 표시한다.
+지연 조회·번호/aria-controls·키보드 열기/닫기는 그대로다.
+
+같은6배너 receipt의 실제 web build replay에서 첫3카드 하단1575.64→1273.14px,
+문서 높이2988→2339px. 320/768/1024/1440px 넘침0/320px 근거값256px,
+원문 전체·PNG/공식JSON 보존·열기 전 조회0·외부요청0·WARP0·pageerror0 확인.
+최종 canonical8스레드 결과의 별도 ui-selected replay에서도 실제 모델ID/6후보/주소를 확인했다.
+617건 모드/메모/필터/관계 복귀/JSON 바이트/엑셀618행 보존,3행759.875px/360px 넘침0 유지.
+Windows/native/사람/AT 수용 시험은 미실행이다.
+증거 artifacts/image-latency-20261022/{ui,ui-selected},
+[성능·품질 비교](IMAGE_LATENCY_OPTIMIZATION_20261022.md).
+
+
+### 2026-10-22 간단 모드의 대체 인식 원문 확인
+
+이미지 근거의 다른 인식 원문을 닫힌 native details에 보관해 간단모드에서도 직접 비교한다.
+선택원문과합치거나복구문구를만들지않는다. 키보드로열기/닫기와원문바이트보존을확인했고
+이를열어도추가backend조회는없다. 목록밀도는이전과동일하게유지,320~1440px넘침0.
+관측연결주소평문/원본PNG/모드기억/617건메모·관계·JSON/엑셀618행보존.
+증거 artifacts/ocr-cpu-20261022/ui, 상세 OCR_CPU_OPTIMIZATION_20261022.md.
+최종699tests통과/1기존skipped. Windows/native/사람/AT는미실행이다.
+
+### 2026-10-22 관측한 연결 주소 복사
+
+펼친 이미지 근거의 관측주소에만 복사 버튼을 제공한다. 주소평문을 직접선택할 수 있고,
+성공 status/권한거부·미지원 직접선택안내를 확인했다. 원문주소를 바꾸거나 외부로 방문하지 않는다.
+실제6배너 브라우저 replay와 단위시험33개에서 선택·대체원문/PNG/JSON·지연조회 보존,
+첫3카드1273.14px/문서2339px·320~1440px넘침0·320px근거값256px 유지.
+617건 모드/필터/메모/관계복귀·JSON바이트·XLSX618행 보존. 전체703passed/1기존skipped.
+clipboard만테스트stub으로사용자clipboard를덮어쓰지않음. Windows/nativeclipboard는 내일 검증.
+증거 artifacts/vision-cpu-20261022/ui, 성능/품질은 VISION_CPU_OPTIMIZATION_20261022.md.

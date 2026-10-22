@@ -5,6 +5,14 @@ Real Windows-capable public-website illegal-advertisement inspection tool for th
 
 ## Current adoption candidate (0.2.1 / policy 2)
 
+2026-10-20 source update: ordinary inspection defaults to the current PC network;
+app-scoped WARP is optional in advanced mode. First-use simple/advanced modes
+share the detector, cases and reviews. Advanced infrastructure analysis reads
+one stored case; cross-case aggregation and active external discovery are deferred.
+See [user manual](docs/USER_MANUAL.md) and the dated [adoption ledger](docs/ADOPTION_LEDGER.md).
+The latest Windows package has not yet been built/accepted for these changes;
+the identified installed candidate below is historical relative to this source.
+
 Current candidate, observed acceptance and delivery identities: [Korean adoption handoff](docs/ADOPTION_HANDOFF_KO.md).
 Implementation and A01–A14 evidence: [adoption ledger](docs/ADOPTION_LEDGER.md).
 Current screen changes and web validation: [UI adoption](docs/UI_ADOPTION_KO.md).
@@ -21,7 +29,13 @@ page pass, using a shared deadline and bounded 1–4 workers. Results include
 search/filter/page views, source and visual evidence, page outcomes, separately
 stored additional analysis, and validated export. Offline Korean/English CPU
 OCR analyzes selected advertisement images; cooperative cancellation preserves
-validated completed results. Browser preview is explicitly a replay; Tauri
+validated completed results. Bounded local text/image comparison can add explicitly
+labelled review candidates for difficult small PNGs, retaining actual OCR and
+official output. Image review now compares pixel-only queries with pinned actual-image
+references, and bounded GIF selection preserves spatially different content.
+See [latest quality, timing and limits](docs/OCR_LOWRES_GIF_20261021.md)
+and [the previous checkpoint](docs/OCR_GROUNDING_20261021.md).
+Browser preview is explicitly a replay; Tauri
 uses the real worker and session artifacts. Release acceptance remains scoped
 to the candidate build; see [`docs/RELEASE_CANDIDATE.md`](./docs/RELEASE_CANDIDATE.md)
 for the historical complete NSIS artifact and Gate A/B/C verdict. Earlier component

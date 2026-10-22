@@ -1,9 +1,23 @@
 # Product dogfood ledger - 2026-10-14
 
-Status: BLOCKED_D08_FINDING_COVERAGE. This is autonomous operator simulation, not an NIA
-staff usability study. The sprint completion criteria are not yet met.
+Status: SOURCE_IMPLEMENTED_REVIEWED; BLOCKED_NATIVE_VERIFICATION.
+Current local source is56fd3563e031ef1850e88b4fdac0c39ead08eea5. App-scoped
+WARP source and packaging correction are implemented and reviewed; the latest
+Windows package and end-to-end acceptance have not run. Pocket4 remains offline.
+Standalone tunnel efficacy with official WARP disconnected and a live finding
+are historical observations described below. This is autonomous operator
+simulation, not an NIA staff usability study. Sprint completion criteria are
+not yet met.
 
 ## Scope and provenance
+
+- 2026-10-14: user explicitly approved the detailed app-scoped WARP design
+  and requested implementation planning. Plan saved to
+  `docs/superpowers/plans/2026-10-14-app-warp-transport.md`; implementation
+  was not started at that point. User subsequently approved the plan and chose
+  task-by-task implementation/review agents. Tasks1-4 source implementations
+  and Task5 source/fixture checks are complete; cross-task native acceptance
+  remains pending.
 
 - Task source: user-attached `KRDS_DOGFOOD_SPRINT_20261013.md`.
 - OBSERVED: local and remote `dev/bootstrap` HEAD both
@@ -17,7 +31,7 @@ staff usability study. The sprint completion criteria are not yet met.
 - Native access: existing `ssh win` and Cua Driver 0.30.1, background actions.
   The unrelated local `clean11` VM has no configured QEMU guest agent.
 - Preserve historical candidates, official results, existing cases and exports.
-  Only newly created synthetic dogfood cases may receive review edits.
+  Only task-created dogfood cases may receive explicitly synthetic review edits.
 - No push, PR update, deployment, installation/removal, merge or submission.
 
 ## Task outcomes
@@ -30,7 +44,7 @@ staff usability study. The sprint completion criteria are not yet met.
 | D04 | Reviewer / twenty consecutive items | OBSERVED_NATIVE; OBSERVED_BROWSER_IPC_REPLAY | In each environment, individually opened/moved through 20 records, wrote distinct synthetic notes, cycled suspected / judged-normal / needs-more-evidence, and marked read. Native file readback retained all 20 notes, all read marks and all three judgment values. New-process reopen restored the first memo; all review bytes retained their hash. | Human interpretation and completion time are not assessed. |
 | D05 | Reviewer / edit, close, restart | OBSERVED_NATIVE_INSTALLED_BEFORE_AND_SOURCE_CANDIDATE_AFTER | Installed565 lost a UIA-confirmed memo on foreground Alt+F4 at276.25ms. Fixed e833 candidate closed at218.54ms, retained revision4/final memo, and a new process reopened it. Official bytes unchanged. | Fixed source candidate was exercised directly; installed565 was preserved and still has the old behavior. Forced kill/OS shutdown is outside this normal-close check. |
 | D06 | Reviewer / graph to source and return | OBSERVED_NATIVE, partial | Real persisted graph: Enter selected CONTAINS relation 4, source action opened f2, result-list action returned to the results. Follow-up expanded the list alternative, used Enter to select f2/open its fullwidth source text, and Enter to return. No advertisement destination was visited. | Native DOM focus-return remains unverified; UIA does not expose activeElement. Browser focus-return smoke passed separately. |
-| D08 | Administrator / two public targets | OBSERVED_NATIVE_INSTALLED_565, limited | Approved example.org/example.com each1page/depth0/60sec: two independent completed sessions, checked1/failed0/findings0 each. Native integrated XLSX has both targets and seven sheets; a new installed process reopened both cases. | No findings exist to judge/note. Native batch memo persistence and integrated saved judgments remain NOT_RUN; report was exported before restart, batch grouping is not claimed restored. Additional target/fixture choice requested. |
+| D08 | Administrator / two public targets | OBSERVED_NATIVE_INSTALLED_565, partial | Two public-target batches produced independent persisted cases and integrated XLSX. A later BlackToon batch-origin case has1 official finding; its synthetic memo, needs-more-evidence judgment and read mark survived normal close/new-process reopen and were present in the native XLSX exported after restart. | The finding-bearing case was a one-target batch. The complete two-target integrated report containing saved judgments after restart remains NOT_RUN; batch grouping restoration is not claimed. |
 | D10 | Administrator / delivery and Excel | OBSERVED_NATIVE_EXPORT_AND_EXCEL | Native JSON/XLSX/Case exports; official bytes identical, workbook 617 rows / twenty notes / zero formulas; actual Excel summary and review-sheet observation, workbook hash preserved. | General Excel compatibility and human readability acceptance are not claimed. |
 
 OBSERVED_NATIVE D04 follow-up: completed twenty consecutive records in the
@@ -541,3 +555,499 @@ not prove recall on any live site's failed images. No product code changed.
 The remaining D08 review/judgment path is still unexercised because no
 qualifying live finding was observed. Repeatedly selecting sites by reputation
 or treating official0 as no advertisements would not resolve that gap.
+
+## User-authorized WARP and live BlackToon inspection - 2026-10-14
+
+The user supplied a screenshot with casino/betting banners, confirmed the
+same blacktoon424.com URL, and explicitly requested DNS/WARP reconfiguration
+and continued inspection. This supersedes the earlier no-bypass scope for
+this network configuration change. No advertisement destination was opened.
+
+OBSERVED: default DNS, Cloudflare 1.1.1.1 and Google 8.8.8.8 all returned
+104.21.49.181 and 172.67.165.134. The installed Cloudflare WARP client was
+disconnected in Warp mode. Before connecting, HTTPS failed with a connection
+reset. After connecting the existing client, status was Connected / healthy
+and Cloudflare trace returned warp=on. A command-line HEAD request received
+403, but the isolated native Chrome browser loaded the actual page and its
+casino/betting banners. HEAD status alone therefore does not establish
+browser accessibility. Adapter DNS addresses were not changed. WARP remains
+connected for the continued investigation; no client installation, account
+registration, terms acceptance or browser security setting change occurred.
+
+OBSERVED_NATIVE_INSTALLED_565: a new bounded scan (1 page, depth0,60 seconds,
+public-pinned) produced case cffaeb83-5d00-4090-80d8-1d8bf4c2a38d. The root
+returned200; checked1, failed0, official1, extra0. The official OFFSCREEN
+finding is hidden navigation text "보증토토", with ancestor display:none and
+zero geometry. It is not a detection of the visible image banners. The
+native result and finding detail were opened without editing review records.
+
+OBSERVED_IMAGE_ANALYSIS:8 candidates were acquired;6 OCR operations completed,
+0 attempted operations were unavailable, and2 further images were skipped
+because of the OCR cap. Both candidate-limit and ocr-image-limit were reached.
+Five completed OCR outputs had no supported ad semantics; their recorded
+confidence was0.26-0.40. A sixth read "첫충70%" at confidence0.45 and passed
+ad semantics, but scored2/3 because independent corroboration failed. An
+external link alone does not satisfy that rule: the external-offer branch
+also requires a supported category term, which its OCR output lacked.
+Thus the actual image misses have evidence at OCR recognition, bounded
+coverage and the corroboration gate; they are not absent advertisements or
+an uninstalled OCR backend. These observations do not prove a sole cause,
+site-wide recall, or that removing the gate would preserve precision.
+
+Receipts: native-blacktoon-warp.png and native-blacktoon-warp-analysis.json
+under the existing evidence directory. No detector code changed. The earlier
+D08 finding-availability blocker is resolved; the two-target saved judgment,
+memo/restart and integrated-report acceptance path still requires execution.
+
+## Standalone MASQUE probe preparation - 2026-10-14
+
+The user explicitly requested disabling official WARP and testing the
+standalone tunnel method. OBSERVED: warp-cli disconnect succeeded, status
+became Disconnected, and direct Cloudflare trace returned warp=off. A direct
+GET of blacktoon424.com failed with curl35 / connection reset, HTTP000,
+elapsed0.081397 seconds. The official client remains off as requested.
+
+OBSERVED: upstream usque v4.2.1 Windows amd64 archive was downloaded into a
+task-specific temporary probe directory and verified against the GitHub
+release SHA256 f6f7f0a1a2bc9bcc15cf563ec1f892d00690a92c086b23ed3211b802209099e7.
+The extracted portable EXE SHA256 is
+122f2e40208e81bb814fcb4be4fbbbdc9246860f1f3784f72ae4512b97667e91.
+Windows execution reported version4.2.1, commit
+6aa03fc97d12848dce34eedbd187fb1077b5d1ea, and exposed HTTP proxy flags.
+No service, driver, product dependency or OS network setting was installed.
+
+NOT_RUN_PENDING_USER_CONSENT: the tunnel has not been registered or started.
+Pinned upstream api/cloudflare.go Register explicitly requires acceptance of
+https://www.cloudflare.com/application/terms/ before creating a WARP account;
+cmd/register.go then enrolls a device key. This is an external account/terms
+action under the user's engineering contract, requiring specific consent.
+No accept-tos flag was supplied, no account was created, and no existing
+official-client credentials were read or repurposed. Proxy/Playwright efficacy
+remains unverified pending this registration step. Planned proxy binding is
+loopback only, authenticated, with no insecure TLS/certificate options.
+
+## Additional network methods with official WARP off - 2026-10-14
+
+The user requested continued comparison of multiple methods. Registration
+and terms acceptance have not received specific consent; no new account,
+enrollment, or acceptance flag was used. Reachable independent probes were
+completed instead of treating DNS changes as a proven tunnel substitute.
+
+OBSERVED_WINDOWS: Cloudflare DoH at https://1.1.1.1/dns-query returned DNS
+status0 and the same two IPv4 addresses. HTTPS GET with each address pinned
+via curl --resolve retained the correct hostname/SNI and certificate checks;
+both failed with curl35 / HTTP000. TLS maximum1.2 and1.3 comparisons also
+failed with curl35. No certificate checks or browser isolation were disabled.
+
+OBSERVED_PLAYWRIGHT: a throwaway Windows Node probe imported the canonical
+scanner's compiled PublicNetworkPolicy and startPublicNetworkProxy, supplied
+a Cloudflare DoH resolver, and launched the installed Playwright browser with
+the existing authenticated loopback proxy and direct-DNS blocking arguments.
+Public IP validation stayed enabled; no fixture/private-network exception was
+used. Three DNS lookups returned4 addresses each, the selected upstream was
+104.21.49.181, and root navigation failed with ERR_CONNECTION_CLOSED. Browser
+and proxy were closed in finally. This is a real transport probe using the
+scanner boundary, not a native app scan or a product implementation.
+
+OBSERVED_CONTROL: Linux direct HTTPS also failed with curl35 / connection
+reset. Official Windows WARP configuration field names were inspected locally
+without printing values or exporting credentials. That configuration had no
+directly usable private-key field for usque. No credential store extraction,
+key reenrollment or alteration of the official registration was attempted.
+
+INFERRED: the compared resolver and TLS-version changes do not resolve this
+environment's observed failure. This does not identify a particular network
+operator or prove a specific blocking mechanism. MASQUE and WireGuard tunnel
+efficacy remain NOT_RUN because they require usable registered credentials.
+Receipt: network-method-comparison.json. Product source remains unchanged.
+
+## Saved public finding review and report after restart - 2026-10-14
+
+Previous goal turn classification: progress. Direct network-method comparison
+produced new evidence; no registration/terms action was authorized. The
+remaining independently reachable task was review of the already persisted
+BlackToon case, which needs no live site connection or WARP tunnel.
+
+OBSERVED_NATIVE_INSTALLED_565: process15308 opened saved case
+cffaeb83-5d00-4090-80d8-1d8bf4c2a38d. The official finding was inspected, a
+clearly labeled synthetic DOGFOOD ONLY D08 memo was entered, judgment changed
+to needs-more-evidence, and the finding marked reviewed. No enforcement
+decision was made. ComboBox ValuePattern reported success without changing
+the value; fresh UIA readback caught that no-op. Expand plus keyboard End
+changed the actual value, which was verified before continuing.
+
+Native persistence reached revision3 with one record. Process15308 closed
+normally and was independently confirmed absent. New process53112 reopened
+the case and its finding detail. Actual UIA readback showed the same memo,
+needs-more-evidence judgment, reviewed state and revision3. The native Save
+As flow then exported a new XLSX after restart; process53112 closed normally.
+Receipt: native-D08-blacktoon-saved-review.json.
+
+OBSERVED_NATIVE_EXPORTED_XLSX_XML: six sheets,1 finding row and1 review row;
+synthetic memo, judgment, read mark and source case ID included;0 formulas.
+Workbook SHA256:
+c630519d0b673eddbc4e7c27690a9b237fa6f783b6e3cd031e399e931a6a190e.
+Receipt: native-D08-blacktoon-workbook.json. This workbook was structurally
+inspected; no new actual-Excel rendering claim is made. Earlier D10 actual
+Excel evidence remains separate. The workbook contains a local storage path
+and remains private, not a curated share artifact.
+
+OBSERVED_PRESERVATION: all160 files in the pre-public-target baseline retained
+their SHA256, missing0/changed0. BlackToon official JSON remained
+7b5e98dbf94bc64e27bf4479aa4d602faa086fa352d0d52cea4eccebb97b996a;
+review SHA256 before and after restart/export remained
+c89ddbf6c5984b5e2b0d49f7e33477ec9fe0aaa7e37a01f8def482ccc2efdfa0.
+No detector process remained running. No product code changed.
+
+This closes the saved finding's note/judgment/read-mark restart and subsequent
+single-case report gap. It does not replace the specified two-target batch
+integration check. The complete D08 path, exact native viewport/focus evidence
+and the separate standalone-tunnel probe remain incomplete as recorded above.
+
+## Actual Excel and remaining-work audit - 2026-10-14
+
+Previous goal turn classification: progress. Native saved-case review and
+after-restart report export closed a real storage/export gap. This turn
+completed the remaining independent actual-Excel check for that report.
+
+OBSERVED_NATIVE_EXCEL: registry resolved the installed Excel executable and
+there were0 existing Excel processes. Cua launched a separate process38496
+with /x /r and the exact new workbook. The window title explicitly reported
+read-only. The summary sheet exposed Korean headers, filters and saved review
+revision3. The actual review sheet's D2 cell contained the synthetic memo.
+Using the native name box to select G2 revealed its actual displayed judgment
+"추가 근거 필요". No file repair prompt was observed during this bounded open
+and sheet navigation. Excel closed normally; the owned process was confirmed
+absent and workbook SHA256 remained
+c630519d0b673eddbc4e7c27690a9b237fa6f783b6e3cd031e399e931a6a190e.
+Screenshots/complete UIA contain Office account or storage-path information
+and remain private; the curated receipt contains only the test observations.
+
+Completion remains unproven. D01/D02 have native task observations; human
+comprehension is not claimed. D03 has native import/navigation and separate
+browser viewport proof; exact native CSS viewport remains unmeasured. D04 has
+native20-record review and restart preservation. D05 has installed-before and
+source-candidate-after normal-close evidence; the original installed binary
+is intentionally unchanged. D06 has native graph/source/list navigation, but
+native DOM focus remains unverified. D10 has actual Excel and preservation
+evidence, including this new after-restart report. D08 still lacks the exact
+two-target integrated workbook containing saved judgments after restart;
+single-case proof is not promoted to that full requirement.
+
+The independent reachable storage/export/Excel checks are now exercised.
+Official WARP is confirmed disconnected. DoH, pinned-IP and TLS-version
+comparisons failed; they do not supply the missing network route. Standalone
+MASQUE/WireGuard still lacks registered credentials. The specific request
+for one test registration and Cloudflare terms acceptance remains unanswered
+across the multi-method user turn and two goal continuations. No acceptance,
+new account, key extraction, existing enrollment mutation or new site scope
+was inferred from automatic goal continuation. Mark goal blocked rather than
+repeat unchanged attempts or claim the full Sprint complete.
+
+## Authorized standalone WARP tunnel efficacy - 2026-10-14
+
+The user explicitly answered "동의" to the specific one-test-device
+registration and Cloudflare Application Terms acceptance request. This
+authorizes that registration and the already proposed standalone transport
+probe, not a product integration, package publication or additional accounts.
+OBSERVED: usque v4.2.1 register completed with exit0 and created one new
+configuration. The official client's existing enrollment was not modified.
+Credentials remained on Windows; no private key, access token or proxy
+password was printed, copied to Linux, or included in curated evidence.
+Configuration ACL readback confirmed inheritance disabled and access limited
+to the current user and SYSTEM. Official WARP remained Disconnected.
+
+OBSERVED_WINDOWS_TRANSPORT: two modes of the same registered MASQUE identity
+were tested sequentially with an authenticated127.0.0.1:19081 proxy:
+
+| Mode | Proxied Cloudflare trace | Actual headless Playwright root navigation |
+| --- | --- | --- |
+| http-proxy | warp=on, curl exit0 | blacktoon424.com HTTP200, unchanged final URL, loaded casino/betting banners observed in screenshot |
+| l4-http-proxy | warp=on, curl exit0 | blacktoon424.com HTTP200, unchanged final URL, loaded casino/betting banners observed in screenshot |
+
+Both browser probes used the existing installed Playwright browser, Chromium
+sandbox, direct-DNS/QUIC/non-proxied-WebRTC blocking launch arguments,
+popup suppression, downloads disabled and no advertisement/media-link clicks.
+Both recorded1066 image elements and1065 loaded images; these are document
+image counts, not advertisement counts or recall measurements. Screenshot
+viewing confirmed the visible casino/betting banner rows separately.
+MEASURED: whole probe durations2803ms and2957ms, each including browser launch,
+navigation, a fixed1500ms settle, capture and close. Single samples are not a
+performance benchmark and do not establish one mode as faster.
+
+OBSERVED_CONTROLS: an unauthenticated CONNECT received407. The listener was
+bound only to127.0.0.1. After stopping the owned proxy, the same Playwright
+configuration failed with ERR_PROXY_CONNECTION_FAILED instead of successfully
+falling back to direct navigation. Final direct trace returned warp=off,
+official client status remained Disconnected, usque process count0 and probe
+listener absent. An initial proxy process was absent after its launching SSH
+command exited; subsequent probes kept the owning SSH process live and then
+explicitly stopped the exact owned child. This launch-lifetime correction
+used the same registration, not another account or tunnel downgrade.
+
+Scope: these are actual Windows headless browser transport probes, not native
+detector scans. The existing production IP-pinning proxy was not chained to
+usque in this spike; both result receipts explicitly say
+productionPinnedProxyIntegrated=false. No product code changed, no detection
+accuracy improvement or full D08 completion is claimed. Product integration
+must retain the existing public-IP validation and pinned destination, manage
+the sidecar lifetime, and verify failure behavior before native acceptance.
+
+Receipts: standalone-usque-playwright.json,
+standalone-usque-l4-playwright.json, standalone-usque-stopped-control.json,
+standalone-usque-verification.json, blacktoon-usque.png and
+blacktoon-usque-l4.png. Registration consent and standalone connectivity
+blockers are resolved. App integration and the full D08 path remain pending.
+
+## Integration boundary reconstruction - 2026-10-14
+
+Previous goal turn classification: progress. Specific consent resolved the
+registration gate and both standalone proxy modes loaded actual advertisements
+with official WARP off. This continuation inspected the canonical integration
+paths before proposing product changes.
+
+OBSERVED_SOURCE: PublicNetworkPolicy.resolveTarget validates all DNS answers
+and selects a numeric public address. Browser HTTP forwarding and HTTPS
+CONNECT currently dial that validated address directly. Policy.fetch is a
+third outbound path, used by sitemap.ts:140; changing only the Playwright
+proxy would leave that path direct. All three paths must use the selected
+transport while preserving Host/SNI, certificate validation and the pinned IP.
+See public-network.ts:112-156,202,227 and crawl.ts:229-244,272.
+
+OBSERVED_SOURCE: Tauri assigns the Node worker to the existing Windows
+kill-on-close Job (session.rs:1080 onward). worker.ts already has cancellation
+and finally cleanup. A tunnel child launched by that worker can use the
+existing session ownership boundary; a shared app-wide tunnel would require
+additional cross-session ownership and lifetime coordination.
+
+PROPOSED_FOR_DESIGN_REVIEW: ship the verified usque binary as an inventoried
+resource, start one authenticated loopback tunnel per public scan under the
+worker, and route every validated outbound path through CONNECT to the exact
+numeric address. Keep device registration separate and explicit; never ship
+test credentials. Fail the scan on tunnel loss instead of silently falling
+back. Preserve official result schema and record transport provenance in case
+settings. Validate private-address/redirect rejection, upstream failure,
+cancel/normal-close cleanup and native two-target batch review/report.
+
+This is a new transport subsystem rather than the initially discussed simple
+installed-client preflight. Product implementation has not started. The
+brainstorming architectural path requires design review, then written-spec
+review and an implementation plan before code; automatic goal continuation
+does not approve those artifacts. No new consent for the already approved
+test registration is requested.
+
+## Design approval blocked audit - 2026-10-14
+
+Previous goal turn classification: no progress. It revalidated that no owned
+usque/detector process or probe listener remained, official WARP was off, and
+the worktree still had only the task-authored ledger modification. It did not
+complete another requirement and is not classified as a live-process wait.
+
+The new integration-design approval condition has now persisted across three
+consecutive goal turns: integration reconstruction/design presentation, state
+revalidation with the same unanswered design question, and this continuation.
+The user's latest direct consent authorized the specific test registration;
+no subsequent direct message approved the proposed transport design. The
+earlier registration gate is resolved and is not counted as this new gate.
+
+No independent required execution remains reachable without product changes
+or changing the selected test route. Per the applied brainstorming skill,
+architectural design review must precede the written spec/plan and product
+implementation. Do not write product code, treat automatic continuations as
+approval, rerun unchanged probes, or mark the original Sprint complete.
+Set the persistent goal to blocked pending that design review. All recorded
+D08 integration and native viewport/focus limitations remain explicit.
+
+## Approved direction and written transport specification - 2026-10-14
+
+The user explicitly approved the proposed per-scan tunnel plus existing IP
+validation design direction. The conversational design gate is resolved.
+The detailed Korean specification is
+docs/superpowers/specs/2026-10-14-app-warp-transport-design.md. It records all
+three outbound paths, numeric-IP CONNECT with original Host/SNI and TLS
+validation, worker/Job ownership, explicit per-user registration, restricted
+ACL storage, secret redaction, failure behavior, inventoried binary provenance
+and native acceptance. The credential JSON is plaintext under the restricted
+Windows user ACL; the document does not claim stronger at-rest isolation.
+
+Self-review addressed creation-time folder permissions, registration failure
+and duplicate registration behavior, and the distinction between host-worker
+managed paths and ephemeral usque authentication arguments. No product code,
+dependency installation, registration or packaging change was made. The
+written specification remains for user review before implementation planning,
+as required by the applied brainstorming architectural workflow. It is not
+reported as an approved implementation or a completed D08/Sprint.
+
+## Written specification review blocked audit - 2026-10-14
+
+Previous goal turn classification: no progress, not a live-process wait.
+The new written-spec review gate has persisted for three consecutive turns:
+specification creation and review request, unchanged-state revalidation, and
+this continuation. The user's earlier direction approval was used to write
+the specification; it did not review an artifact that did not yet exist.
+No later direct message approves the written specification. Current source
+state still has only the task-authored ledger and new specification changes.
+No independent required action remains before the skill's written-spec review
+gate. Set goal blocked pending that review; retain the complete original
+Sprint objective and all outstanding native/D08 requirements.
+
+## App WARP plan execution - approved 2026-10-14
+
+User approved the implementation plan and selected task-by-task implementation
+and review agents. Task 1 is in progress. No product/native WARP integration
+success is claimed yet; no new live device registration is authorized or run.
+
+OBSERVED: baseline packages rebuilt after stale TypeScript build metadata left
+contracts dist missing. Existing owned-fixture opt-in
+`KRDS_TEST_UNSANDBOXED=1 npm test -- --reporter=dot` passed 80 test files /
+497 tests, with one skipped file/test. Production Linux Chromium fails with
+`No usable sandbox`; that setting remains unchanged. Fixture opt-in is not
+native sandbox evidence. Logs: `/tmp/nia-warp-baseline-fixture-tests.log`.
+
+OBSERVED: pinned usque 4.2.1 `http-proxy -b 127.0.0.1 -p 0` created one owned
+loopback listener on an OS-selected port, while its startup log reported
+`127.0.0.1:0`. Exact-PID Windows listener discovery returned the actual port.
+The owned process was stopped in finally; no new registration was performed.
+Receipt: `artifacts/dogfood-20261014/usque-dynamic-port-observation.json`.
+Plan corrected to bounded exact-PID listener discovery. This is a standalone
+runtime property check, not a native detector result.
+
+INFERRED from pinned upstream source: the backend keeps its process alive and
+can reconnect after tunnel loss. Worker implementation must privately classify
+first connection failure/loss and stop its owned backend, in addition to
+monitoring child exit. Raw output/config/credentials will not be diagnostic data.
+
+Windows canonical source remains clean at e8336dd; original installation and
+existing cases are preserved. Local commits are deferred because the required
+repository-discipline skill is unavailable; task-scoped working-tree snapshots
+and per-task reports will carry review evidence in the meantime.
+
+OBSERVED Task1: pinned transport implemented; fresh review reproduced a socket
+leak when browser HTTP disconnected during delayed upstream CONNECT. Fix adds
+per-request cancellation and explicit pre-agent socket ownership. Regression
+failed before and passed after; scoped fresh re-review approved the correction.
+Linux four-file fixture suite passed36. Actual Windows bundled Node22.19.0
+and Chromium passed the same four files /36 tests in14.22s, with production
+sandbox configuration and no KRDS_TEST_UNSANDBOXED override. TLS fixture used
+existing Git-bundled OpenSSL; no software installed or private key committed.
+Chromium's temporary fixture certificate uses only a test SPKI allowlist;
+ordinary Node TLS separately rejects a wrong-host certificate. This is native
+scanner fixture evidence, not the app/usque integration gate. Receipt:
+`artifacts/dogfood-20261014/warp-task1-native-tests.log`. Task2 is in progress.
+
+OBSERVED Task2: source review approved. Actual Windows bundled Node22.19.0
+ran the unmodified four-file suite through a Node subprocess harness:39 tests
+passed in6.67s. A raw PowerShell5 redirection run timed out during cancellation;
+the cause is unresolved and the actual native app/Job cancellation gate remains
+required. No speculative source fix or app-level success is claimed.
+
+MEASURED: actual production runtime with official WARP disconnected reused the
+authorized test configuration, prepared in2967ms and closed by2974ms total.
+Startup cancellation at150ms rejected and cleaned by169ms; owned child count
+after exit was0. No new device registration occurred. Receipts:
+`warp-task2-actual-runtime.json`, `warp-task2-startup-cancel.json` and
+`warp-task2-native-tests.log` under `artifacts/dogfood-20261014/`, indexed in
+SHA256SUMS. Pinned Windows resource inventory verified672 files.
+
+OBSERVED: the required engineering-profile skills were found under
+`/home/monad/develop/engineering-profile/skills`; the earlier commit deferral
+is superseded. Reviewed Task1 and Task2 changes are local commits
+`0b93263c2c07c80c5a99c5fcfdb36db80110c09e` and
+`fa98c3382d402e006242c19d37cb9b5482aab1b0`. Task3 is in progress.
+Windows source now contains task-owned source changes; original installation
+is preserved. Native app integration, complete D08 and Sprint completion remain
+unverified.
+
+OBSERVED Task3 native tests: revised Windows source ran8 WARP/registration
+tests (2 owned child entries ignored) and21 session tests (1 owned child entry
+ignored). Actual protected DACL creation and verification ran using local
+registration fixtures; no live device was registered. Initial Windows compile
+error was corrected before these runs. Receipts:
+`warp-task3-native-warp-green.log`, `warp-task3-native-session-green.log`.
+Independent review then found an import boundary gap: succeeded Cases could
+contain incomplete transport-failure metadata. Correction and scoped re-review
+are in progress; these runs do not claim final Task3/app acceptance.
+
+OBSERVED preservation before Task5: all160 baseline files were present and
+byte-identical; original installed EXE SHA256 remained
+`7b6fc529fc679974aca2a603dd7de616ba89947fea64945e5c71fc9cc467fbba`.
+Receipt `warp-task3-preservation.json`; SHA256SUMS indexed. Baseline paths are
+relative to canonical app-data cases; an initial comparison without that root
+reported160 missing paths and was corrected before this preservation claim.
+
+OBSERVED source integration: Tasks3 and4 are reviewed local commits81a60e6
+andee3ccc9. Task5 source harness migration and lint corrections are8fc00a4.
+Whole-source review reproduced an initial-public/later-private DNS policy gap;
+the original prepared entry policy is now carried through crawling, with
+per-request public DNS validation retained. Correction4f23cab passed real
+HTTP/Chromium regressions and a fresh scoped review. Automatic cancellation,
+deadline and backend-loss tests now observe cleanup before explicit close.
+
+OBSERVED final Linux gates after4f23cab: npm run check passed556 tests with1
+skip, typecheck and lint passed; build:scanner, smoke:sidecar and
+smoke:native-session passed. The sidecar emitted5 official detections and the
+native seam passed its real worker/session test. Linux Chromium used a temporary
+fixture-only sandbox preload, removed after execution. These are source and
+fixture results, not Windows packaged-app acceptance. Four logs are archived
+as warp-post-security-fix-*.log with SHA256SUMS entries.
+
+OBSERVED packaging gap: src-tauri/tauri.conf.json explicitly maps bundled
+resources but omitted usque.exe and usque-LICENSE.md. The prepared resource
+inventory alone did not establish installer payload inclusion. Task2 owner is
+correcting this boundary; native payload verification remains required.
+
+OBSERVED packaging correction56fd356: both resources now map to their required
+installed paths. Canonical prepare:windows-runtime --verify passed672 files.
+Independent copied-byte project fixtures accepted the correct map and rejected
+omitted/misdirected resources; actual cached Tauri ResourcePaths selected both
+correct destinations. Scoped independent review approved with no Critical or
+Important findings. This supersedes the in-progress note above. Native installer
+payload and installed runtime verification remain NOT_RUN while Pocket4 is offline.
+
+NOT_RUN remaining Windows packaged app, terms link, Job cleanup, two-target
+D08 restart/judgment/integrated XLSX and viewport/focus acceptance: Pocket4
+became offline, last seen2026-10-14T04:40:00.1Z. SSH transfer returned
+"scp: Connection closed" and subsequent connection checks timed out; the Cua
+bridge also disconnected. No package, managed-config copy or new public scan
+started during the outage. A dependent extraction was attempted before upload
+completion but its SSH connection never opened; no successful extraction or
+source identity is assumed. The user has been asked to restore the PC connection.
+Original Windows configuration remains on that PC; no new registration occurred.
+
+## Current completion audit against the attached Sprint
+
+OBSERVED: reread the attached Sprint and compared its first-round requirements
+with the task-outcome table, current Task5 brief and evidence receipts. The
+previous goal turn made source progress by committing the reviewed packaging
+correction56fd356. The current audit found the ledger header still described
+Task1 implementation as active; it is corrected above without changing the
+historical observations.
+
+OBSERVED local evidence preservation: all99 entries in
+artifacts/dogfood-20261014/SHA256SUMS were present and matched their recorded
+hashes. Missing0, changed0. This checks the local archived evidence only;
+it does not recheck Windows app-data or installed executable while disconnected.
+
+| Requirement still needing authoritative evidence | Current result | Evidence required to close it |
+| --- | --- | --- |
+| D01 changed startup/progress and WARP setup | BLOCKED_NATIVE | Current candidate startup, consent/status controls and progress screenshot; no new registration |
+| D03 first3 complete rows at1366x768 | BLOCKED_NATIVE | Actual native CSS viewport and row visibility; existing browser measurement cannot prove this |
+| D06 keyboard source/list return focus | BLOCKED_NATIVE | Actual candidate focus after graph/source/list navigation; existing UIA navigation and browser activeElement remain separate evidence |
+| D08 two approved public targets, saved judgment/memo, restart, integrated XLSX | BLOCKED_NATIVE | Reopen both cases, produce one integrated workbook after restart, observe saved review cells in actual Excel and official byte identity |
+| WARP package and lifecycle acceptance | BLOCKED_NATIVE | Windows package/source identity, actual installed payload EXE/license hashes, owned process/socket cleanup for cancellation/error/close/forced exit, next explicit scan and failed incomplete Case retention |
+| D12 impact-only preservation after app/storage/package changes | BLOCKED_NATIVE | Complete160-file historical Windows baseline and original installed EXE compared after current-candidate native checks |
+
+D02/D04/D05/D10 retain the recorded native observations above; they are not
+promoted into proof that the unbuilt latest WARP candidate passed those paths.
+The latest changed path must still run in the candidate. D07/D09/D11 remain
+impact-based checks only; no unrelated full acceptance/benchmark rerun is added.
+Actual staff comprehension and1-2-person usability evaluation remain separate
+NOT_RUN work and are not implied by autonomous execution.
+
+OBSERVED access audit: local Tailscale backend Running; Pocket4 Online=false,
+last seen2026-10-14T04:40:00.1Z. Prior SSH transfer, SSH connection and Cua
+bridge failures remain the same prerequisite failure. The connection-restoration
+question is pending. Next action on restoration: fresh native/source/process
+state, completed canonical source transfer and byte hash equality, then package
+and the named acceptance gates. No further product change is justified by this
+audit without an actual failure. Goal remains active and incomplete.
