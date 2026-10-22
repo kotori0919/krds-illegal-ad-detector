@@ -10,6 +10,8 @@ apps/web/dist/
 packages/*/dist/
 packages/evidence/.model-cache/
 src-tauri/target/
+# same path as a symlink (git does not treat it as a directory)
+src-tauri/target
 benchmarks/native-session-l3/target/
 src-tauri/binaries/scanner-worker-*.mjs
 src-tauri/binaries/ocr-worker.mjs
