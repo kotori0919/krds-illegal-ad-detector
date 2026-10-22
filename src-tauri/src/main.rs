@@ -193,6 +193,64 @@ mod scan_request_tests {
     }
 }
 
+#[cfg(test)]
+mod url_validation_tests {
+    use super::url_like_valid;
+
+    #[test]
+    fn accepts_http_and_https_and_trims_surrounding_whitespace() {
+        assert_eq!(
+            url_like_valid("https://example.com/").unwrap(),
+            "https://example.com/"
+        );
+        assert_eq!(
+            url_like_valid("http://example.kr/path?q=1").unwrap(),
+            "http://example.kr/path?q=1"
+        );
+        assert_eq!(
+            url_like_valid("  https://example.com/  ").unwrap(),
+            "https://example.com/"
+        );
+        assert_eq!(
+            url_like_valid("\n\thttps://example.com/\t\n").unwrap(),
+            "https://example.com/"
+        );
+    }
+
+    #[test]
+    fn rejects_non_http_schemes() {
+        assert_eq!(
+            url_like_valid("ftp://example.com/file").unwrap_err(),
+            "entryUrl must start with http(s)://"
+        );
+    }
+
+    #[test]
+    fn rejects_credential_urls() {
+        assert_eq!(
+            url_like_valid("https://user:pass@example.com/").unwrap_err(),
+            "entryUrl must not contain credentials"
+        );
+        assert_eq!(
+            url_like_valid("https://user@example.com/").unwrap_err(),
+            "entryUrl must not contain credentials"
+        );
+    }
+
+    #[test]
+    fn rejects_missing_or_empty_authority() {
+        assert_eq!(
+            url_like_valid("https:///nohost").unwrap_err(),
+            "entryUrl must include a host"
+        );
+        assert!(url_like_valid("https://").is_err());
+        assert_eq!(
+            url_like_valid("not a url").unwrap_err(),
+            "entryUrl must be an absolute http(s) URL"
+        );
+    }
+}
+
 #[tauri::command]
 async fn scan_start(
     app: tauri::AppHandle,
@@ -844,10 +902,28 @@ async fn scan_save_template(app: tauri::AppHandle) -> Result<Option<String>, Str
 
 fn url_like_valid(raw: &str) -> Result<String, String> {
     let trimmed = raw.trim();
-    if !(trimmed.starts_with("http://") || trimmed.starts_with("https://")) {
+    let parsed = tauri::Url::parse(trimmed)
+        .map_err(|_| "entryUrl must be an absolute http(s) URL".to_string())?;
+    if !matches!(parsed.scheme(), "http" | "https") {
         return Err("entryUrl must start with http(s)://".to_string());
     }
-    Ok(trimmed.to_string())
+    // Credentials would be copied into the sidecar argv and session settings
+    // before the worker rejects them, exposing the secret to local inspection.
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err("entryUrl must not contain credentials".to_string());
+    }
+    // The WHATWG parser folds `https:///host` into `https://host/`, so require
+    // an explicit authority rather than trusting the normalized host.
+    let authority = trimmed[parsed.scheme().len()..]
+        .strip_prefix("://")
+        .ok_or_else(|| "entryUrl must start with http(s)://".to_string())?;
+    if authority.is_empty() || authority.starts_with('/') {
+        return Err("entryUrl must include a host".to_string());
+    }
+    match parsed.host_str() {
+        Some(host) if !host.is_empty() => Ok(trimmed.to_string()),
+        _ => Err("entryUrl must include a host".to_string()),
+    }
 }
 
 fn sidecar_path(app: &tauri::AppHandle) -> Option<String> {
