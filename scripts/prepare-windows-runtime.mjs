@@ -3,15 +3,13 @@ import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
 import console from "node:console";
-import { createReadStream, createWriteStream } from "node:fs";
-import { cp, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { createReadStream, createWriteStream, realpathSync } from "node:fs";
+import { cp, lstat, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import process from "node:process";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { fileURLToPath, URL } from "node:url";
-import { createRequire } from "node:module";
-import { dirname } from "node:path";
 import { inventory, json, verifyFiles, writeJson } from "./build-support.mjs";
 import { unzipSync } from "fflate";
 import { clearBrowserValidationCache } from "./runtime-cache.mjs";
@@ -34,7 +32,58 @@ const usqueFiles = [
 const runtimeOnly = name => !["node.exe", "node-LICENSE", "usque.exe", "usque-LICENSE.md"].includes(name)
   && name !== "node_modules" && !name.startsWith("node_modules/")
   && name !== "ms-playwright" && !name.startsWith("ms-playwright/");
-if (process.argv.includes("--verify")) {
+// The packaged worker keeps these packages external (scripts/build-ocr-worker.mjs)
+// or ships them as pinned language data, so they must live beside it at runtime.
+const runtimeRoots = ["tesseract.js", "@tesseract.js-data/kor", "@tesseract.js-data/eng", "onnxruntime-node", "pngjs"];
+
+// npm/Node lookup order, independent of package entry points: the nearest
+// <ancestor>/node_modules/<name>/package.json wins. require.resolve cannot be
+// used here because a dependency may legitimately ship types only (for example
+// serialize-error depends on type-fest), and it would also hide the nested
+// layout that Node uses to keep conflicting versions apart.
+async function locatePackage(name, fromDirectory) {
+  for (let directory = fromDirectory; ; directory = dirname(directory)) {
+    const candidate = join(directory, "node_modules", name);
+    try {
+      const manifest = JSON.parse(await readFile(join(candidate, "package.json"), "utf8"));
+      if (manifest.name === name) return { directory: candidate, manifest };
+    } catch (error) {
+      if (error.code !== "ENOENT" && error.code !== "ENOTDIR") throw error;
+    }
+    if (directory === dirname(directory)) return null;
+  }
+}
+
+// Stage the whole declared runtime closure. Each installed instance is copied to
+// the same path it occupies under the project's node_modules, so hoisted
+// packages keep their existing stage/node_modules/<name> layout while nested
+// duplicates stay nested and each importer resolves the version npm selected
+// for it. Optional dependencies follow npm: stage them only when installed.
+export async function stageRuntimeClosure(destination, roots = runtimeRoots, sourceRoot = root) {
+  const sourceModules = join(sourceRoot, "node_modules");
+  const staged = new Map();
+  async function stage(name, fromDirectory, optional) {
+    const found = await locatePackage(name, fromDirectory);
+    if (!found) {
+      if (optional) return;
+      throw new Error(`Runtime dependency not found: ${name} (required by ${relative(sourceRoot, fromDirectory) || "."})`);
+    }
+    const installed = relative(sourceModules, found.directory);
+    if (!installed || installed.startsWith("..") || isAbsolute(installed)) throw new Error(`Runtime dependency resolves outside node_modules: ${name}`);
+    const path = installed.split("\\").join("/");
+    if ((await lstat(found.directory)).isSymbolicLink()) throw new Error(`Resource symlink rejected: node_modules/${path}`);
+    if (staged.has(path)) return;
+    staged.set(path, { name, version: found.manifest.version, path });
+    const target = join(destination, "node_modules", installed);
+    await rm(target, { recursive: true, force: true });
+    await cp(found.directory, target, { recursive: true, force: true });
+    for (const dependency of Object.keys(found.manifest.dependencies ?? {})) await stage(dependency, found.directory, false);
+    for (const dependency of Object.keys(found.manifest.optionalDependencies ?? {})) await stage(dependency, found.directory, true);
+  }
+  for (const name of roots) await stage(name, sourceRoot, false);
+  return [...staged.values()].sort((a, b) => a.path.localeCompare(b.path, "en"));
+}
+async function verifyRuntime() {
   const lock = await json(lockPath);
   if (lock.schemaVersion !== 1) throw new Error("Unsupported runtime lock");
   if (lock.sources?.usque?.version !== "4.2.1" || lock.sources.usque.commit !== "6aa03fc97d12848dce34eedbd187fb1077b5d1ea"
@@ -180,58 +229,42 @@ async function installBrowser() {
   if (!(await installed())) throw new Error(`Windows browser installation incomplete: ${basename(executable)}`);
 }
 
-await mkdir(stage, { recursive: true });
-await installUsque();
-await downloadVerifiedNode();
-const targetPackage = join(stage, "node_modules", "playwright-core");
-await rm(targetPackage, { recursive: true, force: true });
-await cp(packageDir, targetPackage, { recursive: true, force: true });
-// OCR executes offline in its own worker. Stage its complete Node dependency
-// closure, including WASM and pinned Korean/English traineddata packages.
-const stagedPackages = new Set();
-async function stagePackage(name, fromDir = root) {
-  if (stagedPackages.has(name)) return;
-  const require = createRequire(join(fromDir, "package.json"));
-  let source = dirname(require.resolve(name));
-  let manifest;
-  while (source !== dirname(source)) {
-    try {
-      const candidate = JSON.parse(await readFile(join(source, "package.json"), "utf8"));
-      if (candidate.name === name) { manifest = candidate; break; }
-    } catch (error) { if (error.code !== "ENOENT") throw error; }
-    source = dirname(source);
+async function main() {
+  if (process.argv.includes("--verify")) return verifyRuntime();
+  await mkdir(stage, { recursive: true });
+  await installUsque();
+  await downloadVerifiedNode();
+  // Rebuild the package tree from scratch: packages left over from an older
+  // closure must never leak into the installer or into the reviewed lock.
+  await rm(join(stage, "node_modules"), { recursive: true, force: true });
+  await cp(packageDir, join(stage, "node_modules", "playwright-core"), { recursive: true, force: true });
+  // OCR executes offline in its own worker. Stage its complete Node dependency
+  // closure, including WASM and pinned Korean/English traineddata packages.
+  const stagedPackages = await stageRuntimeClosure(stage);
+  await installBrowser();
+  await installWindowsInspector();
+  // Playwright's cache ownership links contain absolute preparation-machine paths;
+  // they are not runtime inputs and must never enter an installer or its lock.
+  await rm(join(stage, "ms-playwright", ".links"), { recursive: true, force: true });
+  // Host-validation markers are cache state, not proof of target Windows acceptance.
+  await clearBrowserValidationCache(stage);
+  const files = await inventory(stage, runtimeOnly);
+  if (process.argv.includes("--update-lock")) {
+    await writeJson(lockPath, { schemaVersion: 1, nodeVersion, playwrightVersion,
+      sources: { node: `${nodeBase}${nodeFile}`, nodeChecksums: `${nodeBase}SHASUMS256.txt`,
+        browser: `https://cdn.playwright.dev/builds/cft/${shell.browserVersion}/win64/chrome-headless-shell-win64.zip`,
+        ffmpeg: `https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/${ffmpegVersion.revision}/ffmpeg-win64.zip`,
+        winldd: { url: winlddSource, archiveSha256: winlddArchiveSha256 },
+        usque: { version: "4.2.1", commit: "6aa03fc97d12848dce34eedbd187fb1077b5d1ea", url: usqueSource, archiveSha256: usqueArchiveSha256 },
+        packages: "package-lock.json resolved URLs/integrity (Tesseract includes WASM and language data)" }, files });
+  } else {
+    const lock = await json(lockPath);
+    if (lock.schemaVersion !== 1 || JSON.stringify(files) !== JSON.stringify(lock.files)) throw new Error("Prepared runtime differs from reviewed lock; inspect sources before explicit --update-lock");
   }
-  if (!manifest) throw new Error(`Runtime dependency not found: ${name}`);
-  stagedPackages.add(name);
-  const destination = join(stage, "node_modules", name);
-  await rm(destination, { recursive: true, force: true });
-  await cp(source, destination, { recursive: true, force: true });
-  for (const dependency of Object.keys(manifest.dependencies ?? {})) await stagePackage(dependency, source);
+  console.log(JSON.stringify({ nodeVersion, playwrightVersion,
+    headlessShellRevision: shell.revision, ocrPackages: stagedPackages.map(({ name }) => name).sort(), stage }, null, 2));
 }
-await stagePackage("tesseract.js");
-await stagePackage("@tesseract.js-data/kor");
-await stagePackage("@tesseract.js-data/eng");
-await stagePackage("onnxruntime-node");
-await stagePackage("pngjs");
-await installBrowser();
-await installWindowsInspector();
-// Playwright's cache ownership links contain absolute preparation-machine paths;
-// they are not runtime inputs and must never enter an installer or its lock.
-await rm(join(stage, "ms-playwright", ".links"), { recursive: true, force: true });
-// Host-validation markers are cache state, not proof of target Windows acceptance.
-await clearBrowserValidationCache(stage);
-const files = await inventory(stage, runtimeOnly);
-if (process.argv.includes("--update-lock")) {
-  await writeJson(lockPath, { schemaVersion: 1, nodeVersion, playwrightVersion,
-    sources: { node: `${nodeBase}${nodeFile}`, nodeChecksums: `${nodeBase}SHASUMS256.txt`,
-      browser: `https://cdn.playwright.dev/builds/cft/${shell.browserVersion}/win64/chrome-headless-shell-win64.zip`,
-      ffmpeg: `https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/${ffmpegVersion.revision}/ffmpeg-win64.zip`,
-      winldd: { url: winlddSource, archiveSha256: winlddArchiveSha256 },
-      usque: { version: "4.2.1", commit: "6aa03fc97d12848dce34eedbd187fb1077b5d1ea", url: usqueSource, archiveSha256: usqueArchiveSha256 },
-      packages: "package-lock.json resolved URLs/integrity (Tesseract includes WASM and language data)" }, files });
-} else {
-  const lock = await json(lockPath);
-  if (lock.schemaVersion !== 1 || JSON.stringify(files) !== JSON.stringify(lock.files)) throw new Error("Prepared runtime differs from reviewed lock; inspect sources before explicit --update-lock");
-}
-console.log(JSON.stringify({ nodeVersion, playwrightVersion,
-  headlessShellRevision: shell.revision, ocrPackages: [...stagedPackages].sort(), stage }, null, 2));
+
+// Importing this module (for tests) must not stage, download or verify anything.
+const invoked = process.argv[1] && realpathSync(resolve(process.argv[1]));
+if (invoked && invoked === realpathSync(fileURLToPath(import.meta.url))) await main();
