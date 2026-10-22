@@ -69,7 +69,7 @@ fn user_sid() -> Result<Local, WarpFailureCode> {
         }
         let mut size = 0;
         GetTokenInformation(token, 1, null_mut(), 0, &mut size);
-        let mut data = vec![0u64; (size as usize + 7) / 8];
+        let mut data = vec![0u64; (size as usize).div_ceil(8)];
         let ok = GetTokenInformation(token, 1, data.as_mut_ptr().cast(), size, &mut size);
         CloseHandle(token);
         if ok == 0 {
