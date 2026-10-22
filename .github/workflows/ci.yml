@@ -38,6 +38,7 @@ jobs:
       - run: npm run build:scanner
       - run: npm run check
       - run: node --test scripts/test/build-boundaries.test.mjs
+      - run: node --test scripts/test/windows-runtime-closure.test.mjs
       - run: npm run build
 
   windows-native:
