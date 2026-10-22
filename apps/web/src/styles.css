@@ -6,6 +6,61 @@
   font-display: swap;
 }
 
+.mode-setup { max-width: 46rem; }
+.mode-setup .scope-options label { align-items: flex-start; padding: var(--krds-semantic-padding-5); border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); border-radius: var(--krds-semantic-radius-control); cursor: pointer; }
+.mode-setup .scope-options label.is-selected { border-color: var(--krds-semantic-action); background: var(--krds-semantic-surface-subtle); }
+.mode-setup .scope-options label:focus-within { outline: var(--krds-semantic-focus-width) solid var(--krds-semantic-focus); outline-offset: var(--krds-semantic-focus-offset); }
+.mode-setup .scope-options label > span { display: grid; gap: var(--krds-semantic-gap-2); }
+.mode-setup .scope-options label > span > span { font-weight: 400; color: var(--krds-semantic-text-secondary); }
+.mode-control { display: flex; align-items: center; flex-wrap: wrap; gap: var(--krds-semantic-gap-3); margin-inline-start: auto; }
+.app-header-inner .mode-control { flex-wrap: nowrap; align-items: center; }
+.mode-control select { min-height: 44px; width: auto; }
+.mode-control label { margin: 0; white-space: nowrap; }
+.app-header-inner > button { margin: 0; }
+.workspace-nav { display: flex; flex-wrap: wrap; max-width: 70rem; margin-inline: auto; padding-inline: var(--krds-semantic-padding-6); gap: var(--krds-semantic-gap-3); border-bottom: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); }
+.workspace-nav button { background: transparent; color: var(--krds-semantic-text); border: 0; border-bottom: 3px solid transparent; border-radius: 0; margin: 0; }
+.workspace-nav button[aria-current="page"] { border-bottom-color: var(--krds-semantic-action); color: var(--krds-semantic-action); font-weight: 700; }
+.result-files summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; text-decoration: underline; }
+.result-files[open] { padding: var(--krds-semantic-padding-3); border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); }
+.infrastructure-context { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--krds-semantic-gap-3); }
+.infrastructure-context dd { margin: 0; overflow-wrap: anywhere; }
+.infrastructure-list { list-style: none; padding: 0; }
+.infrastructure-row { padding: var(--krds-semantic-padding-4); border-bottom: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); overflow-wrap: anywhere; }
+.infrastructure-row.is-selected { border-left: 4px solid var(--krds-semantic-action); }
+.infrastructure-row p { margin-block: var(--krds-semantic-gap-2); }
+.infrastructure-filters > label { display: flex; align-items: center; gap: var(--krds-semantic-gap-3); min-height: 44px; white-space: nowrap; }
+.infrastructure-filters input[type="checkbox"] { width: 1.25rem; height: 1.25rem; }
+.infrastructure-detail { border: var(--krds-semantic-border-width) solid var(--krds-semantic-border-subtle); border-radius: var(--krds-semantic-radius-control); padding: var(--krds-semantic-padding-5); overflow-wrap: anywhere; }
+.simple-mode .result-workspace:not(.inspecting) .result-layout { display: block; }
+.simple-mode .result-workspace:not(.inspecting) .result-summary-panel { padding: 0; border: 0; }
+.simple-mode .result-workspace:not(.inspecting) .result-header { display: flex; flex-direction: row; align-items: center; }
+.simple-mode .result-workspace:not(.inspecting) .result-export-actions { order: 0; }
+.simple-mode .case-storage > p { margin-block: 0; }
+.simple-mode .page.result-page { padding-top: var(--krds-semantic-padding-2); }
+.simple-mode .result-workspace:not(.inspecting) .result-overview { display: flex; flex-wrap: wrap; }
+.simple-mode .result-workspace:not(.inspecting) .result-overview > div { border: 0; padding-block: var(--krds-semantic-padding-2); }
+.simple-mode .result-workspace:not(.inspecting) .result-export-actions { display: flex; }
+.simple-mode .result-review-entry p { margin-block: var(--krds-semantic-gap-2); }
+.simple-mode .result-scope-details { margin-block: var(--krds-semantic-gap-2); }
+.simple-mode .review-search-controls { margin-block: var(--krds-semantic-gap-2); padding-block: var(--krds-semantic-padding-2); }
+.simple-mode .review-row { padding-block: var(--krds-semantic-padding-3); }
+.simple-mode .review-row h3 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.simple-mode .review-row-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 48rem; }
+.simple-mode .review-row-description { min-width: 0; }
+@media (min-width: 70rem) {
+  .simple-mode .result-workspace:not(.inspecting) .result-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .simple-mode .result-workspace:not(.inspecting) .result-header > .result-overview { width: auto; }
+  .simple-mode .result-workspace:not(.inspecting) .review-search-controls .result-search { flex-basis: 24rem; }
+  .simple-mode .result-workspace:not(.inspecting) .review-search-controls > div:not(.result-search) { flex: 0 1 12rem; }
+  .simple-mode .result-workspace:not(.inspecting) .review-row-state { display: flex; max-width: none; }
+  .simple-mode .result-workspace:not(.inspecting) .review-row { padding-block: var(--krds-semantic-padding-2); }
+}
+@media (max-width: 63.999rem) {
+  .app-header-inner { flex-wrap: wrap; }
+  .mode-control { margin-inline-start: 0; }
+  .simple-mode .review-row-meta { white-space: normal; }
+}
+
 .review-filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--krds-semantic-gap-4); margin-block: var(--krds-semantic-padding-6); }
 .review-filters > div { min-width: 0; flex: 1 1 var(--krds-semantic-label-width); }
 .review-filters label { display: block; margin-bottom: var(--krds-semantic-padding-2); }
@@ -41,7 +96,7 @@
 .result-header > .result-completion { flex: 1 1 12rem; margin: 0; }
 .result-header > .result-overview { flex: 1 1 30rem; min-width: 0; margin: 0; }
 .result-header .result-site { margin: 0; }
-.result-header h1 { margin: 0; }
+.result-header h1 { margin: 0; width: fit-content; max-width: 100%; }
 .result-export-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--krds-semantic-gap-3); }
 .result-export-actions button { margin: 0; }
 .result-export-actions .workbook-export { display: contents; }
@@ -345,6 +400,7 @@ body {
 .result-overview strong { font-size: var(--krds-semantic-font-heading-medium); margin-right: var(--krds-semantic-gap-2); }
 .result-overview p, .result-overview button { margin: 0; padding: 0; min-height: 2.75rem; font-size: var(--krds-semantic-font-body-small); }
 .result-overview .coverage-incomplete strong { color: var(--krds-semantic-error); }
+.result-overview .has-review-candidates strong { color: var(--krds-semantic-action); }
 .preview-notice { margin-block: var(--krds-semantic-padding-3); padding: var(--krds-semantic-padding-3); border-left: 3px solid var(--krds-semantic-action); background: var(--krds-semantic-surface-subtle); }
 .result-review-entry { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--krds-semantic-gap-3); }
 .result-review-entry p { margin-block: var(--krds-semantic-padding-2); }
@@ -789,6 +845,10 @@ code {
   border: 0;
 }
 
+.destination-evidence > span { display: block; }
+.destination-evidence > button { margin-top: .5rem; }
+.destination-evidence > [role="status"]:not(:empty) { margin-top: .5rem; }
+
 .visual-evidence {
   margin: var(--krds-semantic-padding-4) 0;
 }
@@ -859,9 +919,9 @@ code {
 
 @media (max-width: 40rem) {
   .result-header { display: flex; }
-  .result-inspector .evidence > div { display: block; }
-  .result-inspector .evidence dt { margin-bottom: var(--krds-semantic-gap-2); }
-  .result-inspector .evidence dd { margin-left: 0; }
+  .evidence > div { display: block; }
+  .evidence dt { margin-bottom: var(--krds-semantic-gap-2); }
+  .evidence dd { margin-left: 0; }
   .app-header-inner > div > span { display: none; }
   .start-page { padding-top: var(--krds-semantic-padding-5); }
   .scan-form, .batch-entry { padding: var(--krds-semantic-padding-4); }

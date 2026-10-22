@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { TAURI_HOST_CAPABILITIES, initialProgress, type WarpStatus, type HostBridge, type OpenCase, type CaseReview, type ReviewRecord, type OfficialResult } from "@krds-detector/contracts";
 import { BrowserHost } from "../src/host/browser.js";
@@ -15,7 +15,17 @@ vi.mock("../src/import-targets.js", async () => {
   return { importTargets: async () => previewTargets("sites.csv", Uint8Array.from(new TextEncoder().encode("사이트명,시작 주소\n테스트,https://public.example/\n"))) };
 });
 
-afterEach(cleanup);
+beforeEach(() => {
+  const values = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    get length() { return values.size; }, clear: () => values.clear(),
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value); },
+    removeItem: (key: string) => { values.delete(key); },
+    key: (index: number) => [...values.keys()][index] ?? null,
+  } satisfies Storage);
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 class RegistrationHost extends BrowserHost {
   status: WarpStatus = { state: "unregistered" };
@@ -109,7 +119,7 @@ it("preserves confirmed enrollment when its follow-up status read fails", async 
   expect(host.devices).toBe(1);
 });
 
-it("uses one consent state for single and batch failure recovery and never enrolls on scan", async () => {
+it("keeps registration explicit and separates connection settings from single and batch inspection", async () => {
   class ScanHost extends RegistrationHost {
     override async listCases() { return { schemaVersion: 1 as const, storageRoot: "/fixture", cases: [], issues: [], limit: 20 }; }
     override async startScan(): Promise<never> { throw new Error("private credential path"); }
@@ -117,21 +127,24 @@ it("uses one consent state for single and batch failure recovery and never enrol
   }
   const host = new ScanHost(); selected.host = host;
   render(<App />);
-  const checkbox = await screen.findByRole("checkbox");
-  fireEvent.click(checkbox);
+  fireEvent.click(await screen.findByRole("radio", { name: /고급 모드/ }));
+  fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
   fireEvent.change(screen.getByLabelText(/점검할 웹사이트/), { target: { value: "https://public.example/" } });
+  fireEvent.click(screen.getByLabelText(/앱 전용 WARP/));
   fireEvent.submit(screen.getByRole("form", { name: "탐지 시작" }));
   fireEvent.click(await screen.findByRole("button", { name: "WARP 연결 설정 확인" }));
-  expect(document.activeElement).toBe(screen.getByRole("region", { name: "앱 전용 WARP 연결 설정" }));
+  const checkbox = await screen.findByRole("checkbox");
+  expect(checkbox).toHaveProperty("checked", false);
+  fireEvent.click(checkbox);
+  fireEvent.click(screen.getByRole("button", { name: "현재 작업으로 돌아가기" }));
+  expect(screen.getByLabelText(/점검할 웹사이트/)).toHaveProperty("value", "https://public.example/");
   fireEvent.click(screen.getByRole("button", { name: "여러 사이트 일괄 점검" }));
-  expect(screen.getAllByRole("region", { name: "앱 전용 WARP 연결 설정" })).toHaveLength(1);
-  expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
+  expect(screen.queryByRole("region", { name: "앱 전용 WARP 연결 설정" })).toBeNull();
   fireEvent.change(screen.getByLabelText("대상 파일 선택 또는 여기로 끌어 놓기"), { target: { files: { item: () => new File(["fixture"], "sites.csv") } } });
   fireEvent.click(await screen.findByRole("button", { name: "점검 가능 1개 사이트 점검 시작" }));
-  fireEvent.click(await screen.findByRole("button", { name: "WARP 연결 설정 확인" }));
-  expect(screen.getByText(/미점검으로 남습니다/)).toBeTruthy();
+  expect(await screen.findByText(/이 사이트의 점검을 완료하지 못했습니다/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "WARP 연결 설정 확인" })).toBeNull();
   expect(screen.queryByText("private credential path")).toBeNull();
-  expect(document.activeElement).toBe(screen.getByRole("region", { name: "앱 전용 WARP 연결 설정" }));
   expect(host.devices).toBe(0);
 });
 
@@ -154,6 +167,8 @@ it("opens, edits and reopens an actual saved result fixture offline while unregi
   }
   const host = new OfflineHost(); selected.host = host;
   const view = render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: "시작하기" }));
+  fireEvent.click(screen.getByRole("button", { name: "저장된 결과" }));
   fireEvent.click(await screen.findByRole("button", { name: /^케이스 다시 열기/ }));
   fireEvent.click(await screen.findByRole("button", { name: "근거 보기", exact: true }));
   fireEvent.change(await screen.findByLabelText("검토 메모"), { target: { value: "오프라인 검토 기록" } });
@@ -166,7 +181,9 @@ it("opens, edits and reopens an actual saved result fixture offline while unregi
   expect(await within(dialog).findByText("저장 완료: /fixture/export/result.json")).toBeTruthy();
   expect(JSON.parse(host.exported)).toEqual(result);
   expect(result.findings[0]).not.toHaveProperty("note");
-  view.unmount(); render(<App />);
+  view.unmount(); window.localStorage.clear(); render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: "시작하기" }));
+  fireEvent.click(screen.getByRole("button", { name: "저장된 결과" }));
   fireEvent.click(await screen.findByRole("button", { name: /^케이스 다시 열기/ }));
   fireEvent.click(await screen.findByRole("button", { name: "근거 보기", exact: true }));
   expect(await screen.findByLabelText("검토 메모")).toHaveProperty("value", "오프라인 검토 기록");

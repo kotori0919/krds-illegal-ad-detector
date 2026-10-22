@@ -168,6 +168,7 @@ try {
     await page.getByText(`추가 분석 ${String(output.extraResult.findings.length)}건`).waitFor();
   }
   await page.getByRole("button", { name: "공식 탐지" }).click();
+  if (await page.locator(".result-files:not([open]) > summary").count()) await page.locator(".result-files > summary").click();
   await page.getByRole("button", { name: "공식 JSON 저장" }).click();
   const dialog = page.getByRole("dialog", { name: "결과 저장" });
   await dialog.locator("button:not([disabled])").filter({ hasText: /^저장$/ }).waitFor();

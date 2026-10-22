@@ -6,6 +6,9 @@ import { EvidenceRelations } from "./EvidenceRelations.js";
 import { useEvidenceRead } from "./evidence-read.js";
 
 interface Props {
+  simple?: boolean;
+  readOnly?: boolean;
+  onComplete?: () => Promise<void>;
   host: HostBridge;
   sessionId: string;
   findingId: string;
@@ -25,7 +28,7 @@ export function EvidenceView(props: Props) {
   return <EvidenceInspector key={`${props.sessionId}\0${props.findingId}`} {...props} />;
 }
 
-function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onReviewChange, contextIds = [findingId], onSelectFinding, note = "", onNoteChange, judgment = "unjudged", onJudgmentChange }: Props) {
+function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onReviewChange, contextIds = [findingId], onSelectFinding, note = "", onNoteChange, judgment = "unjudged", onJudgmentChange, simple = false, readOnly = false, onComplete }: Props) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const readFinding = useCallback(async () => (await host.getOfficialResult(sessionId))?.findings.find((finding) => finding.id === findingId), [host, sessionId, findingId]);
   const readDetail = useCallback(() => host.getFindingDetail(sessionId, findingId), [host, sessionId, findingId]);
@@ -38,6 +41,8 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
   const [demoMode, setDemoMode] = useState(false);
   const [showPosition, setShowPosition] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
+  const [completing, setCompleting] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => { headingRef.current?.focus(); setShowPosition(false); }, [findingId]);
 
@@ -52,14 +57,19 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
   return (
     <aside className="page result-inspector" aria-label="탐지 상세">
       <div className="inspector-toolbar">
-        <button type="button" onClick={onBack} className="secondary">결과 목록으로</button>
-        {finding ? <button type="button" onClick={() => onReviewChange(!reviewed)} className="primary">
+        <button type="button" disabled={completing || readOnly} onClick={onBack} className="secondary">결과 목록으로</button>
+        {finding && simple && onComplete ? <button type="button" className="primary" disabled={completing || readOnly} onClick={() => {
+          setCompleting(true); setSaveError("");
+          void onComplete().catch(() => { setSaveError("검토 기록을 저장하지 못했습니다. 메모를 유지했습니다. 저장 상태를 확인하고 다시 시도해 주세요."); setCompleting(false); });
+        }}>{completing ? "검토 기록 저장 중" : contextIds.indexOf(findingId) < contextIds.length - 1 ? "검토 완료·다음" : "검토 완료·목록으로"}</button>
+          : finding ? <button type="button" disabled={readOnly} onClick={() => onReviewChange(!reviewed)} className="primary">
           {reviewed ? "검토 완료 취소" : "검토 완료로 표시"}
         </button> : null}
       </div>
       <h1 ref={headingRef} tabIndex={-1}>탐지 상세</h1>
-      <p>현재 검토 범위 {Math.max(0, contextIds.indexOf(findingId)) + 1} / {contextIds.length}건 · 기록 {findingId}</p>
-      {onSelectFinding && contextIds.length > 1 ? <nav className="actions" aria-label="검토 기록 이동">
+      <p>현재 검토 범위 {Math.max(0, contextIds.indexOf(findingId)) + 1} / {contextIds.length}건{!simple ? ` · 기록 ${findingId}` : ""}</p>
+      {saveError ? <p role="alert">{saveError}</p> : null}
+      {!simple && onSelectFinding && contextIds.length > 1 ? <nav className="actions" aria-label="검토 기록 이동">
         <button className="secondary" type="button" disabled={contextIds.indexOf(findingId) <= 0} onClick={() => onSelectFinding(contextIds[contextIds.indexOf(findingId) - 1]!)}>이전 기록</button>
         <button className="secondary" type="button" disabled={contextIds.indexOf(findingId) >= contextIds.length - 1} onClick={() => onSelectFinding(contextIds[contextIds.indexOf(findingId) + 1]!)}>다음 기록</button>
       </nav> : null}
@@ -99,7 +109,7 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
               {detail.destinationUrl ? <div><dt>연결 주소</dt><dd>{detail.destinationUrl}</dd></div> : null}
               {finding.technique === "HOMOGLYPH" || finding.technique === "JAMO" ?
                 <div><dt>변환된 문구</dt><dd className="normalized">{detail.normalizedText}</dd></div> : null}
-              {finding.technique === "OFFSCREEN" ? <div>
+              {finding.technique === "OFFSCREEN" && !simple ? <div>
                 <dt>{finding.location.includes(">>>") ? "프레임 화면 기준 위치" : "페이지 화면 기준 위치"}</dt>
                 <dd>가로 {String(Math.round(detail.observed.box.x))}px · 세로 {String(Math.round(detail.observed.box.y))}px</dd>
               </div> : null}
@@ -138,9 +148,9 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
               </>
             ) : <p className="empty">화면 캡처 없음{detail?.visual.reason === "budget" ? " (시간·용량 제한)" : detail?.visual.reason === "capture-error" ? " (캡처 실패)" : ""}</p>}
           </section> : <p className="hint">화면 캡처 없음 (이 세션에 저장된 상세 근거 기록이 없습니다). 원문과 요소 위치는 공식 기록에서 확인할 수 있습니다.</p>}
-          <button type="button" className="secondary" onClick={() => void navigator.clipboard.writeText(`${finding.url}\n${finding.location}`).then(() => setCopyStatus("페이지와 위치를 복사했습니다."), () => setCopyStatus("복사하지 못했습니다. 페이지와 위치를 직접 선택해 복사해 주세요."))}>페이지와 위치 복사</button>
+          <button type="button" className="secondary" onClick={() => void navigator.clipboard.writeText(simple ? finding.evidence_text : `${finding.url}\n${finding.location}`).then(() => setCopyStatus("근거를 복사했습니다."), () => setCopyStatus("복사하지 못했습니다. 원문을 직접 선택해 복사해 주세요."))}>{simple ? "원문 복사" : "페이지와 위치 복사"}</button>
           {copyStatus ? <p role="status">{copyStatus}</p> : null}
-          <EvidenceRelations key={findingId} host={host} sessionId={sessionId} focus={{ kind: "finding", id: findingId }} onSelectFinding={onSelectFinding} />
+          {!simple ? <><EvidenceRelations key={findingId} host={host} sessionId={sessionId} focus={{ kind: "finding", id: findingId }} onSelectFinding={onSelectFinding} />
           <details className="advanced"><summary>기술 정보</summary>
             <dl className="evidence"><div><dt>위치</dt><dd><code>{finding.location}</code></dd></div>
               <div><dt>공식 기법 코드</dt><dd><code>{finding.technique}</code></dd></div>
@@ -150,17 +160,17 @@ function EvidenceInspector({ host, sessionId, findingId, onBack, reviewed, onRev
               {detail?.textPolicy ? <><div><dt>텍스트 정책</dt><dd>{detail.textPolicy.version} · {detail.textPolicy.reasonCodes.join(", ")}</dd></div>
                 <div><dt>원문 구간 정렬</dt><dd>{detail.textPolicy.alignment === "exact" ? "원본 소유 텍스트 구간과 정확히 대응" : "정렬 확인 불가"}{detail.textPolicy.truncated ? " · 일부만 분석" : ""}</dd></div></> : null}
             </dl>
-          </details>
+          </details></> : null}
         </>
       )}
       {onNoteChange && finding ? <div className="review-note"><label htmlFor="review-note">검토 메모</label>
-        <textarea id="review-note" rows={4} maxLength={2000} value={note} onChange={(e) => onNoteChange(e.target.value)} aria-describedby="review-note-hint" />
+        <textarea id="review-note" rows={4} maxLength={2000} value={note} disabled={readOnly || completing} onChange={(e) => onNoteChange(e.target.value)} aria-describedby="review-note-hint" />
         <p id="review-note-hint" className="hint">검토 기록 저장 상태를 확인해 주세요. 저장된 메모는 케이스를 다시 열 때 복원되며 엑셀 보고서에 포함됩니다. 브라우저 미리보기는 영구 저장되지 않습니다.</p>
       </div> : null}
-      {finding && onJudgmentChange ? <div><label htmlFor="operator-judgment">담당자의 판단</label><select id="operator-judgment" value={judgment} onChange={(event) => {
+      {finding && onJudgmentChange ? <div><label htmlFor="operator-judgment">담당자의 판단</label><select id="operator-judgment" value={judgment} disabled={readOnly || completing} onChange={(event) => {
         const value = event.target.value;
         if (value === "unjudged" || value === "suspected" || value === "judged-normal" || value === "needs-more-evidence") onJudgmentChange(value);
-      }}><option value="unjudged">판단 전</option><option value="suspected">위반 의심</option><option value="judged-normal">정상으로 판단</option><option value="needs-more-evidence">추가 근거 필요</option></select></div> : null}
+      }}><option value="unjudged">판단 전</option><option value="suspected">광고 의심</option><option value="judged-normal">정상으로 판단</option><option value="needs-more-evidence">추가 확인 필요</option></select></div> : null}
       <p className="hint">검토 완료는 항목을 읽었다는 표시입니다. 담당자의 판단·메모와 구분되며 공식 원본 결과를 바꾸지 않습니다. 위반 확정이나 조치 완료를 뜻하지 않습니다.</p>
     </aside>
   );

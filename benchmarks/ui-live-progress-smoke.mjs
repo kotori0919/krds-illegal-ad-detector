@@ -72,6 +72,7 @@ try {
     window.__TAURI_INTERNALS__ = { transformCallback: () => 1, unregisterCallback: () => {},
       invoke: (command, args) => window.progressSmokeInvoke(command, args) };
   });
+  await page.addInitScript(() => window.localStorage.setItem("inspection.uiMode", "advanced"));
   await page.goto(`http://127.0.0.1:${app.address().port}/`, { waitUntil: "networkidle" });
   if (nativeZoom) {
     const run = promisify(execFile);

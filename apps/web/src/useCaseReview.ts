@@ -112,5 +112,15 @@ export function useCaseReview(host: HostBridge | undefined, caseId: string | und
     sessions: Object.fromEntries([...(writer?.states ?? [])].map(([id, state]) => [id, state.records])),
     edit: (update: (previous: Records) => Records) => { if (writer && caseId) writer.edit(caseId, update); },
     retry: () => { if (writer && caseId) void writer.load(caseId, true); },
+    prepareAll: async () => writer ? writer.prepareClose() : true,
+    prepareExport: async (): Promise<ReviewRecord[]> => {
+      if (!writer || !caseId) throw new Error("No case selected");
+      await writer.flush(caseId);
+      const state = writer.state(caseId);
+      if (!state.loaded || state.status !== "saved" || state.modified.size || state.inFlight) {
+        throw new Error("Review records are not durably saved");
+      }
+      return Object.values(state.records);
+    },
   };
 }

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { initialProgress, type HostBridge, type OfficialResult, type ScanDetailBundle } from "@krds-detector/contracts";
 import { ScanResult } from "../src/screens/ScanResult.js";
+import { InfrastructureAnalysis } from "../src/screens/InfrastructureAnalysis.js";
 import { EvidenceView } from "../src/screens/EvidenceView.js";
 import { BrowserHost } from "../src/host/browser.js";
 import { evidenceHost } from "./evidence-host.js";
@@ -25,7 +26,7 @@ const detail: ScanDetailBundle = { version: 2, findings: [], creativeImages: [],
 function resultHost(): HostBridge {
   return { ...evidenceHost(detail), getCapabilities: async () => ({ localScan: true }),
     getSession: async () => ({ id: "s1", status: "succeeded" }), getOfficialResult: async () => official,
-    getExtraResult: async () => undefined } as unknown as HostBridge;
+    getExtraResult: async () => undefined, openCase: async () => undefined } as unknown as HostBridge;
 }
 
 describe("lazy operator evidence", () => {
@@ -39,9 +40,11 @@ describe("lazy operator evidence", () => {
       edges: [{ from: "page", to: "ad", kind: "LINKS_TO" }] });
     function Workspace() {
       const [view, setView] = useState<"findings" | "pages" | "extra" | "coverage">("findings");
-      return <ScanResult host={host} sessionId="s1" query="" onQueryChange={() => {}} filter="ALL" onFilterChange={() => {}}
+      const [infrastructure, setInfrastructure] = useState(false);
+      return <><div hidden={infrastructure}><ScanResult onInfrastructure={() => setInfrastructure(true)} host={host} sessionId="s1" query="" onQueryChange={() => {}} filter="ALL" onFilterChange={() => {}}
         view={view} onViewChange={setView} reviewedIds={new Set()} onReviewMany={() => {}} onSelectionHidden={() => {}}
-        onEvidence={() => {}} onExport={() => {}} onRestart={() => {}} />;
+        onEvidence={() => {}} onExport={() => {}} onRestart={() => {}} /></div>
+        {infrastructure ? <><button type="button" onClick={() => setInfrastructure(false)}>공식 탐지</button><InfrastructureAnalysis host={host} sessionId="s1" /></> : null}</>;
     }
     render(<Workspace />);
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
@@ -53,7 +56,9 @@ describe("lazy operator evidence", () => {
     expect(graphRead).not.toHaveBeenCalled();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "이미지 분석 더 보기" })); });
     expect(screen.getByText("인식 문구 12")).toBeDefined();
-    const infrastructure = screen.getByRole("region", { name: "관련 광고 인프라" });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "인프라 분석", exact: true })); });
+    const infrastructure = screen.getByRole("region", { name: "광고 연관 인프라" });
+    await act(async () => { fireEvent.click(within(infrastructure).getByRole("button", { name: "ads.example 근거 확인" })); });
     await act(async () => { fireEvent.click(within(infrastructure).getByRole("button", { name: "관계 보기" })); });
     expect(within(infrastructure).getByRole("region", { name: "근거 관계" }).textContent).toContain("연결");
     expect(graphRead).toHaveBeenCalledWith("s1", { focus: { kind: "domain", id: "ads.example" }, maxNodes: 100, maxEdges: 200, depth: 2 });
@@ -113,9 +118,10 @@ describe("lazy operator evidence", () => {
     const host = new BrowserHost();
     const imageOnly = { id: "image-only-1", url: official.meta.entry_url, location: "#visual-1", is_violation: true as const,
       technique: "ETC" as const, extra_finding: "IMAGE_ONLY_ILLEGAL_AD" as const, evidence_text: "카지노 이미지 가입 이벤트" };
-    const other = { ...imageOnly, id: "image-only-2", location: "#visual-2", evidence_text: "다른 이미지 광고" };
+    const other = { ...imageOnly, id: "image-only-2", url: "https://example.kr/sub-page", location: "#visual-2", evidence_text: "다른 이미지 광고" };
     const replay: ScanDetailBundle = { ...detail, creativeImages: [], imageAnalysis: [
-      { ...detail.imageAnalysis![0]!, extraFindingId: imageOnly.id, assetId: "stored-target",
+      { ...detail.imageAnalysis![0]!, extraFindingId: imageOnly.id, assetId: "stored-target", destinationUrl: "https://ads.example/offer",
+        ocrAlternatives: [{state:"available",backend:"other-actual-reading",text:"다른 원문\n30%",confidence:0.8}],
         ocr: { state: "available", backend: "local", text: imageOnly.evidence_text, confidence: 0.9 }, matchedTerms: ["카지노"] },
       { ...detail.imageAnalysis![1]!, extraFindingId: other.id, assetId: "stored-other" },
     ], visualAssets: [
@@ -127,17 +133,27 @@ describe("lazy operator evidence", () => {
     { meta: official.meta, findings: [imageOnly, other] });
     const analyses = vi.spyOn(host, "getImageAnalysis");
     const assets = vi.spyOn(host, "getEvidenceAsset");
-    render(<ScanResult host={host} sessionId="s1" query="" onQueryChange={() => {}} filter="ALL" onFilterChange={() => {}}
+    render(<ScanResult simple host={host} sessionId="s1" query="" onQueryChange={() => {}} filter="ALL" onFilterChange={() => {}}
       view="extra" onViewChange={() => {}} reviewedIds={new Set()} onReviewMany={() => {}} onSelectionHidden={() => {}}
       onEvidence={() => {}} onExport={() => {}} onRestart={() => {}} />);
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
-    const card = screen.getAllByRole("heading", { name: "이미지 안의 불법 광고" })[0]!.closest("li")!;
+    const card = screen.getAllByRole("heading", { name: "이미지 광고 검토 후보" })[0]!.closest("li")!;
     expect(within(card).getByText(imageOnly.evidence_text).closest("details")).toBeNull();
+    expect(screen.getAllByText("이미지 문자와 광고 관련 단서를 확인한 검토 후보입니다. 원문과 연결 주소를 검토해 주세요.")).toHaveLength(1);
+    expect(within(card).queryByText("관련 주소")).toBeNull();
+    expect(screen.getByText(other.url)).toBeDefined();
     expect(screen.queryByText("수집한 이미지가 없습니다.")).toBeNull();
     expect(assets).not.toHaveBeenCalled();
-    await act(async () => { fireEvent.click(within(card).getByRole("button", { name: "이미지 근거 보기" })); });
+    await act(async () => { fireEvent.click(within(card).getByRole("button", { name: "1번 이미지 근거 보기" })); });
     expect(within(card).getByRole("img").getAttribute("src")).toBe("data:image/png;base64,YQ==");
     expect(screen.getAllByRole("img")).toHaveLength(1);
+    const destination = within(card).getByText("https://ads.example/offer");
+    expect(destination.closest("a")).toBeNull();
+    expect(destination.closest("dd")?.parentElement?.querySelector("dt")?.textContent).toBe("관측한 연결 주소");
+    const alternative = within(card).getByText("다른 원문 30%");
+    expect(alternative.textContent).toBe("다른 원문\n30%");
+    expect(alternative.closest("details")?.open).toBe(false);
+    expect(within(card).getByText("다른 인식 원문 1건 보기").tagName).toBe("SUMMARY");
     expect(analyses).toHaveBeenLastCalledWith("s1", { extraFindingId: imageOnly.id, limit: 1 });
     expect(assets).toHaveBeenCalledTimes(1);
   });

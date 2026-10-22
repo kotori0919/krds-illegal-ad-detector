@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { App } from "../src/App.js";
 import { STEPS, stepStates } from "../src/steps.js";
@@ -52,6 +52,10 @@ vi.mock("../src/screens/ExportDialog.js", () => ({
   ),
 }));
 
+async function renderApp() {
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: "시작하기" }));
+}
 function items(): HTMLElement[] {
   return Array.from(document.querySelectorAll("ol.steps > li"));
 }
@@ -73,10 +77,20 @@ describe("stepStates helper", () => {
 });
 
 describe("App step indicator", () => {
-  afterEach(cleanup);
+  beforeEach(() => {
+    const values = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      get length() { return values.size; }, clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value); },
+      removeItem: (key: string) => { values.delete(key); },
+      key: (index: number) => [...values.keys()][index] ?? null,
+    } satisfies Storage);
+  });
+  afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
   it("keeps aria-current on the current step and no done cue at start", async () => {
-    render(<App />);
+    await renderApp();
     expect(await screen.findByText("mock-start")).toBeTruthy();
     expect(item("start").getAttribute("aria-current")).toBe("step");
     expect(item("start").className).toBe("current");
@@ -85,7 +99,7 @@ describe("App step indicator", () => {
   });
 
   it("keeps result stage current during evidence and export", async () => {
-    render(<App />);
+    await renderApp();
     fireEvent.click(await screen.findByText("mock-start")); // start → progress
     expect(item("start").className).toBe("done");
 
@@ -109,7 +123,7 @@ describe("App step indicator", () => {
   });
 
   it("restart resets completion so no step stays done", async () => {
-    render(<App />);
+    await renderApp();
     const started = await screen.findByText("mock-start");
     fireEvent.click(started);
     fireEvent.click(screen.getByText("mock-done"));

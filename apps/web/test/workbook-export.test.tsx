@@ -30,3 +30,15 @@ it("retries a report save failure, preserves result on cancellation and exports 
   expect(book.getWorksheet("탐지 상세")?.rowCount).toBe((await host.getOfficialResult(session.id))!.findings.length + 1);
   expect(JSON.stringify(await host.getOfficialResult(session.id))).toBe(before);
 });
+
+it("refuses a report if flushed review records cannot be read back from the saved case", async () => {
+  const host = new BrowserHost();
+  const session = await host.startScan({ entryUrl: "https://agency.example/" });
+  let exports = 0;
+  host.saveWorkbook = async () => { exports++; return "report.xlsx"; };
+  render(<WorkbookExport host={host} sessionId={session.id} reviews={[]} prepareReviews={async () => []} />);
+  fireEvent.click(screen.getByRole("button", { name: "엑셀 보고서 저장" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("검토 기록의 저장 상태");
+  expect(exports).toBe(0);
+  expect(await host.getOfficialResult(session.id)).toBeDefined();
+});

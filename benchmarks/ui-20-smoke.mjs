@@ -93,6 +93,7 @@ try {
   }
   await page.getByRole("button", { name: "점검 범위", exact: true }).click();
   await page.waitForFunction(() => !document.querySelector(".result-inspector"));
+  if (await page.locator(".result-files:not([open]) > summary").count()) await page.locator(".result-files > summary").click();
   await page.getByRole("button", { name: "공식 JSON 저장" }).click();
   const partialNote = await page.getByRole("dialog").getByRole("note").textContent();
   if (!partialNote?.includes("확인 실패 1페이지") || !partialNote.includes("점검 시간 초과")) {

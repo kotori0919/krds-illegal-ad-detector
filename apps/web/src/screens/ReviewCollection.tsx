@@ -4,6 +4,7 @@ import { groupReviewPatterns, normalizeReviewText } from "@krds-detector/evidenc
 import { techniqueLabel } from "@krds-detector/contracts";
 
 interface Props {
+  simple?: boolean;
   findings: OfficialFinding[];
   coverage?: ScanCoverageView;
   query: string;
@@ -34,7 +35,9 @@ interface Row {
 export function ReviewCollection(props: Props) {
   const { findings, coverage, query, onQueryChange, filter, onFilterChange, view, onViewChange,
     reviewedIds, onReviewMany, onEvidence, selectedFindingId, allowHiddenSelection = false, restoreFindingId, onSelectionHidden, onFocusRestored } = props;
-  const [mode, setMode] = useState<"patterns" | "records">("patterns");
+  const [groupMode, setMode] = useState<"patterns" | "records">("patterns");
+  const simple = props.simple ?? false;
+  const mode = simple ? "records" : groupMode;
   const [reviewFilter, setReviewFilter] = useState("ALL");
   const [sort, setSort] = useState("count");
   const [pageSize, setPageSize] = useState(20);
@@ -81,9 +84,9 @@ export function ReviewCollection(props: Props) {
           pageCount: new Set(members.map((finding) => finding.url)).size, destination: pattern.destination };
       }).filter((row) => row.findings.length > 0);
     }
-    return items.sort((a, b) => (sort === "count" ? b.findings.length - a.findings.length
+    return simple ? items : items.sort((a, b) => (sort === "count" ? b.findings.length - a.findings.length
       : sort === "pages" ? b.pageCount - a.pageCount : a.summary.localeCompare(b.summary, "ko")) || a.id.localeCompare(b.id));
-  }, [view, mode, patterns, visible, visibleIds, coverage, filter, reviewFilter, normalizedQuery, sort]);
+  }, [view, mode, patterns, visible, visibleIds, coverage, filter, reviewFilter, normalizedQuery, sort, simple]);
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -125,7 +128,7 @@ export function ReviewCollection(props: Props) {
     <div inert={!!confirmation}>
       <div className="review-list-toolbar">
       <h2 ref={listHeading} tabIndex={-1} className="sr-only">{view === "pages" ? "페이지별 점검" : mode === "patterns" ? "반복 항목 검토" : "전체 탐지 기록"}</h2>
-      <div className="result-navigation result-subnavigation" role="group" aria-label="공식 탐지 보기 방식">
+      {!simple ? <><div className="result-navigation result-subnavigation" role="group" aria-label="공식 탐지 보기 방식">
         <button type="button" aria-pressed={view === "findings" && mode === "patterns"} onClick={() => { onViewChange("findings"); setMode("patterns"); setPage(1); }}>반복 항목별</button>
         <button type="button" aria-pressed={view === "pages"} onClick={() => { onViewChange("pages"); setPage(1); }}>페이지별</button>
         <button type="button" aria-pressed={view === "findings" && mode === "records"} onClick={() => { onViewChange("findings"); setMode("records"); setPage(1); }}>전체 기록</button>
@@ -136,14 +139,14 @@ export function ReviewCollection(props: Props) {
           <option value="count">기록 많은 순</option><option value="pages">영향 페이지 많은 순</option><option value="text">내용 가나다순</option>
         </select></div>
         <div><label htmlFor="review-size">목록 표시 개수</label><select id="review-size" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}><option value="20">20</option><option value="50">50</option></select></div>
-      </div></details>
+      </div></details></> : null}
       </div>
       <div className="review-filters review-search-controls">
         <div className="result-search"><label htmlFor="result-search">결과 검색</label>
-          <input id="result-search" type="search" placeholder="문구, 페이지, 연결 주소 또는 기록 번호" value={query} onChange={(e) => { onQueryChange(e.target.value); setPage(1); }} /></div>
-        <div><label htmlFor="technique-filter">기법 필터</label><select id="technique-filter" value={filter} onChange={(e) => { onFilterChange(e.target.value as Props["filter"]); setPage(1); }}>
+          <input id="result-search" type="search" placeholder={simple ? "문구 또는 페이지 주소" : "문구, 페이지, 연결 주소 또는 기록 번호"} value={query} onChange={(e) => { onQueryChange(e.target.value); setPage(1); }} /></div>
+        {!simple ? <div><label htmlFor="technique-filter">기법 필터</label><select id="technique-filter" value={filter} onChange={(e) => { onFilterChange(e.target.value as Props["filter"]); setPage(1); }}>
           <option value="ALL">전체</option>{OFFICIAL_TECHNIQUES.map((t) => <option key={t} value={t}>{techniqueLabel[t]}</option>)}
-        </select></div>
+        </select></div> : null}
         <div><label htmlFor="review-filter">검토 상태</label><select id="review-filter" value={reviewFilter} onChange={(e) => { setReviewFilter(e.target.value); setPage(1); }}>
           <option value="ALL">전체</option><option value="needed">검토 필요</option><option value="reviewed">검토 완료</option>
         </select></div>
@@ -170,8 +173,8 @@ export function ReviewCollection(props: Props) {
               {row.outcome?.discoverySource ? <p className="hint">발견 경로: {discoverySourceLabel[row.outcome.discoverySource]}</p> : null}
               {row.outcome?.finalUrl !== undefined && row.outcome.finalUrl !== row.summary ? <p>{row.outcome.finalUrl}</p> : null}
               {row.outcome?.reason ? <details className="advanced"><summary>실패 상세</summary><p>{row.outcome.reason}</p></details> : null}
-              <p className="review-row-meta">{[...new Set(row.findings.map((f) => techniqueLabel[f.technique]))].join(" · ")}{row.findings.length ? " · " : ""}기록 {row.findings.length}건 · 영향 페이지 {row.pageCount}개{first ? ` · 대표 ${first.id}` : ""}</p>
-              {first ? <details className="review-row-details"><summary>{mode === "patterns" && view !== "pages" ? "묶음의 관측 위치와 구분 기준" : "기록 주소와 위치"}</summary>
+              <p className="review-row-meta">{[...new Set(row.findings.map((f) => techniqueLabel[f.technique]))].join(" · ")}{simple ? first ? ` · ${first.url}` : "" : `${row.findings.length ? " · " : ""}기록 ${row.findings.length}건 · 영향 페이지 ${row.pageCount}개${first ? ` · 대표 ${first.id}` : ""}`}</p>
+              {first && !simple ? <details className="review-row-details"><summary>{mode === "patterns" && view !== "pages" ? "묶음의 관측 위치와 구분 기준" : "기록 주소와 위치"}</summary>
                 <p>대표 기록 {first.id} · {first.url}</p>
                 {row.destination ? <p>기록된 링크 주소: {row.destination} (요소 위치 기록에서 읽음)</p> : null}
                 <p>{mode === "patterns" && view !== "pages" ? "문구·기법·링크 주소가 같아도 요소 위치가 다르면 별도 묶음입니다. " : ""}위치 기록: <code>{first.location}</code></p>
@@ -193,7 +196,7 @@ export function ReviewCollection(props: Props) {
         <p role="status">{currentPage} / {pageCount} 페이지</p>
         <button type="button" className="secondary" disabled={currentPage === pageCount} onClick={() => { setPage(currentPage + 1); listHeading.current?.focus(); }}>다음 목록</button>
       </nav> : null}
-      {pageRows.some((row) => row.findings.length) ? <button className="secondary" type="button" onClick={() => {
+      {!simple && pageRows.some((row) => row.findings.length) ? <button className="secondary" type="button" onClick={() => {
         const ids = pageRows.flatMap((row) => row.findings.map((f) => f.id)); requestBulk(ids, `현재 목록 ${pageRows.length}개 항목에 포함된 기록`);
       }}>현재 목록 {pageRows.reduce((count, row) => count + row.findings.length, 0)}건 검토 완료</button> : null}
     </div>

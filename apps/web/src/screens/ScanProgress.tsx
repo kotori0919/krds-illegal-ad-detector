@@ -13,6 +13,8 @@ interface Props {
   onDone: () => void;
   onCancel: () => void;
   onWarpSetup?: () => void;
+  simple?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 const INITIAL = initialProgress("running");
@@ -29,7 +31,7 @@ function activityLabel(activity: ScanActivity): string {
   }
 }
 
-export function ScanProgressView({ host, sessionId, onDone, onCancel, onWarpSetup }: Props) {
+export function ScanProgressView({ host, sessionId, onDone, onCancel, onWarpSetup, simple = false, onBusyChange }: Props) {
   const [progress, setProgress] = useState<ScanProgress>(INITIAL);
   const [notice, setNotice] = useState<string>(
     "점검 준비 중",
@@ -45,6 +47,8 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel, onWarpSetu
   const [hasResult, setHasResult] = useState(false);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const confirmRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { onBusyChange?.(!failed && !finishing); }, [failed, finishing, onBusyChange]);
 
   useEffect(() => {
     if (confirmCancel) confirmRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
@@ -77,7 +81,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel, onWarpSetu
       clock = { base: Math.max(next.elapsedSec, clock.base + (clock.active ? (now - clock.at) / 1000 : 0)), at: now,
         active: !["succeeded", "failed", "cancelled"].includes(next.stage) };
       setElapsedSec(clock.base);
-      const line = `${scanStatusLabel(next.stage)} · 탐지 ${String(next.confirmedFindings)}건${next.failedPages ? ` · 페이지 실패 ${String(next.failedPages)}개` : ""}`;
+      const line = `${scanStatusLabel(next.stage)} · 문구 탐지 ${String(next.confirmedFindings)}건${next.failedPages ? ` · 페이지 실패 ${String(next.failedPages)}개` : ""}`;
       pendingNotice = line;
       if (!lastSpoken || !clock.active) {
         clearTimeout(noticeTimer);
@@ -171,6 +175,7 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel, onWarpSetu
         <span>{cancelling && !failed ? "중지 처리 중" : notice}</span>
       </p>
       {pollUnavailable ? <p role="alert" className="error">진행 상태 조회 실패. 다시 연결하는 중입니다.</p> : null}
+      {progress.stage === "finalizing" && !failed ? <p className="hint">배너 등 추가 단서 확인과 결과 저장이 끝나면 결과 화면으로 이동합니다.</p> : null}
       {failed ? (
         <p role="alert" className="error">
           점검을 완료하지 못했습니다. 남은 페이지는 미점검이며 탐지 0건이나 정상으로 판정할 수 없습니다. 시작 주소와 외부 연결 허용 상태를 확인해 주세요.
@@ -182,12 +187,12 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel, onWarpSetu
             <dt>확인한 페이지</dt>
             <dd>{Math.max(0, progress.visitedPages - progress.failedPages)}</dd>
           </div>
-          <div>
+          {!simple ? <div>
             <dt>대기 중인 페이지</dt>
             <dd>{progress.queuedPages}</dd>
-          </div>
+          </div> : null}
           <div>
-            <dt>탐지</dt>
+            <dt>{simple ? "문구 탐지" : "탐지"}</dt>
             <dd>{progress.confirmedFindings}</dd>
           </div>
           <div>
@@ -197,24 +202,24 @@ export function ScanProgressView({ host, sessionId, onDone, onCancel, onWarpSetu
           <div><dt>경과 시간</dt><dd>{formatElapsed(elapsedSec)}</dd></div>
         </dl>
       </section>
-      {progress.currentPages.length ? <section aria-label="현재 확인 중">
+      {!simple && progress.currentPages.length ? <section aria-label="현재 확인 중">
         <h2>현재 확인 중</h2>
         <ul className="progress-pages">{progress.currentPages.map((url) => <li key={url}>{url}</li>)}</ul>
       </section> : null}
-      {progress.recentActivity.length ? <section aria-label="최근 활동">
+      {!simple && progress.recentActivity.length ? <section aria-label="최근 활동">
         <h2>최근 활동</h2>
         <ol className="progress-activity">{progress.recentActivity.map((activity) => <li key={activity.sequence}>
           <span>{formatElapsed(activity.elapsedSec)} · {activityLabel(activity)}</span>
           {activity.pageUrl ? <span className="hint">{activity.pageUrl}</span> : null}
         </li>)}</ol>
       </section> : null}
-      <details className="advanced"><summary>기술 정보</summary>
+      {!simple ? <details className="advanced"><summary>기술 정보</summary>
         <dl className="stats">
           <div><dt>검사한 프레임</dt><dd>{progress.framesInspected}</dd></div>
           <div><dt>분석한 요소</dt><dd>{progress.elementsAnalyzed}</dd></div>
           <div><dt>탐지 후보</dt><dd>{progress.candidates}</dd></div>
         </dl>
-      </details>
+      </details> : null}
       <div className="actions">
         {cancelError ? <p role="alert" className="error">{cancelError}</p> : null}
         {failed ? <>{hasResult ? <button type="button" onClick={onDone} className="primary">보관된 일부 결과 검토</button> : null}

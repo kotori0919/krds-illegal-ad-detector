@@ -61,6 +61,7 @@ try {
     }
   });
   await page.addInitScript(() => { window.__TAURI_INTERNALS__ = { transformCallback: () => 1, unregisterCallback: () => {}, invoke: (command, args) => window.caseReplayInvoke(command, args) }; });
+  await page.addInitScript(() => window.localStorage.setItem("inspection.uiMode", "advanced"));
   await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: /^케이스 다시 열기/ }).click();
   await page.getByRole("button", { name: "근거 보기" }).click();

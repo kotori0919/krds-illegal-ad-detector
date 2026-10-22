@@ -9,7 +9,7 @@ import { ScanProgressView } from "../src/screens/ScanProgress.js";
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
-function setup() {
+function setup(simple = false) {
   let handler: ((event: ScanEvent) => void) | undefined;
   let session: ScanSession = { id: "s1", entryUrl: "https://example.kr/", status: "running",
     startedAt: "2026-10-06T00:00:00Z", progress: initialProgress("running") };
@@ -24,7 +24,7 @@ function setup() {
     const [view, setView] = useState("progress");
     if (view === "results") return <h1>결과 검토</h1>;
     if (view === "setup") return <h1>점검 설정</h1>;
-    return <ScanProgressView host={host} sessionId="s1" onDone={() => setView("results")} onCancel={() => setView("setup")} />;
+    return <ScanProgressView simple={simple} host={host} sessionId="s1" onDone={() => setView("results")} onCancel={() => setView("setup")} />;
   }
   render(<Harness />);
   return {
@@ -44,6 +44,18 @@ function value(label: string): string | null {
 }
 
 describe("recoverable scan feedback", () => {
+  it("keeps additional analysis visibly pending after official results become available", async () => {
+    const host = setup(true);
+    host.setSession({ status: "finalizing", hasResult: true, progress: { ...initialProgress("finalizing"), sequence: 1, visitedPages: 1, elapsedSec: 20 } });
+    await tick(4000);
+    expect(screen.getByText("배너 등 추가 단서 확인과 결과 저장이 끝나면 결과 화면으로 이동합니다.")).toBeDefined();
+    expect(screen.getByRole("status").textContent).toContain("추가 단서 분석");
+    expect(screen.getByRole("status").textContent).toContain("문구 탐지 0건");
+    expect(value("문구 탐지")).toBe("0");
+    expect(screen.queryByRole("heading", { name: "결과 검토" })).toBeNull();
+    expect(screen.getByRole("button", { name: "점검 중지" })).toBeDefined();
+  });
+
   it("coalesces rapid finding announcements while keeping counts immediate and terminal feedback prompt", async () => {
     const host = setup();
     await tick(0);

@@ -27,7 +27,7 @@ export function evidenceRead(detail, command, args = {}) {
   }
 }
 
-export async function installResultReplay(page, { result, detail, extra, session, beforeRead, exportReplay, workbookReplay, caseReplay }) {
+export async function installResultReplay(page, { result, detail, extra, session, beforeRead, exportReplay, workbookReplay, caseReplay, mode = "advanced" }) {
   const reads = [];
   await page.exposeFunction("resultReplayInvoke", async (command, args) => {
     reads.push({ command, args });
@@ -51,10 +51,11 @@ export async function installResultReplay(page, { result, detail, extra, session
       default: return evidenceRead(detail, command, args);
     }
   });
-  await page.addInitScript(() => {
+  await page.addInitScript((selectedMode) => {
+    if (selectedMode) window.localStorage.setItem("inspection.uiMode", selectedMode);
     window.__TAURI_INTERNALS__ = { transformCallback: () => 1, unregisterCallback: () => {},
       metadata: { currentWindow: { label: "main" }, currentWebview: { label: "main" } },
       invoke: (command, args) => window.resultReplayInvoke(command, args) };
-  });
+  }, mode);
   return reads;
 }

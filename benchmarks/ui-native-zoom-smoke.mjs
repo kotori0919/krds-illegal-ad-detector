@@ -7,6 +7,7 @@ const run = promisify(execFile);
 const browser = await chromium.launch({ headless: false, args: ["--no-sandbox"] });
 try {
   const page = await browser.newPage({ viewport: { width: 720, height: 900 } });
+  await page.addInitScript(() => window.localStorage.setItem("inspection.uiMode", "advanced"));
   await page.goto("http://127.0.0.1:5173/", { waitUntil: "networkidle" });
   const { stdout } = await run("xdotool", ["search", "--onlyvisible", "--class", "chromium"]);
   const windowId = stdout.trim().split("\n").at(-1);
@@ -57,6 +58,7 @@ try {
     throw new Error(`inspector layout/focus: ${JSON.stringify(inspector)}`);
   }
   await page.getByRole("button", { name: "결과 목록으로" }).click();
+  if (await page.locator(".result-files:not([open]) > summary").count()) await page.locator(".result-files > summary").click();
   await page.getByRole("button", { name: "공식 JSON 저장" }).click();
   await page.getByRole("dialog", { name: "결과 저장" }).waitFor();
   await checkReflow("export dialog");

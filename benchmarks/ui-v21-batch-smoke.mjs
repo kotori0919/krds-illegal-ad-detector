@@ -113,6 +113,7 @@ try {
     window.__TAURI_INTERNALS__ = { transformCallback: () => 1, unregisterCallback: () => {},
       invoke: (command, args) => window.v21BatchInvoke(command, args) };
   });
+  await page.addInitScript(() => window.localStorage.setItem("inspection.uiMode", "advanced"));
   await page.goto(`http://127.0.0.1:${app.address().port}`);
   await page.getByRole("button", { name: "여러 사이트 일괄 점검", exact: true }).click();
   const input = page.getByLabel("대상 파일 선택 또는 여기로 끌어 놓기");

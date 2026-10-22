@@ -4,6 +4,7 @@ import { chromium } from "playwright-core";
 const browser = await chromium.launch({ args: ["--no-sandbox"] });
 const page = await browser.newPage({ viewport: { width: 360, height: 800 } });
 try {
+  await page.addInitScript(() => window.localStorage.setItem("inspection.uiMode", "advanced"));
   await page.goto("http://127.0.0.1:5173/", { waitUntil: "networkidle" });
   await page.evaluate(() => document.fonts.ready);
   const font = await page.evaluate(() => ({
@@ -62,6 +63,7 @@ try {
   await page.waitForFunction(() => Boolean(document.activeElement?.getAttribute("data-finding-id")), undefined, { timeout: 5000 });
   const focused = await page.evaluate(() => document.activeElement?.getAttribute("data-finding-id"));
   if (!focused) throw new Error("finding focus was not restored");
+  if (await page.locator(".result-files:not([open]) > summary").count()) await page.locator(".result-files > summary").click();
   await page.getByRole("button", { name: "공식 JSON 저장" }).click();
   await page.getByRole("dialog", { name: "결과 저장" }).waitFor();
   const dialogFocused = await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]')));

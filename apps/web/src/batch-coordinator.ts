@@ -1,4 +1,4 @@
-import type { HostBridge, ImportedTarget, ScanLimits, ScanSession } from "@krds-detector/contracts";
+import type { HostBridge, ImportedTarget, ScanConnection, ScanLimits, ScanSession } from "@krds-detector/contracts";
 
 export type TargetStatus = "pending" | "running" | "complete" | "partial" | "blocked" | "failed" | "cancelled";
 export interface BatchTarget extends ImportedTarget {
@@ -17,7 +17,8 @@ export class BatchCoordinator {
   private active?: Promise<void>;
   private stopping = false;
   constructor(private readonly host: HostBridge, targets: readonly ImportedTarget[],
-    private readonly limits: Partial<ScanLimits> = {}, private readonly pollMs = 500) {
+    private readonly limits: Partial<ScanLimits> = {}, private readonly pollMs = 500,
+    private readonly connection: ScanConnection = "direct") {
     if (!targets.length || targets.length > 100) throw new Error("일괄 대상은 1~100개여야 합니다.");
     this.state = { phase: "ready", pauseRequested: false,
       targets: targets.map((target, key) => ({ ...target, key, status: "pending", canRetry: false })) };
@@ -61,7 +62,7 @@ export class BatchCoordinator {
       this.update(target.key, { status: "running", error: undefined });
       let session: ScanSession | undefined;
       try {
-        session = await this.host.startBatchScan({ entryUrl: target.entryUrl, kind: target.kind, limits: this.limits });
+        session = await this.host.startBatchScan({ entryUrl: target.entryUrl, kind: target.kind, limits: this.limits, connection: this.connection });
         this.update(target.key, { session });
         if (this.stopping) await this.host.cancelScan(session.id);
         const expires = Date.now() + ((this.limits.timeoutSec ?? 1500) + 45) * 1000;

@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { HostBridge } from "@krds-detector/contracts";
+import type { HostBridge, ScanConnection } from "@krds-detector/contracts";
+import { ConnectionChoice } from "./ConnectionChoice.js";
 
 interface Props {
   host: HostBridge;
-  onStarted: (sessionId: string) => void;
+  onStarted: (sessionId: string, connection?: ScanConnection) => void;
   onBatch?: () => void;
   showSavedCases?: boolean;
   onWarpSetup?: () => void;
+  simple?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 type FieldName = "url" | "maxPages" | "maxDepth" | "timeoutSec";
@@ -15,7 +18,7 @@ type ScopeMode = "automatic" | "quick" | "custom";
 /** DOM order. The first entry carrying an error is the one focused on submit. */
 const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
 
-export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetup }: Props) {
+export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetup, simple = false, onBusyChange }: Props) {
   const [url, setUrl] = useState("");
   const [scopeMode, setScopeMode] = useState<ScopeMode>("automatic");
   const [maxPages, setMaxPages] = useState("200");
@@ -24,6 +27,7 @@ export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetu
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [formError, setFormError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [connection, setConnection] = useState<ScanConnection>("direct");
   const urlRef = useRef<HTMLInputElement>(null);
   const pagesRef = useRef<HTMLInputElement>(null);
   const depthRef = useRef<HTMLInputElement>(null);
@@ -71,16 +75,18 @@ export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetu
         errors.url = "http(s)로 시작하는 올바른 주소를 입력해 주세요.";
       }
     }
-    const pages = scopeMode === "quick" ? 50 : scopeMode === "automatic" ? 200 : Number.parseInt(maxPages, 10);
-    const depth = scopeMode === "quick" ? 2 : scopeMode === "automatic" ? 4 : Number.parseInt(maxDepth, 10);
-    const timeout = scopeMode === "quick" ? 600 : scopeMode === "automatic" ? 1500 : Number.parseInt(timeoutSec, 10);
-    if (scopeMode === "custom" && (!Number.isFinite(pages) || pages < 1 || pages > 2000)) {
+    const scope = simple ? "automatic" : scopeMode;
+    const selectedConnection = simple ? "direct" : connection;
+    const pages = scope === "quick" ? 50 : scope === "automatic" ? 200 : Number(maxPages);
+    const depth = scope === "quick" ? 2 : scope === "automatic" ? 4 : Number(maxDepth);
+    const timeout = scope === "quick" ? 600 : scope === "automatic" ? 1500 : Number(timeoutSec);
+    if (scope === "custom" && (!Number.isInteger(pages) || pages < 1 || pages > 2000)) {
       errors.maxPages = "최대 페이지 수는 1부터 2000까지 입력해 주세요.";
     }
-    if (scopeMode === "custom" && (!Number.isFinite(depth) || depth < 0 || depth > 10)) {
+    if (scope === "custom" && (!maxDepth.trim() || !Number.isInteger(depth) || depth < 0 || depth > 10)) {
       errors.maxDepth = "탐색 깊이는 0부터 10까지 입력해 주세요.";
     }
-    if (scopeMode === "custom" && (!Number.isFinite(timeout) || timeout < 60 || timeout > 1500)) {
+    if (scope === "custom" && (!Number.isInteger(timeout) || timeout < 60 || timeout > 1500)) {
       errors.timeoutSec = "60~1500초로 입력해 주세요.";
     }
     if (Object.keys(errors).length > 0) {
@@ -97,17 +103,24 @@ export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetu
     setFieldErrors({});
     setFormError(undefined);
     setBusy(true);
+    onBusyChange?.(true);
     try {
+      if (selectedConnection === "warp" && (await host.getWarpStatus()).state !== "ready") {
+        setFormError("WARP 등록·구성을 확인하지 못했습니다. 연결 설정을 확인하거나 기본 연결을 선택해 주세요.");
+        return;
+      }
       const session = await host.startScan({
         entryUrl,
+        connection: selectedConnection,
         limits,
       });
-      onStarted(session.id);
+      onStarted(session.id, selectedConnection);
     } catch {
       // Not the user's URL text: report at form level so the URL input is not marked invalid.
-      setFormError("점검을 시작하지 못했습니다. 앱을 다시 열고 시도해 주세요. 계속 실패하면 담당자에게 알려 주세요.");
+      setFormError("점검을 시작하지 못했습니다. 주소와 현재 네트워크를 확인하고 다시 시도해 주세요. 기존 결과는 유지됩니다.");
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
@@ -149,9 +162,9 @@ export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetu
         {formError ? (
           <><p id="scan-form-error" role="alert" className="error">
             {formError}
-          </p>{onWarpSetup ? <button type="button" className="secondary" onClick={onWarpSetup}>WARP 연결 설정 확인</button> : null}</>
+          </p>{!simple && connection === "warp" && onWarpSetup ? <button type="button" className="secondary" onClick={onWarpSetup}>WARP 연결 설정 확인</button> : null}</>
         ) : null}
-        <details className="advanced" ref={advancedRef}>
+        {simple ? <p className="hint">최대 200페이지 · 하위 4단계 · 최대 25분<br />현재 PC의 인터넷 연결로 점검합니다.</p> : <details className="advanced" ref={advancedRef}>
           <summary><span>상세 설정</span><span className="scope-current">{scopeMode === "quick" ? "빠른 점검 · 최대 50페이지 · 10분" : scopeMode === "automatic" ? "자동 점검 · 최대 200페이지 · 25분" : `직접 설정 · 최대 ${maxPages}페이지 · ${timeoutSec}초`}</span></summary>
           <fieldset className="scope-options">
             <legend>점검 범위</legend>
@@ -245,7 +258,8 @@ export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetu
               ) : null}
             </div>
           </div> : null}
-        </details>
+          <ConnectionChoice value={connection} onChange={setConnection} onSetup={onWarpSetup} />
+        </details>}
         <div className="scan-submit"><p className="hint">점검 중에도 중지할 수 있습니다.<br />완료된 페이지의 결과는 보관됩니다.</p>
           <button type="submit" disabled={busy} className="primary">{busy ? "시작 중…" : "점검 시작"}<span aria-hidden="true"> →</span></button>
         </div>

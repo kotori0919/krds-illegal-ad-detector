@@ -8,7 +8,7 @@ export function formatElapsed(seconds: number): string {
 export const scanStatusLabel = (stage: ScanStatus): string => ({
   queued: "점검 준비 중",
   running: "페이지 수집·분석 중",
-  finalizing: "결과 정리 중",
+  finalizing: "추가 단서 분석·결과 정리 중",
   succeeded: "점검 완료",
   cancelled: "점검 중지됨",
   failed: "점검 실패",

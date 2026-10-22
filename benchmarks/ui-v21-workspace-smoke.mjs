@@ -149,6 +149,7 @@ try {
   assert.equal(workbook.getWorksheet("탐지 상세").rowCount, 618);
   assert.equal(workbook.getWorksheet("탐지 상세").getRow(373).getCell(9).value, "자연스러운 댓글인지 추가 확인 필요");
   for (const sheet of workbook.worksheets) sheet.eachRow((row) => row.eachCell((cell) => assert.notEqual(cell.type, ExcelJS.ValueType.Formula)));
+  if (await page.locator(".result-files:not([open]) > summary").count()) await page.locator(".result-files > summary").click();
   await page.getByRole("button", { name: "공식 JSON 저장", exact: true }).click();
   const exportDialog = page.getByRole("dialog");
   await exportDialog.getByRole("button", { name: "저장", exact: true }).click();

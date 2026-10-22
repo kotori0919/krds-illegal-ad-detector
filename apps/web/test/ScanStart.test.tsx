@@ -19,6 +19,7 @@ it("offers shared connection setup after start failure without registering or lo
   }
   render(<Workspace />);
   fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
+  fireEvent.click(screen.getByLabelText(/앱 전용 WARP/));
   submit();
   fireEvent.click(await screen.findByRole("button", { name: "WARP 연결 설정 확인" }));
   expect(screen.getByRole("heading", { name: "공유 연결 설정" })).toBeTruthy();
@@ -156,6 +157,7 @@ describe("ScanStart field validation", () => {
     expect(start).toHaveBeenCalledTimes(1);
     expect(start.mock.calls[0][0]).toEqual({
       entryUrl: "https://example.kr/",
+      connection: "direct",
       limits: { maxPages: 200, maxDepth: 4, timeoutSec: 1500 },
     });
     expect(byId("entry-url").hasAttribute("aria-invalid")).toBe(false);
@@ -198,7 +200,7 @@ describe("ScanStart field validation", () => {
     fireEvent.change(byId("entry-url"), { target: { value: "https://example.kr/" } });
     submit();
     await vi.waitFor(() =>
-      expect(document.getElementById("scan-form-error")?.textContent).toContain("앱을 다시 열고 시도해 주세요"),
+      expect(document.getElementById("scan-form-error")?.textContent).toMatch(/주소.*네트워크/),
     );
     expect(document.getElementById("scan-form-error")?.textContent).not.toContain("sidecar exploded");
   });
@@ -227,4 +229,15 @@ describe("ScanStart stale-error clearing (CUA-found)", () => {
     expect(document.getElementById("entry-url-error")).toBeNull();
     expect(byId("entry-url").hasAttribute("aria-invalid")).toBe(false);
   });
+});
+
+it.each(["", "1.5"])("rejects a custom depth that is not a supplied integer: %s", value => {
+  const start = ok();
+  render(<Harness startScan={start} />);
+  chooseCustom();
+  fireEvent.change(byId("entry-url"), { target: { value: "https://agency.example/" } });
+  fireEvent.change(byId("limit-depth"), { target: { value } });
+  submit();
+  expect(byId("limit-depth").getAttribute("aria-invalid")).toBe("true");
+  expect(start).not.toHaveBeenCalled();
 });

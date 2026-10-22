@@ -131,14 +131,14 @@ describe("operator evidence read recovery", () => {
         decision: { rule: "fixture", score: 3, threshold: 3, passed: true, detail: "fixture" } }], total: 1 });
     const officialRead = vi.spyOn(host, "getOfficialResult");
     render(<Results host={host} view="extra" />); await advance();
-    const card = screen.getByRole("heading", { name: "이미지 안의 불법 광고" }).closest("li")!;
-    await act(async () => { fireEvent.click(within(card).getByRole("button", { name: "이미지 근거 보기" })); });
+    const card = screen.getByRole("heading", { name: "이미지 광고 검토 후보" }).closest("li")!;
+    await act(async () => { fireEvent.click(within(card).getByRole("button", { name: "1번 이미지 근거 보기" })); });
     expect(within(card).getByRole("alert")).toBeDefined();
     await act(async () => { fireEvent.click(within(card).getByRole("button", { name: "이미지 근거 다시 불러오기" })); });
     expect(within(card).getByText("광고 표현 확인")).toBeDefined();
     expect(read).toHaveBeenCalledTimes(3); expect(read).toHaveBeenLastCalledWith("s1", { extraFindingId: finding.id, limit: 1 });
     expect(officialRead).toHaveBeenCalledTimes(1);
-    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "이미지 근거 닫기" }));
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "1번 이미지 근거 닫기" }));
   });
 
   it("discards old session pagination responses and shows the new session without old images", async () => {

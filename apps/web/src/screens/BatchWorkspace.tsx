@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import type { HostBridge, TargetPreview } from "@krds-detector/contracts";
+import type { HostBridge, ScanConnection, TargetPreview } from "@krds-detector/contracts";
 import type { ReportSession, ReviewRecord } from "@krds-detector/evidence/report";
 import { BatchCoordinator, type BatchState, type TargetStatus } from "../batch-coordinator.js";
 import { importTargets } from "../import-targets.js";
 import { readReportSession } from "../report-data.js";
+import { ConnectionChoice } from "./ConnectionChoice.js";
 
 const labels: Record<TargetStatus, string> = { pending: "대기", running: "점검 중", complete: "완료", partial: "일부 점검", blocked: "미점검·접근 제한", failed: "실패", cancelled: "중지" };
 const rowLabels = { valid: "점검 가능", invalid: "입력 오류", duplicate: "중복 제외" };
-export function BatchWorkspace({ host, onBack, onInspect, reviews, onWarpSetup }: {
+export function BatchWorkspace({ host, onBack, onInspect, reviews, onWarpSetup, onBusyChange, prepareReviews }: {
   host: HostBridge; onBack: () => void; onInspect: (sessionId: string) => void;
   reviews: Record<string, Record<string, ReviewRecord>>;
   onWarpSetup?: () => void;
+  onBusyChange?: (busy: boolean) => void;
+  prepareReviews?: () => Promise<void>;
 }) {
   const [preview, setPreview] = useState<TargetPreview>();
   const [fileName, setFileName] = useState("");
@@ -21,12 +24,15 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews, onWarpSetup }
   const [saving, setSaving] = useState(false);
   const [scope, setScope] = useState<"entry" | "quick" | "automatic">("quick");
   const [localScan, setLocalScan] = useState(false);
+  const [connection, setConnection] = useState<ScanConnection>("direct");
+  const [starting, setStarting] = useState(false);
   const coordinator = useRef<BatchCoordinator | undefined>(undefined);
   const unsubscribe = useRef<(() => void) | undefined>(undefined);
   const revision = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const running = batch?.phase === "running";
   const completed = batch?.targets.filter((target) => target.session?.hasResult) ?? [];
+  useEffect(() => { onBusyChange?.(running || saving || parsing || starting); }, [running, saving, parsing, starting, onBusyChange]);
   useEffect(() => {
     let alive = true;
     void host.getCapabilities().then((capabilities) => { if (alive) setLocalScan(capabilities.localScan); }).catch(() => undefined);
@@ -47,28 +53,36 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews, onWarpSetup }
   const operate = (task: Promise<void>): void => {
     void task.catch((failure) => { setError(true); setMessage(failure instanceof Error ? failure.message : "일괄 점검을 진행하지 못했습니다."); });
   };
-  const start = (): void => {
-    if (!preview?.valid || !localScan || coordinator.current) return;
+  const start = async (): Promise<void> => {
+    if (!preview?.valid || !localScan || coordinator.current || starting) return;
+    setStarting(true);
+    try {
+    if (connection === "warp" && (await host.getWarpStatus()).state !== "ready") {
+      setError(true); setMessage("WARP 등록·구성을 확인하지 못했습니다. 연결 설정을 확인하거나 기본 연결을 선택해 주세요."); return;
+    }
     const targets = preview.rows.flatMap((row) => row.status === "valid" && row.target ? [row.target] : []);
     const current = new BatchCoordinator(host, targets, scope === "entry"
       ? { maxPages: 1, maxDepth: 0, timeoutSec: 60 }
       : scope === "quick" ? { maxPages: 50, maxDepth: 2, timeoutSec: 600 }
-        : { maxPages: 200, maxDepth: 4, timeoutSec: 1500 });
+        : { maxPages: 200, maxDepth: 4, timeoutSec: 1500 }, 500, connection);
     coordinator.current = current; unsubscribe.current = current.subscribe(setBatch);
     setMessage("사이트를 한 곳씩 점검합니다. 화면을 바꾸어도 현재 작업은 유지됩니다."); setError(false);
     operate(current.start());
+    } catch { setError(true); setMessage("연결 구성을 확인하지 못했습니다. 기본 연결을 선택하거나 설정을 확인해 주세요."); }
+    finally { setStarting(false); }
   };
   const save = async (type: "official" | "xlsx"): Promise<void> => {
     if (!completed.length || saving) return;
     setSaving(true); setError(false); setMessage("저장된 사이트별 결과를 준비하고 있습니다.");
     try {
+      await prepareReviews?.();
       const ids = completed.map((target) => target.session!.id);
       let path: string | null;
       if (type === "official") path = await host.exportBatchResults(ids);
       else {
         const sessions: ReportSession[] = [];
         for (const target of completed) {
-          const data = await readReportSession(host, target.session!.id, Object.values(reviews[target.session!.id] ?? {}));
+          const data = await readReportSession(host, target.session!.id, Object.values(reviews[target.session!.id] ?? {}), !!prepareReviews);
           sessions.push({ ...data, label: target.label });
         }
         const { createOperationalWorkbook } = await import("@krds-detector/evidence/report");
@@ -102,7 +116,7 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews, onWarpSetup }
       <details><summary>파일 형식과 열 이름 안내</summary><p>CSV·XLSX 첫 행: 사이트명, 시작 주소. JSONL: {"{\"label\":\"사이트명\",\"entryUrl\":\"https://example.kr/\"}"}. XML은 urlset·sitemapindex를 지원합니다. url, entryUrl / name, label 영문 열도 사용할 수 있습니다. 대상 URL 열은 한 개여야 합니다.</p></details>
     </section> : null}
     {message ? <p role={error ? "alert" : "status"}>{message}</p> : null}
-    {onWarpSetup && (error || batch?.targets.some((target) => target.status === "failed")) ? <><p>점검하지 못한 페이지는 미점검으로 남습니다. 연결 상태를 확인한 뒤 필요한 대상을 직접 다시 점검해 주세요.</p><button type="button" className="secondary" onClick={onWarpSetup}>WARP 연결 설정 확인</button></> : null}
+    {connection === "warp" && onWarpSetup && (error || batch?.targets.some((target) => target.status === "failed")) ? <><p>점검하지 못한 페이지는 미점검으로 남습니다. 연결 상태를 확인한 뒤 필요한 대상을 직접 다시 점검해 주세요.</p><button type="button" className="secondary" onClick={onWarpSetup}>WARP 연결 설정 확인</button></> : null}
     {preview && !batch ? <section aria-label="대상 미리보기">
       <h2>2. 미리보기 확인 후 시작</h2><p>{fileName} · 점검 가능 {preview.valid} · 오류 {preview.invalid} · 중복 {preview.duplicate}</p>
       <ul className="batch-targets">{preview.rows.map((row) => <li key={row.row}><strong>{row.row}행 · {rowLabels[row.status]}</strong><span>{row.target?.label}</span><span className="mono">{row.target?.entryUrl}</span>{row.reason ? <span>{row.reason}</span> : null}</li>)}</ul>
@@ -111,7 +125,8 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews, onWarpSetup }
         <label><input type="radio" name="batch-scope" checked={scope === "quick"} onChange={() => setScope("quick")} /> 빠른 점검 — 최대 50페이지·2단계·10분</label>
         <label><input type="radio" name="batch-scope" checked={scope === "automatic"} onChange={() => setScope("automatic")} /> 자동 점검 — 최대 200페이지·4단계·25분</label>
       </fieldset>
-      <button type="button" className="primary" disabled={!preview.valid || !localScan} onClick={start}>점검 가능 {preview.valid}개 사이트 점검 시작</button>
+      <ConnectionChoice value={connection} onChange={setConnection} onSetup={onWarpSetup} />
+      <button type="button" className="primary" disabled={!preview.valid || !localScan || starting} onClick={() => void start()}>점검 가능 {preview.valid}개 사이트 점검 시작</button>
     </section> : null}
     {batch ? <section aria-label="일괄 점검 현황">
       <h2>일괄 점검 현황</h2><p role="status">{running ? batch.pauseRequested ? "현재 사이트 완료 후 일시정지합니다." : "사이트를 한 곳씩 점검하고 있습니다." : batch.phase === "paused" ? "일시정지됨" : batch.phase === "stopped" ? "중지됨 · 완료된 결과 유지" : "일괄 점검 종료"} · 저장 가능한 결과 {completed.length}/{batch.targets.length}</p>
@@ -125,8 +140,8 @@ export function BatchWorkspace({ host, onBack, onInspect, reviews, onWarpSetup }
       </li>)}</ol>
       <div className="actions"><button type="button" className="primary" disabled={!completed.length || saving} onClick={() => void save("xlsx")}>완료된 대상 통합 엑셀 저장</button>
         <button type="button" className="secondary" disabled={!completed.length || saving} onClick={() => void save("official")}>사이트별 공식 JSON 저장</button></div>
-      <p className="hint">중지해도 완료된 세션과 저장 파일은 유지됩니다. 검토 메모는 현재 앱 화면에 보관되므로 종료 전에 보고서를 저장해 주세요. 결과를 다른 사이트와 합친 공식 JSON은 만들지 않습니다.</p>
-      {!running ? <button type="button" className="secondary" onClick={() => { unsubscribe.current?.(); coordinator.current = undefined; setBatch(undefined); setPreview(undefined); setMessage(""); }}>다른 대상 파일 가져오기</button> : null}
+      <p className="hint">중지해도 완료된 사례와 저장된 검토 기록은 유지됩니다. 일괄 작업 묶음은 재시작 후 복원되지 않습니다. 결과를 다른 사이트와 합친 공식 JSON은 만들지 않습니다.</p>
+      {!running ? <button type="button" className="secondary" onClick={() => { unsubscribe.current?.(); coordinator.current = undefined; setBatch(undefined); setPreview(undefined); setConnection("direct"); setMessage(""); }}>다른 대상 파일 가져오기</button> : null}
     </section> : null}
     <div className="actions"><button type="button" className="secondary" disabled={running} onClick={onBack}>단일 URL 점검으로 돌아가기</button></div>
   </main>;
