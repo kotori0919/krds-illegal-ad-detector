@@ -32,12 +32,21 @@ struct AppState {
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct WarpRegistrationRequest { accept_terms: bool }
+struct WarpRegistrationRequest {
+    accept_terms: bool,
+}
 
 #[tauri::command]
 fn get_warp_status(app: tauri::AppHandle) -> Result<warp::WarpStatus, String> {
-    #[cfg(windows)] { warp::status(&app) }
-    #[cfg(not(windows))] { let _ = app; Ok(warp::WarpStatus::Unsupported) }
+    #[cfg(windows)]
+    {
+        warp::status(&app)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = app;
+        Ok(warp::WarpStatus::Unsupported)
+    }
 }
 
 #[tauri::command]
@@ -47,25 +56,55 @@ fn open_warp_terms() -> Result<(), String> {
         use std::ffi::c_void;
         #[link(name = "shell32")]
         extern "system" {
-            fn ShellExecuteW(window: *mut c_void, operation: *const u16, file: *const u16,
-                parameters: *const u16, directory: *const u16, show: i32) -> *mut c_void;
+            fn ShellExecuteW(
+                window: *mut c_void,
+                operation: *const u16,
+                file: *const u16,
+                parameters: *const u16,
+                directory: *const u16,
+                show: i32,
+            ) -> *mut c_void;
         }
         let operation = b"open\0".map(u16::from);
         let url = b"https://www.cloudflare.com/application/terms/\0".map(u16::from);
         // The command accepts no caller-controlled target or arguments. ShellExecuteW
         // returns values <= 32 on failure; the browser owns the external document.
-        let result = unsafe { ShellExecuteW(std::ptr::null_mut(), operation.as_ptr(), url.as_ptr(),
-            std::ptr::null(), std::ptr::null(), 1) } as isize;
-        if result > 32 { Ok(()) } else { Err("WARP_TERMS_OPEN_FAILED".into()) }
+        let result = unsafe {
+            ShellExecuteW(
+                std::ptr::null_mut(),
+                operation.as_ptr(),
+                url.as_ptr(),
+                std::ptr::null(),
+                std::ptr::null(),
+                1,
+            )
+        } as isize;
+        if result > 32 {
+            Ok(())
+        } else {
+            Err("WARP_TERMS_OPEN_FAILED".into())
+        }
     }
     #[cfg(not(windows))]
-    { Err("WARP_TERMS_UNSUPPORTED".into()) }
+    {
+        Err("WARP_TERMS_UNSUPPORTED".into())
+    }
 }
 
 #[tauri::command]
-async fn register_warp(app: tauri::AppHandle, request: WarpRegistrationRequest) -> Result<warp::WarpStatus, String> {
-    #[cfg(windows)] { warp::register(&app, request.accept_terms).await }
-    #[cfg(not(windows))] { let _ = (app, request); Ok(warp::WarpStatus::Unsupported) }
+async fn register_warp(
+    app: tauri::AppHandle,
+    request: WarpRegistrationRequest,
+) -> Result<warp::WarpStatus, String> {
+    #[cfg(windows)]
+    {
+        warp::register(&app, request.accept_terms).await
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (app, request);
+        Ok(warp::WarpStatus::Unsupported)
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -113,14 +152,38 @@ mod scan_request_tests {
     #[test]
     fn connection_is_optional_direct_and_validated_for_single_and_batch_requests() {
         let mut value = serde_json::json!({"configVersion":1,"entryUrl":"https://example.kr/"});
-        assert_eq!(serde_json::from_value::<ScanStartRequest>(value.clone()).unwrap().connection, warp::ScanConnection::Direct);
+        assert_eq!(
+            serde_json::from_value::<ScanStartRequest>(value.clone())
+                .unwrap()
+                .connection,
+            warp::ScanConnection::Direct
+        );
         value["connection"] = serde_json::json!("warp");
-        assert_eq!(serde_json::from_value::<ScanStartRequest>(value.clone()).unwrap().connection, warp::ScanConnection::Warp);
+        assert_eq!(
+            serde_json::from_value::<ScanStartRequest>(value.clone())
+                .unwrap()
+                .connection,
+            warp::ScanConnection::Warp
+        );
         value["kind"] = serde_json::json!("site");
-        assert_eq!(serde_json::from_value::<BatchScanStartRequest>(value.clone()).unwrap().connection, warp::ScanConnection::Warp);
+        assert_eq!(
+            serde_json::from_value::<BatchScanStartRequest>(value.clone())
+                .unwrap()
+                .connection,
+            warp::ScanConnection::Warp
+        );
         value.as_object_mut().unwrap().remove("connection");
-        assert_eq!(serde_json::from_value::<BatchScanStartRequest>(value.clone()).unwrap().connection, warp::ScanConnection::Direct);
-        for connection in [serde_json::json!("automatic"), serde_json::json!(null), serde_json::json!({})] {
+        assert_eq!(
+            serde_json::from_value::<BatchScanStartRequest>(value.clone())
+                .unwrap()
+                .connection,
+            warp::ScanConnection::Direct
+        );
+        for connection in [
+            serde_json::json!("automatic"),
+            serde_json::json!(null),
+            serde_json::json!({}),
+        ] {
             value["connection"] = connection;
             assert!(serde_json::from_value::<BatchScanStartRequest>(value.clone()).is_err());
             value.as_object_mut().unwrap().remove("kind");
@@ -193,9 +256,13 @@ async fn start_scan(
     // scans must not inspect registration, configuration, or bundled WARP files.
     let transport_args = request.connection.worker_args(|| {
         #[cfg(windows)]
-        { warp::worker_paths(&app) }
+        {
+            warp::worker_paths(&app)
+        }
         #[cfg(not(windows))]
-        { Err("WARP_UNSUPPORTED".into()) }
+        {
+            Err("WARP_UNSUPPORTED".into())
+        }
     })?;
     let started_at = chrono::Utc::now().to_rfc3339();
     let mut record = session::new_session(parsed.clone(), started_at.clone());
@@ -611,8 +678,7 @@ async fn scan_export(
             .set_file_name("result.json")
             .add_filter("JSON", &["json"]);
         if snapshot["status"] == "cancelled" || snapshot["status"] == "failed" {
-            dlg =
-                dlg.set_title("확인한 일부 결과 저장 — 전체 페이지를 확인하지 못했습니다");
+            dlg = dlg.set_title("확인한 일부 결과 저장 — 전체 페이지를 확인하지 못했습니다");
         }
         // Default to the INTERACTIVE user's Documents folder. document_dir()
         // resolves for the process user (SYSTEM under the service task),

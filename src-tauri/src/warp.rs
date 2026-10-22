@@ -70,8 +70,10 @@ impl ScanConnection {
         let mut args = vec!["--require-warp".into()];
         if let Some((executable, configuration)) = paths()? {
             args.extend([
-                "--warp-executable".into(), executable.to_string_lossy().into_owned(),
-                "--warp-config-file".into(), configuration.to_string_lossy().into_owned(),
+                "--warp-executable".into(),
+                executable.to_string_lossy().into_owned(),
+                "--warp-config-file".into(),
+                configuration.to_string_lossy().into_owned(),
             ]);
         }
         Ok(args)
@@ -101,7 +103,9 @@ pub enum FailureScope {
 
 pub fn valid_settings(value: &serde_json::Value, status: &str) -> bool {
     value.is_object()
-        && value.get("connection").is_none_or(|v| serde_json::from_value::<ScanConnection>(v.clone()).is_ok())
+        && value
+            .get("connection")
+            .is_none_or(|v| serde_json::from_value::<ScanConnection>(v.clone()).is_ok())
         && (value.get("transportFailure").is_none() || status == "failed")
         && value
             .get("transport")
@@ -457,7 +461,13 @@ mod tests {
         }
         let request: Request = serde_json::from_str("{}").unwrap();
         assert_eq!(request.connection, ScanConnection::Direct);
-        assert_eq!(request.connection.worker_args(|| panic!("direct scan inspected WARP")).unwrap(), ["--direct-reason", "operator"]);
+        assert_eq!(
+            request
+                .connection
+                .worker_args(|| panic!("direct scan inspected WARP"))
+                .unwrap(),
+            ["--direct-reason", "operator"]
+        );
         for value in ["null", "42", "\"automatic\"", "{}"] {
             assert!(serde_json::from_str::<ScanConnection>(value).is_err());
         }
@@ -466,19 +476,50 @@ mod tests {
     #[test]
     fn explicit_warp_preserves_required_mode_and_surfaces_resource_errors() {
         let selected: ScanConnection = serde_json::from_str("\"warp\"").unwrap();
-        assert_eq!(selected.worker_args(|| Ok(None)).unwrap(), ["--require-warp"]);
-        assert_eq!(selected.worker_args(|| Ok(Some((PathBuf::from("usque"), PathBuf::from("config.json"))))).unwrap(),
-            ["--require-warp", "--warp-executable", "usque", "--warp-config-file", "config.json"]);
-        assert_eq!(selected.worker_args(|| Err("WARP_UNSUPPORTED".into())).unwrap_err(), "WARP_UNSUPPORTED");
+        assert_eq!(
+            selected.worker_args(|| Ok(None)).unwrap(),
+            ["--require-warp"]
+        );
+        assert_eq!(
+            selected
+                .worker_args(|| Ok(Some((PathBuf::from("usque"), PathBuf::from("config.json")))))
+                .unwrap(),
+            [
+                "--require-warp",
+                "--warp-executable",
+                "usque",
+                "--warp-config-file",
+                "config.json"
+            ]
+        );
+        assert_eq!(
+            selected
+                .worker_args(|| Err("WARP_UNSUPPORTED".into()))
+                .unwrap_err(),
+            "WARP_UNSUPPORTED"
+        );
     }
 
     #[test]
     fn saved_connection_and_observed_transport_accept_historical_cases() {
         assert!(valid_settings(&serde_json::json!({}), "succeeded"));
-        assert!(valid_settings(&serde_json::json!({"connection":"direct","transport":{"kind":"direct","reason":"operator"}}), "succeeded"));
-        assert!(valid_settings(&serde_json::json!({"connection":"warp","transport":{"kind":"direct","reason":"owned-origin"}}), "succeeded"));
-        for invalid in [serde_json::json!(null), serde_json::json!("automatic"), serde_json::json!({})] {
-            assert!(!valid_settings(&serde_json::json!({"connection":invalid}), "succeeded"));
+        assert!(valid_settings(
+            &serde_json::json!({"connection":"direct","transport":{"kind":"direct","reason":"operator"}}),
+            "succeeded"
+        ));
+        assert!(valid_settings(
+            &serde_json::json!({"connection":"warp","transport":{"kind":"direct","reason":"owned-origin"}}),
+            "succeeded"
+        ));
+        for invalid in [
+            serde_json::json!(null),
+            serde_json::json!("automatic"),
+            serde_json::json!({}),
+        ] {
+            assert!(!valid_settings(
+                &serde_json::json!({"connection":invalid}),
+                "succeeded"
+            ));
         }
     }
     struct Fixture {

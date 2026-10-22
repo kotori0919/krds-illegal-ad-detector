@@ -224,11 +224,17 @@ impl CaseStore {
             settings,
         } = input;
         safe_id(id)?;
-        if !matches!(status, "succeeded" | "cancelled" | "failed") || !crate::warp::valid_settings(&settings, status) {
+        if !matches!(status, "succeeded" | "cancelled" | "failed")
+            || !crate::warp::valid_settings(&settings, status)
+        {
             return Err("invalid case status".into());
         }
         let canonical = validate_sidecar_stdout(entry, official)?;
-        let canonical = if status == "failed" {official.to_string()} else {canonical};
+        let canonical = if status == "failed" {
+            official.to_string()
+        } else {
+            canonical
+        };
         if canonical.len() as u64 > json_limit() {
             return Err("official result exceeds case limit".into());
         }
@@ -311,7 +317,10 @@ impl CaseStore {
                 .map_err(|e| e.to_string())?;
         if manifest.schema_version != CASE_SCHEMA
             || manifest.case_id != id
-            || !matches!(manifest.status.as_str(), "succeeded" | "cancelled" | "failed")
+            || !matches!(
+                manifest.status.as_str(),
+                "succeeded" | "cancelled" | "failed"
+            )
         {
             return Err("unsupported or mismatched case schema/identity".into());
         }
@@ -619,7 +628,10 @@ fn manifest_metadata_valid(manifest: &CaseManifest) -> bool {
         && timestamp(&manifest.started_at)
         && timestamp(&manifest.finished_at)
         && timestamp(&manifest.exportable_at)
-        && matches!(manifest.status.as_str(), "succeeded" | "cancelled" | "failed")
+        && matches!(
+            manifest.status.as_str(),
+            "succeeded" | "cancelled" | "failed"
+        )
         && bounded(&manifest.tool_version, 128)
         && manifest.policy_version == 2
         && hash(&manifest.official_sha256)
@@ -969,7 +981,8 @@ mod tests {
             let portable = source.export_directory(&id, &output).unwrap();
             for directory in [source.root.join(&id), portable.clone()] {
                 let path = directory.join("manifest.json");
-                let mut manifest: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+                let mut manifest: Value =
+                    serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
                 manifest["status"] = json!(status);
                 fs::write(path, serde_json::to_vec(&manifest).unwrap()).unwrap();
             }
@@ -987,11 +1000,26 @@ mod tests {
         let store = CaseStore::new(root.clone()).unwrap();
         let original = validate_sidecar_stdout("https://example.kr/", &official()).unwrap();
         let cases = [
-            ("succeeded", json!({"connection":"direct","transport":{"kind":"direct","reason":"operator"}})),
-            ("succeeded", json!({"connection":"warp","transport":{"kind":"warp","backend":"usque","version":"4.2.1"}})),
-            ("succeeded", json!({"connection":"warp","transport":{"kind":"direct","reason":"owned-origin"}})),
-            ("succeeded", json!({"transport":{"kind":"direct","reason":"owned-origin"}})),
-            ("succeeded", json!({"transport":{"kind":"direct","reason":"source-cli"}})),
+            (
+                "succeeded",
+                json!({"connection":"direct","transport":{"kind":"direct","reason":"operator"}}),
+            ),
+            (
+                "succeeded",
+                json!({"connection":"warp","transport":{"kind":"warp","backend":"usque","version":"4.2.1"}}),
+            ),
+            (
+                "succeeded",
+                json!({"connection":"warp","transport":{"kind":"direct","reason":"owned-origin"}}),
+            ),
+            (
+                "succeeded",
+                json!({"transport":{"kind":"direct","reason":"owned-origin"}}),
+            ),
+            (
+                "succeeded",
+                json!({"transport":{"kind":"direct","reason":"source-cli"}}),
+            ),
             ("succeeded", json!({})),
             ("cancelled", json!({})),
             ("failed", json!({})),
@@ -999,7 +1027,17 @@ mod tests {
         let mut identities = Vec::new();
         for (status, settings) in &cases {
             let id = uuid::Uuid::new_v4().to_string();
-            store.commit(NewCase { id: &id, entry_url: "https://example.kr/", official: &original, detail: None, extra: None, status, settings: settings.clone() }).unwrap();
+            store
+                .commit(NewCase {
+                    id: &id,
+                    entry_url: "https://example.kr/",
+                    official: &original,
+                    detail: None,
+                    extra: None,
+                    status,
+                    settings: settings.clone(),
+                })
+                .unwrap();
             identities.push(id);
         }
         drop(store);
@@ -1008,9 +1046,14 @@ mod tests {
             let opened = restarted.open_case(id).await.unwrap();
             assert_eq!(opened["manifest"]["status"], *status);
             assert_eq!(opened["manifest"]["settings"], *settings);
-            assert!(opened["manifest"]["settings"].get("transportFailure").is_none());
+            assert!(opened["manifest"]["settings"]
+                .get("transportFailure")
+                .is_none());
             assert_eq!(restarted.snapshot(id).await.unwrap()["status"], *status);
-            assert_eq!(fs::read(root.join(id).join("result.json")).unwrap(), original.as_bytes());
+            assert_eq!(
+                fs::read(root.join(id).join("result.json")).unwrap(),
+                original.as_bytes()
+            );
             assert_eq!(restarted.validated_export_text(id).await.unwrap(), original);
         }
     }
@@ -1020,19 +1063,44 @@ mod tests {
         let temp = Temporary::new();
         let store = CaseStore::new(temp.0.join("cases")).unwrap();
         let id = uuid::Uuid::new_v4().to_string();
-        store.commit(NewCase { id: &id, entry_url: "https://example.kr/", official: &official(), detail: None, extra: None, status: "failed",
-            settings: json!({"transportFailure":{"code":"tunnel-exited","scope":"incomplete"}}) }).unwrap();
+        store
+            .commit(NewCase {
+                id: &id,
+                entry_url: "https://example.kr/",
+                official: &official(),
+                detail: None,
+                extra: None,
+                status: "failed",
+                settings: json!({"transportFailure":{"code":"tunnel-exited","scope":"incomplete"}}),
+            })
+            .unwrap();
         store.save_review(&id, 0, vec![]).unwrap();
         let files = ["manifest.json", "result.json", "review.json"];
-        let before: Vec<_> = files.iter().map(|name| fs::read(store.root.join(&id).join(name)).unwrap()).collect();
+        let before: Vec<_> = files
+            .iter()
+            .map(|name| fs::read(store.root.join(&id).join(name)).unwrap())
+            .collect();
         assert!(store.mark_cancelled(&id).is_err());
         assert_eq!(store.open(&id).unwrap().manifest.status, "failed");
         for (name, bytes) in files.iter().zip(before) {
             assert_eq!(fs::read(store.root.join(&id).join(name)).unwrap(), bytes);
         }
         let ordinary = uuid::Uuid::new_v4().to_string();
-        store.commit(NewCase { id: &ordinary, entry_url: "https://example.kr/", official: &official(), detail: None, extra: None, status: "succeeded", settings: json!({}) }).unwrap();
-        assert_eq!(store.mark_cancelled(&ordinary).unwrap().manifest.status, "cancelled");
+        store
+            .commit(NewCase {
+                id: &ordinary,
+                entry_url: "https://example.kr/",
+                official: &official(),
+                detail: None,
+                extra: None,
+                status: "succeeded",
+                settings: json!({}),
+            })
+            .unwrap();
+        assert_eq!(
+            store.mark_cancelled(&ordinary).unwrap().manifest.status,
+            "cancelled"
+        );
         assert_eq!(store.open(&ordinary).unwrap().manifest.status, "cancelled");
     }
 

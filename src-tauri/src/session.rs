@@ -215,9 +215,19 @@ impl SessionRegistry {
         record.extra_json = case.extra;
         record.evidence = case.evidence;
         record.settings = case.manifest.settings;
-        if let Some(failure) = record.settings.get("transportFailure").and_then(|v| serde_json::from_value::<crate::warp::TransportFailure>(v.clone()).ok()) {
+        if let Some(failure) = record
+            .settings
+            .get("transportFailure")
+            .and_then(|v| serde_json::from_value::<crate::warp::TransportFailure>(v.clone()).ok())
+        {
             record.warp_failure = Some(failure.code);
-            record.error = Some(serde_json::to_value(failure.code).unwrap().as_str().unwrap().to_string());
+            record.error = Some(
+                serde_json::to_value(failure.code)
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+            );
         }
         let mut guard = self.inner.lock().await;
         if guard
@@ -487,7 +497,12 @@ impl SessionRegistry {
         let entry = record.entry_url.clone();
         let failure = record.warp_failure;
         if let Some(code) = failure {
-            record.settings["transportFailure"] = serde_json::to_value(crate::warp::TransportFailure {code, scope: crate::warp::FailureScope::Incomplete}).unwrap();
+            record.settings["transportFailure"] =
+                serde_json::to_value(crate::warp::TransportFailure {
+                    code,
+                    scope: crate::warp::FailureScope::Incomplete,
+                })
+                .unwrap();
         }
         let settings = record.settings.clone();
         let canonical = match validate_sidecar_stdout(&entry, &canonical) {
@@ -517,7 +532,11 @@ impl SessionRegistry {
                 official: &canonical,
                 detail: Some(&detail_json),
                 extra: extra.as_deref(),
-                status: if failure.is_some() { "failed" } else { "succeeded" },
+                status: if failure.is_some() {
+                    "failed"
+                } else {
+                    "succeeded"
+                },
                 settings,
             }) {
                 Ok(case) => {
@@ -546,9 +565,19 @@ impl SessionRegistry {
         }
         record.evidence = evidence;
         record.extra_json = extra;
-        record.status = if failure.is_some() {SessionStatus::Failed} else {SessionStatus::Succeeded};
+        record.status = if failure.is_some() {
+            SessionStatus::Failed
+        } else {
+            SessionStatus::Succeeded
+        };
         record.finished_at = Some(finished_at);
-        record.error = failure.map(|code| serde_json::to_value(code).unwrap().as_str().unwrap().to_string());
+        record.error = failure.map(|code| {
+            serde_json::to_value(code)
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_string()
+        });
         record.child_pid = None;
         true
     }
@@ -691,7 +720,11 @@ impl SessionRegistry {
             .ok_or("no result stored for session yet")?;
         let normalized = validate_sidecar_stdout(&record.entry_url, text)
             .map_err(|error| format!("stored result invalid, export blocked: {error}"))?;
-        Ok(if record.status == SessionStatus::Failed {text.to_string()} else {normalized})
+        Ok(if record.status == SessionStatus::Failed {
+            text.to_string()
+        } else {
+            normalized
+        })
     }
 
     pub async fn progress_snapshot(&self, session_id: &str) -> ProgressSnapshot {
@@ -858,7 +891,9 @@ impl SessionRegistry {
         let mut pump = tokio::spawn(async move {
             let mut lines = BufReader::new(stderr);
             while let Ok(Some(line)) = read_worker_line(&mut lines).await {
-                if registry.record_worker_metadata(&session_owned, &line).await {continue;}
+                if registry.record_worker_metadata(&session_owned, &line).await {
+                    continue;
+                }
                 if let Some(payload) = line.split_once("KRDSPROGRESS ") {
                     let Ok(value) = serde_json::from_str::<serde_json::Value>(payload.1) else {
                         continue;
@@ -913,8 +948,20 @@ impl SessionRegistry {
         }
         match outcome {
             SessionOutcome::Failed { detail } => {
-                if let Some(code) = self.inner.lock().await.get(session_id).and_then(|r| r.warp_failure) {
-                    return SessionOutcome::Failed {detail: serde_json::to_value(code).unwrap().as_str().unwrap().to_string()};
+                if let Some(code) = self
+                    .inner
+                    .lock()
+                    .await
+                    .get(session_id)
+                    .and_then(|r| r.warp_failure)
+                {
+                    return SessionOutcome::Failed {
+                        detail: serde_json::to_value(code)
+                            .unwrap()
+                            .as_str()
+                            .unwrap()
+                            .to_string(),
+                    };
                 }
                 let buffer = diagnostics.lock().await;
                 if buffer.is_empty() {
@@ -941,21 +988,37 @@ impl SessionRegistry {
         if transport.is_none() && failure.is_none() {
             return line.contains("KRDSTRANSPORT") || line.contains("KRDSWARPERROR");
         }
-        if line.len() > 512 {return true;}
+        if line.len() > 512 {
+            return true;
+        }
         let mut guard = self.inner.lock().await;
-        let Some(record) = guard.get_mut(session_id) else {return true;};
-        if record.cancel_requested || !matches!(record.status, SessionStatus::Running | SessionStatus::Finalizing) {return true;}
+        let Some(record) = guard.get_mut(session_id) else {
+            return true;
+        };
+        if record.cancel_requested
+            || !matches!(
+                record.status,
+                SessionStatus::Running | SessionStatus::Finalizing
+            )
+        {
+            return true;
+        }
         if let Some(payload) = transport {
             if record.settings.get("transport").is_none() {
-                if let Ok(value) = serde_json::from_str::<crate::warp::TransportProvenance>(payload) {
+                if let Ok(value) = serde_json::from_str::<crate::warp::TransportProvenance>(payload)
+                {
                     record.settings["transport"] = serde_json::to_value(value).unwrap();
                 }
             }
         } else if let Some(payload) = failure {
             #[derive(serde::Deserialize)]
             #[serde(deny_unknown_fields)]
-            struct FailureRecord {code: crate::warp::WarpFailureCode}
-            if let Ok(value) = serde_json::from_str::<FailureRecord>(payload) {record.warp_failure.get_or_insert(value.code);}
+            struct FailureRecord {
+                code: crate::warp::WarpFailureCode,
+            }
+            if let Ok(value) = serde_json::from_str::<FailureRecord>(payload) {
+                record.warp_failure.get_or_insert(value.code);
+            }
         }
         true
     }
@@ -1182,21 +1245,48 @@ pub fn new_session(entry_url: String, started_at: String) -> SessionRecord {
 }
 
 // Drain oversized lines without allocating or ever treating their suffix as diagnostics.
-async fn read_worker_line<R: tokio::io::AsyncBufRead + Unpin>(reader: &mut R) -> std::io::Result<Option<String>> {
+async fn read_worker_line<R: tokio::io::AsyncBufRead + Unpin>(
+    reader: &mut R,
+) -> std::io::Result<Option<String>> {
     use tokio::io::AsyncBufReadExt;
-    let mut bytes = Vec::new(); let mut oversized = false; let mut seen = false;
+    let mut bytes = Vec::new();
+    let mut oversized = false;
+    let mut seen = false;
     loop {
         let chunk = reader.fill_buf().await?;
-        if chunk.is_empty() {return Ok(if seen {Some(if oversized {String::new()} else {String::from_utf8(bytes).unwrap_or_default()})} else {None});}
+        if chunk.is_empty() {
+            return Ok(if seen {
+                Some(if oversized {
+                    String::new()
+                } else {
+                    String::from_utf8(bytes).unwrap_or_default()
+                })
+            } else {
+                None
+            });
+        }
         seen = true;
         let end = chunk.iter().position(|b| *b == b'\n');
         let length = end.map_or(chunk.len(), |n| n + 1);
         if !oversized {
-            if bytes.len() + length > 65536 {oversized = true; bytes.clear();}
-            else {bytes.extend_from_slice(&chunk[..length]);}
+            if bytes.len() + length > 65536 {
+                oversized = true;
+                bytes.clear();
+            } else {
+                bytes.extend_from_slice(&chunk[..length]);
+            }
         }
         reader.consume(length);
-        if end.is_some() {return Ok(Some(if oversized {String::new()} else {String::from_utf8(bytes).unwrap_or_default().trim_end_matches(['\r', '\n']).to_string()}));}
+        if end.is_some() {
+            return Ok(Some(if oversized {
+                String::new()
+            } else {
+                String::from_utf8(bytes)
+                    .unwrap_or_default()
+                    .trim_end_matches(['\r', '\n'])
+                    .to_string()
+            }));
+        }
     }
 }
 
@@ -1391,31 +1481,66 @@ mod tests {
     async fn warp_failure_retains_official_bytes_and_reopens_failed() {
         let root = std::env::temp_dir().join(format!("warp-case-{}", uuid::Uuid::new_v4()));
         let registry = SessionRegistry::persistent(root.clone()).unwrap();
-        let corpus: serde_json::Value = serde_json::from_str(include_str!("../../packages/contracts/test/fixtures/official-conformance.json")).unwrap();
+        let corpus: serde_json::Value = serde_json::from_str(include_str!(
+            "../../packages/contracts/test/fixtures/official-conformance.json"
+        ))
+        .unwrap();
         let official = corpus["valid"].to_string();
         let mut record = new_session("https://example.kr/".into(), "2026-10-01T00:01:00Z".into());
         let id = record.id.clone();
         record.warp_failure = Some(crate::warp::WarpFailureCode::TunnelExited);
-        record.settings = serde_json::json!({"transport":{"kind":"warp","backend":"usque","version":"4.2.1"}});
+        record.settings =
+            serde_json::json!({"transport":{"kind":"warp","backend":"usque","version":"4.2.1"}});
         registry.insert(record).await;
-        assert!(registry.store_result(&id, official.clone(), "{}".into(), "{}".into(), "2026-10-01T00:02:00Z".into()).await);
+        assert!(
+            registry
+                .store_result(
+                    &id,
+                    official.clone(),
+                    "{}".into(),
+                    "{}".into(),
+                    "2026-10-01T00:02:00Z".into()
+                )
+                .await
+        );
         assert_eq!(registry.snapshot(&id).await.unwrap()["status"], "failed");
-        assert_eq!(std::fs::read_to_string(root.join(&id).join("result.json")).unwrap(), official);
+        assert_eq!(
+            std::fs::read_to_string(root.join(&id).join("result.json")).unwrap(),
+            official
+        );
         drop(registry);
         let reopened = SessionRegistry::persistent(root.clone()).unwrap();
         let case = reopened.open_case(&id).await.unwrap();
         assert_eq!(case["manifest"]["status"], "failed");
-        assert_eq!(case["manifest"]["settings"]["transportFailure"], serde_json::json!({"code":"tunnel-exited","scope":"incomplete"}));
+        assert_eq!(
+            case["manifest"]["settings"]["transportFailure"],
+            serde_json::json!({"code":"tunnel-exited","scope":"incomplete"})
+        );
         assert_eq!(reopened.snapshot(&id).await.unwrap()["status"], "failed");
         assert_eq!(reopened.validated_export_text(&id).await.unwrap(), official);
-        assert_eq!(reopened.case_store().unwrap().save_review(&id, 0, vec![]).unwrap().revision, 1);
-        assert_eq!(reopened.open_case(&id).await.unwrap()["review"]["revision"], 1);
+        assert_eq!(
+            reopened
+                .case_store()
+                .unwrap()
+                .save_review(&id, 0, vec![])
+                .unwrap()
+                .revision,
+            1
+        );
+        assert_eq!(
+            reopened.open_case(&id).await.unwrap()["review"]["revision"],
+            1
+        );
         let manifest_path = root.join(&id).join("manifest.json");
-        let mut manifest: serde_json::Value = serde_json::from_slice(&std::fs::read(&manifest_path).unwrap()).unwrap();
+        let mut manifest: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&manifest_path).unwrap()).unwrap();
         manifest["settings"]["transport"]["token"] = serde_json::json!("private-fixture");
         std::fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
         assert!(reopened.open_case(&id).await.is_err());
-        assert_eq!(std::fs::read_to_string(root.join(&id).join("result.json")).unwrap(), official);
+        assert_eq!(
+            std::fs::read_to_string(root.join(&id).join("result.json")).unwrap(),
+            official
+        );
         drop(reopened);
         std::fs::remove_dir_all(root).unwrap();
     }
@@ -1427,7 +1552,9 @@ mod tests {
         eprintln!("KRDSTRANSPORT {{\"kind\":\"warp\",\"backend\":\"usque\",\"version\":\"4.2.1\",\"token\":\"private-fixture\"}}");
         eprintln!("prefix KRDSTRANSPORT private-fixture");
         eprintln!("KRDSTRANSPORT {{\"kind\":\"direct\",\"reason\":\"owned-origin\"}}");
-        eprintln!("KRDSTRANSPORT {{\"kind\":\"warp\",\"backend\":\"usque\",\"version\":\"4.2.1\"}}");
+        eprintln!(
+            "KRDSTRANSPORT {{\"kind\":\"warp\",\"backend\":\"usque\",\"version\":\"4.2.1\"}}"
+        );
         eprintln!("KRDSWARPERROR {{\"code\":\"tunnel-exited\",\"token\":\"private-fixture\"}}");
         eprintln!("KRDSWARPERROR {{\"code\":\"tunnel-exited\"}}");
         std::process::exit(1);
@@ -1438,16 +1565,40 @@ mod tests {
         let registry = SessionRegistry::shared();
         let record = new_session("https://example.kr/".into(), "2026-10-01T00:00:00Z".into());
         let other = new_session("https://example.kr/".into(), "2026-10-01T00:00:00Z".into());
-        let id = record.id.clone(); let other_id = other.id.clone();
-        registry.insert(record).await; registry.insert(other).await;
+        let id = record.id.clone();
+        let other_id = other.id.clone();
+        registry.insert(record).await;
+        registry.insert(other).await;
         let executable = std::env::current_exe().unwrap();
-        registry.spawn_sidecar_for_test(&id, &[executable.to_str().unwrap(), "--exact", "session::tests::warp_metadata_child", "--ignored", "--nocapture"]).await.unwrap();
-        let outcome = registry.wait_sidecar_with_progress(&id, std::sync::Arc::new(|_| {})).await;
-        let super::SessionOutcome::Failed {detail} = outcome else {panic!("fixture must fail")};
+        registry
+            .spawn_sidecar_for_test(
+                &id,
+                &[
+                    executable.to_str().unwrap(),
+                    "--exact",
+                    "session::tests::warp_metadata_child",
+                    "--ignored",
+                    "--nocapture",
+                ],
+            )
+            .await
+            .unwrap();
+        let outcome = registry
+            .wait_sidecar_with_progress(&id, std::sync::Arc::new(|_| {}))
+            .await;
+        let super::SessionOutcome::Failed { detail } = outcome else {
+            panic!("fixture must fail")
+        };
         assert_eq!(detail, "tunnel-exited");
         let guard = registry.inner.lock().await;
-        assert_eq!(guard[&id].settings, serde_json::json!({"transport":{"kind":"direct","reason":"owned-origin"}}));
-        assert_eq!(guard[&id].warp_failure, Some(crate::warp::WarpFailureCode::TunnelExited));
+        assert_eq!(
+            guard[&id].settings,
+            serde_json::json!({"transport":{"kind":"direct","reason":"owned-origin"}})
+        );
+        assert_eq!(
+            guard[&id].warp_failure,
+            Some(crate::warp::WarpFailureCode::TunnelExited)
+        );
         assert_eq!(guard[&other_id].settings, serde_json::json!({}));
         assert_eq!(guard[&other_id].warp_failure, None);
     }
