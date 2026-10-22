@@ -1474,8 +1474,9 @@ mod tests {
         let portable = source.export_directory(&id, &output).unwrap();
         let original: Value =
             serde_json::from_slice(&fs::read(portable.join("manifest.json")).unwrap()).unwrap();
+        // Status is host-owned lifecycle metadata, not a claim about the official
+        // output; see import_preserves_host_owned_status.
         for (index, (key, value)) in [
-            ("status", json!("failed")),
             ("findings", json!(2)),
             ("startedAt", json!("different")),
             ("finishedAt", json!("different")),
@@ -1494,6 +1495,46 @@ mod tests {
                 "accepted {key}"
             );
             assert!(!target.root().join(&id).exists());
+        }
+        assert_eq!(source.open(&id).unwrap().official, case.official);
+    }
+
+    /// The official result carries no status: status records the host's lifecycle
+    /// outcome and `mark_cancelled` may rewrite it after the worker finished, so a
+    /// portable copy can legitimately carry a status that differs from the original.
+    /// Import must preserve that metadata rather than reject the case.
+    /// `warp_incomplete_manifest_cannot_reopen_or_import_as_complete` covers the
+    /// remaining status constraint: `transportFailure` requires "failed".
+    #[test]
+    fn import_preserves_host_owned_status() {
+        let temp = Temporary::new();
+        let source = CaseStore::new(temp.0.join("source")).unwrap();
+        let id = uuid::Uuid::new_v4().to_string();
+        let case = source
+            .commit(NewCase {
+                id: &id,
+                entry_url: "https://example.kr/",
+                official: &official(),
+                detail: None,
+                extra: None,
+                status: "succeeded",
+                settings: json!({}),
+            })
+            .unwrap();
+        let output = temp.0.join("transfer");
+        fs::create_dir(&output).unwrap();
+        let portable = source.export_directory(&id, &output).unwrap();
+        let original: Value =
+            serde_json::from_slice(&fs::read(portable.join("manifest.json")).unwrap()).unwrap();
+        for (index, status) in ["cancelled", "failed"].into_iter().enumerate() {
+            let target = CaseStore::new(temp.0.join(format!("status-{index}"))).unwrap();
+            let mut manifest = original.clone();
+            manifest["status"] = json!(status);
+            fs::write(portable.join("manifest.json"), manifest.to_string()).unwrap();
+            assert_eq!(target.import_directory(&portable).unwrap(), id);
+            let reopened = target.open(&id).unwrap();
+            assert_eq!(reopened.manifest.status, status);
+            assert_eq!(reopened.official, case.official);
         }
         assert_eq!(source.open(&id).unwrap().official, case.official);
     }
