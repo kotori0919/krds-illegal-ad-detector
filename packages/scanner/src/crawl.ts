@@ -341,11 +341,11 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         const url = res.url();
         const status = res.status();
         if (wasPolicyDenied(url)) collectionIssues.add("network-policy-denied");
-        if (res.request().resourceType() === "image" && status >= 200 && status < 300 && imageResponses.length < 16) {
+        if (res.request().resourceType() === "image" && status >= 200 && status < 300 && imageResponses.length < SCAN_POLICY.visual.candidatesPerDocument * 2) {
           const mediaType = (res.headers()["content-type"] ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
           // Retain descriptors, never response bodies. The gated collector
           // rejects declared oversized assets and rasterizes missing-length ones.
-          if (["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(mediaType)) {
+          if (["image/png", "image/jpeg", "image/webp", "image/gif", "image/svg+xml"].includes(mediaType)) {
             imageResponses.push({ response: res, url, mediaType });
           }
         }

@@ -3,6 +3,7 @@ import type { OfficialTechnique } from "./technique.js";
 import type { DecisionEvidence } from "./detection.js";
 import type { ExtraResult, OfficialResult, ValidationOutcome } from "./result.js";
 import type { EvidenceAsset, EvidenceGraph, InfrastructureRelation, VisualSourceKind, VisualAnalysisCoverage } from "./evidence-access.js";
+import { SCAN_POLICY } from "./config.js";
 
 export interface FindingDetail {
   findingId: string;
@@ -92,10 +93,90 @@ export const scanIssueLabel: Record<ScanIssue["kind"], string> = {
 };
 export const discoverySourceLabel = { entry: "시작 주소", link: "페이지 링크", sitemap: "사이트맵" } as const;
 
+export type TextEmbeddingEvidence = {
+  state: "available";
+  policy: "text-ad-embedding-v1" | "text-ad-embedding-v2" | "text-ad-embedding-v3";
+  model: "embeddinggemma-2-text-f32" | "embeddinggemma-2-text-int8";
+  revision: "daa72c51243991dfcaf9f9137d2c573d8f7790c0";
+  positiveSimilarity: number;
+  negativeSimilarity: number;
+  margin: number;
+  threshold: 0;
+  passed: boolean;
+  elapsedMs: number;
+} | { state: "unavailable"; reason: "budget" | "model-error" | "invalid-input" };
+
+export function validTextEmbeddingEvidence(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const evidence = value as Record<string, unknown>;
+  if (evidence.state === "unavailable") return typeof evidence.reason === "string"
+    && ["budget", "model-error", "invalid-input"].includes(evidence.reason);
+  const cosine = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= -1 && n <= 1;
+  return evidence.state === "available" && ["text-ad-embedding-v1", "text-ad-embedding-v2", "text-ad-embedding-v3"].includes(String(evidence.policy))
+    && (evidence.model === "embeddinggemma-2-text-f32" || (evidence.model === "embeddinggemma-2-text-int8" && evidence.policy === "text-ad-embedding-v3")) && evidence.revision === "daa72c51243991dfcaf9f9137d2c573d8f7790c0"
+    && cosine(evidence.positiveSimilarity) && cosine(evidence.negativeSimilarity)
+    && typeof evidence.margin === "number" && Number.isFinite(evidence.margin)
+    && Math.abs(evidence.margin - (evidence.positiveSimilarity - evidence.negativeSimilarity)) <= 1e-6
+    && evidence.threshold === 0 && typeof evidence.passed === "boolean" && evidence.passed === (evidence.margin >= 0)
+    && typeof evidence.elapsedMs === "number" && Number.isFinite(evidence.elapsedMs) && evidence.elapsedMs >= 0 && evidence.elapsedMs <= 8000;
+}
+
+export type VisualEmbeddingEvidence = {
+  state: "available"; policy: "image-ad-embedding-v1" | "image-ad-embedding-v2" | "image-ad-embedding-v3"; model: "embeddinggemma-2-image-text-f32" | "embeddinggemma-2-image-text-int8" | "embeddinggemma-2-image-text-f32-vision-int8";
+  revision: "daa72c51243991dfcaf9f9137d2c573d8f7790c0"; imageSha256: string;
+  positiveSimilarity: number; negativeSimilarity: number; margin: number;
+  shuffledPositiveSimilarity: number; shuffledNegativeSimilarity: number; shuffledMargin: number;
+  threshold: 0; control: "pixel-shuffle-v1"; seed: 1701; passed: boolean; elapsedMs: number;
+} | { state: "unavailable"; reason: "budget" | "model-error" | "invalid-input" };
+
+export function validVisualEmbeddingEvidence(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const e = value as Record<string, unknown>;
+  if (e.state === "unavailable") return ["budget", "model-error", "invalid-input"].includes(String(e.reason));
+  const cosine = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x) && x >= -1 && x <= 1;
+  return e.state === "available" && ["image-ad-embedding-v1", "image-ad-embedding-v2", "image-ad-embedding-v3"].includes(String(e.policy)) && (e.model === "embeddinggemma-2-image-text-f32" || (["embeddinggemma-2-image-text-int8", "embeddinggemma-2-image-text-f32-vision-int8"].includes(String(e.model)) && e.policy === "image-ad-embedding-v3"))
+    && e.revision === "daa72c51243991dfcaf9f9137d2c573d8f7790c0" && typeof e.imageSha256 === "string" && /^[a-f0-9]{64}$/.test(e.imageSha256)
+    && cosine(e.positiveSimilarity) && cosine(e.negativeSimilarity) && cosine(e.shuffledPositiveSimilarity) && cosine(e.shuffledNegativeSimilarity)
+    && typeof e.margin === "number" && Number.isFinite(e.margin) && Math.abs(e.margin - (e.positiveSimilarity - e.negativeSimilarity)) <= 1e-6
+    && typeof e.shuffledMargin === "number" && Number.isFinite(e.shuffledMargin) && Math.abs(e.shuffledMargin - (e.shuffledPositiveSimilarity - e.shuffledNegativeSimilarity)) <= 1e-6
+    && e.threshold === 0 && e.control === "pixel-shuffle-v1" && e.seed === 1701
+    && typeof e.passed === "boolean" && e.passed === (e.margin >= 0 && e.shuffledMargin < 0)
+    && typeof e.elapsedMs === "number" && Number.isFinite(e.elapsedMs) && e.elapsedMs >= 0 && e.elapsedMs <= 16000;
+}
+
+function validVisualReview(analysis: ImageAnalysis): boolean {
+  if (analysis.decision?.score !== 3 || analysis.decision.threshold !== 3 || !analysis.decision.passed
+    || !validVisualEmbeddingEvidence(analysis.visualEmbedding) || analysis.visualEmbedding?.state !== "available"
+    || !analysis.visualEmbedding.passed || analysis.assetId !== `visual-${analysis.visualEmbedding.imageSha256}`
+    || analysis.ocr?.state !== "available" || typeof analysis.ocr.text !== "string" || analysis.ocr.text.length > 4096
+    || analysis.visibleDomEquivalent !== false || !analysis.candidateEvidence?.includes("external-destination")) return false;
+  try {
+    const target = new URL(analysis.destinationUrl ?? ""), page = new URL(analysis.frameUrl ?? "");
+    return ["http:", "https:"].includes(target.protocol) && !target.username && !target.password
+      && ["http:", "https:"].includes(page.protocol) && target.hostname !== page.hostname;
+  } catch { return false; }
+}
+
+function validTextReview(analysis: ImageAnalysis): boolean {
+  if (analysis.decision?.score !== 3 || analysis.decision.threshold !== 3 || analysis.decision.passed !== true
+    || !validTextEmbeddingEvidence(analysis.textEmbedding) || analysis.textEmbedding?.state !== "available"
+    || !analysis.textEmbedding.passed || analysis.ocr?.state !== "available"
+    || typeof analysis.ocr.text !== "string" || !analysis.ocr.text.trim()
+    || analysis.ocr.text.length > 4096 || analysis.visibleDomEquivalent !== false
+    || !Array.isArray(analysis.candidateEvidence) || !analysis.candidateEvidence.includes("external-destination")) return false;
+  try {
+    const destination = new URL(analysis.destinationUrl ?? "");
+    const page = new URL(analysis.frameUrl ?? "");
+    return ["http:", "https:"].includes(destination.protocol) && !destination.username && !destination.password
+      && ["http:", "https:"].includes(page.protocol) && destination.hostname !== page.hostname;
+  } catch { return false; }
+}
+
 export interface ImageAnalysis {
   analysisId?: string;
   assetId?: string;
   sourceKind?: VisualSourceKind;
+  animationFrame?: { index: number; timestampMs: number };
   frameUrl?: string;
   location?: string;
   destinationUrl?: string;
@@ -107,6 +188,9 @@ export interface ImageAnalysis {
   ocr: { state: "available"; backend: string; text: string; confidence: number }
     | { state: "unavailable"; backend: string; reason: "budget" | "recognition-error" };
   matchedTerms: string[];
+  textEmbedding?: TextEmbeddingEvidence;
+  visualEmbedding?: VisualEmbeddingEvidence;
+  ocrAlternatives?: ImageAnalysis["ocr"][];
   normalizedText?: string;
   decision: DecisionEvidence;
 }
@@ -275,11 +359,20 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
         || !analysis.pageUrls.length || analysis.pageUrls.some((url) => typeof url !== "string" || !url)
         || !Array.isArray(analysis.matchedTerms) || analysis.matchedTerms.some((term) => typeof term !== "string")
         || analysis.normalizedText !== undefined && typeof analysis.normalizedText !== "string") errors.push("image analysis source invalid");
+      if (analysis.ocrAlternatives !== undefined && (!Array.isArray(analysis.ocrAlternatives) || analysis.ocrAlternatives.length > 1
+        || analysis.ocrAlternatives.some(item => !item || typeof item.backend !== "string" || !item.backend || item.backend.length > 128
+          || (item.state === "available" ? typeof item.text !== "string" || item.text.length > 4096 || !Number.isFinite(item.confidence)
+            || item.confidence < 0 || item.confidence > 1 : item.state !== "unavailable" || !["budget", "recognition-error"].includes(item.reason))))) errors.push("OCR alternatives invalid");
       const recognition = analysis.ocr;
       if (!recognition || typeof recognition.backend !== "string" || !recognition.backend
         || (recognition.state === "available" ? typeof recognition.text !== "string"
           || !Number.isFinite(recognition.confidence) || recognition.confidence < 0 || recognition.confidence > 1
           : recognition.state !== "unavailable" || !["budget", "recognition-error"].includes(recognition.reason))) errors.push("image OCR representation invalid");
+      if (analysis.textEmbedding !== undefined && !validTextEmbeddingEvidence(analysis.textEmbedding)) errors.push("text embedding evidence invalid");
+      if (analysis.visualEmbedding !== undefined && !validVisualEmbeddingEvidence(analysis.visualEmbedding)) errors.push("image embedding evidence invalid");
+      if (analysis.visualEmbedding?.state === "available" && analysis.assetId !== `visual-${analysis.visualEmbedding.imageSha256}`) errors.push("image embedding asset mismatch");
+      if (analysis.decision?.rule === "image-only-ad-v5-image-review" && !validVisualReview(analysis)) errors.push("image embedding review invalid");
+      if (analysis.decision?.rule === "image-only-ad-v4-text-review" && !validTextReview(analysis)) errors.push("text embedding review invalid");
       const decision = analysis.decision;
       if (!decision || typeof decision.rule !== "string" || typeof decision.detail !== "string"
         || !Number.isFinite(decision.score) || !Number.isFinite(decision.threshold)
@@ -322,6 +415,10 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
   }
   if (visualCharacters>5_340_000) errors.push("visual assets exceed capture budget");
   for (const analysis of Array.isArray(bundle.imageAnalysis) ? bundle.imageAnalysis : []) {
+    if (analysis.animationFrame !== undefined && (!analysis.animationFrame || !Number.isSafeInteger(analysis.animationFrame.index)
+      || analysis.animationFrame.index < 0 || analysis.animationFrame.index >= SCAN_POLICY.visual.animationFrames
+      || !Number.isFinite(analysis.animationFrame.timestampMs) || analysis.animationFrame.timestampMs < 0
+      || analysis.animationFrame.timestampMs > 86_400_000)) errors.push("animation frame invalid");
     if (analysis.assetId!==undefined && !assets.has(analysis.assetId)) errors.push("image asset missing");
     if (analysis.sourceKind!==undefined && !["img","background-image","svg","canvas"].includes(analysis.sourceKind)) errors.push("visual source invalid");
     if (analysis.visibleDomEquivalent!==undefined && typeof analysis.visibleDomEquivalent!=="boolean") errors.push("visible DOM equivalence invalid");
@@ -329,7 +426,9 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
       const finding=extra.findings.find((finding)=>finding.id===analysis.extraFindingId);
       if (!finding || finding.extra_finding!=="IMAGE_ONLY_ILLEGAL_AD" || finding.location!==analysis.location
         || analysis.ocr?.state!=="available" || finding.evidence_text!==analysis.ocr.text
-        || !analysis.decision?.passed || analysis.visibleDomEquivalent!==false || !analysis.matchedTerms?.length
+        || !analysis.decision?.passed || analysis.visibleDomEquivalent!==false || (!analysis.matchedTerms?.length
+          && !(analysis.decision?.rule === "image-only-ad-v4-text-review" && validTextReview(analysis))
+          && !(analysis.decision?.rule === "image-only-ad-v5-image-review" && validVisualReview(analysis)))
         || finding.url!==analysis.frameUrl) errors.push("image-only identity invalid");
     }
   }
@@ -356,7 +455,7 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
     if(selection && (typeof selection.policy!=="string" || !selection.policy
       || ![selection.retainedRecords,selection.retainedAssets,selection.retainedBytes,selection.excludedRecords].every(n=>Number.isSafeInteger(n)&&n>=0)
       || selection.retainedRecords>64 || selection.retainedAssets>40 || selection.retainedBytes>2_000_000
-      || !Array.isArray(selection.ocrSha256) || selection.ocrSha256.length>6 || new Set(selection.ocrSha256).size!==selection.ocrSha256.length
+      || !Array.isArray(selection.ocrSha256) || selection.ocrSha256.length>SCAN_POLICY.visual.ocrImages || new Set(selection.ocrSha256).size!==selection.ocrSha256.length
       || selection.ocrSha256.some(sha=>!/^[a-f0-9]{64}$/.test(sha)))) errors.push("visual selection invalid");
     const integer = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
     const limits = ["page-limit", "candidate-limit", "element-limit", "byte-limit", "ocr-image-limit", "deadline"];
@@ -366,7 +465,8 @@ export function validateScanDetailBundle(bundle: ScanDetailBundle, official: Off
       || c.candidateTotal !== null || !c.limits
       || ![c.limits.pages, c.limits.candidatesPerDocument, c.limits.elementsPerDocument,
         c.limits.bytesPerPage, c.limits.distinctOcrImages].every((value) => integer(value) && value > 0)
-      || c.pagesConsidered > c.limits.pages || c.imagesAcquired > c.candidatesObserved
+      || c.limits.framesPerCandidate !== undefined && (!integer(c.limits.framesPerCandidate) || c.limits.framesPerCandidate < 1 || c.limits.framesPerCandidate > SCAN_POLICY.visual.framesPerCandidate)
+      || c.pagesConsidered > c.limits.pages || c.imagesAcquired > c.candidatesObserved * (c.limits.framesPerCandidate ?? 1)
       || c.imageAnalysisRecords > c.imagesAcquired || c.ocrImagesAttempted > c.imageAnalysisRecords
       || c.ocrImagesAttempted > c.limits.distinctOcrImages
       || c.ocrImagesCompleted + c.ocrImagesUnavailable !== c.ocrImagesAttempted

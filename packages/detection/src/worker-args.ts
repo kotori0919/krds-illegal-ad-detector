@@ -6,9 +6,10 @@ export interface WorkerArgs {
   executablePath?: string; channel?: string; outFile?: string; detailOutFile?: string; extraOutFile?: string;
   publicNetworkOnly: boolean; entryKind: "site" | "sitemap";
   requireWarp: boolean; warpExecutable?: string; warpConfigFile?: string;
+  directReason: "operator" | "source-cli";
 }
 const valueFlags = ["--session", "--entry-url", "--max-pages", "--max-depth", "--max-frame-depth", "--timeout-sec", "--settle-ms", "--concurrency",
-  "--executable-path", "--channel", "--out-file", "--detail-out-file", "--extra-out-file", "--entry-kind", "--warp-executable", "--warp-config-file"];
+  "--executable-path", "--channel", "--out-file", "--detail-out-file", "--extra-out-file", "--entry-kind", "--warp-executable", "--warp-config-file", "--direct-reason"];
 
 /** A single, bounded CLI input boundary. Unknown/duplicate flags never become policy overrides. */
 export function parseWorkerArgs(argv: readonly string[]): WorkerArgs {
@@ -51,8 +52,11 @@ export function parseWorkerArgs(argv: readonly string[]): WorkerArgs {
   const warpExecutable = values.get("--warp-executable");
   const warpConfigFile = values.get("--warp-config-file");
   if (Boolean(warpExecutable) !== Boolean(warpConfigFile)) throw new Error("Managed WARP paths must be paired");
+  const directReason = values.get("--direct-reason") ?? "source-cli";
+  if (directReason !== "operator" && directReason !== "source-cli") throw new Error("Unsupported direct transport reason");
+  if (values.has("--direct-reason") && (requireWarp || warpExecutable)) throw new Error("Direct and WARP transport arguments cannot be combined");
   if (channel && !["chrome", "chrome-beta", "chrome-dev", "chrome-canary", "msedge", "msedge-beta", "msedge-dev", "msedge-canary"].includes(channel)) throw new Error("Unsupported installed-browser channel");
   return { session, entryUrl, ...config.value.limits, settleMs: config.value.settleMs, concurrency: config.value.concurrency,
     executablePath: values.get("--executable-path"), channel, outFile: values.get("--out-file"), detailOutFile: values.get("--detail-out-file"),
-    extraOutFile: values.get("--extra-out-file"), publicNetworkOnly, entryKind, requireWarp, warpExecutable, warpConfigFile };
+    extraOutFile: values.get("--extra-out-file"), publicNetworkOnly, entryKind, requireWarp, warpExecutable, warpConfigFile, directReason };
 }

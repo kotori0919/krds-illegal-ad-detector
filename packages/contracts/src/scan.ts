@@ -20,10 +20,13 @@ import { SCAN_POLICY } from "./config.js";
 
 export const DEFAULT_SCAN_LIMITS: ScanLimits = SCAN_POLICY.scan.defaults;
 
+export type ScanConnection = "direct" | "warp";
+
 export interface ScanRequest {
   /** HostBridge fills the IPC version; ordinary UI inputs may omit it. */
   configVersion?: 1;
   entryUrl: string;
+  connection?: ScanConnection;
   limits?: Partial<ScanLimits>;
 }
 

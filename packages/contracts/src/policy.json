@@ -88,14 +88,17 @@
     "findings": 20000
   },
   "visual": {
-    "bytesPerPage": 250000,
+    "bytesPerPage": 1000000,
+    "assetBytes": 250000,
+    "framesPerCandidate": 4,
+    "animationFrames": 120,
     "retainedBytes": 2000000,
     "retainedRecords": 64,
     "retainedAssets": 40,
-    "ocrImages": 6,
+    "ocrImages": 40,
     "captureAssets": 24,
     "captureBytes": 2000000,
-    "candidatesPerDocument": 8,
+    "candidatesPerDocument": 32,
     "elementsPerDocument": 10000,
     "ocrTimeoutMs": 8000,
     "maxImagePixels": 4000000

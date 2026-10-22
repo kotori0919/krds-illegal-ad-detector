@@ -23,6 +23,18 @@ describe("shared scan deadline", () => {
     expect(deadline.operationTimeoutMs(10_000)).toBe(1_999);
   });
 
+  it("can use reserved analysis time after official commit without consuming detail output time", () => {
+    let now = 0;
+    const deadline = new ScanDeadline(60, () => now);
+    now = 54_000;
+    expect(deadline.operationTimeoutMs(8000)).toBe(0);
+    expect(deadline.postCommitTimeoutMs(8000)).toBe(4000);
+    now = 58_000;
+    expect(deadline.postCommitTimeoutMs(8000)).toBe(0);
+    now = 60_000;
+    expect(deadline.expired()).toBe(true);
+  });
+
   it("settles without launching a browser when the shared deadline cannot admit a page", async () => {
     const summary = await crawlSite({
       entryUrl: "http://127.0.0.1:9/",

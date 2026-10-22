@@ -37,3 +37,29 @@ it("retains the visible DOM equivalence and missing OCR guards", () => {
   expect(decideVisualImage(candidate, { state: "unavailable", backend: "offline", reason: "recognition-error" }, false)
     .decision.passed).toBe(false);
 });
+
+it("corroborates the observed external banner's compound gambling deposit offer", () => {
+  const verdict = decide("페이백\n10%\n콤프\n3.5%\nUSDT\n테더\n입금\n가능");
+  expect(verdict.decision.passed).toBe(true);
+  expect(verdict.gate.matchedTerms).toEqual(expect.arrayContaining(["페이백", "콤프"]));
+});
+
+it.each([
+  "온라인 게임 첫충100% 페이백 쿠폰 이벤트",
+  "정식 모바일 게임 첫 충전10% 페이백 보상 지급",
+  "쇼핑 페이백10% 적립 입금 안내",
+  "카지노 첫충·페이백·콤프 3.5% 불법광고 신고 및 예방 안내",
+  "불법도박 교육: ‘페이백10% 콤프3.5% 입금 가능’ 문구를 신고하세요",
+  "콤프 3.5% 이용 통계",
+  "페이백10% 콤프3.5%",
+  "첫충70% 페이백10% 콤프3.5% 입금 광고를 발견하면 신고해 주세요.",
+  "첫충70% 페이백10% 콤프3.5% 입금 문구는 도박 예방을 위한 교육용 예시입니다.",
+  "교육: 첫충70% 페이백10% 콤프3.5% 입금 광고를 주의하세요.",
+])("does not turn an ordinary offer, public notice or incomplete compound into a deposit ad: %s", (text) => {
+  expect(decide(text).decision.passed).toBe(false);
+});
+
+it.each(["신규회원 쿠폰 지급 브랜드 이벤트", "무료체험 신청 제공", "카지노", "온라인 게임 첫충100% 페이백 쿠폰 이벤트"])(
+  "does not treat a banner marker as proof of illegal semantics: %s", (text) => {
+    expect(decide(text, { candidateEvidence: ["ad-marker", "external-destination"] }).decision.passed).toBe(false);
+  });

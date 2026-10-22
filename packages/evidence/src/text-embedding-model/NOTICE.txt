@@ -1,0 +1,9 @@
+EmbeddingGemma 2 text backbone and vision encoder: Google DeepMind.
+Upstream: https://huggingface.co/google/embeddinggemma-2
+ONNX conversion: https://huggingface.co/onnx-community/embeddinggemma-2-ONNX
+Pinned ONNX revision: daa72c51243991dfcaf9f9137d2c573d8f7790c0
+Apache License, Version 2.0. See LICENSE.txt and manifest.json.
+This application uses the FP32 text graph and the INT8 weight-only vision encoder.
+The selected vision graph uses 8-bit blocks of 32; activations and graph inputs/outputs remain float32.
+Text and image-only vectors use separately prepared, model-matched fixed references.
+Audio and video encoders are not packaged. See manifest.json for pinned asset hashes.

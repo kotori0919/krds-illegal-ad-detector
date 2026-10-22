@@ -15,7 +15,9 @@ export interface VisualCandidate {
   visibleDomAdTexts: string[];
 }
 
-export type CapturedVisualImage = Omit<CreativeImage, "findingId" | "dataUrl"> & { dataUrl: string; candidate: VisualCandidate };
+export type CapturedVisualImage = Omit<CreativeImage, "findingId" | "dataUrl"> & {
+  dataUrl: string; candidate: VisualCandidate; animationFrame?: { index: number; timestampMs: number };
+};
 
 export interface LiveVisualRequest {
   page: Page; frames: LiveFrame[]; responses: LiveImageResponse[];
@@ -71,7 +73,24 @@ function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>, limit
     const parent = el.parentElement;
     const marker = `${el.getAttribute("alt") ?? ""} ${el.id} ${el.getAttribute("class") ?? ""} ${el.getAttribute("aria-label") ?? ""} ${parent?.id ?? ""} ${parent?.getAttribute("class") ?? ""}`;
     const link = el.closest("a[href]") as HTMLAnchorElement | null;
-    const external = link !== null && /^https?:$/.test(link.protocol) && link.host !== location.host;
+    let destinationUrl = link?.href;
+    if (!link) {
+      for (let owner: Element | null = el, depth = 0; owner && depth < 8; owner = owner.parentElement, depth += 1) {
+        if (!(owner instanceof HTMLButtonElement)) continue;
+        const raw = owner.getAttribute("data-banner-href") ?? owner.getAttribute("data-href");
+        if (raw) {
+          try {
+            const destination = new URL(raw, document.baseURI);
+            if (/^https?:$/.test(destination.protocol) && !destination.username && !destination.password) destinationUrl = destination.href;
+          } catch { /* Invalid observed destinations do not admit a candidate. */ }
+        }
+        break;
+      }
+    }
+    let external = false;
+    if (destinationUrl) {
+      try { const destination = new URL(destinationUrl); external = /^https?:$/.test(destination.protocol) && destination.host !== location.host; } catch { /* Invalid link. */ }
+    }
     const marked = hint.test(marker);
     if (!marked && !external) continue;
     let sourceKind: BrowserCandidate["sourceKind"];
@@ -97,7 +116,7 @@ function selectVisuals(selectors: ReturnType<typeof createSelectorEngine>, limit
     // Inline/blob images use page + selector provenance; asset bytes must not
     // leak into the metadata URL carried to the results workspace.
     if (resourceUrl && !/^https?:/i.test(resourceUrl)) resourceUrl = undefined;
-    candidates.push({ sourceKind, selector, resourceUrl, destinationUrl: link?.href,
+    candidates.push({ sourceKind, selector, resourceUrl, destinationUrl,
       candidateEvidence: [...(marked ? ["ad-marker"] : []), ...(external ? ["external-destination"] : [])] });
   }
   const walker = document.createTreeWalker(document.body ?? document.documentElement, NodeFilter.SHOW_TEXT);
@@ -252,11 +271,11 @@ export async function collectPageCreatives(
           if (observed) {
             mediaType = observed.mediaType; sourceUrl = observed.url;
             const declaredBytes = Number(observed.response.headers()["content-length"] ?? 0);
-            if (declaredBytes > SCAN_POLICY.visual.bytesPerPage || declaredBytes > maxBytes - bytes) { skip("byte-limit", "candidate"); continue; }
+            if (declaredBytes > SCAN_POLICY.visual.assetBytes || declaredBytes > maxBytes - bytes) { skip("byte-limit", "candidate"); continue; }
             if (mediaType === "image/svg+xml" && candidate.sourceKind === "img") candidate.sourceKind = "svg";
             if (declaredBytes > 0 && mediaType !== "image/svg+xml") {
               body = await within(observed.response.body(), Math.max(1, deadline.operationTimeoutMs(1000)), signal);
-              if (!body.length || body.length > SCAN_POLICY.visual.bytesPerPage || bytes + body.length > maxBytes) { skip(body.length ? "byte-limit" : "image-unavailable", "candidate"); continue; }
+              if (!body.length || body.length > SCAN_POLICY.visual.assetBytes || bytes + body.length > maxBytes) { skip(body.length ? "byte-limit" : "image-unavailable", "candidate"); continue; }
             }
           }
           // Rasterize only candidates already admitted by marker/link/geometry
@@ -266,6 +285,12 @@ export async function collectPageCreatives(
             const locator = frame.locator(selectedCandidate.selector);
             if (await locator.count() !== 1) { skip("target-unavailable", "candidate"); continue; }
             await locator.scrollIntoViewIfNeeded({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
+            const loaded = await within(locator.evaluate(async (element) => {
+              if (!(element instanceof HTMLImageElement)) return true;
+              if (!element.complete || !element.naturalWidth) await element.decode();
+              return element.naturalWidth > 0;
+            }), Math.max(1, deadline.operationTimeoutMs(1000)), signal);
+            if (!loaded) { skip("image-unavailable", "candidate"); continue; }
             const box = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
             if (!box || box.width < 8 || box.height < 8 || box.width * box.height > SCAN_POLICY.visual.maxImagePixels) { skip("target-unavailable", "candidate"); continue; }
             body = await locator.screenshot({ type: "png", timeout: Math.max(1, deadline.operationTimeoutMs(1000)), animations: "disabled" });
@@ -273,29 +298,147 @@ export async function collectPageCreatives(
             const after = await locator.boundingBox({ timeout: Math.max(1, deadline.operationTimeoutMs(500)) });
             if (!after || after.x !== box.x || after.y !== box.y || after.width !== box.width || after.height !== box.height) { skip("target-unavailable", "candidate"); continue; }
           }
-          if (!enoughTime() || !body.length || body.length > SCAN_POLICY.visual.bytesPerPage || bytes + body.length > maxBytes) {
+          if (!enoughTime() || !body.length || body.length > SCAN_POLICY.visual.assetBytes || bytes + body.length > maxBytes) {
             skip(!enoughTime() ? unavailableReason() : body.length ? "byte-limit" : "image-unavailable", "candidate"); continue;
           }
-          const decoded = await within(page.evaluate(async ({ imageBytes, type, maxImagePixels }) => {
+          const decodeTimeout = Math.max(1, deadline.operationTimeoutMs(mediaType === "image/gif" ? 3000 : 1000));
+          const decoded = await within(page.evaluate(async ({ imageBytes, type, maxImagePixels, framesPerCandidate, animationFrames, assetBytes, budgetMs }) => {
+            interface Decoded {
+              width: number; height: number; rgba: number[]; normalizedDataUrl?: string;
+              animationFrame?: { index: number; timestampMs: number }; singleFrame?: boolean; partialAnimation?: boolean;
+            }
+            const thumbnail = document.createElement("canvas"); thumbnail.width = 8; thumbnail.height = 8;
+            const context = thumbnail.getContext("2d", { willReadFrequently: true });
+            if (!context) return [];
+            const sample = (image: CanvasImageSource, width: number, height: number): Decoded | undefined => {
+              if (width < 8 || height < 8 || width * height > maxImagePixels) return undefined;
+              context.clearRect(0, 0, 8, 8); context.drawImage(image, 0, 0, 8, 8);
+              return { width, height, rgba: Array.from(context.getImageData(0, 0, 8, 8).data) };
+            };
+            const encode = (image: CanvasImageSource, frame: Decoded): boolean => {
+              const canvas = document.createElement("canvas"); canvas.width = frame.width; canvas.height = frame.height;
+              const full = canvas.getContext("2d");
+              if (!full) return false;
+              full.drawImage(image, 0, 0);
+              const dataUrl = canvas.toDataURL("image/png");
+              const encoded = dataUrl.slice(dataUrl.indexOf(",") + 1);
+              const bytes = encoded.length * 3 / 4 - (encoded.endsWith("==") ? 2 : encoded.endsWith("=") ? 1 : 0);
+              if (bytes > assetBytes) return false;
+              frame.normalizedDataUrl = dataUrl; return true;
+            };
+            const Decoder = (globalThis as typeof globalThis & { ImageDecoder?: new (options: { data: Uint8Array; type: string; preferAnimation: boolean }) => {
+              tracks: { ready: Promise<void>; selectedTrack?: { frameCount: number } };
+              decode: (options: { frameIndex: number; completeFramesOnly: boolean }) => Promise<{ image: VideoFrame }>;
+              close: () => void;
+            } }).ImageDecoder;
+            if (type === "image/gif" && Decoder) {
+              const decoder = new Decoder({ data: new Uint8Array(imageBytes), type, preferAnimation: true });
+              const detail = document.createElement("canvas"); detail.width = 128; detail.height = 32;
+              const detailContext = detail.getContext("2d", { willReadFrequently: true });
+              if (!detailContext) { decoder.close(); return []; }
+              let selected: { frame: Decoded; score: number; luma: number[] }[] = [];
+              const distance = (a: number[], b: number[]): number => {
+                let sum = 0;
+                for (let pixel = 0; pixel < a.length; pixel += 1) sum += Math.abs(a[pixel]! - b[pixel]!);
+                return sum;
+              };
+              const seen = new Set<string>();
+              const expires = performance.now() + budgetMs;
+              try {
+                await decoder.tracks.ready;
+                const total = decoder.tracks.selectedTrack?.frameCount ?? 1;
+                const count = Math.min(animationFrames, total);
+                let inspected = 0;
+                for (let index = 0; index < count && performance.now() < expires; index += 1) {
+                  const { image } = await decoder.decode({ frameIndex: index, completeFramesOnly: true });
+                  inspected += 1;
+                  try {
+                    const frame = sample(image, image.displayWidth, image.displayHeight);
+                    if (!frame) continue;
+                    detailContext.clearRect(0, 0, 128, 32);
+                    detailContext.drawImage(image, 0, 0, 128, 32);
+                    const rgba = detailContext.getImageData(0, 0, 128, 32).data;
+                    // A tiny global thumbnail can erase readable brief text.
+                    // Keep this finer signature separate from the creative hash.
+                    const signature = Array.from(rgba, value => String.fromCharCode(value >> 4)).join("");
+                    if (seen.has(signature)) continue;
+                    seen.add(signature);
+                    const luma = Array.from({ length: 4096 }, (_, pixel) => {
+                      const offset = pixel * 4, alpha = rgba[offset + 3]! / 255;
+                      return (rgba[offset]! * 0.299 + rgba[offset + 1]! * 0.587 + rgba[offset + 2]! * 0.114) * alpha + 255 * (1 - alpha);
+                    });
+                    let score = 0;
+                    for (let pixel = 0; pixel < 4096; pixel += 1) {
+                      if (pixel % 128) score += Math.abs(luma[pixel]! - luma[pixel - 1]!);
+                      if (pixel >= 128) score += Math.abs(luma[pixel]! - luma[pixel - 128]!);
+                    }
+                    if (!score && selected.some(item => item.score > 0)) continue;
+                    frame.animationFrame = { index, timestampMs: image.timestamp / 1000 };
+                    if (!score && selected.length) continue;
+                    const proposal = [...selected.filter(item => !score || item.score > 0), { frame, score, luma }];
+                    if (proposal.length > framesPerCandidate) {
+                      // Edge-rich decorations can displace brief text even in
+                      // a temporal bucket. Retain different spatial content;
+                      // edge sum only resolves equally diverse selections.
+                      const distances = proposal.map(a => proposal.map(b => distance(a.luma, b.luma)));
+                      let remove = proposal.length - 1, bestMinimum = -1, bestTotal = -1, bestDetail = -1;
+                      for (let omitted = proposal.length - 1; omitted >= 0; omitted -= 1) {
+                        let minimum = Infinity, totalDistance = 0, detailScore = 0;
+                        for (let a = 0; a < proposal.length; a += 1) {
+                          if (a === omitted) continue;
+                          detailScore += proposal[a]!.score;
+                          for (let b = 0; b < a; b += 1) {
+                            if (b === omitted) continue;
+                            const pair = distances[a]![b]!;
+                            minimum = Math.min(minimum, pair); totalDistance += pair;
+                          }
+                        }
+                        if (minimum > bestMinimum || (minimum === bestMinimum && (totalDistance > bestTotal
+                          || (totalDistance === bestTotal && detailScore > bestDetail)))) {
+                          remove = omitted; bestMinimum = minimum; bestTotal = totalDistance; bestDetail = detailScore;
+                        }
+                      }
+                      proposal.splice(remove, 1);
+                    }
+                    if (proposal.some(item => item.frame === frame) && encode(image, frame)) selected = proposal;
+                  } finally { image.close(); }
+                }
+                // Uniform flashes cannot displace readable frames. A wholly
+                // uniform asset retains one honest observation, not an offer.
+                const useful = selected.filter((item) => item.score > 0);
+                return (useful.length ? useful : selected.slice(0, 1)).map((item) => ({ ...item.frame, partialAnimation: inspected < total || seen.size > selected.length }));
+              } finally { decoder.close(); }
+            }
             const bitmap = await createImageBitmap(new Blob([new Uint8Array(imageBytes)], { type }));
             try {
-              if (bitmap.width < 8 || bitmap.height < 8 || bitmap.width * bitmap.height > maxImagePixels) return undefined;
-              const canvas = document.createElement("canvas"); canvas.width = 8; canvas.height = 8;
-              const context = canvas.getContext("2d", { willReadFrequently: true });
-              if (!context) return undefined;
-              context.drawImage(bitmap, 0, 0, 8, 8);
-              return { width: bitmap.width, height: bitmap.height, rgba: Array.from(context.getImageData(0, 0, 8, 8).data) };
+              const frame = sample(bitmap, bitmap.width, bitmap.height);
+              if (!frame) return [];
+              if (type === "image/gif") {
+                if (!encode(bitmap, frame)) return [];
+                frame.singleFrame = true;
+              }
+              return [frame];
             } finally { bitmap.close(); }
-          }, { imageBytes: Array.from(body), type: mediaType, maxImagePixels: SCAN_POLICY.visual.maxImagePixels }), Math.max(1, deadline.operationTimeoutMs(1000)), signal);
-          if (!decoded || signal?.aborted) { skip(signal?.aborted ? "cancelled" : "image-unavailable", "candidate"); continue; }
-          bytes += body.length;
-          if (bytes === maxBytes && !coverage.limitsReached.includes("byte-limit")) coverage.limitsReached.push("byte-limit");
-          const sha256 = sha256Hex(body);
-          prints.push({ sha256, perceptualHash: blockAverageHash(new Uint8Array(decoded.rgba), 8, 8),
-            width: decoded.width, height: decoded.height, mediaType, sourceUrl, sourceHost: new URL(sourceUrl).host });
-          if (mediaType === "image/png" || mediaType === "image/jpeg" || mediaType === "image/webp") images.push({
-            sourceUrl, sha256, mimeType: mediaType, dataUrl: `data:${mediaType};base64,${body.toString("base64")}`,
-            width: decoded.width, height: decoded.height, capturedAt: new Date().toISOString(), candidate });
+          }, { imageBytes: Array.from(body), type: mediaType, maxImagePixels: SCAN_POLICY.visual.maxImagePixels,
+            framesPerCandidate: SCAN_POLICY.visual.framesPerCandidate, animationFrames: SCAN_POLICY.visual.animationFrames,
+            assetBytes: SCAN_POLICY.visual.assetBytes, budgetMs: Math.max(1, decodeTimeout - 100) }), decodeTimeout, signal);
+          if (!decoded.length || signal?.aborted) { skip(signal?.aborted ? "cancelled" : "image-unavailable", "candidate"); continue; }
+          for (const [frameIndex, image] of decoded.entries()) {
+            if (prints.length >= SCAN_POLICY.visual.candidatesPerDocument) { skip("candidate-limit", "candidate", decoded.length - frameIndex); break; }
+            const imageBody = image.normalizedDataUrl ? Buffer.from(image.normalizedDataUrl.split(",")[1]!, "base64") : body;
+            const imageType = image.normalizedDataUrl ? "image/png" : mediaType;
+            if (imageBody.length > SCAN_POLICY.visual.assetBytes || bytes + imageBody.length > maxBytes) { skip("byte-limit", "candidate"); continue; }
+            bytes += imageBody.length;
+            if (bytes === maxBytes && !coverage.limitsReached.includes("byte-limit")) coverage.limitsReached.push("byte-limit");
+            const sha256 = sha256Hex(imageBody);
+            prints.push({ sha256, perceptualHash: blockAverageHash(new Uint8Array(image.rgba), 8, 8),
+              width: image.width, height: image.height, mediaType: imageType, sourceUrl, sourceHost: new URL(sourceUrl).host });
+            if (imageType === "image/png" || imageType === "image/jpeg" || imageType === "image/webp") images.push({
+              sourceUrl, sha256, mimeType: imageType, dataUrl: `data:${imageType};base64,${imageBody.toString("base64")}`,
+              width: image.width, height: image.height, capturedAt: new Date().toISOString(),
+              animationFrame: image.animationFrame, candidate: image.singleFrame || image.partialAnimation
+                ? { ...candidate, candidateEvidence: [...candidate.candidateEvidence, image.singleFrame ? "animation-single-frame" : "animation-partial"] } : candidate });
+          }
         } catch {
           skip(unavailableReason(), "candidate");
           // Failed optional visual evidence never changes official findings.

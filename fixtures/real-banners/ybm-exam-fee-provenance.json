@@ -1,0 +1,49 @@
+{
+  "scope": "Knownnormalregression input, not freshholdout",
+  "file": "ybm-exam-fee.png",
+  "sourceManifest": "artifacts/ocr-semantic-refinement-20261021/fresh/manifest.json",
+  "original": {
+    "id": "negative-ybm-ad-10",
+    "kind": "negative",
+    "goldLabel": "ordinary-advertisement",
+    "subclass": "ordinary-education-discount-ad",
+    "file": "images/negative-ybm-ad-10.png",
+    "mediaType": "image/png",
+    "sha256": "b95393f7da535e6c73749e5c165d51b2ecde55ed4c6ae9984f1d731af2042412",
+    "width": 550,
+    "height": 400,
+    "bytes": 121396,
+    "advertiser": "YBM Education",
+    "templateGroup": "ybm-ad-10",
+    "sourceCluster": "ybm-official-current",
+    "sourcePage": "https://www.ybmclass.com/",
+    "sourceHtml": "sources/ybmclass.html",
+    "sourceHtmlSha256": "10ce41dd73163324ff33685b4979e70e8ab4648bf786dd7583fd77177ceccfd8",
+    "sourcePublishedDate": null,
+    "retrievedAt": "2026-10-21T03:26:07.535Z",
+    "originalFile": "originals/ybm-ad-10.original",
+    "originalSha256": "b95393f7da535e6c73749e5c165d51b2ecde55ed4c6ae9984f1d731af2042412",
+    "originalResourceUrl": "https://upsisa.ybmsisa.com/e4u/YBMIngang/ADMIN/files/main/31/520C9D87-F6C4-492A-917E-7026E7C43F9E.png",
+    "originalDimensions": [
+      550,
+      400
+    ],
+    "sourceType": "Actual official advertising resource observed in retained sourceHTML",
+    "sourceCaption": null,
+    "originalDestinationUrl": null,
+    "transform": "Byte-identical original resource copy; no resize/crop/repaint/manual OCR correction.",
+    "humanRationale": "Actual officialYBM monthly teacher campaign offers10,000wonTOEIC test-fee discount and secret study materials.",
+    "overlapCheck": {
+      "exactShaMatch": false,
+      "manual": "OfficialYBM/Siwon campaign/source/template new versus priorSamsung/LG,KB/Nexon/Kolon,Hackers/GS/IBK and other previous controls.",
+      "nearestPreviousDHash": {
+        "file": "artifacts/embeddinggemma2-eval-20261021/normal-ads/lg-tv.png",
+        "hammingDistance": 21
+      }
+    },
+    "canonicalCaptureLimits": {
+      "assetBytes250000Admissible": true,
+      "pixels4000000Admissible": true
+    }
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "purpose": "Original-resolution regression crops previously missed by one-scale OCR; no manual text correction or semantic threshold fitting.",
+  "inputs": [
+    {
+      "id": "positive-mt-888asia",
+      "kind": "positive",
+      "goldLabel": "suspected-illegal-gambling-promotion",
+      "file": "mt-888asia.png",
+      "sha256": "e78c50b9181a61c196aa4cfc2f2f7efbd62ba56692bb8b864895517dbebe563e",
+      "width": 147,
+      "height": 40,
+      "advertiser": "888 Asia",
+      "templateGroup": "mt-unseen-888asia",
+      "sourcePage": "https://www.mt.co.kr/tech/2024/10/16/2024101523264186082?kakao_from=mainnews",
+      "sourceHtml": "sources/mt-report.html",
+      "sourceHtmlSha256": "295080a99a5ac0e1bcce54b69612c9b9edad549a35698d76409561a22f0ee8c7",
+      "originalFile": "originals/mt-banner-report.original",
+      "originalSha256": "b8428a66dabdcbe81bb4e8ece63376e4fe87237f17a6e771d9a15f2c61f0bf9c",
+      "originalResourceUrl": "https://thumb.mt.co.kr/cdn-cgi/image/f=avif/21/2024/10/2024101523264186082_2.jpg",
+      "resolvedResourceUrl": "https://thumb.mt.co.kr/cdn-cgi/image/f=avif/21/2024/10/2024101523264186082_2.jpg",
+      "retrievedAt": "2026-10-21T01:42:34.593Z",
+      "newsPublishedAt": "2024-10-16T04:20:00+09:00",
+      "sourceDatePrecision": "Publisher publication timestamp; screenshot taken at or before publication, actual screenshot timestamp unknown.",
+      "sourceType": "Publisher-provided actual gambling-banner screenshot; caption identifies illegal webtoon-site screenshot, not an illustration.",
+      "sourceCaption": "한 불법 웹툰 유통 사이트의 배너광고판을 점령한 불법 도박 사이트 광고. /사진=불법 웹툰사이트 캡처",
+      "originalDimensions": [
+        600,
+        337
+      ],
+      "originalDestinationUrl": null,
+      "originalBannerResourceUrl": null,
+      "crop": {
+        "x": 1,
+        "y": 130,
+        "width": 147,
+        "height": 40
+      },
+      "transform": "ImageMagick convert exact147x40 crop +repage to PNG; no resize/sharpen/repaint/text edits. Montage upscale is preview only, excluded from evaluation.",
+      "humanRationale": "가입 첫충40%, 무한 매충15% and cash-back/comp fields.",
+      "overlapCheck": {
+        "exactShaMatch": false,
+        "manual": "Visible advertiser name/art/layout differs from old8 evaluated BlackToon ads AND secondary10 new archived BlackToon advertisers. Shared casino language/conventions remain. Operator corporate identities not established.",
+        "nearestPreviousDHash": {
+          "file": "artifacts/embeddinggemma2-eval-20261021/normal-ads/samsung-phones.original",
+          "hammingDistance": 24
+        },
+        "captureSourceDisjoint": true,
+        "advertiserVisualFamilyDisjoint": true,
+        "underlyingSiteDisjoint": "unknown: publisher did not name website; screenshot/time/publication source independent"
+      },
+      "sourceManifest": "artifacts/text-embedding-integration-20261021/holdout/independent-manifest.json",
+      "role": "DEVELOPMENT_REGRESSION_NOT_FRESH_HOLDOUT"
+    },
+    {
+      "id": "positive-mt-miracle",
+      "kind": "positive",
+      "goldLabel": "suspected-illegal-gambling-promotion",
+      "file": "mt-miracle.png",
+      "sha256": "e1e98a70080e1968283d4f13c74b2d8cb749d6ca711104392e2ab6da14da58b6",
+      "width": 147,
+      "height": 40,
+      "advertiser": "미라클 MIRACLE SPORTS & CASINO",
+      "templateGroup": "mt-unseen-miracle",
+      "sourcePage": "https://www.mt.co.kr/tech/2024/10/16/2024101523264186082?kakao_from=mainnews",
+      "sourceHtml": "sources/mt-report.html",
+      "sourceHtmlSha256": "295080a99a5ac0e1bcce54b69612c9b9edad549a35698d76409561a22f0ee8c7",
+      "originalFile": "originals/mt-banner-report.original",
+      "originalSha256": "b8428a66dabdcbe81bb4e8ece63376e4fe87237f17a6e771d9a15f2c61f0bf9c",
+      "originalResourceUrl": "https://thumb.mt.co.kr/cdn-cgi/image/f=avif/21/2024/10/2024101523264186082_2.jpg",
+      "resolvedResourceUrl": "https://thumb.mt.co.kr/cdn-cgi/image/f=avif/21/2024/10/2024101523264186082_2.jpg",
+      "retrievedAt": "2026-10-21T01:42:34.593Z",
+      "newsPublishedAt": "2024-10-16T04:20:00+09:00",
+      "sourceDatePrecision": "Publisher publication timestamp; screenshot taken at or before publication, actual screenshot timestamp unknown.",
+      "sourceType": "Publisher-provided actual gambling-banner screenshot; caption identifies illegal webtoon-site screenshot, not an illustration.",
+      "sourceCaption": "한 불법 웹툰 유통 사이트의 배너광고판을 점령한 불법 도박 사이트 광고. /사진=불법 웹툰사이트 캡처",
+      "originalDimensions": [
+        600,
+        337
+      ],
+      "originalDestinationUrl": null,
+      "originalBannerResourceUrl": null,
+      "crop": {
+        "x": 301,
+        "y": 130,
+        "width": 147,
+        "height": 40
+      },
+      "transform": "ImageMagick convert exact147x40 crop +repage to PNG; no resize/sharpen/repaint/text edits. Montage upscale is preview only, excluded from evaluation.",
+      "humanRationale": "SPORTS & CASINO with40%/15% promotional offers.",
+      "overlapCheck": {
+        "exactShaMatch": false,
+        "manual": "Visible advertiser name/art/layout differs from old8 evaluated BlackToon ads AND secondary10 new archived BlackToon advertisers. Shared casino language/conventions remain. Operator corporate identities not established.",
+        "nearestPreviousDHash": {
+          "file": "fixtures/real-banners/blacktoon-7.png",
+          "hammingDistance": 24
+        },
+        "captureSourceDisjoint": true,
+        "advertiserVisualFamilyDisjoint": true,
+        "underlyingSiteDisjoint": "unknown: publisher did not name website; screenshot/time/publication source independent"
+      },
+      "sourceManifest": "artifacts/text-embedding-integration-20261021/holdout/independent-manifest.json",
+      "role": "DEVELOPMENT_REGRESSION_NOT_FRESH_HOLDOUT"
+    }
+  ]
+}

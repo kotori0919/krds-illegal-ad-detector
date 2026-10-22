@@ -35,4 +35,10 @@ export class ScanDeadline {
   operationTimeoutMs(requestedMs: number): number {
     return Math.max(0, Math.floor(Math.min(requestedMs, this.remainingMs() - this.reserveMs)));
   }
+
+  /** After immutable official output is committed, optional analysis may use
+   * the remaining reserve while leaving two seconds for bounded detail output. */
+  postCommitTimeoutMs(requestedMs: number): number {
+    return Math.max(0, Math.floor(Math.min(requestedMs, this.remainingMs() - Math.min(2000, this.reserveMs))));
+  }
 }

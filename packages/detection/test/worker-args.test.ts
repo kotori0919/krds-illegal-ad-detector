@@ -20,6 +20,19 @@ it("accepts paired managed WARP paths and required mode without credentials", ()
     .toMatchObject({ requireWarp: true, warpExecutable: "C:\\app\\usque.exe", warpConfigFile: "C:\\private\\warp.json" });
   expect(parseWorkerArgs([...base, "--require-warp"]).requireWarp).toBe(true);
 });
+it("keeps source CLI provenance and accepts explicit operator direct scans without WARP paths", () => {
+  expect(parseWorkerArgs(base)).toMatchObject({ requireWarp: false, directReason: "source-cli" });
+  expect(parseWorkerArgs([...base, "--direct-reason", "operator"]))
+    .toMatchObject({ requireWarp: false, directReason: "operator", warpExecutable: undefined, warpConfigFile: undefined });
+});
+it.each([
+  ["--direct-reason", "owned-origin"], ["--direct-reason", "arbitrary"],
+  ["--direct-reason", "operator", "--direct-reason", "operator"],
+  ["--direct-reason", "operator", "--require-warp"],
+  ["--direct-reason", "operator", "--warp-executable", "a", "--warp-config-file", "b"],
+])("rejects ambiguous direct provenance arguments: %j", (...extra) => {
+  expect(() => parseWorkerArgs([...base, ...extra])).toThrow();
+});
 it.each([
   ["--warp-executable", "C:\\app\\usque.exe"], ["--warp-config-file", "C:\\private\\warp.json"],
   ["--require-warp", "--require-warp"],

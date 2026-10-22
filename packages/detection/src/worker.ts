@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   let runtime: WarpRuntime | undefined;
   let tunnelFailure: Error | undefined;
   let networkPolicy: PublicNetworkPolicy | undefined;
-  let provenance: TransportProvenance = { kind: "direct", reason: "source-cli" };
+  let provenance: TransportProvenance = { kind: "direct", reason: args.directReason };
   let preparationEvents = 0;
   try {
   if (args.requireWarp || args.warpExecutable) {

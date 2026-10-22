@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { expect, it, vi } from "vitest";
 import { LocalOcrBackend } from "@krds-detector/evidence";
 import { scanSite } from "../src/scan.js";
+import { SCAN_POLICY } from "@krds-detector/contracts";
 
 it.each([{pages:9,imageCount:7},{pages:8,imageCount:6}])("reports reached capacities separately from known exclusions: %j", async ({pages,imageCount}) => {
   const banner = await readFile("fixtures/ocr/banner.png");
@@ -33,10 +34,9 @@ it.each([{pages:9,imageCount:7},{pages:8,imageCount:6}])("reports reached capaci
     expect(output.detailBundle.coverage.checkedPages).toBe(pages);
     const coverage=output.detailBundle.visualAnalysisCoverage!;
     expect(coverage).toMatchObject({pagesConsidered:pages,pagesNotConsidered:0,candidatesObserved:imageCount+pages-1,candidateTotal:null,
-      imagesAcquired:imageCount+pages-1,imageAnalysisRecords:imageCount+pages-1,ocrImagesAttempted:6,ocrImagesCompleted:6,ocrImagesUnavailable:0,
-      limits:{pages,candidatesPerDocument:8,elementsPerDocument:10_000,bytesPerPage:250_000,distinctOcrImages:6},
-      limitsReached:["ocr-image-limit"],
-      skips:imageCount===7 ? [{reason:"ocr-image-limit",unit:"image",count:1}] : []});
+      imagesAcquired:imageCount+pages-1,imageAnalysisRecords:imageCount+pages-1,ocrImagesAttempted:imageCount,ocrImagesCompleted:imageCount,ocrImagesUnavailable:0,
+      limits:{pages,candidatesPerDocument:SCAN_POLICY.visual.candidatesPerDocument,elementsPerDocument:10_000,bytesPerPage:SCAN_POLICY.visual.bytesPerPage,distinctOcrImages:SCAN_POLICY.visual.ocrImages},
+      limitsReached:[],skips:[]});
     const analyses=output.detailBundle.imageAnalysis!;
     for (const analysis of analyses) {
       const selected = coverage.selection!.ocrSha256.some((sha) => analysis.assetId === `visual-${sha}`);

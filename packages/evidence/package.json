@@ -15,12 +15,18 @@
     "typecheck": "tsc --noEmit -p tsconfig.check.json"
   },
   "dependencies": {
+    "@huggingface/tokenizers": "0.2.0",
     "@krds-detector/contracts": "0.1.0",
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/kor": "1.0.0",
     "exceljs": "4.4.0",
     "fast-xml-parser": "5.11.2",
     "fflate": "0.8.3",
+    "onnxruntime-node": "1.30.0",
+    "pngjs": "7.0.0",
     "tesseract.js": "7.0.0"
+  },
+  "devDependencies": {
+    "@types/pngjs": "6.0.5"
   }
 }

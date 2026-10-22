@@ -150,7 +150,13 @@ async function renderOperationalWorkbook(sessions: readonly ReportSession[], opt
       "추가 분석 (공식 4기법과 별도)", finding.location]);
     for (const analysis of session.imageAnalysis ?? []) row(extra, [session.sessionId, "이미지 문자 인식", analysis.analysisId ?? "", analysis.sourceUrl,
       analysis.ocr.state === "available" ? analysis.ocr.text : "인식 불가", "수집 이미지의 OCR 파생 문자",
-      `${analysis.ocr.state === "unavailable" ? analysis.ocr.reason : analysis.decision.detail}; 페이지 ${analysis.pageUrls.join(", ")}`]);
+      `${analysis.ocr.state === "unavailable" ? analysis.ocr.reason : analysis.decision.detail}; 선택 OCR 엔진 ${analysis.ocr.backend}${analysis.ocrAlternatives?.slice(0, 1).map(alternative => alternative.state === "available"
+        ? `; 다른 OCR 원문 (${alternative.backend}, 신뢰도 ${alternative.confidence}): ${alternative.text}`
+        : `; 다른 OCR 인식 불가 (${alternative.backend}): ${alternative.reason}`).join("") ?? ""}; 페이지 ${analysis.pageUrls.join(", ")}${analysis.animationFrame ? `; 프레임 ${analysis.animationFrame.index + 1}, ${analysis.animationFrame.timestampMs}ms` : ""}${analysis.textEmbedding ? analysis.textEmbedding.state === "available"
+        ? `; 문자 의미 유사도: ${analysis.decision.rule === "image-only-ad-v4-text-review" ? "검토 필요" : "보조 비교 완료"}; 광고 유사도 ${analysis.textEmbedding.positiveSimilarity}; 비교 대상 유사도 ${analysis.textEmbedding.negativeSimilarity}; 차이 ${analysis.textEmbedding.margin}; 기준 ${analysis.textEmbedding.threshold}; ${analysis.textEmbedding.elapsedMs}ms; 모델 ${analysis.textEmbedding.model}; 의미 유사도는 OCR 원문이나 법적 위반의 증거가 아님`
+         : `; 문자 의미 보조 비교 불가: ${analysis.textEmbedding.reason}` : ""}${analysis.visualEmbedding ? analysis.visualEmbedding.state === "available"
+        ? `; 이미지 의미 비교: ${analysis.visualEmbedding.passed ? "이미지 기반 검토 필요" : "보조 비교 완료"}; 원본 차이 ${analysis.visualEmbedding.margin}; 픽셀 섞기 대조 차이 ${analysis.visualEmbedding.shuffledMargin}; 정책 ${analysis.visualEmbedding.policy}; 모델 ${analysis.visualEmbedding.model}; OCR 원문을 복구하거나 법적 위반을 증명한 것이 아님`
+        : `; 이미지 의미 비교 불가: ${analysis.visualEmbedding.reason}` : ""}`]);
     for (const relation of session.summary?.infrastructure ?? []) row(extra, [session.sessionId, "광고 연관 인프라", "", relation.domain,
       relation.pageUrls.join("\n"), "관측 관계의 파생 요약", "공동 소유 또는 법적 위반을 증명하지 않음"]);
     if (!session.extra && !session.imageAnalysis) row(extra, [session.sessionId, "알 수 없음", "", "", "", "분석 기록 없음", "추가 분석 완료 또는 탐지 없음으로 해석하지 마세요."]);

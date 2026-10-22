@@ -25,11 +25,11 @@ export class VisualScheduler {
   offer(pageUrl: string, images: CapturedVisualImage[], prints: CreativeFingerprint[]): void {
     const byPrint = new Map(prints.map((print) => [`${print.sha256}\0${print.sourceUrl}`, print]));
     const candidates = new Map(this.records.map((record) => [record.key, record]));
-    // One page's acquisition is already bounded to eight images/250 KiB.
+    // Acquisition is bounded per page; this reservoir additionally bounds the whole scan.
     for (const image of images) {
       const print = byPrint.get(`${image.sha256}\0${image.sourceUrl}`);
       if (!print) continue;
-      const key = `${pageUrl}\0${image.candidate.frameUrl}\0${image.candidate.location}\0${image.sha256}`;
+      const key = `${pageUrl}\0${image.candidate.frameUrl}\0${image.candidate.location}\0${String(image.animationFrame?.index ?? 0).padStart(3, "0")}\0${image.sha256}`;
       candidates.set(key, { key, pageUrl, image, print });
     }
     const ordered = [...candidates.values()].sort(compare);
@@ -39,8 +39,9 @@ export class VisualScheduler {
     for (const record of ordered) {
       const existing = assets.get(record.image.sha256);
       const cost = existing === undefined ? byteSize(record.image.dataUrl) : 0;
-      if (retained.length >= VISUAL_LIMITS.retainedRecords || (existing === undefined && assets.size >= VISUAL_LIMITS.retainedAssets)
-        || bytes + cost > VISUAL_LIMITS.retainedBytes) break;
+      if (retained.length >= VISUAL_LIMITS.retainedRecords) break;
+      if ((existing === undefined && assets.size >= VISUAL_LIMITS.retainedAssets)
+        || bytes + cost > VISUAL_LIMITS.retainedBytes) continue;
       if (existing === undefined) { assets.set(record.image.sha256, record.image.dataUrl); bytes += cost; }
       // Shared strings avoid retaining repeated base64 payloads per occurrence.
       retained.push({ ...record, image: { ...record.image, dataUrl: assets.get(record.image.sha256)! } });

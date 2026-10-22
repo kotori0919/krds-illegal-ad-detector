@@ -211,6 +211,8 @@ async function stagePackage(name, fromDir = root) {
 await stagePackage("tesseract.js");
 await stagePackage("@tesseract.js-data/kor");
 await stagePackage("@tesseract.js-data/eng");
+await stagePackage("onnxruntime-node");
+await stagePackage("pngjs");
 await installBrowser();
 await installWindowsInspector();
 // Playwright's cache ownership links contain absolute preparation-machine paths;

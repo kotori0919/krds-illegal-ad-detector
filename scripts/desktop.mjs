@@ -42,7 +42,7 @@ if (action === "resources") {
     lockfiles: { npm: await sha256(join(root,"package-lock.json")), cargo: await sha256(join(root,"src-tauri/Cargo.lock")),
       runtime: await sha256(join(root,"scripts/windows-runtime.lock.json")) },
     frontend: await inventory(join(root, "apps/web/dist")),
-    workers: await inventory(stage, name => ![workerName,"ocr-worker.mjs","ocr-data"].includes(name) && !name.startsWith("ocr-data/")) };
+    workers: await inventory(stage, name => ![workerName,"ocr-worker.mjs","ocr-data","text-embedding-data"].includes(name) && !name.startsWith("ocr-data/") && !name.startsWith("text-embedding-data/")) };
   await writeJson(join(stage, "build-manifest.json"), manifest);
   await cp(join(root, "scripts/windows-runtime.lock.json"), join(stage, "resources-manifest.json"));
 } else if (action === "build" || action === "package") {
@@ -85,7 +85,7 @@ if (action === "resources") {
     await verifyFiles(join(root,"apps/web/dist"),manifest.frontend);
     await verifyFiles(stage,manifest.workers);
     if (JSON.stringify(await inventory(join(root,"apps/web/dist")))!==JSON.stringify(manifest.frontend)) throw new Error("Frontend files changed during packaging");
-    const workers=await inventory(stage,name=>![workerName,"ocr-worker.mjs","ocr-data"].includes(name)&&!name.startsWith("ocr-data/"));
+    const workers=await inventory(stage,name=>![workerName,"ocr-worker.mjs","ocr-data","text-embedding-data"].includes(name)&&!name.startsWith("ocr-data/")&&!name.startsWith("text-embedding-data/"));
     if (JSON.stringify(workers)!==JSON.stringify(manifest.workers)) throw new Error("Worker files changed during packaging");
     await run(process.execPath,[join(root,"scripts/prepare-windows-runtime.mjs"),"--verify"]);
     if(target.endsWith("gnullvm")&&(await sha256(join(stage,"libunwind.dll"))!==manifest.releaseInputs.loaders.libunwind

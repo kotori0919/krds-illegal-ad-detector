@@ -46,3 +46,10 @@ it.each(["succeeded", "cancelled"])("rejects incomplete transport metadata with 
 it.each(["succeeded", "cancelled", "failed"])("preserves %s cases without transport metadata", status => {
   expect(isCaseManifest({ ...(corpus.valid.manifest as Record<string, unknown>), status, settings: {} }, corpus.valid.official)).toBe(true);
 });
+
+it("retains ordinary operator transport and rejects invalid connection choices without rejecting historical cases", () => {
+  const manifest = { ...(corpus.valid.manifest as Record<string, unknown>), settings: { connection: "direct", transport: { kind: "direct", reason: "operator" } } };
+  expect(isCaseManifest(manifest, corpus.valid.official)).toBe(true);
+  expect(isCaseManifest({ ...manifest, settings: { connection: "automatic" } }, corpus.valid.official)).toBe(false);
+  expect(isCaseManifest({ ...manifest, settings: {} }, corpus.valid.official)).toBe(true);
+});

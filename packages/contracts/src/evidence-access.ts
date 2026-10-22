@@ -20,7 +20,7 @@ export interface VisualAnalysisCoverage {
   ocrImagesCompleted: number;
   ocrImagesUnavailable: number;
   limits: { pages: number; candidatesPerDocument: number; elementsPerDocument: number;
-    bytesPerPage: number; distinctOcrImages: number };
+    bytesPerPage: number; distinctOcrImages: number; framesPerCandidate?: number };
   limitsReached: VisualAnalysisLimit[];
   skips: { reason: VisualAnalysisReason; unit: "page" | "document" | "candidate" | "image"; count: number }[];
 }

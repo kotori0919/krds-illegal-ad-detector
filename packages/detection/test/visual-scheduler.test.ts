@@ -16,6 +16,16 @@ function image(index: number): CapturedVisualImage {
       frameUrl: "https://fixture.invalid/", location: `#ad-${index}`, candidateEvidence: ["ad-marker"], visibleDomAdTexts: [] } };
 }
 
+it("does not leave retained independent banners unrecognized after the sixth image", () => {
+  const scheduler = new VisualScheduler();
+  const banners = Array.from({ length: 12 }, (_, index) => image(index));
+  scheduler.offer("https://fixture.invalid/", banners, banners.map((banner) => ({
+    sourceUrl: banner.sourceUrl, sha256: banner.sha256, perceptualHash: "0".repeat(16),
+    width: banner.width, height: banner.height, mediaType: banner.mimeType, sourceHost: "fixture.invalid",
+  })));
+  expect(new Set(scheduler.selectOcr().map((record) => record.image.sha256))).toEqual(new Set(banners.map((banner) => banner.sha256)));
+});
+
 it("keeps a bounded deterministic creative set under reordered acquisition", () => {
   const inputs = Array.from({ length: 100 }, (_, index) => ({ pageUrl: `https://fixture.invalid/page-${index}`, image: image(index) }));
   const outputs = [];
@@ -26,7 +36,7 @@ it("keeps a bounded deterministic creative set under reordered acquisition", () 
     outputs.push(scheduler.retained().map((record) => record.key));
     expect(scheduler.coverage()).toMatchObject({ retainedAssets: VISUAL_LIMITS.retainedAssets, excludedRecords: 60 });
     expect(scheduler.coverage().retainedBytes).toBeLessThanOrEqual(VISUAL_LIMITS.retainedBytes);
-    expect(new Set(scheduler.selectOcr().map((record) => record.pageUrl)).size).toBe(6);
+    expect(new Set(scheduler.selectOcr().map((record) => record.pageUrl)).size).toBe(VISUAL_LIMITS.ocrImages);
   }
   expect(outputs[1]).toEqual(outputs[0]); expect(outputs[2]).toEqual(outputs[0]);
 });

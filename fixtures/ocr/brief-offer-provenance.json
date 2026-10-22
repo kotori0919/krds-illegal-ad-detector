@@ -1,0 +1,36 @@
+{
+  "inputs": [
+    {
+      "file": "brief-gray-offer.gif",
+      "sha256": "1be8efd7fe023500b1c648ba02e821f6cab2918512cd18b031a4af9363f4dc73",
+      "bytes": 3026,
+      "kind": "OWNED_DERIVED_NOT_ADVERTISER_ORIGINAL",
+      "readableOfferIndex": 1,
+      "rawDelaysCentiseconds": "4,2,4,",
+      "reproduction": "artifacts/ocr-gif-improvement-20261021/gif-review/reproduce.mjs",
+      "text": "카지노 가입 보너스 지급",
+      "purpose": "Distinguish GIF selection failure from actual OCR failure; no actual served-GIF recall claim"
+    },
+    {
+      "file": "brief-late-offer.gif",
+      "sha256": "4b240a9d76acc724201b1e30df1784b030a20469c31481ecd02e071a0f20e166",
+      "bytes": 12231,
+      "kind": "OWNED_DERIVED_NOT_ADVERTISER_ORIGINAL",
+      "readableOfferIndex": 4,
+      "rawDelaysCentiseconds": "20,20,20,20,2,",
+      "reproduction": "artifacts/ocr-gif-improvement-20261021/gif-review/reproduce.mjs",
+      "text": "카지노 가입 보너스 지급",
+      "purpose": "Distinguish GIF selection failure from actual OCR failure; no actual served-GIF recall claim"
+    },
+    {
+      "file": "brief-competing-decoration.gif",
+      "sha256": "e62604816b1b261ed3badd96ffc4a67b76108a2c13ce994bbf796f5c99f73adc",
+      "bytes": 18657,
+      "kind": "OWNED_DERIVED_NOT_ADVERTISER_ORIGINAL",
+      "readableOfferIndex": 1,
+      "source": "artifacts/ocr-gif-improvement-20261021/gif-review/bin-competition.gif",
+      "text": "카지노 가입 보너스 지급",
+      "purpose": "Brief text competing with high-edge decorative stripe frames in one temporal bucket; no original advertiser GIF claim"
+    }
+  ]
+}

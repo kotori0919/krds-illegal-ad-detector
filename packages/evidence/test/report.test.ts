@@ -1,12 +1,37 @@
 import { readFileSync } from "node:fs";
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
-import type { OfficialResult, VisualAnalysisCoverage } from "@krds-detector/contracts";
+import type { ImageAnalysis, OfficialResult, VisualAnalysisCoverage } from "@krds-detector/contracts";
 import { createOperationalWorkbook } from "../src/report.js";
 
 const official = JSON.parse(readFileSync(new URL("./fixtures/sample_result_617_sanitized.json", import.meta.url), "utf8")) as OfficialResult;
 const techniqueNames = { HOMOGLYPH: "유사 문자", JAMO: "자모 분리", TRANSPARENT: "투명 처리", OFFSCREEN: "화면 밖 배치" };
 describe("real operational XLSX", () => {
+  it.each(["available", "budget", "recognition-error"] as const)("preserves selected OCR and separate alternate %s evidence", async (state) => {
+    const selected = "페이백10%\n콤프3.5% 입금 가능";
+    const alternative = "=HYPERLINK(\"https://example.invalid\")\n페이벡1Ox 록프3.5x";
+    const analysis: ImageAnalysis = { sourceUrl: "https://example.kr/ad.png", pageUrls: [official.meta.entry_url],
+      ocr: { state: "available", backend: "ppocr-selected", text: selected, confidence: 0.8 },
+      ocrAlternatives: [state === "available" ? { state, backend: "ppocr-other", text: alternative, confidence: 0.6 }
+        : { state: "unavailable", backend: "ppocr-other", reason: state }], matchedTerms: [],
+      decision: { rule: "image-only-ad-v4-text-review", score: 3, threshold: 3, passed: true, detail: "review" },
+      textEmbedding: { state: "available", policy: "text-ad-embedding-v1", model: "embeddinggemma-2-text-f32",
+        revision: "daa72c51243991dfcaf9f9137d2c573d8f7790c0", positiveSimilarity: 0.6, negativeSimilarity: 0.4,
+        margin: 0.2, threshold: 0, passed: true, elapsedMs: 100 } };
+    const before = JSON.stringify(analysis);
+    const bytes = await createOperationalWorkbook([{ sessionId: "ocr", official: { ...official, findings: [] }, imageAnalysis: [analysis] }]);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(bytes as unknown as ExcelJS.Buffer);
+    const row = book.getWorksheet("추가 분석")!.getRow(2);
+    expect(row.getCell(5).value).toBe(selected);
+    expect(row.getCell(7).value).toContain("선택 OCR 엔진 ppocr-selected");
+    expect(row.getCell(7).value).toContain(state === "available" ? `다른 OCR 원문 (ppocr-other, 신뢰도 0.6): ${alternative}`
+      : `다른 OCR 인식 불가 (ppocr-other): ${state}`);
+    expect(row.getCell(7).value).toContain("문자 의미 유사도: 검토 필요");
+    expect(row.getCell(7).value).toContain("의미 유사도는 OCR 원문이나 법적 위반의 증거가 아님");
+    expect(row.getCell(7).type).toBe(ExcelJS.ValueType.String);
+    expect(JSON.stringify(analysis)).toBe(before);
+  });
+
   it("retains collection limits separately from successful page status and official findings", async () => {
     const empty = { ...official, findings: [] };
     const bytes = await createOperationalWorkbook([{ sessionId: "limited", official: empty, coverage: {

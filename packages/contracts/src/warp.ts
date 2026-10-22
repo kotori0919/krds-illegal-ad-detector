@@ -4,7 +4,7 @@ export type WarpFailureCode = "config-permission" | "config-invalid" | "binary-m
 export type WarpStatus = { state: "unsupported" | "unregistered" | "registering" }
   | { state: "ready"; backend: "usque"; version: "4.2.1" }
   | { state: "unavailable"; reason: WarpFailureCode };
-export type TransportProvenance = { kind: "direct"; reason: "owned-origin" | "source-cli" }
+export type TransportProvenance = { kind: "direct"; reason: "owned-origin" | "source-cli" | "operator" }
   | { kind: "warp"; backend: "usque"; version: "4.2.1" };
 export interface TransportFailure { code: WarpFailureCode; scope: "incomplete" }
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -17,7 +17,7 @@ export function isWarpStatus(value: unknown): value is WarpStatus {
   return value.state === "unavailable" && exact(value, ["state", "reason"]) && isWarpFailureCode(value.reason);
 }
 export function isTransportProvenance(value: unknown): value is TransportProvenance {
-  return record(value) && (value.kind === "direct" && exact(value, ["kind", "reason"]) && (value.reason === "owned-origin" || value.reason === "source-cli")
+  return record(value) && (value.kind === "direct" && exact(value, ["kind", "reason"]) && (value.reason === "owned-origin" || value.reason === "source-cli" || value.reason === "operator")
     || value.kind === "warp" && exact(value, ["kind", "backend", "version"]) && value.backend === "usque" && value.version === "4.2.1");
 }
 export function isTransportFailure(value: unknown): value is TransportFailure {

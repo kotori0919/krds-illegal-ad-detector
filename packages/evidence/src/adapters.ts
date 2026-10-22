@@ -37,6 +37,7 @@ export interface SimilarityProvider<Input> extends MaintainedAdapter {
 }
 
 export interface OcrCropRequest {
+  variant?: "small-banner" | "neural-review";
   /** Source identifier (element selector, creative URL, or crop id). */
   sourceId: string;
   /** PNG/JPEG bytes of the candidate crop (never a full page). */

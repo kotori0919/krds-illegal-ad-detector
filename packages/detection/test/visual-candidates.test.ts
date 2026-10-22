@@ -1,8 +1,163 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { expect, it } from "vitest";
+import { createHash } from "node:crypto";
+import { SCAN_POLICY } from "@krds-detector/contracts";
+import { LocalOcrBackend } from "@krds-detector/evidence";
 import { crawlSite, ScanDeadline } from "@krds-detector/scanner";
 import { collectPageCreatives } from "../src/creative.js";
+
+function indexedGif(frames: number[][]): Buffer {
+  const blocks: Buffer[] = [Buffer.from("GIF89a"), Buffer.from([20, 0, 20, 0, 0x80, 0, 0, 255, 255, 255, 255, 0, 0])];
+  for (const pixels of frames) {
+    // Reset the tiny LZW dictionary per pixel, keeping fixture codes at 3 bits.
+    const codes = [...pixels.flatMap((pixel) => [4, pixel]), 5];
+    const compressed = Buffer.alloc(Math.ceil(codes.length * 3 / 8));
+    codes.forEach((code, index) => { for (let bit = 0; bit < 3; bit += 1) compressed[(index * 3 + bit) >> 3]! |= ((code >> bit) & 1) << ((index * 3 + bit) & 7); });
+    blocks.push(Buffer.from([0x21, 0xf9, 4, 4, 4, 0, 0, 0, 0x2c, 0, 0, 0, 0, 20, 0, 20, 0, 0, 2]));
+    for (let offset = 0; offset < compressed.length; offset += 255) {
+      const block = compressed.subarray(offset, offset + 255); blocks.push(Buffer.from([block.length]), block);
+    }
+    blocks.push(Buffer.from([0]));
+  }
+  return Buffer.concat([...blocks, Buffer.from([0x3b])]);
+}
+
+it.each(["frame-cap", "inspection-cap", "unavailable-decoder"] as const)("bounds GIF acquisition and reports fallback honestly: %s", async (scenario) => {
+  const blank = Array<number>(400).fill(0);
+  const frames = scenario === "inspection-cap"
+    ? [...Array.from({ length: SCAN_POLICY.visual.animationFrames }, () => blank), Array.from({ length: 400 }, (_, index) => index % 2)]
+    : Array.from({ length: 7 }, (_, frame) => Array.from({ length: 400 }, (_, pixel) => pixel % 20 <= frame * 2 + 1 ? 1 : 0));
+  const gif = indexedGif(frames);
+  const server = createServer((request, response) => {
+    if (request.url === "/banner.gif") {
+      response.writeHead(200, { "content-type": "image/gif", "content-length": gif.length }); response.end(gif);
+    } else {
+      response.setHeader("content-type", "text/html; charset=utf-8"); response.end('<img class="ad" src="/banner.gif">');
+    }
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  let captured: Awaited<ReturnType<typeof collectPageCreatives>> | undefined;
+  try {
+    const deadline = new ScanDeadline(20), address = server.address() as { port: number };
+    await crawlSite({ entryUrl: `http://127.0.0.1:${address.port}/`, concurrency: 1, settleMs: 20, deadline,
+      limits: { maxPages: 1, timeoutSec: 20 }, onLivePage: async (page, _snapshot, frames, responses) => {
+        if (scenario === "unavailable-decoder") await page.evaluate(() => Object.defineProperty(globalThis, "ImageDecoder", { value: undefined }));
+        captured = await collectPageCreatives(page, frames, responses, deadline, SCAN_POLICY.visual.bytesPerPage);
+      } });
+    expect(captured!.coverage.candidatesObserved).toBe(1);
+    expect(captured!.bytes).toBeLessThanOrEqual(SCAN_POLICY.visual.bytesPerPage);
+    if (scenario === "frame-cap") {
+      expect(captured!.images).toHaveLength(SCAN_POLICY.visual.framesPerCandidate);
+      expect(new Set(captured!.images.map((image) => image.sha256)).size).toBe(SCAN_POLICY.visual.framesPerCandidate);
+      for (const image of captured!.images) expect(image.animationFrame!.timestampMs).toBe(image.animationFrame!.index * 40);
+    } else {
+      expect(captured!.images).toHaveLength(1);
+      if (scenario === "inspection-cap") expect(captured!.images[0]!.animationFrame).toEqual({ index: 0, timestampMs: 0 });
+      else {
+        expect(captured!.images[0]!.animationFrame).toBeUndefined();
+        expect(captured!.images[0]!.candidate.candidateEvidence).toContain("animation-single-frame");
+      }
+    }
+  } finally { server.closeAllConnections(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+}, 25_000);
+
+it("keeps a later readable GIF frame while excluding duplicate blank flashes", async () => {
+  const gif = await readFile("fixtures/ocr/animated-offer.gif");
+  const server = createServer((request, response) => {
+    if (request.url === "/offer.gif") {
+      response.writeHead(200, { "content-type": "image/gif", "content-length": gif.length }); response.end(gif);
+    } else {
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      response.end('<img class="ad" src="/offer.gif" width="420" height="100">');
+    }
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const ocr = new LocalOcrBackend();
+  let captured: Awaited<ReturnType<typeof collectPageCreatives>> | undefined;
+  try {
+    const address = server.address() as { port: number };
+    const deadline = new ScanDeadline(30);
+    await crawlSite({ entryUrl: `http://127.0.0.1:${address.port}/`, concurrency: 1, settleMs: 20, deadline,
+      limits: { maxPages: 1, timeoutSec: 30 }, onLivePage: async (page, _snapshot, frames, responses) => {
+        captured = await collectPageCreatives(page, frames, responses, deadline, SCAN_POLICY.visual.bytesPerPage);
+      } });
+    expect(captured!.coverage.candidatesObserved).toBe(1);
+    expect(captured!.images).toHaveLength(1);
+    const image = captured!.images[0]!;
+    expect(image.animationFrame).toEqual({ index: 1, timestampMs: 40 });
+    const recognition = await ocr.recognize({ sourceId: image.sourceUrl, imageBytes: Buffer.from(image.dataUrl.split(",")[1]!, "base64"),
+      width: image.width, height: image.height, mediaType: image.mimeType }, 15_000);
+    expect(recognition.text.replace(/\s/g, "")).toContain("카지노");
+    expect(captured!.prints[0]!.sha256).toBe(image.sha256);
+  } finally { await ocr.close(); server.closeAllConnections(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+}, 35_000);
+
+it("captures more than eight lazy banners with observed button destinations without clicking controls", async () => {
+  const bytes = await readFile("fixtures/ocr/banner.png");
+  let clicks = 0;
+  const server = createServer((request, response) => {
+    if (request.url?.startsWith("/banner.png")) {
+      response.writeHead(200, { "content-type": "image/png", "content-length": bytes.length }); response.end(bytes);
+    } else if (request.url === "/clicked") { clicks += 1; response.end(); }
+    else {
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      response.end(`<!doctype html><style>img{width:420px;height:90px}</style>${Array.from({ length: 24 }, (_, index) =>
+        `<button ${index % 2 ? "data-href" : "data-banner-href"}="https://advertiser.invalid/${index}" onclick="fetch('/clicked')"><img id="item-${index}" src="/banner.png?${index}" loading="lazy"></button>`).join("")}
+        <button data-banner-href="javascript:alert(1)"><img id="script" src="/banner.png?script"></button>
+        <button data-href="https://user:password@advertiser.invalid/"><img id="credentials" src="/banner.png?credentials"></button>
+        <div data-href="https://advertiser.invalid/"><img id="ordinary" src="/banner.png?ordinary"></div>`);
+    }
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  let captured: Awaited<ReturnType<typeof collectPageCreatives>> | undefined;
+  try {
+    const address = server.address() as { port: number };
+    const deadline = new ScanDeadline(40);
+    await crawlSite({ entryUrl: `http://127.0.0.1:${address.port}/`, concurrency: 1, settleMs: 20, deadline,
+      limits: { maxPages: 1, timeoutSec: 40 }, onLivePage: async (page, _snapshot, frames, responses) => {
+        captured = await collectPageCreatives(page, frames, responses, deadline, SCAN_POLICY.visual.bytesPerPage);
+      } });
+    expect(captured!.images).toHaveLength(24);
+    expect(captured!.images.map((image) => image.candidate.destinationUrl)).toEqual(
+      Array.from({ length: 24 }, (_, index) => `https://advertiser.invalid/${index}`));
+    expect(captured!.images.every((image) => image.candidate.candidateEvidence.includes("external-destination"))).toBe(true);
+    expect(captured!.coverage.limitsReached).not.toContain("candidate-limit");
+    expect(clicks).toBe(0);
+  } finally { server.closeAllConnections(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+}, 45_000);
+
+it("normalizes a bounded observed GIF to PNG using its natural pixels", async () => {
+  const gif = indexedGif([Array<number>(400).fill(1)]);
+  const server = createServer((request, response) => {
+    if (request.url === "/banner.gif") {
+      response.writeHead(200, { "content-type": "image/gif", "content-length": gif.length }); response.end(gif);
+    } else {
+      response.setHeader("content-type", "text/html; charset=utf-8");
+      response.end('<img class="ad" src="/banner.gif" width="80" height="40">');
+    }
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  let captured: Awaited<ReturnType<typeof collectPageCreatives>> | undefined;
+  let observedGif = false;
+  try {
+    const address = server.address() as { port: number };
+    const deadline = new ScanDeadline(20);
+    await crawlSite({ entryUrl: `http://127.0.0.1:${address.port}/`, concurrency: 1, settleMs: 20, deadline,
+      limits: { maxPages: 1, timeoutSec: 20 }, onLivePage: async (page, _snapshot, frames, responses) => {
+        observedGif = responses.some((response) => response.mediaType === "image/gif");
+        captured = await collectPageCreatives(page, frames, responses, deadline, SCAN_POLICY.visual.bytesPerPage);
+      } });
+    expect(observedGif).toBe(true);
+    expect(captured!.images).toHaveLength(1);
+    const image = captured!.images[0]!;
+    const png = Buffer.from(image.dataUrl.split(",")[1]!, "base64");
+    expect(image).toMatchObject({ width: 20, height: 20, mimeType: "image/png" });
+    expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    expect(image.sha256).toBe(createHash("sha256").update(png).digest("hex"));
+    expect(captured!.prints[0]).toMatchObject({ sha256: image.sha256, mediaType: "image/png" });
+  } finally { server.closeAllConnections(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+}, 25_000);
 
 it("captures gated IMG, background, SVG and canvas candidates with visible DOM provenance", async () => {
   const bytes = await readFile("fixtures/ocr/banner.png");
@@ -121,7 +276,7 @@ it("preserves full frame selectors and stops at candidate, byte and abort bounds
     response.setHeader("content-type", "text/html; charset=utf-8");
     if (request.url === "/") response.end('<iframe id="outer" src="/outer"></iframe>');
     else if (request.url === "/outer") response.end('<iframe id="inner" src="/inner"></iframe>');
-    else response.end(Array.from({ length: 10 }, (_, index) => `<canvas id="banner-${index}" width="20" height="20"></canvas>`).join(""));
+    else response.end(Array.from({ length: SCAN_POLICY.visual.candidatesPerDocument + 2 }, (_, index) => `<canvas id="banner-${index}" width="20" height="20"></canvas>`).join(""));
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
@@ -139,8 +294,8 @@ it("preserves full frame selectors and stops at candidate, byte and abort bounds
       } });
     expect(summary.pages.map((page) => page.status)).toEqual([200]);
     const [captured, unavailable, cancelled] = outputs;
-    expect(captured!.images).toHaveLength(8);
-    expect(captured!.coverage.candidatesObserved).toBe(8);
+    expect(captured!.images).toHaveLength(SCAN_POLICY.visual.candidatesPerDocument);
+    expect(captured!.coverage.candidatesObserved).toBe(SCAN_POLICY.visual.candidatesPerDocument);
     expect(captured!.coverage.skips).toContainEqual({reason:"candidate-limit",unit:"document",count:1});
     expect(captured!.images[0]!.candidate.location).toBe('#outer >>> #inner >>> #banner-0');
     expect(captured!.images[0]!.candidate.frameUrl).toBe(`${url}inner`);
@@ -152,3 +307,29 @@ it("preserves full frame selectors and stops at candidate, byte and abort bounds
     expect(cancelled!.coverage.skips).toEqual([{reason:"cancelled",unit:"document",count:1}]);
   } finally { await new Promise<void>((resolve) => server.close(() => resolve())); }
 }, 20_000);
+
+it.each([{ file: "brief-gray-offer.gif", frame: 1 }, { file: "brief-late-offer.gif", frame: 4 }, { file: "brief-competing-decoration.gif", frame: 1 }])(
+  "retains readable brief text previously lost to thumbnail dedup or global ranking: $file", async ({file,frame}) => {
+    const gif = await readFile(`fixtures/ocr/${file}`);
+    const server = createServer((request,response) => {
+      if (request.url === "/offer.gif") { response.writeHead(200, {"content-type":"image/gif","content-length":gif.length}); response.end(gif); }
+      else { response.setHeader("content-type","text/html;charset=utf-8"); response.end('<a href="https://offer.example/"><img class="banner" src="/offer.gif"></a>'); }
+    });
+    await new Promise<void>(resolve=>server.listen(0,"127.0.0.1",resolve));
+    let captured: Awaited<ReturnType<typeof collectPageCreatives>> | undefined;
+    const engine = new LocalOcrBackend();
+    try {
+      const address = server.address() as {port:number}, deadline = new ScanDeadline(20);
+      await crawlSite({entryUrl:`http://127.0.0.1:${address.port}/`,concurrency:1,settleMs:20,deadline,
+        limits:{maxPages:1,timeoutSec:20},onLivePage:async(page,_snapshot,frames,responses)=>{
+          captured=await collectPageCreatives(page,frames,responses,deadline,SCAN_POLICY.visual.bytesPerPage);
+        }});
+      const offer=captured!.images.find(image=>image.animationFrame?.index===frame);
+      expect(offer).toBeDefined();
+      expect(captured!.images.length).toBeLessThanOrEqual(SCAN_POLICY.visual.framesPerCandidate);
+      const result=await engine.recognize({sourceId:offer!.sourceUrl,imageBytes:Buffer.from(offer!.dataUrl.split(",")[1]!,"base64"),
+        width:offer!.width,height:offer!.height,mediaType:offer!.mimeType});
+      expect(result.text.replace(/\s/g,"")).toContain("카지노가입보너스지급");
+      if (file === "brief-late-offer.gif") expect(offer!.candidate.candidateEvidence).toContain("animation-partial");
+    } finally {await engine.close();server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+  },25_000);

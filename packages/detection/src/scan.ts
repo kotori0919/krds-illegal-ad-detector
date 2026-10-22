@@ -18,6 +18,8 @@ import {
   type ExtraResult,
   type ScanDetailBundle,
   type ImageAnalysis,
+  type VisualEmbeddingEvidence,
+  type TextEmbeddingEvidence,
   type ScanEvent,
   type ScanProgress,
   type VisualAnalysisCoverage,
@@ -29,7 +31,7 @@ import { DEFAULT_SCAN_LIMITS } from "@krds-detector/contracts";
 import { buildEvidenceGraph, buildExtraResult, groupSimilarCreatives, summarizeInfrastructure, LocalOcrBackend, type CreativeFingerprint, type GraphInput } from "@krds-detector/evidence";
 import { semanticGate } from "./semantic.js";
 import { livePageVisualSource, type CapturedVisualImage } from "./creative.js";
-import { decideVisualImage } from "./visual-decision.js";
+import { decideVisualImage, shouldAnalyzeVisualText, canReviewVisualImage, hasVisualAdCategory } from "./visual-decision.js";
 import { detectPageCandidates, type DecidedCandidate } from "./pipeline.js";
 import { buildOfficialResult, serializeValidatedResult } from "./result-engine.js";
 import { CaptureStore, VisualScheduler, VISUAL_LIMITS } from "./visual-scheduler.js";
@@ -37,6 +39,8 @@ import { CandidateAccumulator } from "./candidate-accumulator.js";
 
 export interface ScanInput {
   entryUrl: string;
+  /** Controlled baseline comparison only; normal scans always use the offline helper. */
+  textEmbedding?: "disabled";
   crawl?: Omit<CrawlOptions, "entryUrl" | "events" | "deadline" | "onLivePage">;
   onEvent?: (event: ScanEvent) => void;
   signal?: AbortSignal;
@@ -90,7 +94,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       pagesConsidered: 0, pagesNotConsidered: 0, candidatesObserved: 0, candidateTotal: null,
       imagesAcquired: 0, imageAnalysisRecords: 0, ocrImagesAttempted: 0, ocrImagesCompleted: 0, ocrImagesUnavailable: 0,
       limits: { pages: input.crawl?.limits?.maxPages ?? DEFAULT_SCAN_LIMITS.maxPages, candidatesPerDocument: SCAN_POLICY.visual.candidatesPerDocument, elementsPerDocument: SCAN_POLICY.visual.elementsPerDocument,
-        bytesPerPage: VISUAL_LIMITS.bytesPerPage, distinctOcrImages: VISUAL_LIMITS.ocrImages },
+        bytesPerPage: VISUAL_LIMITS.bytesPerPage, distinctOcrImages: VISUAL_LIMITS.ocrImages, framesPerCandidate: VISUAL_LIMITS.framesPerCandidate },
       limitsReached: [], skips: [],
     };
     const visualSkip = (reason: VisualAnalysisReason, unit: "page" | "document" | "candidate" | "image", count = 1): void => {
@@ -287,6 +291,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
           visualAnalysisCoverage.imagesAcquired += captured.images.length;
           for (const item of captured.coverage.skips) visualSkip(item.reason, item.unit, item.count);
           visualScheduler.offer(snapshot.url, captured.images, captured.prints);
+          if (captured.images.some(image => image.candidate.candidateEvidence.some(reason => reason === "animation-partial" || reason === "animation-single-frame"))) analysisIssues.push("ANIMATION_PARTIAL");
         } else {
           visualAnalysisCoverage.pagesNotConsidered += 1;
           visualSkip(input.signal?.aborted ? "cancelled" : "page-limit", "page");
@@ -320,7 +325,6 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     for (const page of summary.pages) if (limitedPages.has(page.url)) page.collectionIssues = [...new Set([...(page.collectionIssues ?? []), "FINDING_COLLECTION_LIMIT"])];
     if (limitedPages.size) analysisIssues.push("FINDING_COLLECTION_LIMIT");
 
-    const cancelled = summary.cancelled || (input.signal?.aborted ?? false);
     const finishedAt = new Date().toISOString();
     progress.stage = "finalizing";
     emit("stage-changed", "finalizing result.json");
@@ -346,7 +350,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     if (selection.retainedAssets > VISUAL_LIMITS.ocrImages) visualSkip("ocr-image-limit", "image", selection.retainedAssets - VISUAL_LIMITS.ocrImages);
     const recognitions = new Map<string, ImageAnalysis["ocr"]>();
     for (const { image } of visualScheduler.selectOcr()) {
-      const timeoutMs = deadline.operationTimeoutMs(SCAN_POLICY.visual.ocrTimeoutMs);
+      const timeoutMs = deadline.postCommitTimeoutMs(SCAN_POLICY.visual.ocrTimeoutMs);
       if (timeoutMs < 500 || input.signal?.aborted) {
         visualSkip(input.signal?.aborted ? "cancelled" : "deadline", "image");
         recognitions.set(image.sha256, { state: "unavailable", backend: ocr.name, reason: "budget" }); continue;
@@ -388,18 +392,117 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       new Set(group.map((print)=>occurrenceByPrint.get(print)?.pageUrl)).size >= 2);
     const creatives = recurringGroups.flat();
     const recurringShas = new Set(creatives.map((print)=>print.sha256));
+    const textEmbeddings = new Map<string, TextEmbeddingEvidence>();
+    const ocrAlternatives = new Map<string, ImageAnalysis["ocr"][]>();
+    const compareText = async (image: CapturedVisualImage, recognition: ImageAnalysis["ocr"]): Promise<TextEmbeddingEvidence | undefined> => {
+      if (input.textEmbedding === "disabled" || !shouldAnalyzeVisualText(image.candidate, recognition)) return undefined;
+      const timeoutMs = deadline.postCommitTimeoutMs(SCAN_POLICY.visual.ocrTimeoutMs);
+      let evidence: TextEmbeddingEvidence;
+      if (timeoutMs < 500 || input.signal?.aborted) evidence = { state: "unavailable", reason: "budget" };
+      else try { evidence = await ocr.analyzeText(recognition.state === "available" ? recognition.text : "", timeoutMs, input.signal); }
+      catch (error) { evidence = { state: "unavailable", reason: input.signal?.aborted
+        || error instanceof Error && error.message === "OCR budget exhausted" ? "budget" : "model-error" }; }
+      if (evidence.state === "unavailable") analysisIssues.push(`text-embedding:${evidence.reason}`);
+      return evidence;
+    };
+    for (const { image } of visualScheduler.selectOcr()) {
+      const recognition = recognitions.get(image.sha256);
+      if (!recognition || !canReviewVisualImage(image.candidate, recognition)
+        || decideVisualImage(image.candidate, recognition, recurringShas.has(image.sha256)).decision.passed) continue;
+      const evidence = await compareText(image, recognition);
+      if (evidence) textEmbeddings.set(image.sha256, evidence);
+      const passed = decideVisualImage(image.candidate, recognition, recurringShas.has(image.sha256), evidence).decision.passed;
+      const verifyTesseract = passed && recognition.state === "available" && recognition.backend === "tesseract-cpu-kor-eng-v7";
+      if ((passed && !verifyTesseract) || image.mimeType !== "image/png"
+        || (!verifyTesseract && (image.height > 96 || image.width < image.height * 3))
+        || recognition.state !== "available" || recognition.text.length > 4096) continue;
+      // Mean Tesseract confidence can hide a missing word. Verify semantic-only
+      // PNG reviews with the Korean recognizer, keeping both actual transcripts.
+      const variant = verifyTesseract ? "neural-review" : "small-banner";
+      const alternateBackend = verifyTesseract ? "ppocrv5-korean-mobile-cpu-v1" : "ppocrv5-korean-mobile-4x-cpu-v2";
+      const timeoutMs = deadline.postCommitTimeoutMs(SCAN_POLICY.visual.ocrTimeoutMs);
+      let alternate: ImageAnalysis["ocr"];
+      if (timeoutMs < 500 || input.signal?.aborted) alternate = { state: "unavailable", backend: alternateBackend, reason: "budget" };
+      else try {
+        const other = await ocr.recognize({ sourceId: image.sourceUrl, imageBytes: Buffer.from(image.dataUrl.split(",")[1]!, "base64"),
+          width: image.width, height: image.height, mediaType: image.mimeType, variant }, timeoutMs, input.signal);
+        if (other.text.length > 4096) throw new Error("Alternate OCR text exceeds evidence bounds");
+        alternate = { state: "available", backend: other.backend, text: other.text, confidence: other.confidence };
+      } catch (error) {
+        alternate = { state: "unavailable", backend: alternateBackend,
+          reason: input.signal?.aborted || error instanceof Error && error.message === "OCR budget exhausted" ? "budget" : "recognition-error" };
+      }
+      ocrAlternatives.set(image.sha256, [alternate]);
+      if (alternate.state === "unavailable") { analysisIssues.push(`ocr-alternative:${alternate.reason}`); continue; }
+      if (alternate.text === recognition.text) continue;
+      if (verifyTesseract && !/\p{L}/u.test(alternate.text)) continue;
+      if (!verifyTesseract && !canReviewVisualImage(image.candidate, alternate)) continue;
+      // A recognizer's higher confidence cannot justify discarding the only
+      // observed category. Exclusions take precedence; helper abstention on a
+      // weak reading is not an exclusion and cannot erase that category.
+      const alternateText = semanticGate(alternate.text).normalizedText;
+      if (verifyTesseract && canReviewVisualImage(image.candidate, alternate)
+        && !image.candidate.visibleDomAdTexts.some(text => semanticGate(text).normalizedText.includes(alternateText))
+        && hasVisualAdCategory(semanticGate(recognition.text).normalizedText)
+        && !hasVisualAdCategory(semanticGate(alternate.text).normalizedText)) continue;
+      const alternateDirect = decideVisualImage(image.candidate, alternate, recurringShas.has(image.sha256)).decision.passed;
+      const lessSupported = recognition.backend === "ppocrv5-korean-mobile-cpu-v1" && alternate.backend === "ppocrv5-korean-mobile-4x-cpu-v2"
+        && alternate.confidence < recognition.confidence
+        && (alternate.text.match(/\p{L}/gu)?.length ?? 0) < (recognition.text.match(/\p{L}/gu)?.length ?? 0);
+      // A lower-confidence, shorter reading from the same recognizer does not
+      // become stronger evidence just because its embedding crosses zero.
+      if (!verifyTesseract && !alternateDirect && lessSupported) continue;
+      const alternateEvidence = alternateDirect ? undefined : await compareText(image, alternate);
+      if (verifyTesseract && alternateEvidence?.state === "unavailable") continue;
+      if (verifyTesseract || decideVisualImage(image.candidate, alternate, recurringShas.has(image.sha256), alternateEvidence).decision.passed) {
+        recognitions.set(image.sha256, alternate);
+        ocrAlternatives.set(image.sha256, [recognition]);
+        if (alternateEvidence) textEmbeddings.set(image.sha256, alternateEvidence); else textEmbeddings.delete(image.sha256);
+      }
+    }
+    const visualEmbeddings = new Map<string, VisualEmbeddingEvidence>();
+    for (const { image } of visualScheduler.selectOcr()) {
+      const recognition = recognitions.get(image.sha256);
+      if (input.textEmbedding === "disabled" || !recognition || recognition.state !== "available" || image.mimeType !== "image/png"
+        || image.height > 96 || image.width < image.height * 3 || !canReviewVisualImage(image.candidate, recognition)
+        || recognition.text.length > 4096 || decideVisualImage(image.candidate, recognition, recurringShas.has(image.sha256), textEmbeddings.get(image.sha256)).decision.passed) continue;
+      // An unused but informative reading still excludes a public notice or
+      // duplicate DOM advertisement; image similarity cannot override it.
+      const readings = [recognition, ...(ocrAlternatives.get(image.sha256) ?? [])];
+      // A logo-only reading cannot supply promotion context. Keep numeric
+      // evidence from either actual transcript without joining their text.
+      // An isolated digit can come from artwork. Require observed offer-like
+      // numeric structure in one transcript, without joining OCR alternatives.
+      if (!readings.some(reading => reading.state === "available" && (/\p{N}+(?:[.,]\p{N}+)?\s*[%억만원천]/u.test(reading.text)
+        || (reading.text.match(/\p{N}+/gu)?.length ?? 0) >= 2))) continue;
+      if (readings.some(reading => reading.state === "available" && (!canReviewVisualImage(image.candidate, reading)
+        || semanticGate(reading.text).normalizedText && image.candidate.visibleDomAdTexts.some(text => semanticGate(text).normalizedText.includes(semanticGate(reading.text).normalizedText))))) continue;
+      const timeoutMs = deadline.postCommitTimeoutMs(2 * SCAN_POLICY.visual.ocrTimeoutMs);
+      let evidence: VisualEmbeddingEvidence;
+      if (timeoutMs < 500 || input.signal?.aborted) evidence = { state: "unavailable", reason: "budget" };
+      else try { evidence = await ocr.analyzeImage({ sourceId: image.sourceUrl, imageBytes: Buffer.from(image.dataUrl.split(",")[1]!, "base64"), width: image.width, height: image.height, mediaType: image.mimeType }, recognition.text, timeoutMs, input.signal); }
+      catch (error) { evidence = { state: "unavailable", reason: input.signal?.aborted || error instanceof Error && error.message === "OCR budget exhausted" ? "budget" : "model-error" }; }
+      visualEmbeddings.set(image.sha256, evidence);
+      if (evidence.state === "unavailable") analysisIssues.push(`image-embedding:${evidence.reason}`);
+    }
     const imageAnalysis = await Promise.all(observations.map(async ({image,pages},index): Promise<ImageAnalysis> => {
       const recognition = recognitions.get(image.sha256)
         ?? {state:"unavailable",backend:ocr.name,reason:"budget"};
-      const verdict = decideVisualImage(image.candidate,recognition,recurringShas.has(image.sha256));
+      const verdict = decideVisualImage(image.candidate,recognition,recurringShas.has(image.sha256),textEmbeddings.get(image.sha256),visualEmbeddings.get(image.sha256));
       return { analysisId:`image-${String(index+1)}`,assetId:`visual-${image.sha256}`,
-        sourceKind:image.candidate.sourceKind,sourceUrl:image.sourceUrl,frameUrl:image.candidate.frameUrl,pageUrls:[...pages].sort(),
+        sourceKind:image.candidate.sourceKind,animationFrame:image.animationFrame,sourceUrl:image.sourceUrl,frameUrl:image.candidate.frameUrl,pageUrls:[...pages].sort(),
         location:image.candidate.location,destinationUrl:image.candidate.destinationUrl,
         candidateEvidence:image.candidate.candidateEvidence,visibleDomEquivalent:verdict.visibleDomEquivalent,
-        ocr:recognition,matchedTerms:verdict.gate.matchedTerms,normalizedText:verdict.gate.normalizedText,decision:verdict.decision };
+        ocr:recognition,ocrAlternatives:ocrAlternatives.get(image.sha256),textEmbedding:textEmbeddings.get(image.sha256),visualEmbedding:visualEmbeddings.get(image.sha256),matchedTerms:verdict.gate.matchedTerms,normalizedText:verdict.gate.normalizedText,decision:verdict.decision };
     }));
-    const imageOnlyCases = imageAnalysis.flatMap((analysis,index)=> analysis.decision.passed && analysis.ocr.state==="available"
-      ? [{url:observations[index]!.image.candidate.frameUrl,location:analysis.location!,evidenceText:analysis.ocr.text}] : []);
+    const imageOnlyCases: {url: string; location: string; evidenceText: string}[] = [];
+    const positiveLocations = new Set<string>();
+    for (const analysis of imageAnalysis) {
+      const key = `${analysis.frameUrl}\0${analysis.location}`;
+      if (!analysis.decision.passed || analysis.ocr.state !== "available" || positiveLocations.has(key)) continue;
+      positiveLocations.add(key);
+      imageOnlyCases.push({url: analysis.frameUrl!, location: analysis.location!, evidenceText: analysis.ocr.text});
+    }
     const adEvidence = new Map<string, NonNullable<GraphInput["adEvidence"]>>();
     const witness = (pageUrl:string,evidence:NonNullable<GraphInput["adEvidence"]>[number]):void => {
       const items=adEvidence.get(pageUrl) ?? []; items.push(evidence);adEvidence.set(pageUrl,items);
@@ -416,7 +519,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     }
     for (const [index,analysis] of imageAnalysis.entries()) {
       const image=observations[index]!.image;
-      const positive=analysis.ocr.state==="available" && semanticGate(analysis.ocr.text).passed;
+      const positive=analysis.ocr.state==="available" && analysis.decision.passed;
       if (!positive && !recurringShas.has(image.sha256)) continue;
       for (const pageUrl of analysis.pageUrls) witness(pageUrl,{location:image.candidate.location,
         resourceUrl:image.candidate.resourceUrl ?? (image.sourceUrl!==image.candidate.pageUrl ? image.sourceUrl : undefined),
@@ -453,8 +556,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       extraResult = {meta:result.meta,findings:[]};
     }
     for (const [index,analysis] of imageAnalysis.entries()) {
-      analysis.extraFindingId=extraResult.findings.find((finding)=>finding.extra_finding==="IMAGE_ONLY_ILLEGAL_AD"
-        && finding.url===observations[index]!.image.candidate.frameUrl && finding.location===analysis.location)?.id;
+      analysis.extraFindingId=analysis.decision.passed && analysis.ocr.state === "available" ? extraResult.findings.find((finding)=>finding.extra_finding==="IMAGE_ONLY_ILLEGAL_AD"
+        && finding.url===observations[index]!.image.candidate.frameUrl && finding.location===analysis.location && analysis.ocr.state === "available" && finding.evidence_text===analysis.ocr.text)?.id : undefined;
     }
     const extraJson = `${JSON.stringify(extraResult, null, 2)}\n`;
     visualAnalysisCoverage.imageAnalysisRecords = imageAnalysis.length;
@@ -502,7 +605,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
           .map((page) => ({ url: page.url, status: page.status,
             reason: page.failureReason ?? (page.status === 0 ? "navigation-or-analysis-failed" : `HTTP ${String(page.status)}`) })),
         timedOut: summary.timedOut,
-        cancelled,
+        cancelled: summary.cancelled || (input.signal?.aborted ?? false),
       },
     };
     const assets=new Map(observations.map(({image})=>
@@ -523,6 +626,8 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     if (!detailVerdict.ok) analysisIssues.push("detail-validation-failed");
     detailBundle.analysisIssues=[...new Set(analysisIssues)];
     await ocr.close();
+    const cancelled = summary.cancelled || (input.signal?.aborted ?? false);
+    detailBundle.coverage.cancelled = cancelled;
     detailBundle.timing!.analysisFinishedAt = new Date().toISOString();
     detailBundle.timing!.analysisElapsedMs = performance.now() - t0;
     progress.stage = cancelled ? "cancelled" : "succeeded";

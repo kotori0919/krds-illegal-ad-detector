@@ -47,6 +47,7 @@ export function isCaseManifest(value: unknown, official?: OfficialResult): value
     && text(value.status, 32) && ["succeeded", "cancelled", "failed"].includes(value.status) && text(value.toolVersion, 128) && value.toolVersion.length > 0
     && value.policyVersion === DETECTION_POLICY_VERSION && hash(value.officialSha256) && (value.evidenceSha256 === undefined || hash(value.evidenceSha256))
     && integer(value.findings, 20_000) && Array.isArray(value.issues) && value.issues.length <= 1000 && value.issues.every(caseIssue) && record(value.settings)
+    && (value.settings.connection === undefined || value.settings.connection === "direct" || value.settings.connection === "warp")
     && (value.settings.transport === undefined || isTransportProvenance(value.settings.transport))
     && (value.settings.transportFailure === undefined || value.status === "failed" && isTransportFailure(value.settings.transportFailure))
     && (!official || value.findings === official.findings.length && value.startedAt === official.meta.started_at
