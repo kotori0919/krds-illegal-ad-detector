@@ -654,3 +654,90 @@ UI관측주소복사/실패복구·목록밀도·지연조회·원시근거·JSO
 703passed/1기존skipped/scanner·webbuild/typecheck/lint/diffcheck 통과.
 [상세 성능/한계](VISION_CPU_OPTIMIZATION_20261022.md), artifacts/vision-cpu-20261022/.
 Windows내일(10/23), commit/push/PR/설치/배포/제출/외부능동탐색 미실행.
+
+## 2026-10-23 후보 재빌드와 검증
+
+### 소스·시험 상태 (OBSERVED_LOCAL)
+
+HEAD `16d4b561cc2eb4ade960da82a6864823f68cd7f1`, 브랜치 `dev/bootstrap`, 작업 트리 clean.
+`PATH=/usr/bin:$PATH KRDS_TEST_UNSANDBOXED=1 npm run check` — Node v22.23.3에서 EXIT 0,
+`Test Files 94 passed | 1 skipped (95)`, `Tests 704 passed | 1 skipped (705)`, 204.4초.
+같은 suite는 Node 26.8.1에서도 green. `npm run build` EXIT 0. 로컬 원시 로그는
+`/tmp/final-check-node22.log`, `/tmp/final-check-node26.log`(임시 경로, 저장소 밖).
+
+`56fd356` 이후 추가된 commit 15개: gated OCR/embedding pipeline, simple/advanced 모드,
+기본 direct 전송+선택 WARP, 문서, CI 예산, 런타임 의존성 closure staging(`type-fest`
+types-only 수정, nested 중복 보존, lock 672→1197), scan teardown 무한 대기 수정(브라우저
+종료 중 CDP await 제거), `.gitattributes` CRLF 고정, Vitest 파일 직렬화, 모델 다운로드
+재시도(3회×15분, hash/size/4xx 치명), rustfmt, cold-call 시험 warm-up.
+
+### CI 시도와 차단 원인 (NOT_RUN / BLOCKED)
+
+이 브랜치에서 GitHub Actions를 5회 시도했고 그 과정에서 다음을 수정했다: Windows 런타임
+staging의 `type-fest` 누락(entry point 없는 types-only 패키지), `cargo fmt --check` 실패,
+LF→CRLF checkout이 SHA-256 고정 한국어 vocabulary 바이트를 바꾸는 문제(Windows 전용),
+1.08 GiB 모델 다운로드의 3분 전체 전송 abort, 4 vCPU 경합에서 8초/16초 validator를 넘긴
+cold-call 증거.
+
+수정 후 최신 run(dispatch `39806914699`, PR `39806920316`, HEAD `16d4b56`)은 **시작되지
+않았다**. GitHub 표기 그대로:
+
+> The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings
+
+실행된 step은 없다. 계정 결제 차단이며 시험·빌드 실패가 아니다. CI 통과를 주장하지 않는다.
+
+### Linux 교차 빌드 후보 (OBSERVED_CROSS_BUILD)
+
+호스트 Linux, `KRDS_WINDOWS_TARGET=x86_64-pc-windows-gnullvm`, LLVM-MinGW 20260908
+(clang 23.1.1, sha256 `bab7f174d7e136ae093ad232d5a894ee00f0a8f9051bcff4eb6a70c132898248`),
+NSIS 3.09-4(makensis sha256 `ca9f28d9726d38d33b403187871af920b59c265eade7fa463684cf1e8b322d3e`).
+
+`node scripts/prepare-windows-runtime.mjs --verify` →
+`{"runtime":"verified","files":1197,"nodeVersion":"22.19.0"}`.
+`npm run build:desktop` EXIT 0, `npm run package:windows` EXIT 0. Tauri는 교차 컴파일을
+실험적(experimental)으로 표시하고 비Windows 호스트에서는 서명을 건너뛴다.
+
+후보 `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-3fb23ff998ea-20261022T160030222Z`:
+
+| 항목 | 값 |
+| --- | --- |
+| buildId | `0.2.1-x86_64-pc-windows-gnullvm-3fb23ff998ea-20261022T160030222Z` |
+| appVersion / target | `0.2.1` / `x86_64-pc-windows-gnullvm` |
+| source.commit / dirty | `16d4b561cc2eb4ade960da82a6864823f68cd7f1` / `false` |
+| sourceSha256 | `3fb23ff998ead8db5eb6b018ef45e55cd6588cc5a10680e474d2913d4c1c7087` |
+| installer `불법광고 탐지 도구_0.2.1_x64-setup.exe` | 796,331,514 B(759.44 MiB), sha256 `c76c133fa1fb35736da5b31e9dd1873442a72ef1e204b1765a8ff2fbccb439d8` |
+| standalone `krds-detector.exe` | 20,184,576 B, sha256 `896ce98c9a0bfb2cb20e2a117ce412bcd143f8a377db4094da486e77c5ac10a1` |
+| 설치본 exe(marker 변환 후) | sha256 `38411c042f2b5aa2dc8729b7586160e0553a9c3089257b59355ddf67cc6ed17b` |
+| verify | `node scripts/verify-artifact.mjs <candidate>/manifest.json` EXIT 0, 8 files, `unsigned-internal-candidate` |
+
+상위 8개 파일 hash가 모두 manifest와 일치하고 목록 밖 파일은 없다. standalone과 설치본
+hash 차이는 Tauri의 UNK→NSS marker 변환에 따른 예상된 차이다(Hash는 무결성 검사이며
+발행자 인증이 아니다). 이 후보는 gnullvm 교차 빌드이지 MSVC 배포 경로가 아니다.
+
+NOT_RUN: Windows에서의 설치, 대화형 UI 수용, MSVC 빌드/제품 경로(CI 결제 차단),
+WebView2 부재 offline 설치, 코드 서명.
+
+### 실측 잔여 위험 (MEASURED; 이번에 수정하지 않음)
+
+cold-start embedding(Linux, 2 CPU 고정, page cache evict): text 3.65초(상한 8초,
+production timeout 8초), image 11.4초(상한/timeout 16초). 인위적 3배 oversubscription에서
+text 5.5~6.0초, image 18.5~46.7초를 관측했다. 느린 하드웨어에서는 첫 text/image embedding
+근거가 `budget`으로 탈락할 수 있고(fail-closed, 오탐 없음, 다만 이미지만 있는 광고는 놓칠
+수 있다) child worker가 종료된다. production 코드는 바꾸지 않았다. 권장 후속 수정은
+post-commit 단계 전 embedding warming과 초기화 시간의 `elapsedMs` 제외다.
+
+installer 크기 759.44 MiB는 모델 약 1.31 GB와 스테이징 `node_modules` 약 376 MB를 포함한다.
+`onnxruntime-node`가 모든 플랫폼 바이너리(약 288 MB)를 실어 나르지만 런타임은 win32-x64만
+사용하며 pruning은 미구현이다. [빌드 매뉴얼](BUILD_MANUAL.md)의 같은 항목을 참조한다.
+
+### 환경 기록 (OBSERVED_ENVIRONMENT)
+
+호스트 루트 파일시스템 여유가 약 3 GB여서 `src-tauri/target`을
+`/mnt/nas/illegal-ad-build/target-gnullvm-20261023`로 symlink했다. `sourceIdentity()`가 그
+symlink를 거부했으므로(`git ls-files --others`에서 EISDIR) 로컬 `.git/info/exclude`에
+`src-tauri/target`을 추가했다(추적되지 않으며 commit하지 않는다).
+
+gitignore 대상이던 오래된 증거 4건을 삭제하지 않고 이동했다: `artifacts/detection-improvement-20261021`과
+`artifacts/NIA_ADOPTION_*_CANDIDATE_20261010.zip` 번들(+ 공개 batch `.sha256`) →
+`/mnt/nas/illegal-ad-artifacts-archive-20261023`. `artifacts/candidate-*`는 건드리지 않았다.
+이동 manifest: `/mnt/nas/illegal-ad-build/moved-artifacts-20261023.txt`, `/tmp/moved-artifacts-20261023.txt`.

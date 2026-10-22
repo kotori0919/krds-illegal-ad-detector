@@ -73,7 +73,7 @@ PowerShell에서는 `$env:KRDS_TEST_UNSANDBOXED="1"; npm run check`로 같은 �
 
 1. `npm ci`와 `cargo fetch --locked --manifest-path src-tauri/Cargo.toml` 완료.
 2. 런타임 준비: 최초 1회 `npm run prepare:windows-runtime`(네트워크 필요). 이후 beforeBuild가 `node scripts/prepare-windows-runtime.mjs --verify`로 `scripts/windows-runtime.lock.json`의 1197개 항목(`node.exe`, `node-LICENSE`, `ms-playwright/`, 스테이징된 `node_modules/`, `usque.exe`, `usque-LICENSE.md`)과 크기·SHA-256을 대조한다. lock의 `node_modules/` 항목은 `tesseract.js`, `@tesseract.js-data/kor`, `@tesseract.js-data/eng`, `onnxruntime-node`, `pngjs`에서 시작하는 런타임 의존성 closure 전체다. 각 패키지는 `package.json` 존재로 탐색하며(`require.resolve`는 entry point가 없는 types-only 패키지, 예: `type-fest`에서 실패한다), 프로젝트 `node_modules`와 같은 상대 경로에 스테이징하므로 nested 중복 버전이 보존된다. optional dependency는 설치된 경우에만 포함한다. 불일치는 실패이며 자동으로 갱신하지 않는다. worker 자산(`scanner-worker-*.mjs`, `ocr-worker.mjs`, `ocr-data/`, `text-embedding-data/`)은 이 lock 대조 대상이 아니고 `build-manifest.json` 해시로 검증된다.
-3. 스테이징: `src-tauri/binaries`에 detection worker, `ocr-worker.mjs`, `ocr-data/`, `text-embedding-data/`가 있어야 한다(`scripts/build-sidecar.mjs`가 기록). 이 디렉터리 안의 symlink는 `inventory`/`verifyFiles`가 `Resource symlink rejected`로 거부하므로 패키징이 실패한다. 스테이징은 `dist`의 symlink를 그대로 복사하지 않고 실제 디렉터리를 새로 만들지만, `src-tauri/binaries`에 symlink를 남기면 안 된다. 스테이징된 `node_modules`는 약 376 MB다. `onnxruntime-node`가 모든 플랫폼 바이너리(약 288 MB)를 포함하고 런타임에는 win32-x64만 사용하지만, 바이너리 pruning이 구현되어 있지 않으므로 이 크기가 배포 크기에 그대로 반영된다.
+3. 스테이징: `src-tauri/binaries`에 detection worker, `ocr-worker.mjs`, `ocr-data/`, `text-embedding-data/`가 있어야 한다(`scripts/build-sidecar.mjs`가 기록). 이 디렉터리 안의 symlink는 `inventory`/`verifyFiles`가 `Resource symlink rejected`로 거부하므로 패키징이 실패한다. 스테이징은 `dist`의 symlink를 그대로 복사하지 않고 실제 디렉터리를 새로 만들지만, `src-tauri/binaries`에 symlink를 남기면 안 된다. 스테이징된 `node_modules`는 약 376 MB다. `onnxruntime-node`가 모든 플랫폼 바이너리(약 288 MB)를 포함하고 런타임에는 win32-x64만 사용하지만, 바이너리 pruning이 구현되어 있지 않으므로 이 크기가 배포 크기에 그대로 반영된다. 이 구성에서 2026-10-23 gnullvm 후보의 NSIS 설치 파일은 759.44 MiB(796,331,514 B)였다: 모델 자산 약 1.31 GB와 스테이징 `node_modules` 약 376 MB가 대부분을 차지한다.
 4. 도구 체인: MSVC 경로는 `rust-toolchain.toml`의 Rust와 `x86_64-pc-windows-msvc`, C++ Build Tools, Windows SDK가 필요하다. GNU 경로는 `KRDS_LLVM_MINGW`와 `KRDS_NSIS_ROOT`가 필요하다. Tauri가 고정한 NSIS 3.11과 플러그인은 최초 패키징에서 프로젝트 target 아래로 내려받으므로 그 회차에는 네트워크가 필요하다.
 
 ## 보존하는 별도 경로: GNU LLVM 교차 빌드
@@ -89,6 +89,8 @@ npm run package:windows
 ```
 
 LLVM MinGW는 clang 23.1.1/UCRT 배포의 `bin`, `LICENSE.TXT`, `x86_64-w64-mingw32/bin/libunwind.dll`을 포함해야 한다. NSIS 3.09 루트는 `bin/makensis`와 `share/nsis`를 포함해야 한다. Tauri가 NSIS 환경 변수를 제거하므로 저장소 스크립트가 선택한 루트의 `NSISDIR`을 복원하는 임시 launcher를 만들고 종료 후 제거한다. 사용자 홈의 wrapper를 요구하지 않는다. linker와 `RC=llvm-rc`도 자식 프로세스에만 설정한다. WebView2Loader.dll은 **locked Cargo**의 webview2-com-sys에서 얻는다. 배포 루트 파일을 임의 DLL로 교체하지 않는다. 설치본 manifest에 compiler/NSIS 버전과 실행 파일/loader/license 해시를 남긴다. LLVM/NSIS를 저장소가 자동 설치하지 않는다.
+
+디스크 여유가 부족해 `src-tauri/target`을 다른 볼륨으로 symlink하면 `sourceIdentity()`가 `git ls-files --others`에서 EISDIR로 실패한다. 이때 로컬 `.git/info/exclude`(commit하지 않음)에 `src-tauri/target`을 추가하고 `git check-ignore -v src-tauri/target`로 무시되는지 확인한다. 저장소 `.gitignore`도 `src-tauri/target`(디렉터리와 symlink 모두)을 무시하도록 확장했다.
 
 ## 수신팀 주 경로: Windows MSVC
 
