@@ -1,4 +1,5 @@
 import type { HostBridge, ImportedTarget, ScanConnection, ScanCoverageView, ScanLimits, ScanSession } from "@krds-detector/contracts";
+import { SCAN_POLICY } from "@krds-detector/contracts";
 
 export type TargetStatus = "pending" | "running" | "complete" | "partial" | "blocked" | "failed" | "cancelled";
 export interface BatchTarget extends ImportedTarget {
@@ -85,7 +86,10 @@ export class BatchCoordinator {
         session = await this.host.startBatchScan({ entryUrl: target.entryUrl, kind: target.kind, limits: this.limits, connection: this.connection });
         this.update(target.key, { session });
         if (this.stopping) await this.host.cancelScan(session.id);
-        const expires = Date.now() + ((this.limits.timeoutSec ?? 1500) + 45) * 1000;
+        const expires = Date.now() + Math.min(
+          (this.limits.timeoutSec ?? SCAN_POLICY.scan.defaults.timeoutSec) + SCAN_POLICY.deadline.hostGraceSec,
+          SCAN_POLICY.deadline.hardLimitSec,
+        ) * 1000;
         while (!terminal(session.status)) {
           if (Date.now() > expires) throw new Error("점검 상태 확인 시간이 초과되었습니다. 현재 점검을 중지했습니다.");
           await new Promise((resolve) => setTimeout(resolve, this.pollMs));

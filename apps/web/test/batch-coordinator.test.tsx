@@ -1,4 +1,5 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
+import { initialProgress, SCAN_POLICY, type ScanSession } from "@krds-detector/contracts";
 import type { ImportedTarget } from "@krds-detector/contracts";
 import { BatchCoordinator } from "../src/batch-coordinator.js";
 import { BrowserHost } from "../src/host/browser.js";
@@ -12,6 +13,38 @@ function hostForTest(): BrowserHost {
   host.startBatchScan = (request) => host.startScan(request);
   return host;
 }
+
+it("waits through native host finalization grace before admitting the next target", async () => {
+  vi.useFakeTimers();
+  try {
+    const host = hostForTest();
+    const started: string[] = [];
+    const start = host.startBatchScan.bind(host);
+    let active: ScanSession | undefined;
+    host.startBatchScan = async (request) => {
+      started.push(request.entryUrl);
+      if (started.length > 1) return start(request);
+      active = { id: "finalizing", entryUrl: request.entryUrl, startedAt: new Date().toISOString(),
+        status: "running", hasResult: false, progress: initialProgress("running") };
+      return active;
+    };
+    const read = host.getSession.bind(host);
+    host.getSession = async (id) => id === "finalizing" ? active : read(id);
+    host.cancelScan = async () => { throw new Error("native watchdog has not expired"); };
+    const workerSec = 60;
+    const coordinator = new BatchCoordinator(host, targets, { timeoutSec: workerSec }, 1000);
+    const running = coordinator.start();
+    // Finalization is still inside the native grace, beyond the former 45 s UI limit.
+    await vi.advanceTimersByTimeAsync((workerSec + SCAN_POLICY.deadline.hostGraceSec - 10) * 1000);
+    expect(started).toEqual([targets[0]!.entryUrl]);
+    expect(coordinator.snapshot().phase).toBe("running");
+    active = { ...active!, status: "succeeded" };
+    await vi.advanceTimersByTimeAsync(10_000);
+    await running;
+    expect(started).toEqual(targets.map((target) => target.entryUrl));
+    expect(coordinator.snapshot().phase).toBe("complete");
+  } finally { vi.useRealTimers(); }
+});
 
 it("pause preserves the first independent result and resumes only the remaining target", async () => {
   const host = hostForTest(); const coordinator = new BatchCoordinator(host, targets, {}, 1);
