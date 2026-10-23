@@ -65,6 +65,20 @@ it.each([
   expect(decide(text).decision.passed).toBe(false);
 });
 
+// Ordinary exchange/event wording and the compound 첫충전 must not carry the
+// deposit axis: 환전/롤링/꽁머니 are not settlement handles, and 첫충 is only
+// the betting compound when it is not the plain 충전/첫충전 wording.
+it.each([
+  "환전 수수료 무료 · 충전 시 페이백",
+  "롤링 이벤트 · 충전 안내",
+  "가입코드 첫충전 10% 보너스",
+])("keeps ordinary exchange, event and first-charge wording out of the deposit axis: %s", (text) => {
+  const verdict = decide(text);
+  expect(verdict.decision.passed).toBe(false);
+  expect(verdict.visibleDomEquivalent).toBe(false);
+  expect(depositCreativeTerms(verdict.gate.normalizedText)).toEqual([]);
+});
+
 it.each([
   "첫충70% 페이백10% 콤프3.5% 입금 광고를 발견하면 신고해 주세요.",
   "불법도박 교육: 카지노 첫충·페이백·콤프 3.5% 입금 가능 문구를 신고하세요",

@@ -8,18 +8,25 @@ export function hasVisualAdCategory(normalizedText: string): boolean {
 
 // Deposit-bonus wording recovered from the observed Korean betting creatives.
 // It is not a category word: these banners name only the offer. The axis
-// therefore needs a settlement anchor (referral code, USDT/Tether settlement,
-// exchange) plus two independent offer words, and a generic "10% 보너스"
+// therefore needs a settlement anchor (referral code or USDT/Tether
+// settlement) plus two independent offer words, and a generic "10% 보너스"
 // beside an anchor is never enough on its own. 첫중/입급/입들금/메이백/매이백
 // are the corruptions this corpus actually produced (첫충/입금/페이백).
+// Ordinary exchange/rebate wording (환전, 롤링, 꽁머니) is deliberately not an
+// anchor: it also appears in currency-exchange and event notices, so an anchor
+// must be a settlement handle that ordinary commerce does not print.
 const REFERRAL_TERM = "가입코드";
-const SETTLEMENT_ANCHORS = [REFERRAL_TERM, "테더", "usdt", "환전", "꽁머니", "롤링"] as const;
+const SETTLEMENT_ANCHORS = [REFERRAL_TERM, "테더", "usdt"] as const;
 const DEPOSIT_TERMS = ["첫충", "첫중", "첫입금", "매충", "충전", "입금", "입급", "입들금"] as const;
 const OFFER_REWARD_TERMS = ["페이백", "메이백", "매이백", "콤프", "롤링", "꽁머니", "보너스", "쿠폰", "퍼센트", "%"] as const;
 const BETTING_DEPOSIT_TERMS = ["첫충", "첫중", "첫입금", "매충"] as const;
 const BETTING_REWARD_TERMS = ["페이백", "메이백", "매이백", "콤프", "롤링", "꽁머니"] as const;
 
-const matchedTermsIn = (text: string, terms: readonly string[]): string[] => terms.filter((term) => text.includes(term));
+// 첫충 is only the betting compound when it is not the ordinary 충전/첫충전
+// wording; the returned term stays "첫충" so matchedTerms validators keep it.
+const TERM_PATTERNS: ReadonlyMap<string, RegExp> = new Map([["첫충", /첫충(?!전)/u]]);
+const matchesTerm = (text: string, term: string): boolean => TERM_PATTERNS.get(term)?.test(text) ?? text.includes(term);
+const matchedTermsIn = (text: string, terms: readonly string[]): string[] => terms.filter((term) => matchesTerm(text, term));
 
 /** Observed deposit-offer terms; empty when the reading carries one signal only. */
 export function depositCreativeTerms(normalizedText: string): string[] {
