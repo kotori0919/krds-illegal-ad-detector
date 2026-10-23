@@ -298,9 +298,25 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       const pageStarted = performance.now();
       const page: Page = await activeContext.newPage();
       activePages.add(page);
+      const maxDocumentHandoffs = 2;
+      let mainFrameGeneration = 0;
+      let pendingMainResponse: Response | undefined;
+      let mainResponseStatus = 0;
+      let mainResponseHeaders: Record<string, string> = {};
       const pageExternals = new Map<string, ObservedExternal>();
       const collectionIssues = new Set<string>();
       const imageResponses: LiveImageResponse[] = [];
+      const onMainFrameNavigated = (frame: Frame): void => {
+        if (frame !== page.mainFrame() || !pendingMainResponse) return;
+        // History/hash updates emit framenavigated without replacing the document.
+        if (frame.url().split("#")[0] !== pendingMainResponse.url().split("#")[0]) return;
+        mainFrameGeneration += 1;
+        mainResponseStatus = pendingMainResponse.status();
+        mainResponseHeaders = pendingMainResponse.headers();
+        pendingMainResponse = undefined;
+        imageResponses.length = 0;
+      };
+      page.on("framenavigated", onMainFrameNavigated);
       const observeExternal = (external: ObservedExternal): void => {
         const key = `${external.url}\0${external.kind}`;
         if (pageExternals.has(key)) return;
@@ -316,10 +332,15 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       let issue: ScanIssue | undefined;
       const requireSameSiteDocument = (): void => {
         finalUrl = page.url();
-        if (isSameSite(entry.host, finalUrl)) return;
-        observeExternal({ url: finalUrl, from: next.url, kind: "redirect" });
-        issue = { kind: wasPolicyDenied(finalUrl) ? "network-policy" : "navigation", retryable: false };
-        throw new Error("external-redirect");
+        if (!isSameSite(entry.host, finalUrl)) {
+          observeExternal({ url: finalUrl, from: next.url, kind: "redirect" });
+          issue = { kind: wasPolicyDenied(finalUrl) ? "network-policy" : "navigation", retryable: false };
+          throw new Error("external-redirect");
+        }
+        if (mainFrameGeneration > maxDocumentHandoffs + 1) {
+          issue = { kind: "navigation", retryable: false };
+          throw new Error("document-handoff-limit");
+        }
       };
       // Hostile-page caps: abort oversized media/fonts, record externals.
       let seenRequests = 0;
@@ -342,6 +363,9 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
       const onResponse = (res: Response): void => {
         const url = res.url();
         const status = res.status();
+        if (res.request().isNavigationRequest() && res.request().frame() === page.mainFrame()) {
+          pendingMainResponse = res;
+        }
         if (wasPolicyDenied(url)) collectionIssues.add("network-policy-denied");
         if (res.request().resourceType() === "image" && status >= 200 && status < 300 && imageResponses.length < SCAN_POLICY.visual.candidatesPerDocument * 2) {
           const mediaType = (res.headers()["content-type"] ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
@@ -395,9 +419,10 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           timeout: Math.min(budget, 20000),
         });
         status = response?.status() ?? 0;
+        if (mainResponseStatus === 0) { mainResponseStatus = status; mainResponseHeaders = response?.headers() ?? {}; }
         requireSameSiteDocument();
         navigating = false;
-        const headers = response?.headers() ?? {};
+        let headers = response?.headers() ?? {};
         issue = wasPolicyDenied(finalUrl) ? { kind: "network-policy", retryable: false } : classifyAccess(status, headers);
         if (issue?.kind === "rate-limit" && issue.retryAfterMs !== undefined) nextRequestAt = Math.max(nextRequestAt, performance.now() + issue.retryAfterMs);
         if (issue?.kind === "network-policy") throw new Error("network-policy-denied");
@@ -405,74 +430,151 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
         // A commit can precede script execution by seconds under load. Start
         // the injection settle window only after the document is parsed, while
         // retaining time for analysis and whole-scan finalization.
+        // Initial client redirects may invalidate the pre-settle execution context,
+        // so DOM access classification runs only after this settle.
         const remainingPageMs = (): number => Math.max(0, budget - (performance.now() - pageStarted) - 1000);
-        const loadMs = Math.min(5000, remainingPageMs(), deadline.operationTimeoutMs(5000));
-        if (loadMs > 0) {
-          await page.waitForLoadState("domcontentloaded", { timeout: loadMs }).catch(() => undefined);
-        }
-        requireSameSiteDocument();
         const readAccessDocument = async () => page.evaluate(() => ({
           title: document.title,
           passwordForm: document.querySelector("form input[type=password]") !== null,
           challengeElement: document.querySelector("#challenge-running, #challenge-form, #cf-challenge-running, script[src*='/cdn-cgi/challenge-platform/']") !== null,
         }));
-        issue = classifyAccess(status, headers, await readAccessDocument());
-        if (issue) throw new Error(`access-${issue.kind}`);
-        const waitMs = Math.min(settleBudget, remainingPageMs(), deadline.operationTimeoutMs(settleBudget));
-        if (waitMs > 0) await page.waitForTimeout(waitMs);
-        requireSameSiteDocument();
-        if (waitMs > 0) issue = classifyAccess(status, headers, await readAccessDocument());
-        if (issue) throw new Error(`access-${issue.kind}`);
-        // Frame snapshot after settle: resolve absolute srcs, capture nested html.
-        const described = await describePage(page);
-        if (described.truncated) collectionIssues.add("link-discovery-limit");
-        requireSameSiteDocument();
-        const frameSnapshots: FrameSnapshot[] = [];
-        const frameEls = page.frames();
-        if (frameEls.length > SCAN_POLICY.collection.frameCount + 1) collectionIssues.add("frame-count-limit");
-        for (const f of frameEls.slice(1, SCAN_POLICY.collection.frameCount + 1)) {
+
+        const isContextDestroyed = (error: unknown): boolean =>
+          error instanceof Error && /Execution context was destroyed/i.test(error.message);
+
+        let handoffs = 0;
+        let preparedGeneration = mainFrameGeneration;
+        let described: { links: string[]; truncated: boolean } = { links: [], truncated: false };
+        let frameSnapshots: FrameSnapshot[] = [];
+
+        while (true) {
+          const attemptGeneration = mainFrameGeneration;
           try {
-            const fUrl = f.url();
-            // Ancestor chain: walk parentFrame() up to main, resolving each
-            // level's selector via its frameElement handle.
-            const chain: { src: string; selector: string }[] = [];
-            const visibilityContext: ReturnType<typeof observeFrameOwner> = { transparent: false, offscreen: false,
-              transparentDetail: "", offscreenDetail: "", unsupported: [] };
-            let cursor = f;
-            let guard = 0;
-            while (cursor && cursor.parentFrame() && guard <= limits.maxFrameDepth) {
-                const ownerHandle = await cursor.frameElement();
-                try {
-                  // Trusted selector factory source only. No page values enter
-                  // source code; owner element is supplied by Playwright.
-                  const selector = await ownerHandle.evaluate(selectFrameOwner);
-                  if (typeof selector !== "string") throw new Error("frame owner has no unique selector");
-                  const ownerVisibility = await ownerHandle.evaluate(observeFrameOwner, SCAN_POLICY.visibility);
-                  visibilityContext.transparent ||= ownerVisibility.transparent;
-                  visibilityContext.offscreen ||= ownerVisibility.offscreen;
-                  if (ownerVisibility.transparentDetail) visibilityContext.transparentDetail += `${ownerVisibility.transparentDetail}; `;
-                  if (ownerVisibility.offscreenDetail) visibilityContext.offscreenDetail += `${ownerVisibility.offscreenDetail}; `;
-                  visibilityContext.unsupported.push(...ownerVisibility.unsupported);
-                  chain.unshift({ src: cursor.url() || "about:blank", selector });
-                } finally { await ownerHandle.dispose(); }
-              const parent = cursor.parentFrame();
-              if (!parent || parent === page.mainFrame()) break;
-              cursor = parent;
-              guard += 1;
+            liveFrames.length = 0;
+            const loadMs = Math.min(5000, remainingPageMs(), deadline.operationTimeoutMs(5000));
+            if (loadMs > 0) {
+              await page.waitForLoadState("domcontentloaded", { timeout: loadMs }).catch(() => undefined);
             }
-            if (chain.length === 0 || chain.length > limits.maxFrameDepth) { collectionIssues.add("frame-depth-limit"); continue; }
-            frameSnapshots.push({
-              srcChain: chain.map((c) => c.src),
-              selectorChain: chain.map((c) => c.selector),
-              url: fUrl,
-              html: "",
-            });
-            liveFrames.push({ frame: f, srcChain: chain.map((c) => c.src), selectorChain: chain.map((c) => c.selector), visibilityContext });
-            if (isNavigable(fUrl)) observeExternal({ url: fUrl, from: finalUrl, kind: "iframe" });
-          } catch {
-            collectionIssues.add("frame-observation-unavailable");
+            requireSameSiteDocument();
+            const waitMs = Math.min(settleBudget, remainingPageMs(), deadline.operationTimeoutMs(settleBudget));
+            if (waitMs > 0) await page.waitForTimeout(waitMs);
+            requireSameSiteDocument();
+            preparedGeneration = mainFrameGeneration;
+
+            // Re-read current main response in case a navigation completed during settle.
+            status = mainResponseStatus;
+            headers = mainResponseHeaders;
+            issue = wasPolicyDenied(finalUrl) ? { kind: "network-policy", retryable: false } : classifyAccess(status, headers);
+            if (issue?.kind === "rate-limit" && issue.retryAfterMs !== undefined) nextRequestAt = Math.max(nextRequestAt, performance.now() + issue.retryAfterMs);
+            if (issue?.kind === "network-policy") throw new Error("network-policy-denied");
+            if (issue?.kind === "challenge") throw new Error("access-challenge");
+
+            issue = classifyAccess(status, headers, await readAccessDocument());
+            if (issue) throw new Error(`access-${issue.kind}`);
+
+            described = await describePage(page);
+            if (described.truncated) collectionIssues.add("link-discovery-limit");
+            requireSameSiteDocument();
+            if (mainFrameGeneration !== preparedGeneration) {
+              handoffs += 1;
+              if (handoffs > maxDocumentHandoffs) {
+                issue = { kind: "navigation", retryable: false };
+                throw new Error("document-handoff-limit");
+              }
+              requireSameSiteDocument();
+              continue;
+            }
+
+            frameSnapshots = [];
+            const frameEls = page.frames();
+            if (frameEls.length > SCAN_POLICY.collection.frameCount + 1) collectionIssues.add("frame-count-limit");
+            for (const f of frameEls.slice(1, SCAN_POLICY.collection.frameCount + 1)) {
+              try {
+                const fUrl = f.url();
+                const chain: { src: string; selector: string }[] = [];
+                const visibilityContext: ReturnType<typeof observeFrameOwner> = { transparent: false, offscreen: false,
+                  transparentDetail: "", offscreenDetail: "", unsupported: [] };
+                let cursor = f;
+                let guard = 0;
+                while (cursor && cursor.parentFrame() && guard <= limits.maxFrameDepth) {
+                  const ownerHandle = await cursor.frameElement();
+                  try {
+                    const selector = await ownerHandle.evaluate(selectFrameOwner);
+                    if (typeof selector !== "string") throw new Error("frame owner has no unique selector");
+                    const ownerVisibility = await ownerHandle.evaluate(observeFrameOwner, SCAN_POLICY.visibility);
+                    visibilityContext.transparent ||= ownerVisibility.transparent;
+                    visibilityContext.offscreen ||= ownerVisibility.offscreen;
+                    if (ownerVisibility.transparentDetail) visibilityContext.transparentDetail += `${ownerVisibility.transparentDetail}; `;
+                    if (ownerVisibility.offscreenDetail) visibilityContext.offscreenDetail += `${ownerVisibility.offscreenDetail}; `;
+                    visibilityContext.unsupported.push(...ownerVisibility.unsupported);
+                    chain.unshift({ src: cursor.url() || "about:blank", selector });
+                  } finally { await ownerHandle.dispose(); }
+                  const parent = cursor.parentFrame();
+                  if (!parent || parent === page.mainFrame()) break;
+                  cursor = parent;
+                  guard += 1;
+                }
+                if (chain.length === 0 || chain.length > limits.maxFrameDepth) { collectionIssues.add("frame-depth-limit"); continue; }
+                frameSnapshots.push({
+                  srcChain: chain.map((c) => c.src),
+                  selectorChain: chain.map((c) => c.selector),
+                  url: fUrl,
+                  html: "",
+                });
+                liveFrames.push({ frame: f, srcChain: chain.map((c) => c.src), selectorChain: chain.map((c) => c.selector), visibilityContext });
+                if (isNavigable(fUrl)) observeExternal({ url: fUrl, from: finalUrl, kind: "iframe" });
+              } catch {
+                collectionIssues.add("frame-observation-unavailable");
+              }
+            }
+
+            if (mainFrameGeneration !== preparedGeneration) {
+              // A document handoff occurred during preparation; restart preparation
+              // on the new document instead of mixing stale links/callbacks.
+              handoffs += 1;
+              if (handoffs > maxDocumentHandoffs) {
+                issue = { kind: "navigation", retryable: false };
+                throw new Error("document-handoff-limit");
+              }
+              requireSameSiteDocument();
+              continue;
+            }
+            preparedGeneration = mainFrameGeneration;
+            break;
+          } catch (error) {
+            if (isContextDestroyed(error) && !pageTimedOut && !options.signal?.aborted && !page.isClosed() && handoffs < maxDocumentHandoffs) {
+              // Synchronously subscribe if generation has not yet advanced.
+              if (mainFrameGeneration === attemptGeneration) {
+                const navigationMs = Math.min(remainingPageMs(), deadline.operationTimeoutMs(2000));
+                // Playwright treats timeout: 0 as unbounded.
+                if (navigationMs <= 0) throw new Error("page deadline reached during document handoff");
+                const nav = await page.waitForEvent("framenavigated", {
+                  predicate: (frame) => frame === page.mainFrame(),
+                  timeout: navigationMs,
+                }).catch(() => null);
+                if (!nav || mainFrameGeneration === attemptGeneration) {
+                  issue = { kind: "navigation", retryable: false };
+                  throw new Error("navigation");
+                }
+              }
+              // Always recheck actual current URL before any document evaluate.
+              requireSameSiteDocument();
+              handoffs += 1;
+              continue;
+            }
+            throw error;
           }
         }
+
+        const requirePreparedDocument = (): void => {
+          requireSameSiteDocument();
+          if (mainFrameGeneration !== preparedGeneration) {
+            issue = { kind: "navigation", retryable: false };
+            throw new Error("document-changed-during-analysis");
+          }
+        };
+        requirePreparedDocument();
+
         const absoluteLinks = described.links
           .map((h) => {
             try {
@@ -495,8 +597,9 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
           elapsedMs: performance.now() - pageStarted,
           discoverySource: next.discoverySource,
         };
-        requireSameSiteDocument();
+        requirePreparedDocument();
         if (options.onLivePage) await options.onLivePage(page, snapshot, liveFrames, imageResponses, next.pageRank);
+        requirePreparedDocument();
         // Snapshot copies are optional evidence; official live detection has
         // already run and gets the shared deadline first.
         if (deadline.operationTimeoutMs(1000) > 0) {
@@ -517,10 +620,16 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             }
           }
         }
+        requirePreparedDocument();
         if (collectionIssues.size) snapshot.collectionIssues = [...new Set([...(snapshot.collectionIssues ?? []), ...collectionIssues])].sort();
       } catch (error) {
+        finalUrl = page.url();
+        const classified = classifyPageError(error, pageTimedOut, navigating);
         if (wasPolicyDenied(finalUrl)) issue = { kind: "network-policy", retryable: false };
-        issue ??= classifyPageError(error, pageTimedOut, navigating);
+        else if (classified.kind === "timeout") issue = classified;
+        else if (!navigating && !isSameSite(entry.host, finalUrl)) issue = { kind: "navigation", retryable: false };
+        else if (error instanceof Error && /Execution context was destroyed/i.test(error.message)) issue = { kind: "navigation", retryable: false };
+        else issue ??= classified;
         snapshot = {
           url: next.url,
           finalUrl,
@@ -554,6 +663,8 @@ export async function crawlSite(options: CrawlOptions): Promise<CrawlSummary> {
             await session.detach().catch(() => undefined);
           }
         }
+        page.off("response", onResponse);
+        page.off("framenavigated", onMainFrameNavigated);
         await page.close().catch(() => undefined);
       }
       if (!snapshot) throw new Error("page processing did not produce a snapshot");
