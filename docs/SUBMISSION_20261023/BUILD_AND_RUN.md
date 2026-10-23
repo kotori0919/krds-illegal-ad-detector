@@ -107,7 +107,7 @@ npm run package:windows
 ```
 
 `prepare:windows-runtime`은 최초 1회 네트워크가 필요하고, 이후 beforeBuild가
-`scripts/windows-runtime.lock.json`의 **1197개 항목**과 크기·SHA-256을 대조한다. lock은
+`scripts/windows-runtime.lock.json`의 **1177개 항목**과 크기·SHA-256을 대조한다. lock은
 `node.exe`, `node-LICENSE`, `ms-playwright/`, 스테이징된 `node_modules/`, `usque.exe`,
 `usque-LICENSE.md`를 포함한다. 불일치는 실패이며 자동으로 새 해시를 신뢰하지 않는다
 (`BUILD_MANUAL.md` §`npm run package:windows` 준비).
@@ -158,8 +158,8 @@ license inventory, third-party notices가 들어간다(`BUILD_MANUAL.md` §산�
 
 1. `manifest.json`의 `source.commit`이 배포하려는 commit과 같은지 확인한다.
 2. installer의 SHA-256을 manifest의 값과 비교한다. 현재 후보는
-   `54c8f1cdff25e9077a2432b8e75af14cef7597fe1fb21eb8325fbb6b6dfdf406`
-   (`796,348,611` B)이다.
+   `753b873c2b1454eae27fb5524cafaf4f70e682ae6ad660be2412a877a44f5ebc`
+   (`747,381,035` B, 712.76 MiB)이다.
 3. standalone `krds-detector.exe` hash와 **설치된** exe hash를 구분한다. Tauri는 NSIS
    생성 시 bundle 식별자를 `UNK`→`NSS`로 바꾸므로 두 hash는 다를 수 있고, manifest의
    `installedExecutable` 절이 별도 hash를 기록한다. standalone hash를 설치본에

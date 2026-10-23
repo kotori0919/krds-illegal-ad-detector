@@ -6,21 +6,25 @@
 [`BUILD_AND_RUN.md`](BUILD_AND_RUN.md), 제품 개요는
 [`APPLICATION_SUMMARY.md`](APPLICATION_SUMMARY.md)를 따른다.
 
-## 1. D08 — 재시작 후 두 대상 통합 보고서
+## 1. D08 — 실제 앱 재시작 후 통합 보고서 수용 미실행
 
-- **무엇인지**: 두 공개 대상의 판단·메모를 포함한 **통합** 엑셀 보고서를 앱 재시작
-  후 생성하는 경로가 아직 실행되지 않았다. 판정이 있는 케이스는 단일 대상 배치였다.
-  일괄 작업 묶음(그룹)의 재시작 복원은 미구현이다.
-- **왜 중요한지**: 실제 운영은 여러 사이트를 한 번에 점검하고 하나의 보고서로
-  결재·시정 요청하는 흐름을 갖는다. 두 대상 통합 보고서가 재시작 후에도 판단·메모를
-  담는지 확인되지 않으면 "일괄 운영이 검증됐다"고 말할 수 없다. 개별 케이스와 검토
-  기록은 재시작 후에도 남는다.
-- **완화·다음 단계**: 지금은 대상별 공식 결과를 각각 보관하고, 사이트별 보고서를
-  개별 생성해 사람이 취합한다. 보고서에는 점검 범위 제한이 함께 기록된다. 다음
-  단계는 대상 2건·판단·메모 포함 → 정상 종료 → 새 프로세스 → 통합 XLSX 생성 →
-  실제 Excel 열람의 순서로 수용하는 것이다.
-- 근거: `docs/DOGFOOD_LEDGER_20261014.md` §Task outcomes D08 및 §Completion remains
-  unproven, `docs/UX_FLOW.md` §고급 모드, `docs/PLANNING_DOC.md` §12.
+- **무엇인지**: 일괄 작업 묶음(그룹)의 영속화와 재시작 복원은 `bdcc0e8`에서 구현됐다.
+  그룹 identity는 `<cases>/groups/<uuid>.json`에 저장되고, list/save IPC 두 개가 UUID·
+  RFC3339·enum·자격 없는 공개 URL을 검증한다. 케이스 manifest·공식 JSON·검토 파일은
+  변경되지 않으며 migration은 0이다. 고급 모드 화면은 저장된 그룹을 나열하고 각 대상을
+  케이스로 복원하며, 저장된 판단으로 통합 XLSX를 다시 만든다. 이 경로는 Rust 단위 시험
+  (그룹 파일 왕복·형식 거부)과 웹 재마운트 시험으로 확인했다. **미실행인 것은 설치된
+  데스크톱 앱 프로세스를 실제로 재시작한 뒤 통합 보고서를 만드는 Windows 수용 시험과
+  기기 간 그룹 이식이다.**
+- **왜 중요한지**: 실제 운영은 여러 사이트를 한 번에 점검하고 하나의 보고서로 결재·시정
+  요청하는 흐름을 갖는다. 자동 시험은 저장·복원·재생성 로직을 검증하지만, 설치본의
+  WebView2·IPC·파일 잠금이 실제 재시작에서 같은 결과를 내는지는 별개다.
+- **완화·다음 단계**: 지금은 대상별 공식 결과를 각각 보관하고, 사이트별 보고서를 개별
+  생성해 사람이 취합한다. 다음 단계는 대상 2건·판단·메모 포함 → 정상 종료 → 새 프로세스
+  → 통합 XLSX 생성 → 실제 Excel 열람의 순서로 Windows 설치본에서 수용하는 것이다.
+- 근거: `docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」 NOT_RUN,
+  `docs/DOGFOOD_LEDGER_20261014.md` §Task outcomes D08, `docs/PLANNING_DOC.md` §12,
+  `bdcc0e8` commit message.
 
 ## 2. 실사이트 이미지 광고 재현율
 
@@ -42,42 +46,45 @@
   `docs/EMBEDDING_QUANTIZATION_20261022.md`, `docs/VISION_CPU_OPTIMIZATION_20261022.md`,
   `docs/OCR_ENGINE_COMPARISON_20261021.md`, `docs/ADR/0017-...md` §Alternatives and limits.
 
-## 3. Cold-start 임베딩 예산 동작
+## 3. Cold-start 임베딩 예산 동작 (부분 완화)
 
 - **무엇인지**: Linux 2 CPU 고정·page cache evict 조건에서 첫 text 임베딩은 3.65초
   (상한·production timeout 8초), 첫 image 임베딩은 11.4초(상한·timeout 16초)였다.
-  인위적 3배 oversubscription에서 text 5.5~6.0초, image 18.5~46.7초를 관측했다(MEASURED,
-  이번에 수정하지 않음). 느린 하드웨어에서 첫 text/image 임베딩 근거가 `budget`으로
-  탈락할 수 있고, child worker가 종료된다.
-- **왜 중요한지**: 탈락은 fail-closed여서 **오탐은 만들지 않지만**, 이미지만 있는
-  광고는 놓칠 수 있다. 즉 같은 사이트라도 첫 실행과 이후 실행의 결과가 달라질 수 있고,
-  평가 환경(4~6코어·8GB·무GPU)의 콜드 스타트에서 재현율이 낮아질 수 있다.
-- **완화·다음 단계**: production 코드는 변경하지 않았다. 권장 후속 수정은 post-commit
-  단계 전 embedding warming과 초기화 시간을 `elapsedMs` 측정 구간에서 제외하는 것이다.
-  그때까지는 콜드 스타트 결과에서 `budget` 탈락 사유를 점검 범위·추가 분석 화면에서
-  확인하고, 필요하면 재점검한다.
-- 근거: `docs/ADOPTION_LEDGER.md` §「실측 잔여 위험 (MEASURED; 이번에 수정하지 않음)」.
+  인위적 3배 oversubscription에서 text 5.5~6.0초, image 18.5~46.7초를 관측했다(MEASURED).
+  **`953ce2c`가 이 중 초기화 시간을 `elapsedMs`에서 제외했다**: `analyzeAfterInit` seam이
+  엔진 resolve 뒤에 타이머를 시작하고, `scanSite`가 분석 1회 예산(8초) 상한으로 1회
+  warm-up하며(`{warm:true}` 프로토콜, 잔여 500ms 미만이면 생략, 실패 시
+  `embedding-warm:budget|error` 기록 후 계속) warm-up 시간을 증거 측정에서 뺀다.
+  warm-up으로 측정된 cold init은 **idle 0.83–0.9초 / 2배 이상 과부하 2.0–2.7초**다.
+- **왜 중요한지**: 이전에는 느린 하드웨어의 첫 근거가 `budget`으로 탈락할 수 있었다.
+  탈락은 fail-closed여서 **오탐은 만들지 않지만**, 이미지만 있는 광고를 놓칠 수 있다.
+- **남은 위험**: warm-up은 초기화 비용만 제거한다. **2.5배 이상 oversubscription에서
+  image 추론 자체가 16초 상한을 넘을 수 있는 문제는 그대로**이며, 이번에 수정하지 않은
+  선행 관측이다(18.5~46.7초). 그 경우에도 fail-closed로 예산 탈락이 기록된다.
+- **완화·다음 단계**: 예산 탈락 사유를 점검 범위·추가 분석 화면에서 확인하고 필요하면
+  재점검한다. 저사양 실측(4~6코어·8GB·무GPU)에서 첫 실행 시간을 다시 측정한다.
+- 근거: `docs/ADOPTION_LEDGER.md` §「실측 잔여 위험」, §「2026-10-23 통합 검증과 최종
+  후보」, `953ce2c` commit message(측정값 원문).
 
-## 4. 설치 크기 759.46 MiB와 전 플랫폼 onnxruntime 포함
+## 4. 설치 크기 712.76 MiB와 pruning 이후 남은 payload
 
-- **무엇인지**: 현재 후보 installer는 `796,348,611` B(759.46 MiB)다. 모델 약 1.31 GB와
-  스테이징 `node_modules` 약 376 MB를 포함한다. `onnxruntime-node`가 모든 플랫폼
-  바이너리(약 288 MB)를 실어 나르지만 런타임은 `win32-x64`만 사용하며 바이너리 pruning은
-  구현되어 있지 않다.
-- **왜 중요한지**: 내려받기·설치 시간이 길고, 기관 배포·백업·패치 비용이 커진다. 같은
-  이유로 다운로드 실패·디스크 부족 위험이 커진다. 또한 Windows에서의 실제 설치 크기·
-  파일 잠금·네이티브 추론 비용은 측정하지 않았다.
-- **완화·다음 단계**: 빌드 단계에서 `onnxruntime-node`의 비대상 플랫폼 바이너리를
-  제거하고 런타임 load를 검증한 뒤, 설치 크기와 콜드 스타트 시간을 함께 재측정한다.
-  모델 자산은 필요 시 설치 후 내려받는 옵션을 별도 계약으로 설계해야 한다(현재는 점검
-  중 다운로드 금지 정책이므로 그대로 바꾸지 않는다).
-- 근거: `docs/ADOPTION_LEDGER.md` §재빌드(installer hash·크기), §실측 잔여 위험
-  (모델·`node_modules`·`onnxruntime-node` 구성), `docs/BUILD_MANUAL.md`
+- **무엇인지**: 최종 후보 installer는 `747,381,035` B(712.76 MiB)다. 모델 약 1.31 GB와
+  스테이징 `node_modules` 약 153 MB를 포함한다. `1c0e8a3`이 `onnxruntime-node`에서
+  `bin/napi-v6/win32/x64`(binding DLL + 로더/라이선스)만 staging하고 타 플랫폼 바이너리를
+  제거했다. 스테이징 `node_modules`는 376 MB → 153 MB(−233,962,380 B)이고 lock은
+  1197 → 1177 항목이다. 이전 후보(759.46 MiB) 대비 installer는 **−46.7 MiB**다.
+  invariant(누락·타 플랫폼 잔존)는 빌드 시 실패하도록 단언하며, closure 시험 8/8과
+  `--verify` 1177 files가 통과했다.
+- **왜 중요한지**: 내려받기·설치 시간과 기관 배포·백업·패치 비용에 직접 영향을 준다.
+  모델 자산 약 1.31 GB가 여전히 크기의 대부분이며, Windows에서의 실제 설치 후 크기·
+  파일 잠금·네이티브 추론 비용은 별도로 측정하지 않았다(설치 디렉터리 2,135,273,452 B는
+  v2 수용에서 관측).
+- **완화·다음 단계**: 모델 자산을 설치 후 내려받는 옵션은 점검 중 다운로드 금지 정책과
+  충돌하므로 별도 계약으로 설계해야 한다(현재 그대로 바꾸지 않는다). Windows 설치 후
+  크기·콜드 스타트 시간을 함께 재측정한다.
+- 근거: `docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」, 후보
+  `manifest.json` `files`, `1c0e8a3` commit message, `docs/BUILD_MANUAL.md`
   §`npm run package:windows` 준비 3항.
-
-같은 `ADOPTION_LEDGER.md` §실측 잔여 위험 문단의 "759.44 MiB" 표기는 **선행
-후보**(`3fb23…`, `796,331,514` B) 수치다. 현재 후보는 759.46 MiB이며, 모델·스테이징
-크기 서술만 현재 후보에도 유효하다.
 
 ## 5. 서명되지 않은 산출물
 
@@ -99,15 +106,17 @@
 - **무엇인지**: 현재 Windows 후보는 Linux `x86_64-pc-windows-gnullvm` 교차 빌드이고
   Tauri가 "실험적"으로 표시한다. 수신팀의 주 배포 경로는 Windows MSVC 빌드다. MSVC
   경로의 CI(`windows-native`, `required`)는 계정 결제 차단으로 시작되지 않았다. 실제
-  Windows에서의 시험 실행도 cross sysroot 부재로 NOT_RUN이다.
+  Windows에서의 `cargo test` 실행도 cross sysroot 부재로 NOT_RUN이다. gnullvm 후보의
+  Windows 11 설치·대화형 UI는 v2로 관측했지만(§`VERIFICATION_SUMMARY.md` §6), 그것은
+  MSVC 산출물의 검증이 아니다.
 - **왜 중요한지**: 컴파일러·CRT·링커가 다르면 예외 처리, 로케일, DLL 로딩, WebView2
   interop 같은 경계에서 동작이 달라질 수 있다. gnullvm 후보의 verify 통과는 MSVC
   제품 경로의 검증을 대신하지 않는다.
 - **완화·다음 단계**: MSVC 호스트에서 `npm run package:windows` → `verify:artifact` →
   Windows 설치·화면 수용을 실행하고, 그 결과로 배포 후보를 다시 식별한다. 그 전까지
   gnullvm 후보는 "Linux 교차 빌드 산출물"로만 표기한다.
-- 근거: `docs/ADOPTION_LEDGER.md` §「Linux 교차 빌드 후보」, §「재빌드 (85a286f)」의
-  NOT_RUN, `docs/BUILD_MANUAL.md` §보존하는 별도 경로·§수신팀 주 경로,
+- 근거: `docs/ADOPTION_LEDGER.md` §「Linux 교차 빌드 후보」, §「2026-10-23 통합 검증과
+  최종 후보」, `docs/BUILD_MANUAL.md` §보존하는 별도 경로·§수신팀 주 경로,
   `docs/VERIFICATION_SUMMARY.md` §7.
 
 ## 7. 사람 사용성·보조기기(AT) 미검증

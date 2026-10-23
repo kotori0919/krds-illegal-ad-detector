@@ -1,13 +1,15 @@
 # 도입 구현 원장
 
-검토 기준은 `d14b8feadf60a174d3d74ad47e49ba13072c84c7`이다. 현재 설치 검증한 후보 소스는
-`565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`, 브랜치는 `dev/bootstrap`, PR #2는 Draft다.
+검토 기준은 `d14b8feadf60a174d3d74ad47e49ba13072c84c7`이다. **2026-10-23 최종 후보의
+소스는 `1c0e8a34c407776ea6fb16943a1e8c73961c6d77`**, 브랜치는 `dev/bootstrap`, PR #2는
+Draft다(§「2026-10-23 통합 검증과 최종 후보」). 아래 `565d9f6e…`는 2026-10-09 MSVC
+설치 검증 후보의 이력 식별자다.
 감사 재현 자료를 회귀 입력으로 사용했으며 기준 소스로 현재 checkout을 덮어쓰지 않았다.
 과거 RC와 중간 GNU/MSVC 후보를 보존한다. 현재 앱은 `0.2.1`, 공식 tool version은
 `0.2.1-policy2`다. 공식 contract v0, Case 1, detail 2, config 1, policy 2를 구분한다.
 정확한 후보와 운영 수용 판정은 [채택 인계](ADOPTION_HANDOFF_KO.md)가 기준이다.
-후속 UI와683px 수정, 역사 공개native3c·보고서native359·직접 화면재열기565를 현재 설치
-후보의 실행과 구분한다. 현재 후보 source는 `565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`, build ID는
+후속 UI와683px 수정, 역사 공개native3c·보고서native359·직접 화면재열기565를 최종 후보의
+실행과 구분한다. 역사 MSVC 후보 source는 `565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`, build ID는
 `0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z`다. Canonical receiving 빌드와 Windows·로컬 artifact verify를 통과했고
 실제 직접 실행에서 보관 케이스를 재열었다. 재개 후 전체 installer의 upgrade·build rollback·
 제거·프로그램 fresh install, 일반 사용자 단일/공개batch·검토·재열기·JSON/XLSX·실제 Excel
@@ -721,6 +723,9 @@ WebView2 부재 offline 설치, 코드 서명.
 
 ### 재빌드 (85a286f)
 
+**이 후보(`76e7d5ec…`, installer `54c8f1cd…df406`)는 아래 「2026-10-23 통합 검증과
+최종 후보」의 `307f6b6f…` 후보로 대체(superseded)되었다.** 다음은 당시 관측 기록이다.
+
 16d4b56 뒤 source commit 세 개 때문에 같은 날 다시 빌드했다: `95bb51d` credential-bearing
 entry URL 거부, `2ea59e4` stale case-store import-status 시험 기대값 수정(제품 동작 변경
 없음), `85a286f` clippy `div_ceil`. 위 3fb23 후보는 이 재빌드로 대체되었다.
@@ -764,7 +769,8 @@ post-commit 단계 전 embedding warming과 초기화 시간의 `elapsedMs` 제�
 
 installer 크기 759.44 MiB는 모델 약 1.31 GB와 스테이징 `node_modules` 약 376 MB를 포함한다.
 `onnxruntime-node`가 모든 플랫폼 바이너리(약 288 MB)를 실어 나르지만 런타임은 win32-x64만
-사용하며 pruning은 미구현이다. [빌드 매뉴얼](BUILD_MANUAL.md)의 같은 항목을 참조한다.
+사용하며, **이 시점에는** pruning이 미구현이었다(이후 `1c0e8a3`에서 구현, 아래 「통합 검증과
+최종 후보」 절). [빌드 매뉴얼](BUILD_MANUAL.md)의 같은 항목을 참조한다.
 
 ### 환경 기록 (OBSERVED_ENVIRONMENT)
 
@@ -778,3 +784,104 @@ gitignore 대상이던 오래된 증거 4건을 삭제하지 않고 이동했다
 `/mnt/nas/illegal-ad-artifacts-archive-20261023`. 당시 `artifacts/candidate-*`는 건드리지 않았고,
 이후 85a286f 재빌드에서 predecessor 후보만 같은 archive로 이동했다(위 재빌드 절).
 이동 manifest: `/mnt/nas/illegal-ad-build/moved-artifacts-20261023.txt`, `/tmp/moved-artifacts-20261023.txt`.
+
+## 2026-10-23 통합 검증과 최종 후보
+
+이 절은 2026-10-23 제출 기준의 최종 상태다. 앞의 `### 재빌드 (85a286f)` 후보
+(`76e7d5ec…`)는 이 절의 `307f6b6f…` 후보로 **대체(superseded)**되었고, `artifacts/`
+에 삭제하지 않고 보존했다.
+
+### 소스와 commit (OBSERVED_LOCAL)
+
+| 항목 | 값 |
+| --- | --- |
+| 브랜치 / HEAD | `dev/bootstrap` / `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` |
+| 작업 트리 | clean, 원격에 push됨 |
+| 앱 버전 / 탐지 정책 | `0.2.1` / `0.2.1-policy2` |
+
+`85a286f` 이후 추가된 commit 5개:
+
+| commit | 내용 |
+| --- | --- |
+| `953ce2c` | evidence engine을 계측 전에 warm-up. `analyzeAfterInit` seam으로 시계를 엔진 resolve 뒤에 시작, `{warm:true}` 프로토콜 + `LocalOcrBackend.warm`, `scanSite`가 1회 warm(상한 = 분석 예산 1회, 8초, 잔여 500ms 미만이면 생략)하고 `embedding-warm:budget\|error`를 기록 |
+| `be9c14a` | 예금·쿠폰 축 광고 의미(ad-semantics) 추가 |
+| `bdcc0e8` | D08 일괄 그룹 영속화·재시작 복원(`<cases>/groups/<uuid>.json`, list/save IPC 2개, UUID·RFC3339·enum·자격 없는 공개 URL 검증) |
+| `98cae4f` | upstream 연결 실패를 `403 network-policy`가 아니라 `502 access-navigation`으로 보고 |
+| `1c0e8a3` | 비대상 `onnxruntime` payload pruning. `bin/napi-v6/win32/x64` + loader/license만 staging, binding/DLL 누락·타 플랫폼 잔존 시 실패. 스테이징 `node_modules` 376 MB → 153 MB(−233,962,380 B), lock 1197 → 1177 |
+
+### 로컬 검사 (OBSERVED_LOCAL)
+
+| 명령 | 결과 |
+| --- | --- |
+| `PATH=/usr/bin:$PATH KRDS_TEST_UNSANDBOXED=1 npm run check` | EXIT 0, `Test Files 98 passed \| 1 skipped (99)`, `Tests 754 passed \| 1 skipped (755)`, 216.7초 |
+| `npm run build` | EXIT 0 |
+| `cargo test --bins` | 80 passed / 0 failed / 2 ignored (**호스트 실행, Windows 아님**) |
+| `cargo fmt --check` | EXIT 0 |
+| Windows target clippy(CI와 같은 명령) | EXIT 0 |
+| `cargo check --target x86_64-pc-windows-gnullvm --all-targets` | EXIT 0 |
+| `node scripts/prepare-windows-runtime.mjs --verify` | 1177 files |
+| closure 시험(`scripts/test/windows-runtime-closure.test.mjs`) | 8/8 |
+
+`KRDS_TEST_UNSANDBOXED=1`은 소유 loopback fixture의 Chromium sandbox만 해제한다.
+CI는 여전히 계정 결제 차단으로 시작되지 않았으므로 **CI 통과를 주장하지 않는다**.
+
+### 최종 후보 (OBSERVED_CROSS_BUILD)
+
+`artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z/`
+
+| 항목 | 값 |
+| --- | --- |
+| buildId | `0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z` |
+| appVersion / target | `0.2.1` / `x86_64-pc-windows-gnullvm` |
+| source.commit / dirty | `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` / `false` |
+| sourceSha256 | `307f6b6ff09b9ce04e0b157c6a9b9e1d87cf8c25148605e7731a4892addab731` |
+| installer `불법광고 탐지 도구_0.2.1_x64-setup.exe` | 747,381,035 B(712.76 MiB), sha256 `753b873c2b1454eae27fb5524cafaf4f70e682ae6ad660be2412a877a44f5ebc` |
+| standalone `krds-detector.exe` | 20,356,608 B, sha256 `112e1099daf303eacadee12339fa31083f96b55c6f61e8452aa33059b4cb8f9c` |
+| 설치본 exe(marker 변환 후, markerOffset 13534994) | sha256 `b6cc4411d2feecb9048dbb8f7dc3ecd568a4a944c368bedb7cb3877270211699` |
+| `releaseStatus` / `signing` | `candidate` / `unsigned-internal-candidate` |
+| verify | `node scripts/verify-artifact.mjs <candidate>/manifest.json` EXIT 0, **8 files, 8/8 hash 일치**, 목록 밖 파일 없음 |
+| 빌드 도구(manifest `tools`) | node `v26.8.1`, rustc `1.98.1`, tauri `2.12.1` |
+
+설치 크기는 predecessor 759.46 MiB 대비 **−46.7 MiB**(796,348,611 → 747,381,035 B)다.
+Tauri는 교차 컴파일을 "실험적"으로 표시하며, 이 후보는 MSVC 배포 경로가 아니다.
+verify는 무결성 검사이며 발행자 인증이 아니다.
+
+### Windows 실제 환경 v2 (OBSERVED_WINDOWS)
+
+호스트 `ssh win` → `Pocket4`, `pocket4\dbsgu`, Windows 11 Pro `10.0.26200`,
+PowerShell `7.6.6`, Cua Driver `0.30.1`. 증거 디렉터리
+`artifacts/win-verify-20261023/`(`README.md` v2 절, `RECEIPT-v2.json`,
+`screenshots/v2-*`, `exports-v2/`).
+
+| 단계 | 결과 |
+| --- | --- |
+| 전송·해시 | tar 스트림 767,805,440 B → installer 747,381,035 B, 4m32s, EXIT 0. Windows `Get-FileHash` installer `753b873c…5ebc`, standalone `112e1099…8f9c` — 기대값 일치 |
+| 설치(대화형 NSIS, UAC 없음) | "Setup was completed successfully". 설치본 EXE `b6cc4411…1699`, 20,356,608 B — expected installed-marker와 **정확히 일치** |
+| 실행 | 설치 관리자의 Run 옵션으로 시작, 시작 화면·오류 대화상자 없음 |
+| loopback 점검 | detached Node fixture 서버(127.0.0.1:18777, Win32_Process로 SSH 세션 비소유) → case `8991fad4…`, **탐지 17건**, 확인 15페이지, 실패 0, 경과 15초, 기법 TRANSPARENT/HOMOGLYPH/JAMO/OFFSCREEN, 서버 로그에 앱 요청 19건 |
+| 닫힌 포트 | 127.0.0.1:18779(리스너 없음) → `502 access-navigation`(정책 거부 아님) |
+| 검토 | 근거 보기 + 판단 `광고 의심`(저장값 `suspected`) + 메모 영속 |
+| 공식 JSON | 4,586 B, BOM 없음, 17 findings, elapsed 15.407, sha256 `701ed484…0a3d`, 저장된 `result.json`과 **byte-identical** |
+| XLSX | 16,514 B, 6 시트, 메모·판단 포함. 실제 Excel 열람은 NOT_RUN |
+| 재시작 | 메모·판단 복원, 공식 bytes 불변 |
+| 프로세스 | 앱/chromium 고아 0. AppData 194 → 218 files, 추가 24·삭제 0·기존 수정 0 |
+| 보존 | 기존 케이스·설치본 삭제·초기화 없음 |
+
+**v1 정정.** 같은 날 v1 기록은 후보 `76e7d5ec`에서 loopback 점검이 `403
+access-network-policy`로 거부되는 것을 회귀(defect)로 적었다. **그 주장은 철회한다.**
+v1의 fixture 서버는 SSH 세션의 `Start-Process`로 띄운 것이 스캔 시점에 이미 죽어 있었고
+(로그에 앱 요청 없음), [INFERENCE] 따라서 닫힌 포트를 측정한 것이었다. v2는 양쪽을 모두
+증명한다: 살아 있는 loopback 서버는 정상 점검되고, 닫힌 포트는 `502 access-navigation`으로
+분류된다. v1 절은 역사 기록으로 남기고 "defect/regression" 서술은 이 정정으로 대체한다.
+
+### NOT_RUN (최종 후보 기준)
+
+| 항목 | 이유 |
+| --- | --- |
+| Windows MSVC CI(`windows-native`, `required`) | 계정 결제 차단으로 job 미시작. 시험 실패 아님 |
+| D08 실제 Tauri window 재시작 후 통합 보고서 | 그룹 파일·IPC·재마운트 복원·통합 XLSX 재생성은 구현·자동 시험으로 확인했으나, 설치된 앱 프로세스를 실제로 재시작하는 Windows 수용 시험은 NOT_RUN. 기기 간 그룹 이식도 NOT_RUN |
+| WebView2 부재 offline 설치 | offline profile 없음 |
+| 코드 서명(Authenticode) | 조직 인증서·승인 절차 없음 |
+| 실제 사람 사용성 평가·보조기기(AT) 판독 | 수행하지 않음 |
+| Excel에서 XLSX 실제 열람 | v2에서 열지 않음 |
+| 무인 설치·제거·선행 후보 업그레이드 스크립트 경로 | 대화형 "Already Installed" 재설치만 수행 |

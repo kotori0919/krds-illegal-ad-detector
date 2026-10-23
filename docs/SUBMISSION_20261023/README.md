@@ -18,15 +18,15 @@
 | --- | --- |
 | 저장소 origin | `https://github.com/snowman0919/krds-illegal-ad-detector.git` |
 | 브랜치 | `dev/bootstrap` |
-| 코드 기준 commit | `85a286f5fcaf125fcadec155eac729bfe019db92` |
-| 이 묶음 작성 시점 HEAD | `37168549ee699e815d4ae4d17241374fd8c833a6` (85a286f + 문서 commit) |
+| 코드 기준 commit | `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` |
+| 이 묶음 작성 시점 HEAD | 위 commit + 이 문서 commit |
 | 앱 버전 / 탐지 정책 | `0.2.1` / `0.2.1-policy2` |
 | Case / detail / config / policy 계약 | `1` / `2` / `1` / `2` |
 
 Windows 후보의 `source.commit`은 후보 `manifest.json`에 기록된
-`85a286f5fcaf125fcadec155eac729bfe019db92`다. 이 문서 묶음의 commit은 후보 빌드
+`1c0e8a34c407776ea6fb16943a1e8c73961c6d77`이다. 이 문서 묶음의 commit은 후보 빌드
 이후에 추가된 문서 변경이므로 후보 identity에 포함되지 않는다. 근거:
-[`docs/ADOPTION_LEDGER.md`](../ADOPTION_LEDGER.md) §「2026-10-23 후보 재빌드와 검증」.
+[`docs/ADOPTION_LEDGER.md`](../ADOPTION_LEDGER.md) §「2026-10-23 통합 검증과 최종 후보」.
 
 ## 2. 제출물 목록
 
@@ -43,29 +43,33 @@ Windows 후보의 `source.commit`은 후보 `manifest.json`에 기록된
 | 9 | `docs/USER_MANUAL.md` | 사용자 매뉴얼(간단·고급 모드) | 준비됨 |
 | 10 | `docs/OPERATIONS_GUIDE_KO.md` | 운영·배포·백업·제거 인계 | 준비됨 |
 | 11 | `docs/DATA_HANDLING_KO.md` | 원본·검토·진단 데이터 처리 | 준비됨 |
-| 12 | Windows 설치 후보 | `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z/` | 산출물 있음(서명 없음) · Windows 설치 수용 미실행 |
+| 12 | Windows 설치 후보 | `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z/` | 산출물 있음(서명 없음) · Windows 11 v2 설치·대화형 UI 수용 OBSERVED(범위 제한, §4) |
 
 ## 3. Windows 설치 후보 식별
 
 | 항목 | 값 |
 | --- | --- |
-| buildId | `0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z` |
+| buildId | `0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z` |
 | target | `x86_64-pc-windows-gnullvm` (Linux 교차 빌드, Tauri "실험적" 표시) |
-| source.commit / dirty | `85a286f5fcaf125fcadec155eac729bfe019db92` / `false` |
-| sourceSha256 | `76e7d5ec6ce4f9d2b7b5446b2ae29f934a2c85f98dc76821b4225a106af90b19` |
+| source.commit / dirty | `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` / `false` |
+| sourceSha256 | `307f6b6ff09b9ce04e0b157c6a9b9e1d87cf8c25148605e7731a4892addab731` |
 | installer 파일명 | `불법광고 탐지 도구_0.2.1_x64-setup.exe` |
-| installer 크기 | `796,348,611` B (759.46 MiB) |
-| installer SHA-256 | `54c8f1cdff25e9077a2432b8e75af14cef7597fe1fb21eb8325fbb6b6dfdf406` |
-| standalone `krds-detector.exe` | `20,220,928` B, SHA-256 `bd57296b8823ff79d0aa9da6c7e9dc578cb3ac853a086be1f1b690cc69bac121` |
-| 설치본 exe(marker 변환 후) | SHA-256 `8059cb5d93fecccf013b3645d046bc9d8f8ae26bbe498896492b4dee8f61413e` |
+| installer 크기 | `747,381,035` B (712.76 MiB) |
+| installer SHA-256 | `753b873c2b1454eae27fb5524cafaf4f70e682ae6ad660be2412a877a44f5ebc` |
+| standalone `krds-detector.exe` | `20,356,608` B, SHA-256 `112e1099daf303eacadee12339fa31083f96b55c6f61e8452aa33059b4cb8f9c` |
+| 설치본 exe(marker 변환 후) | SHA-256 `b6cc4411d2feecb9048dbb8f7dc3ecd568a4a944c368bedb7cb3877270211699` |
 | artifact verify | `node scripts/verify-artifact.mjs <candidate>/manifest.json` EXIT 0, 8 files, 8/8 hash 일치, 목록 밖 파일 없음 |
 | `signing` 값 | `unsigned-internal-candidate` |
 
-같은 날 먼저 만든 후보 `candidate-0.2.1-...-3fb23ff998ea-20261022T160030222Z`
-(source `16d4b56…`, installer `c76c133f…`)는 **대체(superseded)되었고** 현재 후보가
-아니다. 삭제하지 않고 `/mnt/nas/illegal-ad-artifacts-archive-20261023/`로 이동했다.
-현재 후보의 SHA-256은 위 표의 `54c8f1cd…df406` 하나뿐이다. 근거: `ADOPTION_LEDGER.md`
-§「재빌드 (85a286f)」, `/mnt/nas/illegal-ad-build/moved-artifacts-20261023.txt`.
+앞선 두 후보는 **대체(superseded)되었고** 현재 후보가 아니다. 삭제하지 않고 보존했다.
+
+| 후보 | state |
+| --- | --- |
+| `…-3fb23ff998ea-20261022T160030222Z` (source `16d4b56`, installer `c76c133f…`) | superseded · `/mnt/nas/illegal-ad-artifacts-archive-20261023/`로 이동 |
+| `…-76e7d5ec6ce4-20261022T163747830Z` (source `85a286f`, installer `54c8f1cd…df406`, 759.46 MiB) | superseded · `artifacts/`에 보존 |
+
+현재 후보의 SHA-256은 위 표의 `753b873c…f5ebc` 하나뿐이다. 근거: `ADOPTION_LEDGER.md`
+§「2026-10-23 통합 검증과 최종 후보」, `artifacts/win-verify-20261023/RECEIPT-v2.json`.
 
 ## 4. 체크리스트
 
@@ -78,24 +82,44 @@ Windows 후보의 `source.commit`은 후보 `manifest.json`에 기록된
 | 빌드 매뉴얼 | 준비됨 | `docs/BUILD_MANUAL.md` |
 | 사용자 매뉴얼 | 준비됨 | `docs/USER_MANUAL.md` |
 | 운영·데이터 인계 | 준비됨 | `docs/OPERATIONS_GUIDE_KO.md`, `docs/DATA_HANDLING_KO.md` |
-| Windows 후보 파일·크기·SHA-256 | 준비됨 | 후보 `manifest.json`, `ADOPTION_LEDGER.md` §재빌드 |
-| artifact verify 8/8 | 준비됨 | EXIT 0, `ADOPTION_LEDGER.md` §재빌드 |
-| 로컬 검사 704 passed / 1 skipped | 준비됨 | `ADOPTION_LEDGER.md` §「소스·시험 상태」 |
+| Windows 후보 파일·크기·SHA-256 | 준비됨 | 후보 `manifest.json`, `ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」 |
+| artifact verify 8/8 | 준비됨 | EXIT 0, 같은 절 |
+| 로컬 검사 754 passed / 1 skipped | 준비됨 | `ADOPTION_LEDGER.md` §「통합 검증과 최종 후보」 |
 | `npm run build` | 준비됨 | EXIT 0, 같은 절 |
-| Windows target `cargo check`/clippy | 준비됨 | EXIT 0, `ADOPTION_LEDGER.md` §재빌드 |
-| 런타임 closure lock | 준비됨 | `--verify` 1197 files |
+| Windows target `cargo check`/clippy | 준비됨 | EXIT 0, 같은 절 |
+| 런타임 closure lock | 준비됨 | `--verify` 1177 files |
 | 증거 원장 | 준비됨 | `ADOPTION_LEDGER.md`, `DOGFOOD_LEDGER_20261014.md` |
 | 문서 6종 상호 참조 | 준비됨 | 이 디렉터리 |
+
+### OBSERVED — Windows 11 설치·대화형 UI 수용 (v2, 범위 제한)
+
+최종 후보를 Windows 11 Pro `10.0.26200`(`Pocket4`)에 설치·조작한 기록이 있다.
+증거: `artifacts/win-verify-20261023/README.md` v2 절, `RECEIPT-v2.json`,
+`screenshots/v2-*`, `exports-v2/`.
+
+| 확인한 것 | 관측값 |
+| --- | --- |
+| 전송·해시 일치 | installer `753b873c…f5ebc`, standalone `112e1099…8f9c` |
+| 대화형 NSIS 설치(UAC 없음) | 성공, 설치본 EXE `b6cc4411…1699` = expected marker |
+| 실행·시작 화면 | 오류 대화상자 없음 |
+| loopback fixture 점검 | case `8991fad4…`: 17 findings, 확인 15페이지, 실패 0, 15초 |
+| 닫힌 포트 분류 | `502 access-navigation`(정책 거부 아님) |
+| 검토·내보내기 | 판단 `광고 의심`(저장 `suspected`)·메모 영속, 공식 JSON 4,586 B(17 findings, sha256 `701ed484…0a3d`), XLSX 16,514 B(6 시트) |
+| 재시작 | 메모·판단 복원, 공식 bytes 불변 |
+| 프로세스·보존 | 고아 0, AppData 194 → 218 files, 삭제 0·기존 수정 0 |
+
+**이 관측의 범위 밖**: MSVC 제품 경로, 사람 사용성 평가, 실제 Excel 열람, 무인 설치·제거,
+D08 실제 앱 재시작 수용. 한 환경의 결과를 다른 환경으로 전용하지 않는다.
 
 ### 미실행 (NOT_RUN)
 
 | 항목 | 이유 |
 | --- | --- |
-| Windows 11 설치·대화형 UI 수용 | 교차 빌드 후보를 Windows에서 실행·설치한 기록이 없다. Windows 검증 호스트(Pocket4)는 2026-10-14 접속 불가였다. |
 | Windows MSVC CI (`windows-native`, `required`) | GitHub Actions job이 계정 결제 차단으로 시작되지 않았다(§5 인용). 시험 실패가 아니다. |
 | WebView2 부재 상태의 완전 오프라인 설치 | offline 설치 profile이 없고 검증하지 않았다. |
 | 코드 서명(Authenticode) | 조직 인증서·승인 절차가 없어 후보는 서명 없는 내부 평가용이다. |
-| D08 재시작 후 두 대상 통합 보고서 | 판단·메모가 포함된 두 대상 통합 워크북이 재시작 후 생성된 기록이 없다. |
+| D08 실제 Tauri window 재시작 후 통합 보고서 | 그룹 영속화·IPC·재마운트 복원·통합 XLSX 재생성은 구현·자동 시험으로 확인했으나, 설치된 앱 프로세스 재시작 수용 시험은 NOT_RUN이다(`bdcc0e8`). |
+| Excel에서 XLSX 실제 열람 | v2 수용에서 파일 검증만 했고 Excel로 열지 않았다. |
 | 실제 사람 사용성 평가·보조기기(AT) 판독 | 수행하지 않았다. |
 
 ## 5. CI 차단 기록(원문 인용)

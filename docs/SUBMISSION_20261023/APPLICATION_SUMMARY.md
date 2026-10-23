@@ -1,11 +1,17 @@
 # 신청서 지원용 요약 — 공공 웹사이트 불법광고 탐지 도구
 
 2026 행정안전부 / 한국지능정보사회진흥원 "공공 웹사이트 불법광고 탐지 도구 개발
-공모전". 기준 소스는 저장소 `dev/bootstrap` 브랜치 `85a286f`이며, 앱 버전은 `0.2.1`,
+공모전". 기준 소스는 저장소 `dev/bootstrap` 브랜치 `1c0e8a3`이며, 앱 버전은 `0.2.1`,
 탐지 정책은 `2`다. 이 문서의 모든 수치는 괄호 안에 출처 문서와 절을 적는다. 출처를
 적을 수 없는 수치는 넣지 않았다. 전체 제출물 목록과 미실행 항목은
 [`README.md`](README.md) §4, 검증 수치는 [`VERIFICATION_SUMMARY.md`](VERIFICATION_SUMMARY.md),
 한계는 [`LIMITATIONS_AND_RISKS.md`](LIMITATIONS_AND_RISKS.md)를 따른다.
+
+기준 소스의 최근 변경 5개: `953ce2c`(evidence warm-up: 초기화 시간을 `elapsedMs`에서
+제외, idle 0.83–0.9초/과부하 2.0–2.7초), `be9c14a`(예금·쿠폰 광고 의미 축), `bdcc0e8`(D08
+일괄 그룹 영속화·재시작 복원), `98cae4f`(upstream 실패를 `502 access-navigation`으로),
+`1c0e8a3`(`onnxruntime` 비대상 payload pruning, installer −46.7 MiB). 상세:
+`docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」.
 
 ## 1. 배경과 목적
 
@@ -103,6 +109,8 @@ Windows 11·무GPU·외부 AI 미접속 환경에서 수행한다 (`PLANNING_DOC
 
 **고급 모드** — 한 사이트 또는 여러 사이트, 상세 설정(자동 200페이지·4단계·25분 /
 빠른 50페이지·2단계·10분 / 직접 60~1500초), 대상 목록 사전 검증 후 사이트별 순차 실행.
+일괄 작업 묶음(그룹)은 `<cases>/groups/<uuid>.json`에 저장되어 재시작 후 복원되고,
+저장된 판단으로 통합 XLSX를 다시 만든다(`bdcc0e8`; 실제 앱 재시작 수용은 NOT_RUN).
 결과 화면은 `탐지 항목 | 점검 범위 | 인프라 분석` 세 영역이고, 인프라 분석은 저장된
 케이스 하나의 근거만 읽으며 새 외부 접속을 하지 않는다 (`PLANNING_DOC.md` §7).
 
@@ -131,6 +139,11 @@ Windows 11·무GPU·외부 AI 미접속 환경에서 수행한다 (`PLANNING_DOC
 - **실제 관측**: 617건 결과의 XLSX 618행(머리글 포함)·메모 포함·공식 JSON bytes 동일·
   WARP 호출 0·page error 0 (`docs/ADOPTION_LEDGER.md` §「2026-10-20 일반 연결·화면 모드·단일 사례 인프라 초기 구현」 검증 표). 이 값은
   브라우저/Tauri adapter replay이며 Windows native 실행이 아니다.
+- **Windows native 관측(v2)**: 최종 후보를 Windows 11에 설치해 loopback fixture 17건
+  탐지·확인 15페이지·실패 0·15초, 닫힌 포트 `502 access-navigation`, 판단 `광고 의심`·
+  메모 영속, 공식 JSON 4,586 B(BOM 없음, 저장 결과와 byte-identical), XLSX 16,514 B,
+  재시작 후 복원을 관측했다 (`artifacts/win-verify-20261023/README.md` v2 절,
+  `RECEIPT-v2.json`, `exports-v2/`).
 
 ## 7. 배포 형태
 
@@ -146,8 +159,9 @@ Playwright·OCR 모델 설치가 필요 없다. 앱 식별자는 `kr.go.nia.ille
   문자 인코더 2스레드, 신경망 OCR 1스레드 (`PLANNING_DOC.md` §8.2).
 - **모델 자산**: 문자 FP32 + 이미지 8비트, 6개 파일 `1,312,154,937`바이트
   (`PLANNING_DOC.md` §8.2, `docs/BUILD_MANUAL.md` §첫 빌드의 네트워크 요구).
-- **설치 크기**: 현재 후보 설치 파일 `796,348,611` B(759.46 MiB)
-  (`docs/ADOPTION_LEDGER.md` §재빌드).
+- **설치 크기**: 현재 후보 설치 파일 `747,381,035` B(712.76 MiB). `onnxruntime-node`의
+  타 플랫폼 바이너리를 빌드 시 제거한 결과로, 이전 후보 대비 −46.7 MiB다
+  (`docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」).
 - **제약**: WebView2가 없으면 설치 관리자가 bootstrapper를 내려받으므로 네트워크가
   필요하고, 이 방식의 오프라인 설치는 검증하지 않았다. 현재 설치 파일은 코드 서명이
   없다 (`PLANNING_DOC.md` §8.1).
@@ -196,12 +210,16 @@ Windows 11 VM 4 논리 CPU·8GiB·무GPU, 200페이지 시나리오, 단일 실�
 - **실사이트 이미지 광고 재현율**: 2026-10-14 블랙툰 점검의 공식 탐지 1건은 보이는
   배너가 아니라 `display:none` 조상 아래 숨은 문구였다. 이후 수집 상한 확대 후
   실사이트 재현율은 측정하지 않았다 (`PLANNING_DOC.md` §12).
-- **Windows 최신 소스 수용 미실행**: `85a286f`는 Windows용 후보로 만들어 verify까지
-  통과했으나 Windows에서 설치·조작한 기록이 없다. 마지막 실제 관측은 2026-10-09 빌드
-  `0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z`다
-  (`PLANNING_DOC.md` §0, §8.4).
-- **D08 미실행**: 재시작 후 두 대상 판단·메모 통합 보고서는 NOT_RUN이고 일괄 그룹
-  복원은 미구현이다 (`docs/DOGFOOD_LEDGER_20261014.md` §Task outcomes).
+- **Windows 수용의 범위**: 최종 후보(`1c0e8a3`, installer `753b873c…f5ebc`)는 Windows 11
+  Pro `10.0.26200`에 대화형으로 설치해 loopback fixture 점검(17 findings/15페이지/15초),
+  판단·메모, JSON·XLSX 내보내기, 재시작 지속성까지 관측했다
+  (`artifacts/win-verify-20261023/`, `VERIFICATION_SUMMARY.md` §6). 이는 MSVC 제품 경로,
+  사람 사용성, 실제 Excel 열람, D08 실제 앱 재시작 수용을 대신하지 않는다.
+  Windows MSVC CI는 계정 결제 차단으로 여전히 시작되지 않았다.
+- **D08 수용 미실행**: 일괄 그룹 영속화·재시작 복원·통합 XLSX 재생성은 구현·자동 시험
+  (그룹 파일 왕복·형식 거부, 웹 재마운트)으로 확인했으나, 설치된 앱 프로세스를 실제로
+  재시작하는 Windows 수용 시험과 기기 간 그룹 이식은 NOT_RUN이다
+  (`bdcc0e8`, `ADOPTION_LEDGER.md` §통합 검증과 최종 후보).
 - **사람·보조기기 수용 미실행**: 실제 사용성 평가와 AT 판독은 하지 않았다.
 - **서명·배포 채널 미정**: 서명 없는 내부 평가 후보이며 코드 서명·배포 채널이 정해지지
   않았다.

@@ -9,65 +9,58 @@
 
 | 항목 | 값 | 근거 |
 | --- | --- | --- |
-| 코드 commit | `85a286f5fcaf125fcadec155eac729bfe019db92` | 후보 `manifest.json` `source.commit` |
-| sourceSha256 | `76e7d5ec6ce4f9d2b7b5446b2ae29f934a2c85f98dc76821b4225a106af90b19` | 같은 파일 |
+| 코드 commit | `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` | 후보 `manifest.json` `source.commit` |
+| sourceSha256 | `307f6b6ff09b9ce04e0b157c6a9b9e1d87cf8c25148605e7731a4892addab731` | 같은 파일 |
 | 앱 / 정책 / Case schema | `0.2.1` / `2` / `1` | 같은 파일 `appVersion`·`detectorPolicyVersion`·`caseSchemaVersion` |
-| buildId | `0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z` | 같은 파일 |
-| 후보 경로 | `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z/` | 저장소 |
+| buildId | `0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z` | 같은 파일 |
+| 후보 경로 | `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z/` | 저장소 |
+| Windows v2 증거 | `artifacts/win-verify-20261023/`(`RECEIPT-v2.json`, `README.md` v2 절, `screenshots/v2-*`, `exports-v2/`) | 저장소 |
 | moved artifacts manifest | `/mnt/nas/illegal-ad-build/moved-artifacts-20261023.txt` | 이동 기록 |
 
 ## 2. 현재 후보 폴더 파일
 
 출처: 후보 `manifest.json`의 `files` 절 8종과 `manifest.json` 자체. `verify-artifact`가
-8/8 일치를 확인했다(`docs/ADOPTION_LEDGER.md` §「재빌드 (85a286f)」).
+8/8 일치를 확인했다(`docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」).
 
 | 파일 | 크기(B) | SHA-256 |
 | --- | ---: | --- |
-| `불법광고 탐지 도구_0.2.1_x64-setup.exe` | 796,348,611 | `54c8f1cdff25e9077a2432b8e75af14cef7597fe1fb21eb8325fbb6b6dfdf406` |
-| `krds-detector.exe` | 20,220,928 | `bd57296b8823ff79d0aa9da6c7e9dc578cb3ac853a086be1f1b690cc69bac121` |
-| `manifest.json` | 54,158 | `b4155ed128b6baa309c26b1896193c4971f24eba84d8b594eae50bdc5ab77763` |
-| `build-manifest.json` | 52,100 | `f6443363ba78edc5eb2467a26d029be6ec711e0a6f46b7ad6ac650362077b8b5` |
-| `resources-manifest.json` | 233,298 | `1098c94730efdee4da90930216a574c984d585ced6c604739384f52573f9104f` |
-| `sbom-npm.cdx.json` | 188,844 | `3e5447205777c78d3cbb8fb44a72fc23d2c4ffd83cbab39d3158dcfe094c72f0` |
+| `불법광고 탐지 도구_0.2.1_x64-setup.exe` | 747,381,035 | `753b873c2b1454eae27fb5524cafaf4f70e682ae6ad660be2412a877a44f5ebc` |
+| `krds-detector.exe` | 20,356,608 | `112e1099daf303eacadee12339fa31083f96b55c6f61e8452aa33059b4cb8f9c` |
+| `manifest.json` | 55,492 | `c512448d854bcec46478a5fe22596ff9611b906ec873aac513e253bd242c52e0` |
+| `build-manifest.json` | 53,434 | `69fe44ba849d1de31175fba8c1f64dc290391314f4363015ff3a3a2006118b3e` |
+| `resources-manifest.json` | 229,297 | `e04abc4675b777d74da2d923315b8cbd2bbac1a580172863a2c89c9caa043fc8` |
+| `sbom-npm.cdx.json` | 188,844 | `85b811a0d63ac3a52ef0669baa9e1efb70a39da0ca16d52c091c9c0bd2db95c5` |
 | `cargo-license-inventory.json` | 43,581 | `114b4b2ccb9f84a53ccf7257e7d2cf2c30d2e6e1d94ac2ce3f1355820bb42450` |
 | `THIRD_PARTY_NOTICES.md` | 2,521,635 | `cdade21f50b0fc902328d5d1df95a14e1d696b0644ecad2faa528c2fd04f104b` |
 | `license-review.json` | 2,530 | `223295cea406455243d377a9d96935ccdfc4ba15d5be5833cda681a67538b716` |
 
-`installedExecutable`: path `krds-detector.exe`, `markerOffset` `13455874`,
-`standaloneSha256` `bd57296b…`, 설치 후 `sha256`
-`8059cb5d93fecccf013b3645d046bc9d8f8ae26bbe498896492b4dee8f61413e`, profile
-`unsigned-nsis`(같은 `manifest.json`).
+`installedExecutable`: path `krds-detector.exe`, `markerOffset` `13534994`,
+`standaloneSha256` `112e1099…`, 설치 후 `sha256`
+`b6cc4411d2feecb9048dbb8f7dc3ecd568a4a944c368bedb7cb3877270211699`, profile
+`unsigned-nsis`(같은 `manifest.json`). 이 값은 Windows v2 설치 후 실제 파일 해시와
+정확히 일치했다(`artifacts/win-verify-20261023/RECEIPT-v2.json`).
 
 ## 3. 주장 → 증거 대응표
 
 | 주장(수치) | 증거 파일 | 절 / 비고 |
 | --- | --- | --- |
-| suite `704 passed / 1 skipped (705)`, 파일 `94 passed / 1 skipped (95)`, `204.4`초, Node `v22.23.3` | `docs/ADOPTION_LEDGER.md` | §「소스·시험 상태 (OBSERVED_LOCAL)」. 실행 시점 HEAD `16d4b56`, 원시 로그 `/tmp/final-check-node22.log`(저장소 밖) |
-| 같은 suite가 Node `v26.8.1`에서도 green | 같은 파일, 같은 절 | — |
+| suite `754 passed / 1 skipped (755)`, 파일 `98 passed / 1 skipped (99)`, `216.7`초 | `docs/ADOPTION_LEDGER.md` | §「2026-10-23 통합 검증과 최종 후보」. 실행 시점 HEAD `1c0e8a3` |
 | `npm run build` EXIT 0 | 같은 파일, 같은 절 | — |
-| 런타임 closure `1197` files, `nodeVersion 22.19.0` | 같은 파일 §재빌드, `scripts/windows-runtime.lock.json` | — |
-| `cargo check --target x86_64-pc-windows-gnullvm --all-targets` EXIT 0 | 같은 파일 §재빌드 | 호스트 교차 검사 |
-| Windows target clippy EXIT 0, `cargo fmt --check` EXIT 0 | 같은 파일 §재빌드 | CI와 같은 명령 |
-| `cargo test --bins` `78 passed / 0 failed / 2 ignored` | 같은 파일 §재빌드 | 호스트 실행(Windows 아님) |
-| 후보 identity·installer·standalone·설치본 hash | `artifacts/candidate-…76e7d5ec…/manifest.json` | `source`, `installedExecutable`, `files` |
-| verify `8 files, 8/8` | `docs/ADOPTION_LEDGER.md` §재빌드, `scripts/verify-artifact.mjs` | EXIT 0 |
-| 네 공식 기법과 축 정의 | `docs/DETECTION.md`, `packages/contracts/src/result.ts` | `PLANNING_DOC.md` §3.2 |
-| `text-policy-2` 부정 조건(보장·당일·고액·보너스·쿠폰·무료체험) | `docs/PLANNING_DOC.md` | §3.2 |
-| 텍스트 수집 상한(10,000 / 1,000 / 1,048,576 / 32,768 / 32 / depth 4 / 15) | `docs/PLANNING_DOC.md` §3.5, `docs/DETECTION.md` | — |
-| 이미지 상한(32후보 / 1,000,000B / 250,000B / 40 OCR / 40자산·2,000,000B) | `docs/PLANNING_DOC.md` §3.4, `packages/contracts/src/policy.json` `visual` | — |
-| 합성 평가 `22` 케이스(양성 13·음성 7·구조 2), 판정 쌍 `17` | `docs/PLANNING_DOC.md` §3.1, `docs/SYNTHETIC_EVAL.md`, `fixtures/synthetic/` | — |
-| 적대적 `8` 공격 유형 모두 발화 | `docs/ADVERSARIAL.md`, `docs/PLANNING_DOC.md` §3.1 | — |
-| 실제 소재 `190`개 입력 / `29`묶음 | `docs/EMBEDDING_QUANTIZATION_20261022.md`, `artifacts/embedding-quantization-20261022/` | 회귀 자료 |
-| 실제 불법 배너 60/60, 정상 광고 오탐 0/74, 파생 양성 17/18, 파생 정상 오탐 0/38 | `docs/EMBEDDING_QUANTIZATION_20261022.md`, `docs/VISION_CPU_OPTIMIZATION_20261022.md`, `artifacts/vision-cpu-20261022/` | 모집단 정확도 아님 |
-| TrOCR 정상 입력 3/10 오탐으로 기각 | `docs/OCR_ENGINE_COMPARISON_20261021.md` | — |
-| IPC 명령 `26`개 | `docs/PLANNING_DOC.md` §4, `src-tauri/src/main.rs` `generate_handler` | — |
-| 모델 자산 `6`개 `1,312,154,937` B, OCR `18,308,324` B | `docs/BUILD_MANUAL.md` §첫 빌드의 네트워크 요구, `packages/evidence/src/{ocr-models,text-embedding-model}/manifest.json` | 합계 약 1.33 GB |
-| installer `796,348,611` B(759.46 MiB) | 후보 `manifest.json` `files`, `docs/ADOPTION_LEDGER.md` §재빌드 | — |
-| 스테이징 `node_modules` 약 376 MB, `onnxruntime-node` 전 플랫폼 약 288 MB | `docs/BUILD_MANUAL.md` §`npm run package:windows` 준비 3항 | — |
+| 런타임 closure `1177` files, `nodeVersion 22.19.0`, closure 시험 8/8 | 같은 파일 §통합 검증과 최종 후보, `scripts/windows-runtime.lock.json` | `1c0e8a3` pruning 이전 1197 |
+| `cargo check --target x86_64-pc-windows-gnullvm --all-targets` EXIT 0 | 같은 파일 §통합 검증과 최종 후보 | 호스트 교차 검사 |
+| Windows target clippy EXIT 0, `cargo fmt --check` EXIT 0 | 같은 파일, 같은 절 | CI와 같은 명령 |
+| `cargo test --bins` `80 passed / 0 failed / 2 ignored` | 같은 파일, 같은 절 | 호스트 실행(Windows 아님) |
+| 후보 identity·installer·standalone·설치본 hash | `artifacts/candidate-…307f6b6f…/manifest.json` | `source`, `installedExecutable`, `files` |
+| verify `8 files, 8/8` | `docs/ADOPTION_LEDGER.md` §통합 검증과 최종 후보, `scripts/verify-artifact.mjs` | EXIT 0 |
+| Windows 11 설치·대화형 UI(v2): 17 findings/15페이지/15초, 판단·메모·JSON·XLSX·재시작 | `artifacts/win-verify-20261023/README.md` v2 절, `RECEIPT-v2.json`, `screenshots/v2-*`, `exports-v2/` | OBSERVED, 범위 제한 |
+| 공식 JSON `4,586` B, 17 findings, sha256 `701ed484…0a3d`(저장 결과와 byte-identical) | `artifacts/win-verify-20261023/exports-v2/official-8991fad4.json`, `case-8991fad4-hashes.json` | v2 |
+| 닫힌 포트 `502 access-navigation`, 19개 앱 요청 로그 | 같은 디렉터리 `server-v2.log`, `phase-v2-final.json` | v2 |
+| AppData `194 → 218` files(추가 24·삭제 0·기존 수정 0) | 같은 디렉터리 `phase-v2-preinstall.json`, `phase-v2-final.json` | v2 |
 | Windows 성능 표(347.131 / 174.271 / 112.477 / 87.849초, 425.4 / 433.1 / 537.5 / 781.9 MiB) | `docs/PERF.md`, `docs/PLANNING_DOC.md` §8.3 | 2026-10-07 통합 후보, 단일 실행 |
-| cold-start text `3.65`초(상한 8), image `11.4`초(상한 16); 3배 과부하 text `5.5~6.0`, image `18.5~46.7`초 | `docs/ADOPTION_LEDGER.md` §「실측 잔여 위험」 | MEASURED |
+| cold-start text `3.65`초(상한 8), image `11.4`초(상한 16); 3배 과부하 text `5.5~6.0`, image `18.5~46.7`초 | `docs/ADOPTION_LEDGER.md` §「실측 잔여 위험」 | MEASURED, 선행 관측 |
+| warm-up 후 cold init `0.83–0.9`초(idle) / `2.0–2.7`초(과부하), `elapsedMs` 제외 | `953ce2c` commit message, `docs/ADOPTION_LEDGER.md` §통합 검증과 최종 후보 | MEASURED |
 | 설치 565 identity(installer 149,813,810 B, `cb414038…`)와 설치 EXE `7b6fc529…` | `docs/ADOPTION_HANDOFF_KO.md` §현재 전달 후보, `docs/OPERATIONS_GUIDE_KO.md` §후보별 실측 | 역사 후보, 현재 후보 아님 |
-| D01~D10 결과 | `docs/DOGFOOD_LEDGER_20261014.md` §Task outcomes, `artifacts/dogfood-20261014/` | D08 두 대상 통합은 NOT_RUN |
+| D01~D10 결과 | `docs/DOGFOOD_LEDGER_20261014.md` §Task outcomes, `artifacts/dogfood-20261014/` | D08은 구현·자동 시험 완료(`bdcc0e8`), 실제 앱 재시작 수용은 NOT_RUN |
 | 첫 3행 하단 `748.25px`, 320px 원문 폭 `300px`, 본문 `17px`, 버튼 `44px` | `docs/ADOPTION_LEDGER.md` §후속 UI 화면 관찰, `docs/SCREEN_SPEC.md` §모드 전환·배치·접근성, `docs/DOGFOOD_LEDGER_20261014.md` D03 | browser/IPC replay |
 | UI smoke `617`기록, XLSX `618`행, WARP `0`, page error `0` | `docs/ADOPTION_LEDGER.md` §「2026-10-20 일반 연결·화면 모드·단일 사례 인프라 초기 구현」 검증 표, `artifacts/ui-modes-20261020/` | replay, Windows native 아님 |
 | CI job 미시작 원문 | `docs/ADOPTION_LEDGER.md` §「CI 시도와 차단 원인」 | 원문 인용 |
@@ -96,14 +89,19 @@
 | 빌드 toolchain(재획득분) | 이동 manifest `/mnt/nas/illegal-ad-build/moved-artifacts-20261023.txt` §Toolchain | LLVM-MinGW `20260908`, NSIS `3.09-4`, 해시 검증 기록 |
 
 선행 후보는 `16d4b56` 소스에서 만들어졌고 `85a286f` 재빌드로 **대체(superseded)**되었다.
-위 표의 `c76c133f…`와 `16d4b56`은 이력 식별자이며 현재 값이 아니다. 현재 값은 §1·§2의
-`85a286f`·`54c8f1cd…df406` 하나뿐이다.
+위 표의 `c76c133f…`·`16d4b56`과 `54c8f1cd…df406`·`76e7d5ec…`·`85a286f`는 모두
+이력 식별자이며 **현재 값이 아니다**(각각 대체된 후보). 현재 값은 §1·§2의
+`1c0e8a3`·`753b873c…f5ebc` 하나뿐이다. `76e7d5ec…` 후보는 삭제하지 않고
+`artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z/`에
+보존했다(superseded).
 
 ## 5. 저장소 안 증거 디렉터리
 
 | 경로 | 내용 |
 | --- | --- |
-| `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z/` | 현재 Windows 후보 8파일 |
+| `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z/` | 현재 Windows 후보 8파일 |
+| `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z/` | superseded 후보(보존) |
+| `artifacts/win-verify-20261023/` | Windows v1·v2 수용 증거(`RECEIPT.json`/`RECEIPT-v2.json`, 스크린샷, 내보내기) |
 | `artifacts/dogfood-20261014/` | D01–D10 receipt(JSON) |
 | `artifacts/ui-modes-20261020/` | 모드 UI 검증·스크린샷·`source-manifest.json`·`SHA256SUMS` |
 | `artifacts/ui-polish-20261022/` | 후속 화면 검증 |
@@ -116,11 +114,14 @@
 
 ```sh
 # 후보 파일 해시(8종)
-cd artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-76e7d5ec6ce4-20261022T163747830Z
+cd artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z
 sha256sum *
 
 # manifest 대조 검증
 node scripts/verify-artifact.mjs <candidate-folder>/manifest.json
+
+# Windows v2 내보내기·해시
+sha256sum artifacts/win-verify-20261023/exports-v2/* artifacts/win-verify-20261023/case-8991fad4-hashes.json
 
 # 이동한 아카이브 파일 확인
 sha256sum /mnt/nas/illegal-ad-artifacts-archive-20261023/*.zip
