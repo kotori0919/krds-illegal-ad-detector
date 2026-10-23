@@ -1,4 +1,4 @@
-import type { HostBridge, ImportedTarget, ScanConnection, ScanLimits, ScanSession } from "@krds-detector/contracts";
+import type { HostBridge, ImportedTarget, ScanConnection, ScanCoverageView, ScanLimits, ScanSession } from "@krds-detector/contracts";
 
 export type TargetStatus = "pending" | "running" | "complete" | "partial" | "blocked" | "failed" | "cancelled";
 export interface BatchTarget extends ImportedTarget {
@@ -16,6 +16,14 @@ export interface RestoredBatch {
   phase: BatchState["phase"]; targets: readonly RestoredTarget[];
 }
 const terminal = (status: ScanSession["status"]): boolean => ["succeeded", "failed", "cancelled"].includes(status);
+
+export function batchResultStatus(session: ScanSession, coverage?: ScanCoverageView): TargetStatus {
+  if (session.status === "cancelled") return "cancelled";
+  if (session.status === "failed") return "failed";
+  if (session.status !== "succeeded") return "pending";
+  return !coverage ? "partial" : coverage.coverage.checkedPages === 0 ? "blocked"
+    : coverage.coverage.failedPages.length || coverage.coverage.timedOut || coverage.coverage.cancelled ? "partial" : "complete";
+}
 
 /** One awaited native session at a time; completed sessions are never discarded. */
 export class BatchCoordinator {
@@ -90,8 +98,7 @@ export class BatchCoordinator {
         if (session.hasResult) {
           const coverage = await this.host.getScanCoverage(session.id);
           canRetry = coverage?.pageOutcomes.some((page) => page.issue?.retryable) ?? false;
-          if (session.status === "succeeded") status = !coverage ? "partial" : coverage.coverage.checkedPages === 0 ? "blocked"
-            : coverage.coverage.failedPages.length || coverage.coverage.timedOut || coverage.coverage.cancelled ? "partial" : "complete";
+          status = batchResultStatus(session, coverage);
         }
         this.update(target.key, { status, session, canRetry, error: session.error });
       } catch (error) {

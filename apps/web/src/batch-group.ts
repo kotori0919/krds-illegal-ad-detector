@@ -1,7 +1,7 @@
 import type {
   BatchGroup, BatchGroupPhase, BatchGroupScope, HostBridge, ScanConnection, ScanLimits,
 } from "@krds-detector/contracts";
-import type { BatchState, RestoredBatch, RestoredTarget } from "./batch-coordinator.js";
+import { batchResultStatus, type BatchState, type RestoredBatch, type RestoredTarget } from "./batch-coordinator.js";
 
 export interface BatchGroupSource {
   groupId: string;
@@ -88,11 +88,15 @@ export async function restoreBatchGroup(host: HostBridge, group: BatchGroup): Pr
       const session = await host.getSession(saved.caseId);
       if (!session) throw new Error("case session unavailable");
       const coverage = session.hasResult ? await host.getScanCoverage(saved.caseId) : undefined;
+      // A committed case can precede the group's final status write at shutdown.
+      // Keep that result instead of admitting the target as new work.
+      const status = saved.status === "running" && session.hasResult ? batchResultStatus(session, coverage)
+        : saved.status === "running" ? "pending" : saved.status;
       return {
-        status: saved.status === "running" ? "pending" : saved.status,
+        status,
         session,
         error: saved.error,
-        canRetry: saved.status === "failed" || saved.status === "cancelled"
+        canRetry: status === "failed" || status === "cancelled"
           || (coverage?.pageOutcomes.some((page) => page.issue?.retryable) ?? false),
       };
     } catch {

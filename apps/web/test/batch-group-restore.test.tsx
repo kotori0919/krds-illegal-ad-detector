@@ -8,7 +8,7 @@ import {
   type OfficialResult, type OpenCase, type ScanSession,
 } from "@krds-detector/contracts";
 import { BatchCoordinator } from "../src/batch-coordinator.js";
-import { restoreBatchGroup } from "../src/batch-group.js";
+import { restoreBatchGroup, toBatchGroup } from "../src/batch-group.js";
 import { DEMO_ENTRY_URL, demoResult } from "../src/demo/findings.js";
 import { BrowserHost } from "../src/host/browser.js";
 import { BatchWorkspace } from "../src/screens/BatchWorkspace.js";
@@ -98,7 +98,7 @@ class RestartHost extends BrowserHost {
   }
 }
 
-beforeEach(() => { vault.groups.clear(); vault.cases.clear(); vault.sessions.clear(); });
+beforeEach(() => { vault.groups.clear(); vault.cases.clear(); vault.sessions.clear(); vault.results.clear(); });
 afterEach(cleanup);
 
 function renderWorkspace(host: RestartHost): void {
@@ -179,6 +179,53 @@ it("continues only the targets that never stored a result", async () => {
   expect(state.targets[1]?.status).toBe("partial");
   expect(state.targets[1]?.session?.id).not.toBe(CASE_ID);
   expect(state.targets[1]?.session?.hasResult).toBe(true);
+});
+
+it("does not rescan a committed case when the app stops before the target status is saved", async () => {
+  seedCase();
+  const base = stoppedGroup("https://third.example.kr/");
+  // Polling publishes the stored result before the coverage read finishes.
+  const group = toBatchGroup(base, {
+    phase: "running", pauseRequested: false,
+    targets: base.targets.map((target, key) => ({ ...target, key, canRetry: false,
+      status: key === 0 ? "running" : "pending", session: key === 0 ? vault.sessions.get(CASE_ID) : undefined })),
+  });
+  expect(group.targets[0]).toMatchObject({ status: "running", caseId: CASE_ID });
+  const officialBefore = JSON.stringify(vault.results.get(CASE_ID));
+  const reviewBefore = JSON.stringify(vault.cases.get(CASE_ID)?.review);
+  const host = new RestartHost();
+  const restored = await restoreBatchGroup(host, group);
+  // The fixture has no saved coverage; keep that uncertainty without rescanning.
+  expect(restored.targets[0]?.status).toBe("partial");
+  expect(restored.targets[0]?.session?.id).toBe(CASE_ID);
+  expect(restored.interrupted).toBe(1);
+
+  const coordinator = new BatchCoordinator(host,
+    group.targets.map((target) => ({ label: target.label, entryUrl: target.entryUrl, kind: target.kind })),
+    {}, 1, "direct", restored);
+  await coordinator.start();
+  expect(host.started).toEqual(["https://third.example.kr/"]);
+  expect(coordinator.snapshot().targets[0]?.session?.id).toBe(CASE_ID);
+  expect(JSON.stringify(vault.results.get(CASE_ID))).toBe(officialBefore);
+  expect(JSON.stringify(vault.cases.get(CASE_ID)?.review)).toBe(reviewBefore);
+});
+
+it.each([
+  ["succeeded", 4, false, "complete", false],
+  ["succeeded", 0, false, "blocked", false],
+  ["succeeded", 4, true, "partial", false],
+  ["cancelled", 4, false, "cancelled", true],
+  ["failed", 4, false, "failed", true],
+] as const)("recovers a stored %s case with %i checked pages and timeout=%s as %s", async (status, checkedPages, timedOut, expected, canRetry) => {
+  seedCase();
+  vault.sessions.set(CASE_ID, { ...vault.sessions.get(CASE_ID)!, status });
+  const host = new RestartHost();
+  host.getScanCoverage = async () => ({ coverage: { checkedPages, failedPages: [], timedOut }, pageOutcomes: [] });
+  const base = stoppedGroup();
+  const restored = await restoreBatchGroup(host, { ...base, phase: "running",
+    targets: [{ ...base.targets[0]!, status: "running" }] });
+  expect(restored.targets[0]).toMatchObject({ status: expected, canRetry, session: { id: CASE_ID } });
+  expect(restored.interrupted).toBe(0);
 });
 
 it("reports a saved case that cannot be reopened instead of counting it as covered", async () => {
