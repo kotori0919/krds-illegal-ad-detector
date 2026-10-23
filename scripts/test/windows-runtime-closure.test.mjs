@@ -1,11 +1,11 @@
 /** The staged Windows runtime must carry the complete dependency closure. */
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { lstat, mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import test from "node:test";
-import { stageRuntimeClosure } from "../prepare-windows-runtime.mjs";
+import { pruneStagedOnnxRuntime, stageRuntimeClosure } from "../prepare-windows-runtime.mjs";
 
 // Mirrors Node's own lookup so the assertions do not depend on the helper under test.
 async function findStaged(name, fromDirectory) {
@@ -41,11 +41,26 @@ async function stagedPackages(nodeModules) {
   return packages;
 }
 
+// Independent measurement so the pruned byte report is cross-checked, not restated.
+async function treeBytes(directory) {
+  let bytes = 0;
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    bytes += entry.isDirectory() ? await treeBytes(path) : (await stat(path)).size;
+  }
+  return bytes;
+}
+
 test("staged runtime closure satisfies every declared dependency", async (context) => {
   const destination = await mkdtemp(join(tmpdir(), "krds-runtime-closure-"));
   context.after(() => rm(destination, { recursive: true, force: true }));
   const instances = await stageRuntimeClosure(destination);
   const nodeModules = join(destination, "node_modules");
+  const onnxRuntime = join(nodeModules, "onnxruntime-node");
+  const beforePrune = await treeBytes(onnxRuntime);
+  // Preparation prunes the staged tree before it is inventoried, so every
+  // assertion below inspects the layout the installer would actually ship.
+  const pruned = await pruneStagedOnnxRuntime(destination);
   const staged = await stagedPackages(nodeModules);
   await context.test("every staged package is a declared runtime root or dependency", async () => {
     assert.equal(staged.length, instances.length);
@@ -102,5 +117,45 @@ test("staged runtime closure satisfies every declared dependency", async (contex
     const tr46 = await findStaged("tr46", nested.directory);
     assert.ok(tr46);
     assert.equal(tr46.manifest.version, "0.0.3");
+  });
+  // The packaged worker is win32-x64 only (Tauri target), and the loader picks
+  // its native payload as ../bin/napi-v<ABI>/${process.platform}/${process.arch}.
+  // Every other platform/arch payload is unreachable installer weight.
+  await context.test("only the win32-x64 onnxruntime payload is staged", async () => {
+    assert.deepEqual(await readdir(join(onnxRuntime, "bin")), ["napi-v6"]);
+    assert.deepEqual(await readdir(join(onnxRuntime, "bin", "napi-v6")), ["win32"]);
+    assert.deepEqual(await readdir(join(onnxRuntime, "bin", "napi-v6", "win32")), ["x64"]);
+    // Derive the expected file from the loader's own expression instead of
+    // restating the destination constant.
+    const loader = await readFile(join(onnxRuntime, "dist", "binding.js"), "utf8");
+    const specifier = loader.match(/\.\.\/bin\/napi-v\d+\/\$\{process\.platform\}\/\$\{process\.arch\}\/onnxruntime_binding\.node/)?.[0];
+    assert.ok(specifier, "onnxruntime-node dist loader must resolve a per-platform native binding");
+    const binding = join(onnxRuntime, "dist", specifier
+      .replace("${process.platform}", "win32").replace("${process.arch}", "x64"));
+    assert.equal(binding, join(onnxRuntime, "bin", "napi-v6", "win32", "x64", "onnxruntime_binding.node"));
+    assert.ok((await stat(binding)).size > 0, "the win32-x64 native binding must survive pruning");
+    // The binding's PE import table requires onnxruntime.dll beside it.
+    assert.ok((await stat(join(onnxRuntime, "bin", "napi-v6", "win32", "x64", "onnxruntime.dll"))).size > 0,
+      "onnxruntime.dll must survive pruning");
+    // Resolution metadata must survive: Node finds the package by package.json.
+    assert.equal(createRequire(join(onnxRuntime, "package.json")).resolve("onnxruntime-node"),
+      join(onnxRuntime, "dist", "index.js"));
+  });
+  await context.test("pruned payloads are gone and fully accounted for", async () => {
+    const expected = [
+      "node_modules/onnxruntime-node/bin/napi-v6/darwin",
+      "node_modules/onnxruntime-node/bin/napi-v6/linux",
+      "node_modules/onnxruntime-node/bin/napi-v6/win32/arm64",
+      "node_modules/onnxruntime-node/script",
+    ];
+    assert.deepEqual([...pruned.removed].sort(), expected);
+    for (const path of expected) await assert.rejects(lstat(join(destination, path)), { code: "ENOENT" });
+    assert.deepEqual((await readdir(onnxRuntime)).sort(), ["README.md", "bin", "dist", "lib", "package.json"]);
+    // Byte/file accounting must match an independent measurement of the tree.
+    const afterPrune = await treeBytes(onnxRuntime);
+    assert.equal(pruned.bytes, beforePrune - afterPrune);
+    assert.ok(pruned.files > 0);
+    assert.ok(pruned.bytes > 200 * 1024 * 1024, `expected the foreign payloads to dominate, removed ${pruned.bytes} bytes`);
+    assert.ok(afterPrune < beforePrune / 4, `expected win32-x64 payload to be a fraction of the package, got ${afterPrune}`);
   });
 });

@@ -3801,66 +3801,6 @@
       "sha256": "3081e0b29169cf9b34f94bae12302d659fca817d7eae3bdcac4261d7301853ff"
     },
     {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/darwin/arm64/libonnxruntime.1.30.0.dylib",
-      "size": 44589928,
-      "sha256": "685d2be5dba1309c89d3a5324b7fd06a5c42f1a61bfea32d14c4cc28d072121d"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/darwin/arm64/libonnxruntime.1.dylib",
-      "size": 44589928,
-      "sha256": "685d2be5dba1309c89d3a5324b7fd06a5c42f1a61bfea32d14c4cc28d072121d"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/darwin/arm64/onnxruntime_binding.node",
-      "size": 266840,
-      "sha256": "a3f993357759b06ae2411f70af60f5e041d04521ea7f0d12cb7546e411a527dd"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/libonnxruntime.so.1",
-      "size": 25135496,
-      "sha256": "1f549d46250b005580b597f4164984aaf75b3bcb9f3aeb07c7f8a8fe60b23c76"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/onnxruntime_binding.node",
-      "size": 394648,
-      "sha256": "afec78dc11d38dc81605b068cefe1fc73ffe77ca240c15468aa40786150beac8"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/linux/x64/libonnxruntime.so.1",
-      "size": 45828512,
-      "sha256": "ffb75a925ba05e47b235bb66e3e3911714a80b328a9c9425539feb204aa32a23"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/linux/x64/onnxruntime_binding.node",
-      "size": 389488,
-      "sha256": "ccdc60b981d93a490cf9513d3f583547252b6e285b72988a96a494f2f006c7b8"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/DirectML.dll",
-      "size": 18444600,
-      "sha256": "aaf72a9d55aa123e0708d957d30dd4fbeb7a2e335ec6257ed5ff4261a402b9ee"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/dxcompiler.dll",
-      "size": 22285624,
-      "sha256": "442a995492579e1048cf1f05a86ab00f476c46b7f9d0996e588884040a543bbe"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/dxil.dll",
-      "size": 1769784,
-      "sha256": "859b6d638c5ca3df39e9cab2a602cb0f63d0e63d750f84bb2a9ec9031319b73e"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/onnxruntime_binding.node",
-      "size": 422200,
-      "sha256": "d8179924f15c2d3c1c8a75c50adf1671ec28c7f1cb0da9fc28b17daa02c5ecf5"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/bin/napi-v6/win32/arm64/onnxruntime.dll",
-      "size": 29815136,
-      "sha256": "6c3a2abf5c6aca11c48a0d338a91af309f2266f25ce2e4084e6a87bbcb0fbfd0"
-    },
-    {
       "path": "node_modules/onnxruntime-node/bin/napi-v6/win32/x64/DirectML.dll",
       "size": 18527584,
       "sha256": "234e8898778cdec88d3cb0539508273494082812c968699f3de665a018971625"
@@ -3974,46 +3914,6 @@
       "path": "node_modules/onnxruntime-node/README.md",
       "size": 3030,
       "sha256": "c2b487948c9aed0a5ca8ef7717d78cbc81cfb65e5697d2ad6e2b7bd6fa8bc91b"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/script/build.js",
-      "size": 5804,
-      "sha256": "4a47ab592ed226f36be187a3210667f38950d4408f181f8eaa487c42c9c28842"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/script/build.ts",
-      "size": 4097,
-      "sha256": "aa02bf6d0afabdb7230a40fb3101b13b263210dd4684741f9fdcc7d96ac74f5e"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/script/install-metadata-versions.js",
-      "size": 265,
-      "sha256": "51b6f12f514b6181daf3f3097bb09d960573465670b4d3cd41d6cbfc53789519"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/script/install-metadata.js",
-      "size": 1788,
-      "sha256": "2cfbb2fcf1f170d5da564c0be3222821050bcbd282c9e0493e9433649ac2f130"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/script/install-utils.js",
-      "size": 9726,
-      "sha256": "b8890f3eb40b50b5e4ca61d6b6b328d017660319ee326ca3db00709de1218579"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/script/install.js",
-      "size": 5283,
-      "sha256": "241c40edfafd2cac6abdcc6138207ffb41bd2d0f661c3bb3d422e5f8cb24fe88"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/script/prepack.js",
-      "size": 2356,
-      "sha256": "890bf2498519fdc7ffd6f6fe2c44c16925ec9091d4b1419bf54a5fd9478e2d5b"
-    },
-    {
-      "path": "node_modules/onnxruntime-node/script/prepack.ts",
-      "size": 877,
-      "sha256": "ff251557aaffa1fac06b63172178c260aaff0c358905a4117a4d05a36f5b20d4"
     },
     {
       "path": "node_modules/opencollective-postinstall/index.js",

@@ -4,7 +4,7 @@ import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
 import console from "node:console";
 import { createReadStream, createWriteStream, realpathSync } from "node:fs";
-import { cp, lstat, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import process from "node:process";
 import { pipeline } from "node:stream/promises";
@@ -83,6 +83,139 @@ export async function stageRuntimeClosure(destination, roots = runtimeRoots, sou
   for (const name of roots) await stage(name, sourceRoot, false);
   return [...staged.values()].sort((a, b) => a.path.localeCompare(b.path, "en"));
 }
+
+// onnxruntime-node publishes one native payload per (platform, arch) under
+// bin/napi-v6. The packaged app is always win32-x64, and the loader resolves
+// `../bin/napi-v6/${process.platform}/${process.arch}/onnxruntime_binding.node`
+// (node_modules/onnxruntime-node/dist/binding.js:11), so the other payloads can
+// never be reached. The staged package is therefore reduced to an allowlist:
+// package.json (Node resolution), dist/ (the loader itself), lib/ (the sources
+// its sourcemaps point at), README.md (the Notice text shipped in this package)
+// and bin/napi-v6/win32/x64/ only (every file, because onnxruntime.dll is
+// delay-loadable and the DirectML provider resolves dxil/DirectML/dxcompiler
+// beside it). Everything else -- other platforms, other top-level entries such
+// as script/ install tooling or debug symbols -- is install-time or foreign
+// payload and is removed.
+const onnxRuntimePackage = "node_modules/onnxruntime-node";
+const onnxRuntimeTarget = { platform: "win32", arch: "x64" };
+const onnxRuntimeAllowlist = ["README.md", "package.json", "dist", "lib"];
+// Hard PE imports of the binding, checked after pruning so a package layout
+// change can never silently ship an unusable native payload.
+const onnxRuntimeRequired = ["onnxruntime_binding.node", "onnxruntime.dll"];
+const onnxRuntimeRoot = destination => join(destination, onnxRuntimePackage);
+const onnxRuntimeBinRoot = destination => join(onnxRuntimeRoot(destination), "bin");
+const onnxRuntimeNativeRoot = destination => join(onnxRuntimeBinRoot(destination), "napi-v6");
+const onnxRuntimeNativeTarget = destination => join(onnxRuntimeNativeRoot(destination), onnxRuntimeTarget.platform, onnxRuntimeTarget.arch);
+const byName = (a, b) => a.name.localeCompare(b.name, "en");
+const stagedPath = (destination, path) => relative(destination, path).split("\\").join("/");
+
+const statOrNull = path => lstat(path).then(info => info, error => {
+  if (error.code === "ENOENT" || error.code === "ENOTDIR") return null;
+  throw error;
+});
+
+// Total apparent bytes and file count of a subtree, so the log states what was
+// actually dropped instead of a guess.
+async function subtreeSize(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  let bytes = 0;
+  let files = 0;
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      const nested = await subtreeSize(path);
+      bytes += nested.bytes;
+      files += nested.files;
+    } else if (entry.isFile()) {
+      bytes += (await stat(path)).size;
+      files += 1;
+    } else {
+      throw new Error(`Unsupported staged entry: ${stagedPath(directory, path)}`);
+    }
+  }
+  return { bytes, files };
+}
+
+export async function assertStagedOnnxRuntime(destination) {
+  const nativeRoot = onnxRuntimeNativeRoot(destination);
+  const target = onnxRuntimeNativeTarget(destination);
+  if (!(await statOrNull(nativeRoot))?.isDirectory()) {
+    throw new Error(`Staged onnxruntime-node native payload is missing: ${stagedPath(destination, nativeRoot)}`);
+  }
+  for (const name of onnxRuntimeRequired) {
+    const path = join(target, name);
+    const info = await statOrNull(path);
+    if (!info?.isFile() || info.size === 0) {
+      throw new Error(`Required win32-x64 onnxruntime file is missing or empty: ${stagedPath(destination, path)}`);
+    }
+  }
+  for (const platform of (await readdir(nativeRoot, { withFileTypes: true })).sort(byName)) {
+    const platformPath = join(nativeRoot, platform.name);
+    if (!platform.isDirectory() || platform.name !== onnxRuntimeTarget.platform) {
+      throw new Error(`Non-target onnxruntime platform payload is staged: ${stagedPath(destination, platformPath)}`);
+    }
+    for (const arch of (await readdir(platformPath, { withFileTypes: true })).sort(byName)) {
+      const archPath = join(platformPath, arch.name);
+      if (!arch.isDirectory() || arch.name !== onnxRuntimeTarget.arch) {
+        throw new Error(`Non-target onnxruntime platform payload is staged: ${stagedPath(destination, archPath)}`);
+      }
+    }
+  }
+  const script = join(onnxRuntimeRoot(destination), "script");
+  if (await statOrNull(script)) throw new Error(`onnxruntime-node install tooling must be pruned: ${stagedPath(destination, script)}`);
+}
+
+// Returns the removed paths (posix, relative to the stage) plus byte/file totals.
+export async function pruneStagedOnnxRuntime(destination) {
+  const packageRoot = onnxRuntimeRoot(destination);
+  const binRoot = onnxRuntimeBinRoot(destination);
+  const nativeRoot = onnxRuntimeNativeRoot(destination);
+  const target = onnxRuntimeNativeTarget(destination);
+  if (!(await statOrNull(packageRoot))?.isDirectory()) {
+    throw new Error(`Staged onnxruntime-node package is missing: ${stagedPath(destination, packageRoot)}`);
+  }
+  const removed = [];
+  let bytes = 0;
+  let files = 0;
+  const drop = async path => {
+    const info = await lstat(path);
+    if (info.isSymbolicLink()) throw new Error(`Resource symlink rejected: ${stagedPath(destination, path)}`);
+    const size = info.isDirectory() ? await subtreeSize(path) : { bytes: info.size, files: 1 };
+    await rm(path, { recursive: true, force: true });
+    removed.push(stagedPath(destination, path));
+    bytes += size.bytes;
+    files += size.files;
+  };
+  // Top-level allowlist: everything except bin/ is either a runtime file or not
+  // reachable at all (script/ is install-time tooling, *.pdb are debug symbols).
+  for (const entry of (await readdir(packageRoot, { withFileTypes: true })).sort(byName)) {
+    const path = join(packageRoot, entry.name);
+    if (onnxRuntimeAllowlist.includes(entry.name) || entry.name === "bin") continue;
+    await drop(path);
+  }
+  if (!(await statOrNull(binRoot))?.isDirectory()) {
+    throw new Error(`Staged onnxruntime-node bin directory is missing: ${stagedPath(destination, binRoot)}`);
+  }
+  for (const entry of (await readdir(binRoot, { withFileTypes: true })).sort(byName)) {
+    const path = join(binRoot, entry.name);
+    if (path !== nativeRoot) await drop(path);
+  }
+  if (!(await statOrNull(nativeRoot))?.isDirectory()) {
+    throw new Error(`Staged onnxruntime-node native payload is missing: ${stagedPath(destination, nativeRoot)}`);
+  }
+  for (const platform of (await readdir(nativeRoot, { withFileTypes: true })).sort(byName)) {
+    const platformPath = join(nativeRoot, platform.name);
+    if (platformPath !== join(nativeRoot, onnxRuntimeTarget.platform)) { await drop(platformPath); continue; }
+    if (!platform.isDirectory()) throw new Error(`Unexpected onnxruntime platform entry: ${stagedPath(destination, platformPath)}`);
+    for (const arch of (await readdir(platformPath, { withFileTypes: true })).sort(byName)) {
+      const archPath = join(platformPath, arch.name);
+      if (archPath !== target) await drop(archPath);
+    }
+  }
+  await assertStagedOnnxRuntime(destination);
+  return { removed, bytes, files };
+}
+
 async function verifyRuntime() {
   const lock = await json(lockPath);
   if (lock.schemaVersion !== 1) throw new Error("Unsupported runtime lock");
@@ -95,6 +228,9 @@ async function verifyRuntime() {
     const resource = `binaries/${file.path}`;
     if (config.bundle?.resources?.[resource] !== resource) throw new Error(`Pinned WARP resource must be bundled at ${resource}`);
   }
+  // A stage prepared before the platform allowlist existed must not verify: its
+  // inventory would carry foreign payloads that the lock no longer describes.
+  await assertStagedOnnxRuntime(stage);
   await clearBrowserValidationCache(stage);
   await verifyFiles(stage, lock.files);
   const actual = await inventory(stage, runtimeOnly);
@@ -241,6 +377,9 @@ async function main() {
   // OCR executes offline in its own worker. Stage its complete Node dependency
   // closure, including WASM and pinned Korean/English traineddata packages.
   const stagedPackages = await stageRuntimeClosure(stage);
+  // Only the win32-x64 native payload can be loaded by the packaged worker;
+  // drop every other platform/arch and the install-time tooling.
+  const pruned = await pruneStagedOnnxRuntime(stage);
   await installBrowser();
   await installWindowsInspector();
   // Playwright's cache ownership links contain absolute preparation-machine paths;
@@ -262,7 +401,8 @@ async function main() {
     if (lock.schemaVersion !== 1 || JSON.stringify(files) !== JSON.stringify(lock.files)) throw new Error("Prepared runtime differs from reviewed lock; inspect sources before explicit --update-lock");
   }
   console.log(JSON.stringify({ nodeVersion, playwrightVersion,
-    headlessShellRevision: shell.revision, ocrPackages: stagedPackages.map(({ name }) => name).sort(), stage }, null, 2));
+    headlessShellRevision: shell.revision, ocrPackages: stagedPackages.map(({ name }) => name).sort(),
+    pruned: { files: pruned.files, bytes: pruned.bytes, paths: pruned.removed }, stage }, null, 2));
 }
 
 // Importing this module (for tests) must not stage, download or verify anything.
