@@ -41,6 +41,16 @@ An ad marker does not make generic coupons, free trials, game currency or a
 category logo sufficient. The three-axis threshold remains 3/3; the official
 text policy and four concealment techniques are unchanged.
 
+`depositCreativeTerms` also accepts deposit/coupon wording that names only the
+offer. Its anchor is a settlement handle ordinary commerce does not print -
+`가입코드`, `테더`/`usdt` - and the anchor alone is never enough: it must be
+joined by betting rebate wording (`페이백`/`콤프`/`롤링`/`꽁머니` and the observed
+corruptions) or by a first-deposit/`입금` signal plus a reward or percentage.
+Ordinary `환전`, `롤링` and `꽁머니` wording is therefore not an anchor, and
+`첫충` matches only as `/첫충(?!전)/` so plain `첫충전`/`충전` wording stays out.
+Public-information exclusion, visible-DOM equivalence and the observed external
+destination requirement still apply.
+
 ### Bounded banner OCR and animation (2026-10-21 source)
 
 Capture selects at most 32 candidates/document and 1,000,000 encoded bytes/page,
