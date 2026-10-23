@@ -29,6 +29,12 @@ GitHub Actions `required` 성공·최신 base·대화 해결 필수, force push/
 789pass/1skip, 224.56초로 EXIT0다. React 재열기·저장 동시성 포함 관련51시험도
 통과했다. 초기 main 통합은 기존 PR #2의 새 HEAD CI를 통과한 뒤 진행한다.
 
+후속 P1 두 건도 재현 후 수정했다. DOM 원문이 분석 도중 바뀐 후보를 제외해
+정상 대체 문구가 이전 광고 분석의 근거로 출력되는 것을 막고, 배치 폴링은 native와
+동일한 공유 watchdog 유예·상한을 사용한다. 관련38시험/typecheck/lint가 통과했다.
+789pass는 이 추가2수정 전 checkpoint이며 최종 전체 결과는 후속 HEAD의 CI를 따른다.
+추가 수정 전에 진행한 패키징은 소유한 process group만 중단해 후보로 채택하지 않았다.
+
 Pocket4 SSH는 연결 시간 초과다. 마지막 실제 설치는 source8628이며 제출 후보
 source98fd 설치는 수행하지 않았다. 새 UI 수정이 포함된 후보도 별도 제작해야 한다.
 Windows 복구 시 기존45사례410파일 기준과 현재 파일을 먼저 백업·해시 대조하고,

@@ -1376,3 +1376,23 @@ OBSERVED: 제품 커밋 `0ee497f`(묶음 복원), `7e6f87a`(검토 재열기).
 각각 보존했고 최종 관련6파일51시험이 통과했다. 추가 sandbox 예외·검증기 완화·시험
 skip은 없다. 제출 릴리스의 ZIP 두 개는 공개 API size/digest 재조회로 기존 해시와
 일치했다. source/test 변경 검토 후 기존 PR #2의 초기 main 통합에 반영한다.
+
+### 추가 P1 검토 반영
+
+PR #2의 후속 자동 검토에서 두 결함이 확인됐다. rotating DOM에서 분석할 때의
+광고 원문과 렌더링 관측 때 바뀐 정상 문구가 섞이는 실패를 실제 Chromium으로
+재현했다. `673553a`는 관측 원문이 분석 snapshot과 다른 후보를 공식·추가 분석에서
+제외한다. 이전 광고 분석을 새 문구의 근거로 내보내지 않으며 재분석/재방문은 없다.
+단일 evaluate 합성 실험은 반환값을 얻지 못해 시험 실패 후 폐기했고, 최종 수정은
+원문 동일성 검사다. 중간 실패 로그도 보존한다.
+
+배치의 `timeoutSec + 45초`가 native의 `timeoutSec + hostGraceSec(150초)`보다 먼저
+실행을 취소하는 실패도 가상 시계로 재현했다. 후속 batch 수정은 동일 SCAN_POLICY의
+defaults/hostGraceSec/hardLimitSec를 사용하며, finalization 중에는 다음 대상을
+시작하지 않고 terminal 결과를 받은 뒤 이어간다. 네트워크 경계·호스트 상한은 유지한다.
+
+OBSERVED: 관련6파일38시험 통과, 최종 typecheck/lint EXIT0.
+직전3211e43의 전체789pass는 앞선 수정의 checkpoint이며 추가2수정의 전체 검증은
+후속 HEAD의 GitHub 필수 CI로 확인한다. 3211e43의 새 패키징은 추가 결함을 반영하기
+위해 소유한 process group만 TERM으로 중단(EXIT143)했으며 후보로 채택하지 않았다.
+제출 설치본과 릴리스 자산은 그대로 보존한다.
