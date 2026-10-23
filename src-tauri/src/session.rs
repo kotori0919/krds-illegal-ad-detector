@@ -211,6 +211,14 @@ impl SessionRegistry {
         };
         record.finished_at = Some(case.manifest.finished_at);
         record.progress.findings = case.manifest.findings as u64;
+        if let Some(evidence) = &case.evidence {
+            let coverage = evidence.coverage();
+            record.progress.failed_pages = coverage["coverage"]["failedPages"]
+                .as_array()
+                .map_or(0, |pages| pages.len() as u64);
+            record.progress.pages = coverage["coverage"]["checkedPages"].as_u64().unwrap_or(0)
+                + record.progress.failed_pages;
+        }
         record.result_json = Some(case.official);
         record.extra_json = case.extra;
         record.evidence = case.evidence;
@@ -1480,6 +1488,67 @@ mod tests {
         );
         let snapshot = registry.snapshot(&id).await.expect("session snapshot");
         assert_eq!(snapshot["status"], "succeeded");
+    }
+
+    #[tokio::test]
+    async fn restart_restores_page_counts_from_persisted_coverage() {
+        let root = std::env::temp_dir().join(format!("coverage-case-{}", uuid::Uuid::new_v4()));
+        let registry = SessionRegistry::persistent(root.clone()).unwrap();
+        let corpus: serde_json::Value = serde_json::from_str(include_str!(
+            "../../packages/contracts/test/fixtures/official-conformance.json"
+        ))
+        .unwrap();
+        let mut official = corpus["valid"].clone();
+        official["findings"] = serde_json::json!([]);
+        let official = official.to_string();
+        let detail = serde_json::json!({
+            "version": 2, "findings": [], "creativeImages": [],
+            "coverage": {"checkedPages": 1, "failedPages": [
+                {"url": "https://example.kr/blocked", "status": 403, "reason": "http-error"}
+            ], "timedOut": false},
+            "pageOutcomes": [
+                {"url": "https://example.kr/", "finalUrl": "https://example.kr/", "status": 200,
+                 "depth": 0, "outcome": "checked"},
+                {"url": "https://example.kr/blocked", "finalUrl": "https://example.kr/blocked",
+                 "status": 403, "depth": 1, "outcome": "failed", "reason": "http-error"}
+            ]
+        });
+        let record = new_session("https://example.kr/".into(), "2026-10-01T00:01:00Z".into());
+        let id = record.id.clone();
+        registry.insert(record).await;
+        assert!(
+            registry
+                .store_result(
+                    &id,
+                    official.clone(),
+                    detail.to_string(),
+                    "{}".into(),
+                    "2026-10-01T00:02:00Z".into()
+                )
+                .await
+        );
+        let persisted = std::fs::read_to_string(root.join(&id).join("result.json")).unwrap();
+        drop(registry);
+
+        let reopened = SessionRegistry::persistent(root.clone()).unwrap();
+        assert!(reopened
+            .case_store()
+            .unwrap()
+            .open(&id)
+            .unwrap()
+            .evidence
+            .is_some());
+        reopened.open_case(&id).await.unwrap();
+        let snapshot = reopened.snapshot(&id).await.unwrap();
+        assert_eq!(snapshot["progress"]["visitedPages"], 2);
+        assert_eq!(snapshot["progress"]["failedPages"], 1);
+        assert_eq!(snapshot["progress"]["queuedPages"], 0);
+        assert_eq!(
+            reopened.validated_export_text(&id).await.unwrap(),
+            persisted
+        );
+        drop(reopened);
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[tokio::test]
