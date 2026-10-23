@@ -133,3 +133,25 @@ it("blocks navigation while a stored case is opening instead of replacing a late
   await screen.findAllByRole("button", { name: "근거 보기", exact: true });
   expect(screen.getByRole("button", { name: "새 점검", exact: true })).toHaveProperty("disabled", false);
 });
+
+it("refreshes the memo when the same case is reopened from saved results", async () => {
+  const stored = new StoredHost(); host = stored;
+  stored.review = { schemaVersion: 1, revision: 1, updatedAt: "2026-10-20T01:00:00Z",
+    records: [{ findingId: "f1", note: "이전 사례 메모", judgment: "suspected", state: "needed", at: "2026-10-20T01:00:00Z" }] };
+  const officialBefore = JSON.stringify(stored.official);
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: "시작하기" }));
+  fireEvent.click(screen.getByRole("button", { name: "저장된 결과" }));
+  fireEvent.click(await screen.findByRole("button", { name: /^케이스 다시 열기/ }));
+  fireEvent.click((await screen.findAllByRole("button", { name: "근거 보기", exact: true }))[0]!);
+  await waitFor(() => expect(screen.getByLabelText("검토 메모")).toHaveProperty("value", "이전 사례 메모"));
+
+  fireEvent.click(screen.getByRole("button", { name: "저장된 결과" }));
+  // A restored backup may carry the same ID and revision but different records.
+  stored.review = { ...stored.review, records: [{ ...stored.review.records[0]!, note: "가져온 백업 메모", judgment: "judged-normal" }] };
+  fireEvent.click(await screen.findByRole("button", { name: /^케이스 다시 열기/ }));
+  fireEvent.click((await screen.findAllByRole("button", { name: "근거 보기", exact: true }))[0]!);
+  await waitFor(() => expect(screen.getByLabelText("검토 메모")).toHaveProperty("value", "가져온 백업 메모"));
+  expect(screen.getByLabelText("담당자의 판단")).toHaveProperty("value", "judged-normal");
+  expect(JSON.stringify(stored.official)).toBe(officialBefore);
+});

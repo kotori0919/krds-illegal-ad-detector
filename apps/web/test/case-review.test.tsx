@@ -35,6 +35,53 @@ const untilSaved = async (writer: CaseReviewWriter) => {
 };
 
 describe("case review transactions", () => {
+  it("reloads a restored case with the same ID and revision before another edit", async () => {
+    const host = new ReviewStore();
+    host.stored = { ...host.stored, revision: 1, records: [record("a", "deleted case memo")] };
+    const writer = writerFor(host); await writer.load("case");
+    // Deletion and importing a backup can replace the disk state without changing its ID or revision.
+    host.stored = { ...host.stored, records: [record("b", "restored backup memo")] };
+    await writer.load("case");
+    expect(Object.keys(writer.state("case").records)).toEqual(["b"]);
+    expect(writer.state("case").records.b?.note).toBe("restored backup memo");
+    writer.edit("case", (previous) => ({ ...previous, b: record("b", "new edit after restore") }));
+    expect(await writer.prepareClose()).toBe(true);
+    expect(host.stored.records.map(({ findingId, note }) => [findingId, note])).toEqual([["b", "new edit after restore"]]);
+  });
+
+  it("waits for the active save before reloading its review revision", async () => {
+    const host = new ReviewStore(); const writer = writerFor(host); await writer.load("case");
+    let release!: () => void; host.delay = new Promise<void>((resolve) => { release = resolve; });
+    writer.edit("case", () => ({ a: record("a", "in-flight memo") }));
+    const saving = writer.flush("case");
+    const reloading = writer.load("case");
+    release(); await saving; await reloading;
+    expect(writer.state("case").revision).toBe(1);
+    expect(writer.state("case").records.a?.note).toBe("in-flight memo");
+    writer.edit("case", () => ({ a: record("a", "after reopen") }));
+    expect(await writer.prepareClose()).toBe(true);
+    expect(host.stored.revision).toBe(2);
+    expect(host.stored.records[0]?.note).toBe("after reopen");
+    expect(host.maximumInFlight).toBe(1);
+  });
+
+  it("keeps edits made during reload until the durable revision has been read", async () => {
+    const host = new ReviewStore(); const writer = writerFor(host); await writer.load("case");
+    host.stored = { ...host.stored, revision: 1, records: [record("b", "remote memo")] };
+    const open = host.openCase.bind(host);
+    let release!: () => void; const gate = new Promise<void>((resolve) => { release = resolve; });
+    host.openCase = async () => { await gate; return open(); };
+    const reloading = writer.load("case");
+    writer.edit("case", (previous) => ({ ...previous, a: record("a", "edit during reload") }));
+    await writer.flush("case");
+    expect(host.stored.records.map((item) => item.findingId)).toEqual(["b"]);
+    expect(writer.state("case").status).toBe("unsaved");
+    release(); await reloading; await untilSaved(writer);
+    expect(host.stored.records.map(({ findingId, note }) => [findingId, note]).sort())
+      .toEqual([["a", "edit during reload"], ["b", "remote memo"]]);
+    expect(host.stored.revision).toBe(2);
+  });
+
   it("saves an immediate close without waiting for the debounce timer", async () => {
     const host = new ReviewStore(); const writer = writerFor(host); await writer.load("case");
     writer.edit("case", () => ({ a: record("a", "typed immediately before close") }));
@@ -88,7 +135,7 @@ describe("case review transactions", () => {
     expect(writer.state("case").status).toBe("error");
     expect(writer.state("case").records.a?.note).toBe("do not lose this memo");
     expect(host.stored.records.map((item) => item.findingId)).toEqual(["b"]);
-    await writer.load("case", true); await untilSaved(writer);
+    await writer.load("case"); await untilSaved(writer);
     expect(host.stored.records.map((item) => [item.findingId, item.note]).sort()).toEqual([["a", "do not lose this memo"], ["b", "other operator"]]);
   });
 
@@ -110,7 +157,7 @@ describe("case review transactions", () => {
     release(); await first;
     for (let index = 0; index < 30 && writer.state("case").status !== "error"; index++) await new Promise((resolve) => setTimeout(resolve, 1));
     expect(writer.state("case").status).toBe("error");
-    await writer.load("case", true); await untilSaved(writer);
+    await writer.load("case"); await untilSaved(writer);
     expect(host.stored.records.map((item) => [item.findingId, item.note]).sort()).toEqual([["a", "remote newer"], ["b", "local pending"]]);
   });
 });

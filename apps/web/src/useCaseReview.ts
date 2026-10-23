@@ -25,11 +25,14 @@ export class CaseReviewWriter {
     return value;
   }
 
-  async load(caseId: string, retry = false): Promise<void> {
+  async load(caseId: string): Promise<void> {
     const state = this.state(caseId);
-    if (state.loaded && !retry) return;
     const token = ++state.loadToken;
-    state.status = "loading"; state.error = undefined; this.changed();
+    // Reopening can follow deletion/import of the same ID. Read disk again,
+    // after the current writer settles so the read cannot rewind its revision.
+    if (state.inFlight) await this.flush(caseId);
+    if (state.loadToken !== token) return;
+    state.loaded = false; state.status = "loading"; state.error = undefined; this.changed();
     try {
       const opened = await this.host.openCase(caseId);
       if (state.loadToken !== token) return;
@@ -111,7 +114,7 @@ export function useCaseReview(host: HostBridge | undefined, caseId: string | und
     records: current?.records ?? {}, opened: current?.opened, status: current?.status ?? "loading", error: current?.error,
     sessions: Object.fromEntries([...(writer?.states ?? [])].map(([id, state]) => [id, state.records])),
     edit: (update: (previous: Records) => Records) => { if (writer && caseId) writer.edit(caseId, update); },
-    retry: () => { if (writer && caseId) void writer.load(caseId, true); },
+    retry: () => { if (writer && caseId) void writer.load(caseId); },
     prepareAll: async () => writer ? writer.prepareClose() : true,
     prepareExport: async (): Promise<ReviewRecord[]> => {
       if (!writer || !caseId) throw new Error("No case selected");

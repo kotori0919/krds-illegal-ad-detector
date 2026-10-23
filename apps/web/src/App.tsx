@@ -56,7 +56,7 @@ export function App() {
   const [resultView, setResultView] = useState<"findings" | "pages" | "extra" | "coverage">("findings");
   const [host, setHost] = useState<HostBridge | undefined>(undefined);
   const [capabilities, setCapabilities] = useState<HostCapabilities>();
-  const caseReview = useCaseReview(host, sessionId, !!capabilities?.filesystem && (phase === "result" || phase === "evidence"));
+  const caseReview = useCaseReview(host, sessionId, !!capabilities?.filesystem && section === "scan" && !batchOpen && (phase === "result" || phase === "evidence"));
   const reviewRecords = caseReview.records;
   const reviewSessions = caseReview.sessions;
   const setReviewRecords = caseReview.edit;
