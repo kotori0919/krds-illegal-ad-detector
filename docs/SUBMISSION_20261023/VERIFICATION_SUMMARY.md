@@ -138,14 +138,15 @@ installer 크기는 predecessor `…76e7d5ec…`(759.46 MiB, `796,348,611` B) �
 
 ## 8. CI 차단 기록(원문 인용 1회)
 
-이 브랜치에서 GitHub Actions를 5회 시도했고, 최신 run(dispatch `39806914699`, PR
-`39806920316`, HEAD `16d4b56`)은 시작되지 않았다. GitHub 표기 원문:
+이 브랜치의 Actions는 5회 시도 후 계정 결제 차단으로 job이 시작되지 않았고, 이후
+push(`1c0e8a3`, `e87799a`)에 대해서도 동일하게 시작되지 않았다. 마지막으로 step이
+실행된 시도는 HEAD `16d4b56`(dispatch `39806914699`, PR `39806920316`)이며 그조차
+실행된 step은 0개다. GitHub 표기 원문:
 
 > The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings
 
 실행된 step은 없다. 계정 결제 차단이며 시험·빌드 실패가 아니다. 근거:
-`docs/ADOPTION_LEDGER.md` §「CI 시도와 차단 원인 (NOT_RUN / BLOCKED)」. 최종 HEAD
-`1c0e8a3`에서도 CI는 시작되지 않았다.
+`docs/ADOPTION_LEDGER.md` §「CI 시도와 차단 원인 (NOT_RUN / BLOCKED)」.
 
 역사 기록으로, source `50941bd` CI run
 [`37959883958`](https://github.com/snowman0919/krds-illegal-ad-detector/actions/runs/37959883958)의

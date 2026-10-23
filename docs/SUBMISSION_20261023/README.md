@@ -124,8 +124,10 @@ D08 실제 앱 재시작 수용. 한 환경의 결과를 다른 환경으로 전
 
 ## 5. CI 차단 기록(원문 인용)
 
-GitHub Actions는 5회 시도했고, 수정 후 최신 run(dispatch `39806914699`, PR
-`39806920316`, HEAD `16d4b56`)은 시작되지 않았다. GitHub 표기 원문:
+이 브랜치의 Actions는 5회 시도 후 계정 결제 차단으로 job이 시작되지 않았고, 이후
+push(`1c0e8a3`, `e87799a`)에 대해서도 동일하게 시작되지 않았다. 마지막으로 step이
+실행된 시도는 HEAD `16d4b56`(dispatch `39806914699`, PR `39806920316`)이며 그조차
+실행된 step은 0개다. GitHub 표기 원문:
 
 > The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings
 
