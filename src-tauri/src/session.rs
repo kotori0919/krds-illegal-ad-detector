@@ -598,17 +598,22 @@ impl SessionRegistry {
     pub async fn snapshot(&self, session_id: &str) -> Option<serde_json::Value> {
         let guard = self.inner.lock().await;
         let record = guard.get(session_id)?;
-        Some(serde_json::json!({
+        let mut value = serde_json::json!({
             "id": record.id,
             "entryUrl": record.entry_url,
             "status": record.status.as_str(),
             "startedAt": record.started_at,
-            "finishedAt": record.finished_at,
-            "error": record.error,
             "hasResult": record.result_json.is_some(),
             "progress": record.progress.value(record.status.as_str(), matches!(record.status,
                 SessionStatus::Succeeded | SessionStatus::Cancelled | SessionStatus::Failed)),
-        }))
+        });
+        if let Some(finished_at) = &record.finished_at {
+            value["finishedAt"] = serde_json::json!(finished_at);
+        }
+        if let Some(error) = &record.error {
+            value["error"] = serde_json::json!(error);
+        }
+        Some(value)
     }
 
     pub async fn result_value(&self, session_id: &str) -> Option<serde_json::Value> {
@@ -1720,6 +1725,78 @@ mod tests {
         let snapshot = registry.snapshot(&id).await.expect("session snapshot");
         assert_eq!(snapshot["status"], "failed");
         assert!(registry.result_value(&id).await.is_none());
+    }
+    #[tokio::test]
+    async fn snapshot_omits_absent_optional_fields_and_retains_failures() {
+        let registry = SessionRegistry::shared();
+        let running = new_session(
+            "https://example.kr/".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let running_id = running.id.clone();
+        registry.insert(running).await;
+        let running_snapshot = registry
+            .snapshot(&running_id)
+            .await
+            .expect("running snapshot");
+        assert_eq!(running_snapshot["status"], "running");
+        assert!(
+            running_snapshot.get("error").is_none(),
+            "running session must omit error"
+        );
+        assert!(
+            running_snapshot.get("finishedAt").is_none(),
+            "running session must omit finishedAt"
+        );
+
+        let succeeded = new_session(
+            "https://example.kr/".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let succeeded_id = succeeded.id.clone();
+        registry.insert(succeeded).await;
+        let canonical = "{\"meta\":{\"topic\":\"TOPIC\",\"entry_url\":\"https://example.kr/\",\"started_at\":\"2026-10-01T00:00:00Z\",\"finished_at\":\"2026-10-01T00:01:00Z\",\"elapsed_sec\":60,\"tool_version\":\"0.1.0\"},\"findings\":[]}\n";
+        registry
+            .store_result(
+                &succeeded_id,
+                canonical.to_string(),
+                "{}".to_string(),
+                "{}".to_string(),
+                "2026-10-01T00:01:00Z".to_string(),
+            )
+            .await;
+        let succeeded_snapshot = registry
+            .snapshot(&succeeded_id)
+            .await
+            .expect("succeeded snapshot");
+        assert_eq!(succeeded_snapshot["status"], "succeeded");
+        assert_eq!(succeeded_snapshot["hasResult"], true);
+        assert!(
+            succeeded_snapshot.get("error").is_none(),
+            "successful session must omit error key"
+        );
+        assert_eq!(succeeded_snapshot["finishedAt"], "2026-10-01T00:01:00Z");
+
+        let failed = new_session(
+            "https://example.kr/".to_string(),
+            "2026-10-01T00:00:00Z".to_string(),
+        );
+        let failed_id = failed.id.clone();
+        registry.insert(failed).await;
+        registry
+            .fail(
+                &failed_id,
+                "sidecar exited 1: boom".to_string(),
+                "2026-10-01T00:03:00Z".to_string(),
+            )
+            .await;
+        let failed_snapshot = registry
+            .snapshot(&failed_id)
+            .await
+            .expect("failed snapshot");
+        assert_eq!(failed_snapshot["status"], "failed");
+        assert_eq!(failed_snapshot["error"], "sidecar exited 1: boom");
+        assert_eq!(failed_snapshot["finishedAt"], "2026-10-01T00:03:00Z");
     }
 
     #[tokio::test]
