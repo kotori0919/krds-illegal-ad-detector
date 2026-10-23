@@ -8,6 +8,13 @@ export interface BatchState {
   phase: "ready" | "running" | "paused" | "stopped" | "complete";
   targets: readonly BatchTarget[]; pauseRequested: boolean;
 }
+/** One target recovered from a durable group; index-aligned with the targets. */
+export interface RestoredTarget {
+  status: TargetStatus; session?: ScanSession; error?: string; canRetry?: boolean;
+}
+export interface RestoredBatch {
+  phase: BatchState["phase"]; targets: readonly RestoredTarget[];
+}
 const terminal = (status: ScanSession["status"]): boolean => ["succeeded", "failed", "cancelled"].includes(status);
 
 /** One awaited native session at a time; completed sessions are never discarded. */
@@ -18,10 +25,15 @@ export class BatchCoordinator {
   private stopping = false;
   constructor(private readonly host: HostBridge, targets: readonly ImportedTarget[],
     private readonly limits: Partial<ScanLimits> = {}, private readonly pollMs = 500,
-    private readonly connection: ScanConnection = "direct") {
+    private readonly connection: ScanConnection = "direct", restored?: RestoredBatch) {
     if (!targets.length || targets.length > 100) throw new Error("일괄 대상은 1~100개여야 합니다.");
-    this.state = { phase: "ready", pauseRequested: false,
-      targets: targets.map((target, key) => ({ ...target, key, status: "pending", canRetry: false })) };
+    if (restored && restored.targets.length !== targets.length) throw new Error("복원된 일괄 대상 수가 일치하지 않습니다.");
+    this.state = { phase: restored?.phase ?? "ready", pauseRequested: false,
+      targets: targets.map((target, key) => {
+        const saved = restored?.targets[key];
+        return { ...target, key, status: saved?.status === "running" ? "pending" : saved?.status ?? "pending",
+          session: saved?.session, error: saved?.error, canRetry: saved?.canRetry ?? false };
+      }) };
   }
   snapshot(): BatchState { return this.state; }
   subscribe(listener: (state: BatchState) => void): () => void {

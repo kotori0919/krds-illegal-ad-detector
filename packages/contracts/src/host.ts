@@ -10,6 +10,7 @@
 import type { ScanEvent, ScanRequest, ScanSession } from "./scan.js";
 import type { WarpStatus } from "./warp.js";
 import type { BatchScanRequest } from "./batch.js";
+import type { BatchGroup, BatchGroupList } from "./batch-group.js";
 import type { CaseList, OpenCase, CaseReview, ReviewRecord, SupportDiagnostics } from "./case.js";
 import type { ExtraResult, OfficialResult } from "./result.js";
 import type { ImageAnalysisPage, ImageAnalysisQuery, ScanCoverageView, FindingDetailView,
@@ -87,4 +88,8 @@ export interface HostBridge {
   /** Separate result.json per session, under a newly created batch directory. */
   exportBatchResults(sessionIds: string[]): Promise<string | null>;
   saveTargetTemplate(): Promise<string | null>;
+  /** Batch group identity for restart recovery; official case files stay authoritative. */
+  listBatchGroups(): Promise<BatchGroupList>;
+  /** Upsert one group; the host validates and writes it atomically. */
+  saveBatchGroup(group: BatchGroup): Promise<BatchGroup>;
 }

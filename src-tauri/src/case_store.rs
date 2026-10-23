@@ -594,6 +594,174 @@ impl CaseStore {
         reject_links(&directory, 0)?;
         fs::remove_dir_all(directory).map_err(|e| e.to_string())
     }
+
+    /// Batch groups live beside case directories in a reserved, non-UUID folder,
+    /// so `list()` ignores them and no case manifest or result format changes.
+    fn groups_root(&self) -> Result<PathBuf, String> {
+        let path = self.root.join("groups");
+        if !path.exists() {
+            fs::create_dir(&path).map_err(|e| format!("case storage unavailable: {e}"))?;
+        }
+        let metadata = fs::symlink_metadata(&path).map_err(|e| e.to_string())?;
+        if !metadata.is_dir() || is_link(&metadata) {
+            return Err("unsafe batch group storage".into());
+        }
+        Ok(path)
+    }
+
+    /// Upsert one group. Identity is the validated group id, so rewriting a
+    /// group never touches a case directory or a review revision.
+    pub fn save_group(&self, group: &BatchGroup) -> Result<Value, String> {
+        let _guard = self.writes.lock().map_err(|_| "case lock poisoned")?;
+        if !valid_group(group) {
+            return Err("invalid batch group".into());
+        }
+        let root = self.groups_root()?;
+        let bytes = serde_json::to_vec_pretty(group).map_err(|e| e.to_string())?;
+        if bytes.len() as u64 > BATCH_GROUP_BYTES {
+            return Err("batch group exceeds limit".into());
+        }
+        safe_id(&group.group_id)?;
+        atomic_replace(&root.join(format!("{}.json", group.group_id)), &bytes)?;
+        serde_json::to_value(group).map_err(|e| e.to_string())
+    }
+
+    /// One malformed group is reported as an issue; it never hides the others.
+    pub fn list_groups(&self) -> Result<Value, String> {
+        let root = self.root.join("groups");
+        let mut groups = vec![];
+        let mut issues = vec![];
+        if root.exists() {
+            let metadata = fs::symlink_metadata(&root).map_err(|e| e.to_string())?;
+            if !metadata.is_dir() || is_link(&metadata) {
+                return Err("unsafe batch group storage".into());
+            }
+            for (index, entry) in fs::read_dir(&root)
+                .map_err(|e| e.to_string())?
+                .take(BATCH_GROUP_LIST_LIMIT as usize + 1)
+                .enumerate()
+            {
+                if index == BATCH_GROUP_LIST_LIMIT as usize {
+                    issues.push(json!({"code":"BATCH_GROUP_LIST_LIMIT","groupId":""}));
+                    break;
+                }
+                let entry = entry.map_err(|e| e.to_string())?;
+                let name = entry.file_name().to_string_lossy().into_owned();
+                let Some(id) = name.strip_suffix(".json") else {
+                    continue;
+                };
+                if safe_id(id).is_err() {
+                    continue;
+                }
+                let group = read_bounded(&entry.path(), BATCH_GROUP_BYTES)
+                    .ok()
+                    .and_then(|bytes| serde_json::from_slice::<BatchGroup>(&bytes).ok())
+                    .filter(|group| valid_group(group) && group.group_id == id);
+                match group {
+                    Some(group) => {
+                        groups.push(serde_json::to_value(group).map_err(|e| e.to_string())?)
+                    }
+                    None => issues.push(json!({"code":"BATCH_GROUP_UNAVAILABLE","groupId":id})),
+                }
+            }
+        }
+        groups.sort_by(|a, b| {
+            b["updatedAt"]
+                .as_str()
+                .cmp(&a["updatedAt"].as_str())
+                .then_with(|| b["groupId"].as_str().cmp(&a["groupId"].as_str()))
+        });
+        Ok(json!({"schemaVersion":1,"groups":groups,"issues":issues}))
+    }
+}
+
+pub const BATCH_GROUP_SCHEMA: u32 = 1;
+pub const BATCH_GROUP_LIST_LIMIT: u32 = 200;
+const BATCH_GROUP_BYTES: u64 = 256_000;
+const BATCH_GROUP_TARGET_LIMIT: usize = 100;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BatchGroupTarget {
+    pub key: u32,
+    pub label: String,
+    pub entry_url: String,
+    pub kind: String,
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub case_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+/// Restart-recovery identity for one operator batch: order, per-target case
+/// binding and status. Official output and review records stay in the case.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BatchGroup {
+    pub schema_version: u32,
+    pub group_id: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub phase: String,
+    pub scope: String,
+    pub connection: String,
+    pub targets: Vec<BatchGroupTarget>,
+}
+
+fn bounded_text(value: &str, limit: usize) -> bool {
+    value.encode_utf16().count() <= limit && !value.contains('\0')
+}
+
+fn public_entry_url(url: &str) -> bool {
+    bounded_text(url, 8192)
+        && !url.is_empty()
+        && !url.chars().any(char::is_whitespace)
+        && url.split_once("://").is_some_and(|(scheme, rest)| {
+            let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+            (scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https"))
+                && !authority.is_empty()
+                && !authority.contains('@')
+        })
+}
+
+fn valid_group(group: &BatchGroup) -> bool {
+    group.schema_version == BATCH_GROUP_SCHEMA
+        && safe_id(&group.group_id).is_ok()
+        && chrono::DateTime::parse_from_rfc3339(&group.created_at).is_ok()
+        && chrono::DateTime::parse_from_rfc3339(&group.updated_at).is_ok()
+        && matches!(
+            group.phase.as_str(),
+            "ready" | "running" | "paused" | "stopped" | "complete"
+        )
+        && matches!(group.scope.as_str(), "entry" | "quick" | "automatic")
+        && matches!(group.connection.as_str(), "direct" | "warp")
+        && !group.targets.is_empty()
+        && group.targets.len() <= BATCH_GROUP_TARGET_LIMIT
+        && group.targets.iter().enumerate().all(|(index, target)| {
+            target.key as usize == index
+                && bounded_text(&target.label, 512)
+                && public_entry_url(&target.entry_url)
+                && matches!(target.kind.as_str(), "site" | "sitemap")
+                && matches!(
+                    target.status.as_str(),
+                    "pending"
+                        | "running"
+                        | "complete"
+                        | "partial"
+                        | "blocked"
+                        | "failed"
+                        | "cancelled"
+                )
+                && target
+                    .case_id
+                    .as_deref()
+                    .is_none_or(|id| safe_id(id).is_ok())
+                && target
+                    .error
+                    .as_deref()
+                    .is_none_or(|error| bounded_text(error, 2000))
+        })
 }
 
 fn issue(code: &str, scope: &str) -> CaseIssue {
@@ -614,17 +782,7 @@ fn manifest_metadata_valid(manifest: &CaseManifest) -> bool {
     let timestamp = |s: &str| chrono::DateTime::parse_from_rfc3339(s).is_ok();
     manifest.schema_version == CASE_SCHEMA
         && safe_id(&manifest.case_id).is_ok()
-        && bounded(&manifest.entry_url, 8192)
-        && manifest
-            .entry_url
-            .split_once("://")
-            .is_some_and(|(scheme, rest)| {
-                let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
-                (scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https"))
-                    && !authority.is_empty()
-                    && !authority.contains('@')
-                    && !manifest.entry_url.chars().any(char::is_whitespace)
-            })
+        && public_entry_url(&manifest.entry_url)
         && timestamp(&manifest.started_at)
         && timestamp(&manifest.finished_at)
         && timestamp(&manifest.exportable_at)
@@ -1783,6 +1941,109 @@ mod tests {
                 target[last.as_str().unwrap()] = sample["value"].clone();
             }
             assert!(!check(kind, value), "{}: {}", kind, sample["name"]);
+        }
+    }
+
+    fn apply_fixture_path(value: &mut Value, path: &[Value], replacement: Value) {
+        let (last, prefix) = path.split_last().unwrap();
+        let mut target = value;
+        for key in prefix {
+            target = match key.as_u64() {
+                Some(index) => &mut target[index as usize],
+                None => &mut target[key.as_str().unwrap()],
+            };
+        }
+        match last.as_u64() {
+            Some(index) => target[index as usize] = replacement,
+            None => target[last.as_str().unwrap()] = replacement,
+        }
+    }
+
+    fn batch_group_fixture() -> Value {
+        serde_json::from_str::<Value>(include_str!(
+            "../../packages/contracts/test/fixtures/batch-group-conformance.json"
+        ))
+        .unwrap()["valid"]
+            .clone()
+    }
+
+    /// The group file is restart identity only: no official bytes, no review records.
+    #[test]
+    fn batch_group_survives_restart_and_never_becomes_a_case_or_escapes_the_store() {
+        let temporary = Temporary::new();
+        let store = CaseStore::new(temporary.0.clone()).unwrap();
+        let valid = batch_group_fixture();
+        let group: BatchGroup = serde_json::from_value(valid.clone()).unwrap();
+        assert_eq!(store.save_group(&group).unwrap(), valid);
+        // The reserved groups folder must not surface as a case or a case issue.
+        let cases = store.list().unwrap();
+        assert!(cases["cases"].as_array().unwrap().is_empty());
+        assert!(cases["issues"].as_array().unwrap().is_empty());
+
+        drop(store);
+        let restarted = CaseStore::new(temporary.0.clone()).unwrap();
+        let listed = restarted.list_groups().unwrap();
+        assert_eq!(listed["groups"].as_array().unwrap().len(), 1);
+        assert_eq!(listed["groups"][0], valid);
+        assert!(listed["issues"].as_array().unwrap().is_empty());
+
+        for id in [
+            "../../escape",
+            "not-a-uuid",
+            "abcdef01-2345-6789-abcd-0123456789ab/../x",
+        ] {
+            let mut forged = group.clone();
+            forged.group_id = id.into();
+            assert!(restarted.save_group(&forged).is_err(), "{id} accepted");
+        }
+        assert!(!temporary.0.parent().unwrap().join("escape.json").exists());
+
+        let broken = temporary
+            .0
+            .join("groups")
+            .join("11111111-1111-4111-8111-111111111111.json");
+        write_new(&broken, b"{ not json").unwrap();
+        let listed = restarted.list_groups().unwrap();
+        assert_eq!(listed["groups"].as_array().unwrap().len(), 1);
+        assert_eq!(listed["issues"][0]["code"], "BATCH_GROUP_UNAVAILABLE");
+
+        let mut updated = group.clone();
+        updated.phase = "complete".into();
+        restarted.save_group(&updated).unwrap();
+        let names: Vec<String> = fs::read_dir(temporary.0.join("groups"))
+            .unwrap()
+            .flatten()
+            .map(|entry| entry.file_name().to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(
+            names.iter().filter(|name| name.ends_with(".json")).count(),
+            2
+        );
+        assert!(names.iter().all(|name| !name.contains(".tmp")));
+        let listed = restarted.list_groups().unwrap();
+        assert_eq!(listed["groups"][0]["phase"], "complete");
+    }
+
+    #[test]
+    fn shares_batch_group_boundaries_with_typescript() {
+        let corpus: Value = serde_json::from_str(include_str!(
+            "../../packages/contracts/test/fixtures/batch-group-conformance.json"
+        ))
+        .unwrap();
+        let check = |value: Value| {
+            serde_json::from_value::<BatchGroup>(value).is_ok_and(|group| valid_group(&group))
+        };
+        assert!(check(corpus["valid"].clone()));
+        let invalid = corpus["invalid"].as_array().unwrap();
+        assert!(!invalid.is_empty());
+        for sample in invalid {
+            let mut value = corpus["valid"].clone();
+            apply_fixture_path(
+                &mut value,
+                sample["path"].as_array().unwrap(),
+                sample["value"].clone(),
+            );
+            assert!(!check(value), "{}", sample["name"]);
         }
     }
 

@@ -9,6 +9,7 @@ export * from "./detail.js";
 export * from "./evidence-access.js";
 export * from "./selector.js";
 export * from "./batch.js";
+export * from "./batch-group.js";
 export * from "./case.js";
 export * from "./config.js";
 export * from "./warp.js";

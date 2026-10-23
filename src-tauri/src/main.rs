@@ -618,6 +618,19 @@ async fn case_delete(state: State<'_, AppState>, case_id: String) -> Result<(), 
 }
 
 #[tauri::command]
+async fn batch_group_list(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    state.registry.case_store()?.list_groups()
+}
+
+#[tauri::command]
+async fn batch_group_save(
+    state: State<'_, AppState>,
+    group: case_store::BatchGroup,
+) -> Result<serde_json::Value, String> {
+    state.registry.case_store()?.save_group(&group)
+}
+
+#[tauri::command]
 async fn support_diagnostics(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     Ok(
         serde_json::json!({"toolVersion":env!("CARGO_PKG_VERSION"),"policyVersion":2,"caseSchema":1,"storageRoot":state.registry.case_store()?.root(),"network":"batch-public-pinned/single-evaluator","model":"disabled","signing":"unsigned-internal"}),
@@ -1089,6 +1102,8 @@ fn main() {
             case_export,
             case_import,
             case_delete,
+            batch_group_list,
+            batch_group_save,
             support_diagnostics
         ])
         .run(tauri::generate_context!())

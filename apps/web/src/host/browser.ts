@@ -26,7 +26,7 @@ import {
   type BatchScanRequest,
   type ScanSession,
   type Unsubscribe,
-  type CaseList, type OpenCase, type CaseReview, type ReviewRecord, type SupportDiagnostics,
+  type CaseList, type OpenCase, type CaseReview, type BatchGroup, type BatchGroupList, type ReviewRecord, type SupportDiagnostics,
 } from "@krds-detector/contracts";
 import { DEMO_ENTRY_URL, demoResult } from "../demo/findings.js";
 import { indexSessionEvidence } from "./session-evidence.js";
@@ -201,5 +201,13 @@ export class BrowserHost implements HostBridge {
   async saveWorkbook(_sessionIds: string[], _data: Uint8Array): Promise<string | null> {
     void _sessionIds; void _data;
     throw new Error("브라우저 미리보기에서는 파일 저장을 지원하지 않습니다.");
+  }
+  /** No durable store in the preview, so claiming a resumable group would be false. */
+  async listBatchGroups(): Promise<BatchGroupList> {
+    return { schemaVersion: 1, groups: [], issues: [] };
+  }
+  async saveBatchGroup(group: BatchGroup): Promise<BatchGroup> {
+    void group;
+    throw new Error("브라우저 미리보기는 일괄 점검 묶음을 저장하지 않습니다. 데스크톱 앱을 사용해 주세요.");
   }
 }

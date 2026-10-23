@@ -12,6 +12,8 @@ import {
   isWarpStatus, type WarpStatus,
   CONFIG_VERSION,
   isCaseId, isCaseList, isOpenCase, isCaseReview, isReviewRecord, isSupportDiagnostics, parseCaseValue,
+  isBatchGroup, isBatchGroupId, isBatchGroupList,
+  type BatchGroup, type BatchGroupList,
   type ExportPaths,
   type ExtraResult,
   type HostBridge,
@@ -228,5 +230,16 @@ export class TauriHost implements HostBridge {
   async saveWorkbook(sessionIds: string[], data: Uint8Array): Promise<string | null> {
     const invoke = await this.invoke();
     return invoke<string | null>("scan_export_workbook", { sessionIds, data: Array.from(data) });
+  }
+  async listBatchGroups(): Promise<BatchGroupList> {
+    return parseCaseValue(await (await this.invoke())<unknown>("batch_group_list"), isBatchGroupList);
+  }
+  async saveBatchGroup(group: BatchGroup): Promise<BatchGroup> {
+    if (!isBatchGroup(group)) throw new Error("INVALID_BATCH_GROUP");
+    const value = parseCaseValue(await (await this.invoke())<unknown>("batch_group_save", { group }), isBatchGroup);
+    if (value.groupId !== group.groupId || !isBatchGroupId(group.groupId)) {
+      throw new Error("INVALID_CASE_CONTRACT: batch group identity disagrees with request");
+    }
+    return value;
   }
 }
