@@ -26,6 +26,27 @@ async function onServedPage(html: string, check: (page: import("playwright-core"
 }
 
 describe("general source text detection", () => {
+  it("rejects changed text instead of using replacement text as evidence for earlier analysis", async () => {
+    const adText = "Ｋ카지노 신규가입";
+    await onServedPage(`<p id="ad">${adText}</p><p id="control">공공시설 이용 안내</p>`, async (page, url) => {
+      let mutation: Promise<unknown> | undefined;
+      const observed: { evidenceText: string; analysisText: string }[] = [];
+      const found = await detectPageCandidates(page, { pageUrl: url,
+        onElementsAnalyzed: () => {
+          mutation = page.evaluate(() => {
+            document.getElementById("ad")!.textContent = "공공시설 이용 안내";
+            document.getElementById("control")!.textContent = "Ｋ카지노 신규가입";
+          });
+        },
+        onAdText: (source) => observed.push(source),
+      });
+      await mutation;
+      expect(await page.locator("#ad").textContent()).toBe("공공시설 이용 안내");
+      expect(found).toEqual([]);
+      expect(observed).toEqual([]);
+    });
+  }, 60000);
+
   it("keeps owned analysis text separate from descendant source for additional finding deduplication", async () => {
     const parentText = "카지노 신규가입 parent";
     const childText = "카\u200b지\u200b노 신규가입 child";

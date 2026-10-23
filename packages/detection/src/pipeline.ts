@@ -171,7 +171,8 @@ export async function detectPageCandidates(
 
   for (const el of elements) {
     const signal = bySelector.get(el.selector);
-    if (!signal) continue;
+    // A replacement text cannot be evidence for the earlier ownership/analysis snapshot.
+    if (!signal || signal.rawText !== el.text) continue;
     const rawText = signal.rawText;
     if (rawText.trim().length === 0) continue;
     const gate = semanticGate(el.analysisText, signal.href ?? el.href);
