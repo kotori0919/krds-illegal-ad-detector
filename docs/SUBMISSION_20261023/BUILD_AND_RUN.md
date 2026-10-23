@@ -1,5 +1,9 @@
 # 빌드와 실행 — 수신팀 최소 절차
 
+> 제품 `dd5ceb4`, source `8628ba4a4488…`, 서명 없는 gnullvm 내부 평가 후보.
+> Windows에서 NIA 5페이지·실패 0, 공개 두 대상 저장·재시작 복원·통합 XLSX·Excel 열람을 확인했다.
+> JS/TS 770 passed / 1 skipped, 최종 native 82 passed / 0 failed / 2 ignored. 전체 E2E·제출 완료 표시는 아니다.
+
 이 문서는 수신팀이 최소한으로 재현해야 하는 절차만 적는다. 전체 설명·근거·예외는
 [`docs/BUILD_MANUAL.md`](../BUILD_MANUAL.md)에 있으므로 중복하지 않고 링크한다.
 검증 결과 수치는 [`VERIFICATION_SUMMARY.md`](VERIFICATION_SUMMARY.md), 알려진 위험은
@@ -71,10 +75,10 @@ packages/evidence/.model-cache/
 KRDS_TEST_UNSANDBOXED=1 npm run check
 ```
 
-PowerShell:
+Windows PowerShell(Chromium sandbox 유지):
 
 ```powershell
-$env:KRDS_TEST_UNSANDBOXED="1"; npm run check
+npm run check
 ```
 
 `check`는 `typecheck` + `lint` + `vitest run`이다(`package.json`). `KRDS_TEST_UNSANDBOXED=1`은
@@ -158,8 +162,8 @@ license inventory, third-party notices가 들어간다(`BUILD_MANUAL.md` §산�
 
 1. `manifest.json`의 `source.commit`이 배포하려는 commit과 같은지 확인한다.
 2. installer의 SHA-256을 manifest의 값과 비교한다. 현재 후보는
-   `753b873c2b1454eae27fb5524cafaf4f70e682ae6ad660be2412a877a44f5ebc`
-   (`747,381,035` B, 712.76 MiB)이다.
+   `33ce86950fe11ef2dc2e210c60e6604797c2a2ffb4c8e222f4c28a0015b36d56`
+   (`746,947,332` B, 712.34 MiB)이다.
 3. standalone `krds-detector.exe` hash와 **설치된** exe hash를 구분한다. Tauri는 NSIS
    생성 시 bundle 식별자를 `UNK`→`NSS`로 바꾸므로 두 hash는 다를 수 있고, manifest의
    `installedExecutable` 절이 별도 hash를 기록한다. standalone hash를 설치본에

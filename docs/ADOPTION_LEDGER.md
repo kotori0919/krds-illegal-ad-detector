@@ -789,9 +789,11 @@ gitignore 대상이던 오래된 증거 4건을 삭제하지 않고 이동했다
 
 ## 2026-10-23 통합 검증과 최종 후보
 
-이 절은 2026-10-23 제출 기준의 최종 상태다. 앞의 `### 재빌드 (85a286f)` 후보
-(`76e7d5ec…`)는 이 절의 `307f6b6f…` 후보로 **대체(superseded)**되었고, `artifacts/`
-에 삭제하지 않고 보존했다.
+**이 절은 이제 역사 기록이다. 이 절의 `307f6b6f…` 후보(installer `753b873c…f5ebc`)는
+뒤의 「2026-10-23 최종 후보 (f481d73)」의 `0361562d…` 후보로 대체(superseded)되었다.**
+다음은 그 시점의 관측 기록이며, 현재 후보 값으로 인용하지 않는다. 앞의
+`### 재빌드 (85a286f)` 후보(`76e7d5ec…`)는 이 절의 `307f6b6f…` 후보로 대체되었고,
+세 후보 모두 `artifacts/`에 삭제하지 않고 보존했다.
 
 ### 소스와 commit (OBSERVED_LOCAL)
 
@@ -827,7 +829,7 @@ gitignore 대상이던 오래된 증거 4건을 삭제하지 않고 이동했다
 `KRDS_TEST_UNSANDBOXED=1`은 소유 loopback fixture의 Chromium sandbox만 해제한다.
 CI는 여전히 계정 결제 차단으로 시작되지 않았으므로 **CI 통과를 주장하지 않는다**.
 
-### 최종 후보 (OBSERVED_CROSS_BUILD)
+### 후보 `307f6b6f…` (OBSERVED_CROSS_BUILD; 이후 superseded)
 
 `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z/`
 
@@ -887,3 +889,401 @@ v1의 fixture 서버는 SSH 세션의 `Start-Process`로 띄운 것이 스캔 �
 | 실제 사람 사용성 평가·보조기기(AT) 판독 | 수행하지 않음 |
 | Excel에서 XLSX 실제 열람 | v2에서 열지 않음 |
 | 무인 설치·제거·선행 후보 업그레이드 스크립트 경로 | 대화형 "Already Installed" 재설치만 수행 |
+
+## 2026-10-23 최종 후보 (f481d73)
+
+이 절은 재개 전 후보의 역사 기록이다. NIA·D08 결함과 새 수정은 뒤의 세션 인계 재개 절을 따른다. 앞 절의 `307f6b6f…` 후보(installer `753b873c…f5ebc`,
+712.76 MiB)는 이 후보로 **대체(superseded)**되었고 `artifacts/`에 보존했다. 여기서
+바뀐 것은 **탐지 규칙 강화(`e54fe63`)** 와 그 문서화(`f481d73`)뿐이며, 빌드·시험·Windows
+수용을 새 후보 기준으로 다시 실행했다.
+
+### 소스와 commit (OBSERVED_LOCAL)
+
+| 항목 | 값 |
+| --- | --- |
+| 브랜치 / HEAD | `dev/bootstrap` / `f481d73080415a3a64a1f3e0353e689356db11b1` |
+| 작업 트리 | clean, 원격에 push됨 |
+| 앱 버전 / 탐지 정책 | `0.2.1` / `0.2.1-policy2` |
+
+| commit | 내용 |
+| --- | --- |
+| `e54fe63` | 이미지·광고 판정의 앵커 축소. `SETTLEMENT_ANCHORS`는 `가입코드`/`테더`/`usdt`만 인정하고 `환전`·`꽁머니`·`롤링`은 리베이트 용어로만 남긴다. `첫충`은 `/첫충(?!전)/`로만 매칭(평범한 `첫충전`/`충전` 제외). 음성 회귀 3건 추가(환전 수수료 무료·충전 시 페이백 / 롤링 이벤트·충전 안내 / 가입코드 첫충전 10% 보너스) |
+| `f481d73` | 위 규칙을 `docs/DETECTION.md`에 기록하고, 190입력 재측정 결과를 두 2026-10-22 측정 노트에 남김(문서만) |
+
+### 로컬 검사 (OBSERVED_LOCAL)
+
+| 명령 | 결과 |
+| --- | --- |
+| `PATH=/usr/bin:$PATH KRDS_TEST_UNSANDBOXED=1 npm run check` | EXIT 0, `Test Files 98 passed \| 1 skipped (99)`, `Tests 757 passed \| 1 skipped (758)` |
+| `npm run build` | EXIT 0 |
+| `cargo test --bins` | 80 passed / 0 failed / 2 ignored (**호스트 실행, Windows 아님**) |
+| Windows target clippy(CI와 같은 명령) | EXIT 0 |
+| `node scripts/prepare-windows-runtime.mjs --verify` | 1177 files |
+
+이전 후보(`307f6b6f…`) 대비 시험 수는 754 → **757 passed**(+3: `e54fe63`의 음성 회귀
+3건)이고 skipped 1건은 그대로다. `KRDS_TEST_UNSANDBOXED=1`은 소유 loopback fixture의
+Chromium sandbox만 해제한다. CI는 계정 결제 차단으로 여전히 시작되지 않았으므로
+**CI 통과를 주장하지 않는다**.
+
+### 정밀도 재측정 (MEASURED; Linux, `f481d73`)
+
+`e54fe63` 작업 트리에서 **같은 190개 입력**(`artifacts/vision-cpu-20261022/inputs.json`,
+sha256 `eb1572b6162e76790ae477d921ae5ee1b96789bb7370add137c78a9f3a3e8ad3`)을 새 bench
+디렉터리에서 다시 재생했다. 원시 자료:
+`/mnt/nas/illegal-ad-artifacts-archive-20261023/vision-cpu-current-head/`
+(`inputs.json`, `runs/*-after.json`, `protocol.json`).
+
+| 묶음 | 결과 |
+| --- | --- |
+| 실제 출처 불법광고 배너 | **60/60** |
+| 실제 정상 광고 오탐 | **0/74** |
+| 파생 양성 대조군 | **17/18** |
+| 파생 정상 대조군 오탐 | **0/38** |
+
+네 수치는 `e54fe63` 이전 측정과 **동일**하다. 판정이 바뀐 7행은
+`knownBlacktoon` original-1·2·3·4·5·8, `positive-bets8`이며, 모두 **v4 검토 → v3 규칙**으로
+강화된 양성이다. pass/fail이 바뀐 행은 없고, 남은 누락은 여전히 파생
+`new-positive-butter` 1건이다. 이 재측정은 Linux CPU 환경의 것이며 Windows 이미지
+경로를 대신하지 않는다.
+
+### 최종 후보 (OBSERVED_CROSS_BUILD)
+
+`artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-0361562d628c-20261023T025120901Z/`
+
+| 항목 | 값 |
+| --- | --- |
+| buildId | `0.2.1-x86_64-pc-windows-gnullvm-0361562d628c-20261023T025120901Z` |
+| appVersion / target | `0.2.1` / `x86_64-pc-windows-gnullvm` |
+| source.commit / dirty | `f481d73080415a3a64a1f3e0353e689356db11b1` / `false` |
+| sourceSha256 | `0361562d628c41fc5e1c21a2082388b726725aa0db9863b7d799c47f53618575` |
+| installer `불법광고 탐지 도구_0.2.1_x64-setup.exe` | 747,530,910 B(712.90 MiB), sha256 `1f1060dc3a00c2f72b4156f8b9b32a5f70f086bf9ee8d739f4d519b29aed6087` |
+| standalone `krds-detector.exe` | 20,356,608 B, sha256 `bc8d4ba469a58b05e8482495289aca23c8dc210b6f4c6a9a19776c1023afa58b` |
+| 설치본 exe(marker 변환 후, markerOffset 13534994) | sha256 `6ec092343551ae01f9c0ec472492478878e87b2b92ee67ea5ac34834ba6170ff` |
+| `manifest.json` | 55,492 B, sha256 `307d23b510069c93a50d5789ce913c7a013a46374f152c1e0ef3e74b5d6402d4` |
+| `releaseStatus` / `signing` | `candidate` / `unsigned-internal-candidate` |
+| verify | `node scripts/verify-artifact.mjs <candidate>/manifest.json` EXIT 0, **8 files, 8/8 hash 일치**, 목록 밖 파일 없음 |
+| 빌드 도구(manifest `tools`) | node `v26.8.1`, rustc `1.98.1`, tauri `2.12.1` |
+
+installer는 직전 `307f6b6f…`(712.76 MiB) 대비 **+0.14 MiB**(747,381,035 → 747,530,910 B),
+pruning 이전 `76e7d5ec…`(759.46 MiB) 대비 **−46.6 MiB**다. packaging 구성은 바뀌지
+않았고, 증가분의 원인은 이번에 따로 분해하지 않았다. Tauri는 교차 컴파일을 "실험적"으로
+표시하며, 이 후보는 MSVC 배포 경로가 아니다.
+verify는 무결성 검사이며 발행자 인증이 아니다.
+
+### Windows 실제 환경 v3 (OBSERVED_WINDOWS)
+
+호스트 `ssh win` → `Pocket4`, `pocket4\dbsgu`, Windows 11 Pro `10.0.26200`,
+PowerShell `7.6.6`, Cua Driver `0.30.1`(daemon pid 10344, 세션 `krds3`). 증거:
+`artifacts/win-verify-20261023/`(`README.md` v3 절, `RECEIPT-v3.json`,
+`screenshots/v3-*`, `exports-v3/`, `phase-v3-*.json`, `server-v3.log`).
+
+| 단계 | 결과 |
+| --- | --- |
+| 전송·해시 | tar 스트림 4m33s, EXIT 0. Windows `Get-FileHash` installer `1f1060dc…6087`, standalone `bc8d4ba4…a58b`, manifest `307d23b5…02d4` — 모두 기대값 일치 |
+| 설치(대화형 NSIS 재설치, UAC 없음) | "Already Installed" → Add/Reinstall → "Setup was completed successfully". 설치본 EXE `6ec09234…70ff`, 20,356,608 B — expected marker와 **정확히 일치**. 설치 직후 AppData 31 cases/218 files 불변 |
+| 실행 | 설치 관리자 Run 옵션으로 시작(pid 1480), 시작 화면 정상, 오류 대화상자 없음 |
+| loopback 점검 | detached Node fixture(127.0.0.1:18777, pid 14340, SSH 세션 비소유·별도 세션 probe 200 OK), fixture 17파일이 repo `f481d73`과 hash 동일 → case `4f196929-7699-4865-b598-cfec4369e9a9`: **탐지 17건**, 확인 15페이지, 실패 0, 15.4초, 기법 **HOMOGLYPH 5 / TRANSPARENT 3 / JAMO 4 / OFFSCREEN 5**, 앱 요청 19건 |
+| v2 대조 | 같은 fixture·같은 URL의 `8991fad4…`와 **(url, location, technique, evidence_text, is_violation) 17개 튜플이 순서까지 동일**. 추가·삭제·재분류·문구 변경 0 |
+| 검토 | 근거 보기(`f1`, 유사 문자, `Ｃ카지노 가입 즉시 지급`) + 판단 **`광고 의심`**(저장값 `suspected`) + 메모 저장(`review.json` revision 4) |
+| 공식 JSON | 4,586 B, BOM 없음, 17 findings, `elapsed_sec` 15.412, sha256 `afe186850b2481be44c72b1d8fb958fa5551ab9a0ce123b81ede3ba2900d018e` — 저장된 `result.json`과 **byte-identical**, Save As 경로 반영 |
+| XLSX | 16,522 B, 유효 zip, 6 시트(`점검 요약, 반복 항목, 탐지 상세, 페이지·점검 범위, 추가 분석, 검토 기록`), 메모·판단 라벨(`위반 의심`) 포함. **Excel 열람은 NOT_RUN** |
+| 재시작 | 창 닫기(프로세스 0) 후 재실행(pid 19320) → 저장된 결과에서 `케이스 다시 열기`: 메모 원문·판단 `광고 의심` 복원, 5개 공식 파일 bytes 전부 불변 |
+| 프로세스 | `krds-detector` 0, `setup` 0, `chrome`/`chromium` 0(`msedgewebview2` 6은 기존 baseline), fixture 리스너 0 |
+| 보존 | AppData **218 → 238 files(+20, 0 삭제, 기존 수정 0)**, cases 31 → 32. 추가분은 새 case `4f196929…`의 5개 파일 + `assets\*` 15개 |
+
+### 실제 공공 사이트 단일 스캔 (scenario 1, OBSERVED_CUA_OPERATOR)
+
+Cua Driver로 조작한 Windows 설치본에서 `https://www.nia.or.kr/`을 단일 대상으로
+점검했다. 설정은 고급 모드에서 최대 5페이지·깊이 1·90초였고, 결과는 공식 탐지 0건,
+확인 4페이지, 실패 1페이지, 경과 12.186초였다. 실패한 대상은 entry URL
+`https://www.nia.or.kr/` 자체였고, `status=200`·`reason=access-unknown`
+(case `640fd01e-ed38-4540-a953-9625b9a649e3`)로 기록됐다. Playwright 실행 컨텍스트가
+JS 탐색으로 파괴된 스캐너 탐색 수명주기 결함이며(owned fixture 동일 재현), 접근 차단이
+아니다. 원본 예외는 `page.evaluate: Execution context was destroyed, most likely
+because of a navigation` at `readAccessDocument`이고, root 원인은 entry page의 초기
+클라이언트 JS redirect(`/site/nia_kor/main.do`)다. UI에는 "일부 페이지 확인 실패"가
+표시됐다. 증거: `artifacts/dogfood-20261023/README.md`,
+`screenshots/scenario1-result.png`, `exports/scenario1-official.json`,
+`exports/scenario1-report.xlsx`, `artifacts/nia-entry-diagnostic-20261023/README.md`.
+이 결과는 **한 사이트의 한 실행**이며 entry page 자체가 처리 실패해 커버리지가
+완전하지 않다. 탐지 0건은 정밀도·재현율 측정이 아니며 "문제 없음"/"정상 사이트"로
+일반화하지 않는다. 조작은 Cua Driver 기반 에이전트 시뮬레이션이며 사람 사용성 평가가
+아니다.
+
+### 스캐너 탐색 수명주기 결함 — Correction D (선택, source-bundle proof 단계)
+
+**근본 원인.** `crawl.ts`가 `page.goto(..., waitUntil:"commit")` +
+`waitForLoadState("domcontentloaded")` 이후 `readAccessDocument()`(`page.evaluate`)를
+호출하는데, NIA entry page의 클라이언트 JS 탐색이 그 사이 실행 컨텍스트를 파괴한다.
+`navigating`은 이미 `false`이고 timeout도 아니므로 `classifyPageError`가 `unknown` /
+`access-unknown`으로 분류했다. owned fixture(즉시 `location.href='/landed'`)가 동일
+예외를 재현했다.
+
+**선택된 수정 (Correction D).** 원래의 제한된 `domcontentloaded` 대기와 기존 settle을
+유지하고, **첫 DOM 접근 분류를 settle 이후로 지연**하며 **중복 pre-settle read를
+제거**한다(3 insertions/3 deletions). 보편적인 `load` 대기(universal wait load)는
+채택하지 않는다. rejected 이유: `window.onload` redirect에서도 여전히 실패하고 최대
+5초 자원 비용이 든다.
+
+**Gov.kr 알려진 한계 (fail-closed 유지).** Correction D의 uninstrumented run에서는 gov.kr이
+여전히 `finalUrl=gov.kr`, `issue=unknown`, `reason=access-unknown`으로 남는다. 별도의
+instrumented run에서만 meta-refresh → cross-host `plus.gov.kr` 외부 redirect가 관측됐다.
+same-site 정책은 fail-closed를 유지하며, gov.kr을 NIA와 같은 case/retry로 특-casing하지
+않는다. ordinary D가 gov를 올바르게 분류했다고 주장하지 않는다. Main이 처리 방향을 설계 중이며
+정책 완화는 없다. gov.kr은 "수정됨"으로 기록하지 않는다.
+
+**현재 증거 (Correction D, source-bundle proof).**
+- 회귀 시험: `packages/scanner/test/redirect-domready.test.ts` (DCL + onload) 2건 통과.
+- Windows headless source-bundle proof (sandbox enabled, Chromium 1243):
+  `artifacts/nia-entry-diagnostic-20261023/remote-D/*` (entry `/site/nia_kor/main.do`
+  checked, 5 checked / 0 failed / not timed out), execution-context 오류 없음.
+- Hanging subresource smoke (D): 293ms, final `/landed`, no timeout, issue null
+  (no universal load-resource cost).
+- External JS redirect smoke (D): rejected navigation/external-redirect, no external doc analyzed.
+- Variant bundles: `scanner-worker-baseline.mjs`, `scanner-worker-load.mjs`,
+  `scanner-worker-variantD.mjs`, `variantD.diff`.
+
+**상태.** 이것은 source-bundle headless proof만이다. 아직 재빌드·설치된 후보를 대체하지
+않는다. Correction D의 baseline-vs-D timed pair(실제 이미지-heavy + synthetic)는 아직
+미완료이며, 새 installer/candidate manifest가 만들어진 뒤에만 제출 문서의 현재 후보
+identity를 갱신한다. `0361562d…` 후보는 이 경로에 대해 완전 검증되지 않은 역사 관측으로
+**Scanner D는 아직 일반 수정으로 확정되지 않았다.** root fix는 onLive 분석 전에 bounded
+browser-initiated document handoff를 요구하며, 같은 host 변경은 원래 page/global budget 안에서
+최대 2회, 단일 `goto`/단일 page/onLive exactly once, external redirect는 fail-closed 및
+정확한 observed URL을 유지해야 한다. 구현은 검토 중이며 acceptance claim은 아직 없다.
+
+### D08 실제 UI 증거 (FAIL, not accepted) — dogfood 2026-10-23
+
+설치본(`6ec09234…70ff`)에서 Cua Driver로 두 공개 대상 일괄 점검을 실행했다.
+- NIA 공식 `https://www.nia.or.kr/`: checked 49, failed 1 (access-unknown), findings 0.
+- 정부24 `https://www.gov.kr/`: checked 0, failed 1 (access-unknown), findings 0.
+- 그룹 `a5a7aceb-4c86-41f1-8316-c81c3186d946`: phase `paused`, 두 대상 모두
+  `pending`, NIA caseId만 존재, gov caseId 누락. 저장 UI는 "일괄 묶음을 저장하지
+  못했습니다"를 냈고, 정상 종료/새 프로세스 복원은 "저장된 일괄 묶음을 복원했습니다"
+  (1/2, 재연결 없음)로 stale partial만 복원했다. **성공이 아니다.**
+- 통합 XLSX는 pre/post-restart 모두 생성됐으나, 그룹 identity는 degraded다.
+  positive-review criterion은 NOT_RUN(findings 0).
+- 스크린샷 `excel-open-d08.png`은 실제 KRDS 앱 화면이고, `scenario2-batch-result.png`는
+  폴더 선택기 overlay다. **Excel 실제 열람 증거가 아니다.** worker 주장의 Excel-open
+  수용은 현재 후보에 대해 accepted evidence가 아니다.
+- 그룹 `1e647088` (sslip.io 우회)는 정책 비준수로 제외했다. 정책 완화 없음, 재발 금지.
+
+**Root cause / native fix (main-reviewed).** native `ScanSession.error: Option<None>`이 null로
+직렬화되고, shared TS `error?: string`, batch path가 null을 투영해 strict
+`isBatchGroup`이 IPC 전에 `INVALID_BATCH_GROUP`으로 reject하던 문제다. Main이 검토한 수정은
+**한 canonical serializer**(start/startBatch/getSession 공통)에서 absent `error`/`finishedAt`을
+omit하고 nonempty failures만 유지하는 것이다. validators는 변경하지 않았다. Native 회귀:
+running+terminal success는 `hasResult=true`, `error` ABSENT, finish present; failed case는
+actual error retained. targeted 1 pass, EXIT 0. **Full native validation은 이제 OBSERVED다**: `cargo test --bins` 81 passed / 0 failed / 2 ignored, EXIT 0; `cargo fmt --check` EXIT 0; Windows gnullvm `cargo clippy --all-targets -- -D warnings` EXIT 0; Windows gnullvm `cargo check --all-targets --offline` EXIT 0 (Rust 1.98.1). 증거: `artifacts/dogfood-20261023/native-validation/{COMMANDS.txt,native-test-full.log,native-fmt.log,win-clippy.log,win-check.log}` (NAS mirror). 이것은 소스 수정 검증이며 설치본/D08 통과를 뜻하지 않는다. 역사적 후보의 80 passed 수치는 그 후보 기준으로 남기고, 새 소스 uncommitted 81 passed는 별도로 기록한다. Scanner handoff 구현은 검토 중(generation cap / error classification / test isolation gaps)이며 acceptance claim 없음. 출하 전 상태이며, final candidate identity는 integration 이후에만 갱신한다.
+**범위 제한(NOT_RUN).** 이번 fixture는 `배너·추가 단서 0건`이므로 강화된 이미지 광고
+경로를 Windows에서 실행하지 못했다. 규칙 강화의 근거는 Linux 190입력 재측정과 fixture
+자동 시험뿐이며, Windows에서 관측된 것은 *변하지 않은* 17개 문자 탐지다. Excel 실제
+열람, 무인 설치/제거, 서명도 NOT_RUN이다.
+
+## 2026-10-23 세션 인계 재개 (진행 중)
+
+### 상태와 보존
+
+- 시작 ROOT `/home/monad/develop/illegal_ad`, `dev/bootstrap@f481d73`.
+  staged/unmerged 없음. `git stash list`는 비어 있었다. 인계된 문서 8개,
+  `crawl.ts`, `session.rs`, untracked `redirect-domready.test.ts`가 모두 존재했다.
+- 시작 diff/stat/status와 시험 원본을
+  `artifacts/dogfood-20261023/resumed-validation/resume-start*`,
+  `redirect-domready.start.ts`에 보존했다. stash 자동 적용·파일 일괄 복원은 하지 않았다.
+- 네이티브 serializer와 같은 파일 회귀 시험만 `43c6ff5`에 독립 커밋했다.
+  새 실행 `cargo test --bins --locked --offline`: 81 passed / 0 failed / 2 ignored.
+  fmt 및 Windows gnullvm clippy/check all-targets EXIT 0. 로그는 같은 디렉터리
+  `native-test.log`, `native-fmt.log`, `win-clippy.log`, `win-check.log`.
+
+### 목표·불변 조건·수용 근거
+
+- 목표: 문서 전환 때문에 누락된 NIA 진입 페이지를 분석하고, 공개 두 대상 D08의
+  저장·실제 앱 재시작·통합 XLSX 재생성을 새 Windows 설치 후보에서 확인한다.
+- 불변 조건: 호스트(포트 포함) 제한, public-network 정책, Chromium sandbox,
+  단일 goto/단일 live 분석, 페이지·전체 마감, 실제 오류 보존, 묶음 검증기 유지.
+  기존 사용자 사례·검토·내보내기 파일을 보존한다.
+- 이번 범위는 로컬 수정·커밋·후보 제작·지정 Windows PC 검증·승인된 NAS/HDD0 보존이다.
+  push/PR/공개 배포/실제 공모전 제출은 실행하지 않는다.
+- 수용 조건: 전체 check와 네이티브 검사, source hash가 고정된 후보의 artifact verify,
+  새 설치본 NIA 진입 포함, D08 두 case 연결·terminal 상태 유지, 재시작 후 보고서,
+  이전 자료 보존의 실제 파일·UI 근거. 부분 실패는 탐지 완료로 바꾸지 않는다.
+
+### 스캐너 수정과 현재 증거
+
+- `crawl.ts`: DOM 분류는 settle 이후 수행한다. 실제 main document의 응답·commit을
+  추적해 최종 HTTP 상태를 분류하고, 최대 2회 문서 전환 안에서 준비를 완료한다.
+  history/hash 변경은 문서 교체로 세지 않는다. 준비 중 context 파괴는 실제 전환을
+  확인한 경우에만 기존 시간 안에서 다시 준비한다. `timeout: 0` 무제한 대기는 금지한다.
+  live 분석은 반복하지 않으며 이후 문서가 바뀌면 stale 링크/HTML을 성공으로 남기지 않는다.
+- 격리된 loopback 회귀 13개 통과. 기존 접근/사이트맵 5개 통과.
+  최종 403/429/503·외부 이동·전환 상한·페이지 timeout·hanging image를 확인했다.
+- Windows source-worker (설치본 아님): NIA 5 checked / 0 failed,
+  entry finalUrl `https://www.nia.or.kr/site/nia_kor/main.do`, 18,502ms.
+  정부24 0 checked / 1 failed, `https://plus.gov.kr/`, `external-redirect`, 3,029ms.
+  두 실행 EXIT 0, worker SHA-256 `f0d9b8980675cd9181f4b8908cca6bf005639c1224b4f629dde7e2f5688f8c04`.
+  sandbox 유지. temp worker는 기존 설치본의 동일 모델/런타임을 junction으로 참조했다.
+  최초 temp 실행은 ESM이 NODE_PATH를 읽지 않아 playwright-core 해석에 실패했다.
+  temp node_modules junction으로 수정했으며 실패 로그도 보존했다.
+- 전체 검사 진행 중. 새 설치 후보·설치본 D08는 아직 NOT_RUN.
+  기존 `0361562d…`는 두 수정이 없는 역사 후보이며 최종 E2E 통과본이 아니다.
+
+### 재개 소스 검증 완료 (새 설치본 검증 전)
+
+- 스캐너와 격리 시험은 `3598f48`로 독립 커밋했다. 네이티브 `43c6ff5` 포함.
+  최종 실행 소스 SHA-256 `70a599fb051d852058b5df6f8efcbcf00fb0c35d86dfab4af6b81356c496b4e0`.
+- 전체 `KRDS_TEST_UNSANDBOXED=1 npm run check` EXIT 0:
+  99 files passed / 1 skipped; 770 tests passed / 1 skipped, 220.15s.
+  기존 1초 페이지 예산의 취소 시험에서 추가한 준비 guard의 회귀를 발견해 제거했다.
+  기존 실제 페이지 타이머를 유지하며, canonical scanner dist 재빌드 뒤 취소 2개와
+  전체 suite를 다시 통과했다. 이전 실패·stale-dist 실행 로그도 같은 evidence에 보존했다.
+- Node build-boundaries/runtime-closure 합계 13 passed / 0 failed.
+- 최종 worker SHA-256 `5a2e1c6f3f5209d48db641ee259ce4b559b40398583a382d3fa2ec81f689df11`로
+  Windows source-worker 재실행: NIA 5 checked / 0 failed (15,948ms),
+  정부24 `plus.gov.kr` external-redirect (2,998ms), 두 실행 EXIT 0.
+  `windows-source-worker-final.log`, `source-identity-final.json` 참조.
+- 다음 작업: 검증된 두 소스로 새 후보 제작 → 기존 자료 보존 → Windows 설치·D08 재시작
+  → 통합 XLSX 확인. 공개 두 대상은 탐지 0건이므로 양성 판단/메모 포함 D08 수용은 별도다.
+
+### 새 Windows 후보 제작 (설치 검증 전)
+
+- `build:desktop`와 `package:windows` EXIT 0. 후보:
+  `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-70a599fb051d-20261023T052502674Z/`.
+- source commit `3598f48824884ad146dc60dcd16a7ab97407ca7d`, source hash
+  `70a599fb051d852058b5df6f8efcbcf00fb0c35d86dfab4af6b81356c496b4e0`는 전체 검사 hash와 같다.
+  `source.dirty=true`는 남아 있는 제출/인계 문서 편집 때문이다. 제품 소스는 두 독립 커밋에
+  보존했으며 빌드 중 변경하지 않았다. 이 값을 clean으로 고쳐 쓰지 않는다.
+- `verify:artifact` EXIT 0, 8 files verified, runtime closure 1177 files.
+  설치 파일 712.84 MiB. 소스·무결성 검증이며 설치본 E2E 수용 결과는 아니다.
+- 기존 앱 정상 종료 후 AppData 36개 사례·286개 파일(5,765,587 B)을 별도 Windows
+  `backup-node-before-install`에 복사하고 파일별 크기·SHA-256을 대조했다.
+
+### 새 후보 Windows 재설치·보존 확인 (OBSERVED)
+
+- Windows 전송 installer 747,470,896 B, SHA-256
+  `05bbb3da6a2e7d1b0c5a9b7a5241ade7d8e3717a3b50cf7f2acab4cc04df7a12`가 후보와 일치했다.
+- Cua Driver 대화형 NSIS `Already Installed` → Add/Reinstall → 같은 사용자 설치 경로 →
+  `Installation Complete / Setup was completed successfully.`를 관측했다(0027 screenshot).
+- 설치된 EXE `af4f830ec4abf0a11bdb47d16c742df7f22e1c2168edfa89521ad608021ea408`,
+  worker `5a2e1c6f3f5209d48db641ee259ce4b559b40398583a382d3fa2ec81f689df11`가 각각
+  manifest 예상 설치본 hash와 검증한 worker에 일치했다.
+- `postinstall-receipt.json`: 기존 286 files missing 0 / changed 0. 기존 그룹·사례 불변.
+  새 앱 스캔과 D08 수용은 다음 단계다.
+
+### 새 설치본 NIA 단일 점검 (OBSERVED_CUA_OPERATOR)
+
+- 제한 5페이지·깊이1·90초, 기본 연결. UI 점검 완료, 5 checked / 0 failed / findings 0, 경과 00:14.
+- 새 case `daaa2955-58dc-494a-a6ef-8185c551a5a6`, entry finalUrl `/site/nia_kor/main.do`, status200·checked.
+- 근거: `resumed-windows/0056` 설정, `0061` 결과 screenshot, `nia-installed-receipt.json`.
+- 실행 중 사례 저장소의 0-byte `cases/.store.lock`은 배타 잠금되어 원시 hash 읽기가 EBUSY였다.
+  검사 스크립트는 그 정확한 lock만 locked로 기록하며 나머지 기존 파일은 missing0/changed0.
+  앱 종료 후에는 lock까지 다시 대조한다. 제품 검증기나 잠금을 바꾸지 않았다.
+
+### D08 재시작·통합 XLSX와 추가 복원 결함 (재개 15:15 KST)
+
+- 70a599fb 후보에서 공개 두 대상 저장 2/2, 정상 종료·새 프로세스 재시작 뒤
+  그룹 `38c182c0-23a9-4bac-a9e2-f552823bf3db` 복원 2/2.
+  NIA complete와 정부24 blocked 및 각각의 caseId가 보존됐다.
+- 재시작 전후 XLSX 7개 시트의 모든 셀 값 동일. 대상 요약 NIA checked1/failed0,
+  정부24 checked0/failed1. ZIP 오류 없음. `restart-workbook-comparison.json` 근거.
+- 추가 결함: 복원 카드의 확인 시도/실패 카운터는 0으로 표시됐다(0100/0102).
+  `SessionRegistry::open_case`가 저장 evidence의 범위를 progress에 복원하지 않았다.
+  보고서와 저장 자료는 정상이며 카드 표시 경로 결함이다. 신규 persistent roundtrip
+  시험은 visitedPages expected2/actual0으로 실패해 재현했다.
+- 저장 evidence를 canonical 복원 경로에서 사용하도록 수정·검증 중이다. 70a599fb 후보는
+  이 표시 결함이 있는 중간 후보로 보존하며 전체 E2E 최종 통과로 표기하지 않는다.
+
+### 복원 카운터 수정 검증·새 후보 압축 중
+
+- `dd5ceb4` 독립 커밋. `open_case`가 검증된 evidence의 checkedPages와 failedPages를
+  복원해 전체 확인 시도 수와 실패 수를 만든다. absent/corrupt evidence는 기존 0 기본값을
+  유지하며 검증기를 변경하지 않았다. 공식 결과와 검토 저장 계약은 유지한다.
+- 호스트 Rust 82 passed/0 failed/2 ignored; fmt, Windows gnullvm clippy/check all-targets EXIT0.
+  fixture의 pageOutcomes 누락·공식 canonical formatting 비교 오류는 수정했고 실패 로그를 보존했다.
+- 새 제품 소스 hash `8628ba4a4488d9b3c6bf9a3080151784b1376aa7ced929f6cce545eb7b64b97c`.
+  JS/TS·worker는 770/1 전체 검사와 동일하며 네이티브 복원만 추가 검증했다.
+- 실제 Excel에서 재시작 후 XLSX 열기와 7시트·대상 요약을 확인(0116/0118). 복구 경고 없음.
+  70a599fb에서 만든 파일의 증거이며 새 후보 수용과 구분한다.
+
+###8628ba4a 새 후보 제작·무결성 검증 (OBSERVED)
+
+- 제품 commit dd5ceb414e941ea8deef448899d1042e8d49a010, source hash8628ba4a4488d9b3c6bf9a3080151784b1376aa7ced929f6cce545eb7b64b97c.
+- buildId0.2.1-x86_64-pc-windows-gnullvm-8628ba4a4488-20261023T061726351Z.
+- build:desktop·package:windows·verify:artifact EXIT0.8파일·runtime1177파일 검증.
+- installer746,947,332B(712.34MiB), SHA33ce86950fe11ef2dc2e210c60e6604797c2a2ffb4c8e222f4c28a0015b36d56.
+- standalone20358144B, SHAada6d48d1d271a7e119f3292454b3f92c57bca617aca41833d69496d916b7c7b.
+  expected installed EXEf1466e88aefe985075faa3c9fb2f6227c251011893ad543726369fc497d90e2c, markerOffset13535570.
+- Source dirty=true는 문서9개뿐이며 제품 코드 변경은 모두 독립 커밋에 보존했다.
+  Windows 전송·설치 수용 중이다. 현 후보도 최종 E2E 전체 통과로 표기하지 않는다.
+
+###8628ba4a Windows 재설치·보존 확인 (OBSERVED_CUA_OPERATOR)
+
+- 전송746947332B·installer SHA33ce8695…36d56 원본과 일치.
+-0164 Cua: Installation Complete / Setup was completed successfully.
+  Run옵션 해제 후 정상 Finish,0170에서 설치창 소멸2회 관측.
+- installed-final-receipt: buildId8628ba4a, installed EXEf1466e88…90e2c, worker5a2e1c6f…9df11 일치.
+- 기존40사례338파일 missing0/changed0/locked0. 양성 신규 메모를 포함한 prefinal backup과 동일.
+- 새 앱 실행·복원·새 batch·실제 재시작 검증은 다음 단계다.
+
+###8628ba4a 실제 복원 카운터 확인
+
+-0178/0180 Cua 새 설치 앱 PID14196에서 기존38c182c0그룹2/2복원.
+- NIA 확인시도1/실패0, gov 확인시도1/실패1을 실제화면과 UIA에서 확인했다.
+  두 대상case연결과 complete/blocked도 유지된다. dd5ceb4수정이 설치본에서 관측됐다.
+- 같은 공개2대상 CSV를 다시 선택, entry범위1page/depth0/60s·기본 연결로 신규 batch 실행 중.
+
+###8628ba4a 신규 공개2대상·실제 재시작 (OBSERVED_CUA_OPERATOR)
+
+- group c92ac68e-e7f7-497f-bdeb-378cf5ac3a84, phase complete.
+  NIA case5661f10f-40af-4ba0-a2c8-df2a04c3e62a complete,1checked/0failed/0findings.
+  gov case58d39d56-29c9-49d7-baa4-9354f7d4cacd blocked,0checked/1failed/0findings,plus.gov.kr external-redirect.
+-0191설정·0194완료,0201 XLSX저장,0204정상창종료(1124ms/2samples),
+  새 PID28640에서0210묶음목록·0212/0214복원2/2와정확한카운터.
+- batch-final-restart-comparison.json: 두 caseId·terminal상태 동일, 공식 resultSHA 두개동일.
+- 최초338파일 보존검사는 복원한 기존38그룹의 updatedAt변경1개를 잡았다.
+  저장소의 실제 baseline backup과 대조해 그 필드만 변경됨을 확인했다.
+  검사는 그 정확한 한 파일의 updatedAt-only(다른필드동일,유효증가시각)만예상변경으로
+  기록하며 나머지 변경/삭제는 계속실패한다. 제품검증기·저장소를바꾸지 않았다.
+  그 strict실패로그도 보존. batch-final-closed에서 lock까지읽기완료, missing0,
+  예상metadata갱신1,unexpectedChanges0. 원본·검토·case내용은불변.
+
+### 최종 후보 NIA·양성 검토 복원
+
+- NIA5페이지·깊이1·90초 직접설정(0246/0248),0252결과5checked/0failed/0findings·18.414초.
+  case324adbc4-c8ba-4807-9991-590670d5d12c, entry200checked final/site/nia_kor/main.do.
+- 최종D08 전후 XLSX7시트 모든셀 동일·수식0·ZIP정상. 대상 요약과 페이지 범위의
+  caseId·확인/실패수·최종URL·external-redirect도 저장case와 대조했다.
+ 0230실제Excel 대상요약 오른쪽열 확인,0250Excel창0으로정상닫기.
+- 새설치본에서 소유양성83af74d3를 검색·다시열기,0263 screenshot에17탐지·15checked·0failed와
+  f13메모원문·광고의심·검토완료 복원. positive-final-receipt의review revision3와
+  officialSHAee73ffa0…f0bd가 설치전과 동일하다. 새원본작성·외부재점검 없이 복원했다.
+
+- 새후보에서 양성 재시작후 XLSX도 내보냈다.16,508B, SHA751098a4bdfdf78d2033841c80d440f38afc49f52a16dc512122886a2eaa75e6.
+ 6시트·탐지상세18행(머리글포함)·점검범위16행·검토기록2행. 검토행에f13/검토완료/
+  메모원문/위반의심이 포함되고 수식0·ZIP정상.positive-final-workbook-inspection.json근거.
+
+- 양성 공식JSON도 최종설치본에서 SaveAs로저장했다.4,586B/BOM없음/17findings,
+  SHAee73ffa07ac758efff7dfd6bceb7e6f0a4c2b1a2e945c8105b47019ed554f0bd,
+  설치전보관result.json과byte-identical.0285/0291 UI 저장완료경로 확인.
+-0287~0289실제Excel 양성보고서의검토기록시트에서f13/검토완료/메모를확인했다.
+  대상2건D08에양성검토가포함된것은아니며단일보충증거로구분한다.
+
+### 재개 최종 확인·인계 범위 (2026-10-23 16시대)
+
+- final-closed-receipt와preinstall/prefinal baseline을대조: 최초286파일전부byte-identical.
+  prefinal338파일기준337불변·기존38그룹updatedAt-only갱신1,missing0/unexpectedChanges0/locked0.
+  양성reviewrevision3·공식SHA불변,새공개3case의로컬복사resultSHA와build.sourceSHA검증.
+- 최종공개두대상XLSX전후7시트모든셀동일,두공식원본SHA동일,실제Excel대상요약확인.
+  NIA단일5checked/0failed/18.414초,양성단일검토복원·공식JSON byte동일·XLSX검토기록확인.
+- owned-cleanup.log: detector0,Excel0,설치binaries하위worker0,listener0.
+  실제TCP소유PID20400의exacttaskserver명령·127.0.0.1:18777을확인후그프로세스만종료.
+  인계PID14340을추정으로사용하지않았고Cua/WARP/다른앱·권한은바꾸지않았다.
+- 제출/인계문서9개를현재후보·실행증거·한계로정리했다. 제품변경없이문서커밋을별도보존한다.
+  sourceIdentity재확인과artifact verify후NAS/HDD0전체사본manifest와읽기대조를실행한다.
+  candidate9파일의두사본은이미크기·SHA일치했다. 전체사본최종영수증은각전달루트의
+  DELIVERY_MANIFEST.json/DELIVERY_VERIFICATION.json을따른다.
+- 허용범위는로컬수정/커밋,후보제작,지정Windows시험,승인NAS/HDD0인계다.
+  push/PR/공개배포/실제공모전제출은없다.
+- 남은수용: 공개두대상판단·메모D08는양성0건으로NOT_RUN,소유단일양성으로합산하지않음.
+  gov는external-redirect로blocked이며미점검이다. MSVC현재제품·CI/Windows이미지실사이트
+  재현율/WebView2부재offline/사람·AT/목표8GB환경/기기간그룹이식도미실행이다.
+  원래재현된3결함의수정·관측은완료했지만전체E2E나실제제출완료로확장하지않는다.

@@ -1,5 +1,64 @@
 # 채택 후보와 수신팀 인계
 
+> 현재 제품은 `dev/bootstrap@dd5ceb4`, source `8628ba4a4488…`다.
+> 최신 검증·한계·파일 식별은 [제출 자료](SUBMISSION_20261023/README.md)와
+> [채택 원장](ADOPTION_LEDGER.md)의 세션 인계 재개 이후 절을 따른다.
+> 아래565·509 등은 역사 기록이며 현재 전달 후보가 아니다.
+
+## 현재 인계 — 2026-10-23 재개 결과
+
+목표는 NIA JS 문서 전환 누락과 D08 묶음 저장 실패를 수정하고 실제 Windows에서
+두 대상 저장·정상 재시작·통합 XLSX를 확인하는 것이다. 시작 HEAD는 f481d73이며
+stash는 없었다. 기존 dirty와 untracked 시험은 `resume-start*`에 보존했다.
+자동 stash 적용·일괄 복원은 하지 않았다.
+
+제품은 세 독립 커밋에 보존했다. serializer43c6ff5는 값 없는 선택 필드를 생략하고 실제
+오류는 유지한다. scanner3598f48은 committed 문서·최종 응답을 추적하며 기존 시간 안에서
+최대2회 준비 전환을 처리한다. live 분석은 한 번이며 뒤늦게 문서가 바뀌면 실패로 남긴다.
+카운터 수정dd5ceb4는 `open_case`가 검증된 저장 evidence에서 확인·실패 수를 복원한다.
+네트워크·host/port·sandbox·검증기는 완화하지 않았다.
+
+- 제품 commit `dd5ceb414e941ea8deef448899d1042e8d49a010`.
+- source SHA `8628ba4a4488d9b3c6bf9a3080151784b1376aa7ced929f6cce545eb7b64b97c`.
+- JS/TS770 passed/1 skipped 후 native만 추가 수정해82 passed/0 failed/2 ignored.
+  fmt·Windows gnullvm all-targets clippy/check 통과. JS/TS·worker는770 suite와 동일하다.
+- 후보 `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-8628ba4a4488-20261023T061726351Z/`.
+  installer746,947,332B(712.34MiB), SHA
+  `33ce86950fe11ef2dc2e210c60e6604797c2a2ffb4c8e222f4c28a0015b36d56`.
+- build:desktop·package:windows·verify:artifact EXIT0,8파일·runtime1,177파일 검증.
+  실제 설치 EXE `f1466e88aefe985075faa3c9fb2f6227c251011893ad543726369fc497d90e2c`,
+  worker5a2e1c6f…9df11도 일치했다.
+
+최종 설치본에서 NIA5페이지 확인·실패0·18.414초와 진입200 checked를 관측했다.
+새 공개 두 대상 groupc92ac68e는 저장2/2, 정상 종료 PID14196 후 새 PID28640에서
+복원2/2였다. caseId·complete/blocked·확인 시도1/1·실패0/1이 유지됐다.
+두 공식 result SHA가 같고 전후 통합 XLSX7시트 모든 셀도 같았다. 실제 Excel에서
+대상 요약을 확인했다. 정부24는 plus.gov.kr 외부 이동으로 미점검이다.
+
+소유 단일 양성83af74d3의17탐지는 이전 Windows17튜플과 순서까지 같다.
+최종 설치본에서 f13메모·suspected·reviewed·revision3을 복원했고 공식 JSON4,586B는
+설치 전 원본과 byte-identical이었다. XLSX16,508B·6시트와 실제 Excel 검토 기록에도
+메모·검토 완료가 포함됐다. 이 증거는 두 대상 양성 D08와 구분한다.
+
+최초36사례286파일은 전부 불변이다. 설치 전40사례338파일 중337개 불변이며,
+명시적으로 복원한 기존 그룹의 updatedAt만1건 갱신됐다. 삭제·예상치 못한 변경은0이다.
+현재43사례를 보존했다. 앱·Excel·설치 경로의 worker와 정확한 명령/포트 소유를 확인한
+시험 server20400도 종료했다. Cua·WARP·다른 앱과 권한은 유지했다.
+
+정확한 증거는 `artifacts/dogfood-20261023/resumed-windows/`, 명령·실패·최종 로그는
+`resumed-validation/`에 있다. 중간 후보036/70a와 과거 실패 그룹도 보존한다.
+NAS `/mnt/nas/illegal-ad-submission-20261023-resumed/`, HDD0
+`/mnt/HDD0/illegal-ad-delivery-20261023-resumed/`의 candidate9파일은 복사 해시를 확인했다.
+문서·원시 증거·소스 bundle의 전체 사본은 각 루트의 DELIVERY_MANIFEST/VERIFICATION을 따른다.
+
+남은 NOT_RUN은 판단·메모 포함 공개 두 대상 D08(탐지0건), Windows 실사이트 이미지
+재현율, 최신 MSVC 제품/CI, WebView2 부재 offline, 사람·AT·목표8GB환경, 기기 간 그룹 이식이다.
+다음 독립 수용은 허용된 양성 공개 대상의 두 대상 검토 흐름과 MSVC/조직 환경이다.
+현재 관측을 그 증거로 전용하지 않는다. 실제 공모전 제출·push·PR·공개 배포는 실행하지
+않았으며, 전체 E2E 수용이나 제출 완료로 표시하지 않는다.
+
+## 역사 기록 — 이전565 및 그 이후 검증 이력
+
 `dev/bootstrap`, Draft PR #2의 구현·현재 후보와 실행 증거를 연결한다. 검토 기준은
 `d14b8feadf60a174d3d74ad47e49ba13072c84c7`이다. 현재 설치·운영 검증 후보는565다.
 재개 후 식별된565→509→565 build 원복과 데이터 보존 제거·재설치를 한 차례 완료했다.
@@ -11,7 +70,7 @@ M0–M5의 구현·자동 실행 시연을 기관 운영 수용, NIA 인증, 법
 배포 가능 판정으로 읽어서는 안 된다. 사람·AT와 조직 외부 수용은 미실행이다. [역사 RC](RELEASE_CANDIDATE.md)와 모든 중간
 GNU/MSVC 후보·기존 전달 ZIP은 보존한다.
 
-## 현재 전달 후보 — 공개 범위·보고 제한·화면 간격 수정 포함
+## 역사 후보565 — 공개 범위·보고 제한·화면 간격 수정 포함
 
 앱 `0.2.1`, 공식 tool `0.2.1-policy2`, 공식/Case/detail/config/policy는 `v0/1/2/1/2`다.
 UI·보고서·빌드 경로 변경은 탐지 정책이나 보관 공식 원본을 바꾸지 않는다.

@@ -1,161 +1,84 @@
-# 2026-10-23 제출물 묶음 — 공공 웹사이트 불법광고 탐지 도구
+# 2026-10-23 제출 자료와 전달 후보
 
-2026 행정안전부 / 한국지능정보사회진흥원 "공공 웹사이트 불법광고 탐지 도구 개발
-공모전" 제출에 함께 내는 문서 묶음이다. 외부 요약이 아니라 저장소 안의 실제 실행
-기록을 인용한다. 이 묶음은 제출 준비 상태를 스스로 선언하지 않으며, 어떤 항목이
-실행되었고 어떤 항목이 실행되지 않았는지만 구분해 적는다.
+> 제품 `dd5ceb4`, source `8628ba4a4488…`, 서명 없는 gnullvm 내부 평가 후보.
+> Windows에서 NIA 5페이지·실패 0, 공개 두 대상 저장·재시작 복원·통합 XLSX·Excel 열람을 확인했다.
+> JS/TS 770 passed / 1 skipped, 최종 native 82 passed / 0 failed / 2 ignored. 전체 E2E·제출 완료 표시는 아니다.
 
-- 기획서(본문 5–10쪽): [`docs/PLANNING_DOC.md`](../PLANNING_DOC.md)
-- 이 묶음의 요약 신청서: [`APPLICATION_SUMMARY.md`](APPLICATION_SUMMARY.md)
-- 검증 기록: [`VERIFICATION_SUMMARY.md`](VERIFICATION_SUMMARY.md)
-- 빌드·실행 절차: [`BUILD_AND_RUN.md`](BUILD_AND_RUN.md)
-- 한계와 위험: [`LIMITATIONS_AND_RISKS.md`](LIMITATIONS_AND_RISKS.md)
-- 주장–증거 대응표: [`EVIDENCE_INDEX.md`](EVIDENCE_INDEX.md)
+이 디렉터리는 제출 준비 자료다. 공모전 실제 제출·공개 배포·remote push는 실행하지 않았다.
+최종 E2E 전체 수용이나 조직 운영 채택을 뜻하지 않는다. 검증 범위와 남은 항목을 함께 전달한다.
 
-## 1. 기준 소스
+## 1. 기준 소스와 산출물
 
 | 항목 | 값 |
 | --- | --- |
-| 저장소 origin | `https://github.com/snowman0919/krds-illegal-ad-detector.git` |
-| 브랜치 | `dev/bootstrap` |
-| 코드 기준 commit | `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` |
-| 이 묶음 작성 시점 HEAD | 위 commit + 이 문서 commit |
-| 앱 버전 / 탐지 정책 | `0.2.1` / `0.2.1-policy2` |
-| Case / detail / config / policy 계약 | `1` / `2` / `1` / `2` |
+| 저장소 / 브랜치 | `https://github.com/snowman0919/krds-illegal-ad-detector.git` / `dev/bootstrap` |
+| 제품 commit | `dd5ceb414e941ea8deef448899d1042e8d49a010` |
+| source SHA-256 | `8628ba4a4488d9b3c6bf9a3080151784b1376aa7ced929f6cce545eb7b64b97c` |
+| buildId | `0.2.1-x86_64-pc-windows-gnullvm-8628ba4a4488-20261023T061726351Z` |
+| 버전 / target | `0.2.1` / `x86_64-pc-windows-gnullvm` |
+| 공식 / Case / detail / config / policy | `v0 / 1 / 2 / 1 / 2` |
+| 후보 폴더 | `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-8628ba4a4488-20261023T061726351Z/` |
+| installer | `불법광고 탐지 도구_0.2.1_x64-setup.exe` |
+| installer 크기 / SHA-256 | `746,947,332` B (712.34 MiB) / `33ce86950fe11ef2dc2e210c60e6604797c2a2ffb4c8e222f4c28a0015b36d56` |
+| 예상 설치 EXE SHA-256 | `f1466e88aefe985075faa3c9fb2f6227c251011893ad543726369fc497d90e2c` |
+| signing / releaseStatus | `unsigned-internal-candidate` / `candidate` |
 
-Windows 후보의 `source.commit`은 후보 `manifest.json`에 기록된
-`1c0e8a34c407776ea6fb16943a1e8c73961c6d77`이다. 이 문서 묶음의 commit은 후보 빌드
-이후에 추가된 문서 변경이므로 후보 identity에 포함되지 않는다. 근거:
-[`docs/ADOPTION_LEDGER.md`](../ADOPTION_LEDGER.md) §「2026-10-23 통합 검증과 최종 후보」.
+빌드 시 `source.dirty=true`는 제출·인계 문서 편집 때문이다. 제품 소스는 위 커밋에
+보존됐고 source hash가 고정됐으며 manifest를 clean으로 고쳐 쓰지 않았다.
+JS/TS 전체 검사는70a599fb 소스에서 완료했고 이후 네이티브 복원만 수정·추가 검증했다.
 
-## 2. 제출물 목록
+## 2. 문서와 사용 순서
 
-| # | 파일 | 내용 | 상태 |
-| --- | --- | --- | --- |
-| 1 | `docs/SUBMISSION_20261023/README.md` | 제출물 안내와 체크리스트(이 문서) | 준비됨 |
-| 2 | `docs/SUBMISSION_20261023/APPLICATION_SUMMARY.md` | 신청서 지원용 2–3쪽 요약 | 준비됨 |
-| 3 | `docs/SUBMISSION_20261023/VERIFICATION_SUMMARY.md` | 로컬·교차 빌드 검증 기록과 NOT_RUN 표 | 준비됨 |
-| 4 | `docs/SUBMISSION_20261023/BUILD_AND_RUN.md` | 수신팀용 최소 빌드·실행 절차 | 준비됨 |
-| 5 | `docs/SUBMISSION_20261023/LIMITATIONS_AND_RISKS.md` | 한계·위험과 완화 방향 | 준비됨 |
-| 6 | `docs/SUBMISSION_20261023/EVIDENCE_INDEX.md` | 주장별 증거 파일·해시 대응표 | 준비됨 |
-| 7 | `docs/PLANNING_DOC.md` | 공모전 기획서 본문 | 준비됨 |
-| 8 | `docs/BUILD_MANUAL.md` | 전체 빌드 매뉴얼(수신팀 기준) | 준비됨 |
-| 9 | `docs/USER_MANUAL.md` | 사용자 매뉴얼(간단·고급 모드) | 준비됨 |
-| 10 | `docs/OPERATIONS_GUIDE_KO.md` | 운영·배포·백업·제거 인계 | 준비됨 |
-| 11 | `docs/DATA_HANDLING_KO.md` | 원본·검토·진단 데이터 처리 | 준비됨 |
-| 12 | Windows 설치 후보 | `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z/` | 산출물 있음(서명 없음) · Windows 11 v2 설치·대화형 UI 수용 OBSERVED(범위 제한, §4) |
-
-## 3. Windows 설치 후보 식별
-
-| 항목 | 값 |
+| 자료 | 내용 |
 | --- | --- |
-| buildId | `0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z` |
-| target | `x86_64-pc-windows-gnullvm` (Linux 교차 빌드, Tauri "실험적" 표시) |
-| source.commit / dirty | `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` / `false` |
-| sourceSha256 | `307f6b6ff09b9ce04e0b157c6a9b9e1d87cf8c25148605e7731a4892addab731` |
-| installer 파일명 | `불법광고 탐지 도구_0.2.1_x64-setup.exe` |
-| installer 크기 | `747,381,035` B (712.76 MiB) |
-| installer SHA-256 | `753b873c2b1454eae27fb5524cafaf4f70e682ae6ad660be2412a877a44f5ebc` |
-| standalone `krds-detector.exe` | `20,356,608` B, SHA-256 `112e1099daf303eacadee12339fa31083f96b55c6f61e8452aa33059b4cb8f9c` |
-| 설치본 exe(marker 변환 후) | SHA-256 `b6cc4411d2feecb9048dbb8f7dc3ecd568a4a944c368bedb7cb3877270211699` |
-| artifact verify | `node scripts/verify-artifact.mjs <candidate>/manifest.json` EXIT 0, 8 files, 8/8 hash 일치, 목록 밖 파일 없음 |
-| `signing` 값 | `unsigned-internal-candidate` |
+| [APPLICATION_SUMMARY.md](APPLICATION_SUMMARY.md) | 목적·입력·판정·화면·내보내기 |
+| [BUILD_AND_RUN.md](BUILD_AND_RUN.md) | 수신팀 빌드·패키지·설치·데이터 절차 |
+| [VERIFICATION_SUMMARY.md](VERIFICATION_SUMMARY.md) | 후보별 관측·검사 수치·미실행 경계 |
+| [LIMITATIONS_AND_RISKS.md](LIMITATIONS_AND_RISKS.md) | 이미지 재현율·D08 잔여 범위·배포 제약 |
+| [EVIDENCE_INDEX.md](EVIDENCE_INDEX.md) | 원시 로그·파일·해시 대응 |
+| `docs/ADOPTION_LEDGER.md` | 변경 보존부터 재개 실행까지의 원장 |
+| `docs/ADOPTION_HANDOFF_KO.md` | 현재 인계와 역사 후보 기록 |
+| `docs/USER_MANUAL.md`, `docs/OPERATIONS_GUIDE_KO.md` | 사용자·운영 설명 |
+| `docs/DATA_HANDLING_KO.md`, 후보SBOM·license inventory·notices | 자료·자격 보관과 라이선스 |
 
-앞선 두 후보는 **대체(superseded)되었고** 현재 후보가 아니다. 삭제하지 않고 보존했다.
+## 3. 현재 확인된 범위
 
-| 후보 | state |
+- 스캐너 회귀13건 포함 JS/TS770passed/1skipped, build-boundaries/runtime-closure13passed.
+- 최종 native82passed/0failed/2ignored, fmt·Windows gnullvm all-targets clippy/check 통과.
+- 새 후보 build:desktop·package:windows·verify:artifact EXIT0,8파일 검증, runtime1177파일.
+- 중간70a599fb 설치본: NIA5checked/0failed, 공개2대상 저장·실제 새 프로세스 복원2/2,
+  통합 XLSX7시트 모든 셀 동일, 실제 Excel 열람. 복원 카드 카운터 결함은 dd5ceb4로 수정했다.
+- 최종8628ba4a 설치본: NIA5페이지 실패0, 새 공개 두 대상 저장·실제 재시작 복원2/2,
+  전후 통합 XLSX7시트 모든 셀 동일·공식 원본 해시 동일, 실제 Excel 대상 요약 확인.
+- 소유 양성 사례의 판단·메모·검토 완료가 새 설치본에서 복원됐고 JSON은 원본과 byte-identical,
+  XLSX와 실제 Excel 검토 기록에서도 확인했다. 두 대상 양성 D08 수용을 대신하지 않는다.
+- 최초286파일 불변. 설치 전338파일 중 그룹의 updatedAt 갱신1건 외 변경·삭제0.
+  앱·Excel·소유 worker와 시험 listener는 종료했다.
+
+## 4. 전달 판단에 남는 범위
+
+| 항목 | 상태 |
 | --- | --- |
-| `…-3fb23ff998ea-20261022T160030222Z` (source `16d4b56`, installer `c76c133f…`) | superseded · `/mnt/nas/illegal-ad-artifacts-archive-20261023/`로 이동 |
-| `…-76e7d5ec6ce4-20261022T163747830Z` (source `85a286f`, installer `54c8f1cd…df406`, 759.46 MiB) | superseded · `artifacts/`에 보존 |
+| 판단·메모 포함 공개2대상 D08 | NOT_RUN: 공개 두 대상 탐지0건. 소유 단일 양성은 별도 증거 |
+| 정부24 | plus.gov.kr 외부 이동으로 미점검·접근 제한, 점검 성공으로 간주하지 않음 |
+| MSVC 제품 경로·Windows MSVC CI | 미실행/계정 결제 차단 이력. 새 원격 실행 없음 |
+| Windows 이미지 실사이트 재현율·저사양 목표환경 | 미실행. Linux 역사 측정과 구분 |
+| WebView2 부재 완전 offline 설치·무인 관리·제거·기기 간 그룹 이식 | NOT_RUN |
+| 코드 서명·사람 사용성·AT·조직 수용 | NOT_RUN |
 
-현재 후보의 SHA-256은 위 표의 `753b873c…f5ebc` 하나뿐이다. 근거: `ADOPTION_LEDGER.md`
-§「2026-10-23 통합 검증과 최종 후보」, `artifacts/win-verify-20261023/RECEIPT-v2.json`.
+0361562d는 NIA 진입 누락과 D08 저장 실패가 재현된 이전 후보이고,
+70a599fb는 복원 카드 카운터 결함이 있는 중간 후보다. 둘 다 보존하며 현재 전달 후보로 혼동하지 않는다.
 
-## 4. 체크리스트
+## 5. 증거 보존과 인계
 
-### 준비됨 (근거 있는 항목)
+새 실행은 `artifacts/dogfood-20261023/resumed-validation/`와 `resumed-windows/`에 있다.
+초기 dirty diff·status·stash 목록을 보존했고 자동 stash 적용·일괄 복원은 하지 않았다.
+후보9파일(manifest 포함)은 아래 두 위치에 각각 복사해 크기·SHA-256을 대조했다.
+문서·원시 증거·소스 bundle도 같은 전달 루트에 보관한다. 전체 사본의 최종 읽기 대조는
+각 루트의 `DELIVERY_MANIFEST.json`, `DELIVERY_VERIFICATION.json`을 따른다.
 
-| 항목 | 상태 | 근거 |
-| --- | --- | --- |
-| 소스·브랜치·HEAD 식별 | 준비됨 | 이 문서 §1, 후보 `manifest.json` |
-| 기획서 본문 | 준비됨 | `docs/PLANNING_DOC.md` |
-| 빌드 매뉴얼 | 준비됨 | `docs/BUILD_MANUAL.md` |
-| 사용자 매뉴얼 | 준비됨 | `docs/USER_MANUAL.md` |
-| 운영·데이터 인계 | 준비됨 | `docs/OPERATIONS_GUIDE_KO.md`, `docs/DATA_HANDLING_KO.md` |
-| Windows 후보 파일·크기·SHA-256 | 준비됨 | 후보 `manifest.json`, `ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」 |
-| artifact verify 8/8 | 준비됨 | EXIT 0, 같은 절 |
-| 로컬 검사 754 passed / 1 skipped | 준비됨 | `ADOPTION_LEDGER.md` §「통합 검증과 최종 후보」 |
-| `npm run build` | 준비됨 | EXIT 0, 같은 절 |
-| Windows target `cargo check`/clippy | 준비됨 | EXIT 0, 같은 절 |
-| 런타임 closure lock | 준비됨 | `--verify` 1177 files |
-| 증거 원장 | 준비됨 | `ADOPTION_LEDGER.md`, `DOGFOOD_LEDGER_20261014.md` |
-| 문서 6종 상호 참조 | 준비됨 | 이 디렉터리 |
+- NAS: `/mnt/nas/illegal-ad-submission-20261023-resumed/`
+- HDD0: `/mnt/HDD0/illegal-ad-delivery-20261023-resumed/`
 
-### OBSERVED — Windows 11 설치·대화형 UI 수용 (v2, 범위 제한)
-
-최종 후보를 Windows 11 Pro `10.0.26200`(`Pocket4`)에 설치·조작한 기록이 있다.
-증거: `artifacts/win-verify-20261023/README.md` v2 절, `RECEIPT-v2.json`,
-`screenshots/v2-*`, `exports-v2/`.
-
-| 확인한 것 | 관측값 |
-| --- | --- |
-| 전송·해시 일치 | installer `753b873c…f5ebc`, standalone `112e1099…8f9c` |
-| 대화형 NSIS 설치(UAC 없음) | 성공, 설치본 EXE `b6cc4411…1699` = expected marker |
-| 실행·시작 화면 | 오류 대화상자 없음 |
-| loopback fixture 점검 | case `8991fad4…`: 17 findings, 확인 15페이지, 실패 0, 15초 |
-| 닫힌 포트 분류 | `502 access-navigation`(정책 거부 아님) |
-| 검토·내보내기 | 판단 `광고 의심`(저장 `suspected`)·메모 영속, 공식 JSON 4,586 B(17 findings, sha256 `701ed484…0a3d`), XLSX 16,514 B(6 시트) |
-| 재시작 | 메모·판단 복원, 공식 bytes 불변 |
-| 프로세스·보존 | 고아 0, AppData 194 → 218 files, 삭제 0·기존 수정 0 |
-
-**이 관측의 범위 밖**: MSVC 제품 경로, 사람 사용성 평가, 실제 Excel 열람, 무인 설치·제거,
-D08 실제 앱 재시작 수용. 한 환경의 결과를 다른 환경으로 전용하지 않는다.
-
-### 미실행 (NOT_RUN)
-
-| 항목 | 이유 |
-| --- | --- |
-| Windows MSVC CI (`windows-native`, `required`) | GitHub Actions job이 계정 결제 차단으로 시작되지 않았다(§5 인용). 시험 실패가 아니다. |
-| WebView2 부재 상태의 완전 오프라인 설치 | offline 설치 profile이 없고 검증하지 않았다. |
-| 코드 서명(Authenticode) | 조직 인증서·승인 절차가 없어 후보는 서명 없는 내부 평가용이다. |
-| D08 실제 Tauri window 재시작 후 통합 보고서 | 그룹 영속화·IPC·재마운트 복원·통합 XLSX 재생성은 구현·자동 시험으로 확인했으나, 설치된 앱 프로세스 재시작 수용 시험은 NOT_RUN이다(`bdcc0e8`). |
-| Excel에서 XLSX 실제 열람 | v2 수용에서 파일 검증만 했고 Excel로 열지 않았다. |
-| 실제 사람 사용성 평가·보조기기(AT) 판독 | 수행하지 않았다. |
-
-## 5. CI 차단 기록(원문 인용)
-
-이 브랜치의 Actions는 5회 시도 후 계정 결제 차단으로 job이 시작되지 않았고, 이후
-push(`1c0e8a3`, `e87799a`)에 대해서도 동일하게 시작되지 않았다. 마지막으로 step이
-실행된 시도는 HEAD `16d4b56`(dispatch `39806914699`, PR `39806920316`)이며 그조차
-실행된 step은 0개다. GitHub 표기 원문:
-
-> The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings
-
-실행된 step은 없다. 계정 결제 차단이며 시험·빌드 실패가 아니다. **CI 통과를 주장하지
-않는다.** 근거: `docs/ADOPTION_LEDGER.md` §「CI 시도와 차단 원인 (NOT_RUN / BLOCKED)」.
-
-## 6. 읽는 순서
-
-1. 이 문서 §4 체크리스트로 무엇이 준비되고 무엇이 미실행인지 확인한다.
-2. `APPLICATION_SUMMARY.md`로 제품 범위와 판정 구조를 읽는다.
-3. `VERIFICATION_SUMMARY.md`로 실제 실행 수치와 NOT_RUN 경계를 확인한다.
-4. `BUILD_AND_RUN.md`로 수신 환경에서 빌드·검증을 재현한다.
-5. `LIMITATIONS_AND_RISKS.md`를 반드시 함께 읽는다.
-6. 인용 수치의 출처는 `EVIDENCE_INDEX.md`에서 추적한다.
-
-## 7. 표기 규칙
-
-`OBSERVED`는 해당 환경에서 실제로 실행·관찰한 기록, `MEASURED`는 계측값,
-`NOT_RUN`은 실행 기록이 없는 항목, `BLOCKED`는 외부 원인으로 시작조차 못 한 항목이다.
-이 저장소는 "구현됨"과 "검증됨"을 구분하며, 한 환경의 결과를 다른 환경(예: Linux
-fixture → Windows 설치본)으로 전용하지 않는다. 모든 수치는 인용한 문서의 절 단위까지
-추적 가능해야 하고, 추적할 수 없는 수치는 싣지 않는다.
-
-## 8. 관련 문서
-
-- 채택 인계: [`docs/ADOPTION_HANDOFF_KO.md`](../ADOPTION_HANDOFF_KO.md)
-- 채택 원장: [`docs/ADOPTION_LEDGER.md`](../ADOPTION_LEDGER.md)
-- 도그푸드 원장: [`docs/DOGFOOD_LEDGER_20261014.md`](../DOGFOOD_LEDGER_20261014.md)
-- 화면 명세: [`docs/SCREEN_SPEC.md`](../SCREEN_SPEC.md), 흐름: [`docs/UX_FLOW.md`](../UX_FLOW.md)
-- 설계 결정: [`docs/ADR/0016-separate-ui-mode-from-scan-transport.md`](../ADR/0016-separate-ui-mode-from-scan-transport.md), [`docs/ADR/0017-bounded-animation-and-korean-banner-ocr.md`](../ADR/0017-bounded-animation-and-korean-banner-ocr.md)
-- CI 정의: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
+`source-dd5ceb4.tar.gz`는 제품 커밋의 소스이고, `repository.bundle`은 문서 커밋까지
+포함한 브랜치다. 모델·런타임은 installer에 포함된다. 실제 제출·push·공개 배포는 하지 않았다.

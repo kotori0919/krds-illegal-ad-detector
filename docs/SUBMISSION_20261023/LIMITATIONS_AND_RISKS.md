@@ -1,30 +1,32 @@
 # 한계와 위험
 
+> 제품 `dd5ceb4`, source `8628ba4a4488…`, 서명 없는 gnullvm 내부 평가 후보.
+> Windows에서 NIA 5페이지·실패 0, 공개 두 대상 저장·재시작 복원·통합 XLSX·Excel 열람을 확인했다.
+> JS/TS 770 passed / 1 skipped, 최종 native 82 passed / 0 failed / 2 ignored. 전체 E2E·제출 완료 표시는 아니다.
+
 이 문서는 해결됐다고 주장하지 않는 항목을 정리한다. 각 항목은 **무엇인지 / 왜
 중요한지 / 완화·다음 단계** 순서다. 수치는 모두 출처 절을 함께 적었다. 검증 수치의
 범위는 [`VERIFICATION_SUMMARY.md`](VERIFICATION_SUMMARY.md), 절차는
 [`BUILD_AND_RUN.md`](BUILD_AND_RUN.md), 제품 개요는
 [`APPLICATION_SUMMARY.md`](APPLICATION_SUMMARY.md)를 따른다.
 
-## 1. D08 — 실제 앱 재시작 후 통합 보고서 수용 미실행
+## 1. D08 — 판단·메모를 포함한 공개 두 대상 수용은 미실행
 
-- **무엇인지**: 일괄 작업 묶음(그룹)의 영속화와 재시작 복원은 `bdcc0e8`에서 구현됐다.
-  그룹 identity는 `<cases>/groups/<uuid>.json`에 저장되고, list/save IPC 두 개가 UUID·
-  RFC3339·enum·자격 없는 공개 URL을 검증한다. 케이스 manifest·공식 JSON·검토 파일은
-  변경되지 않으며 migration은 0이다. 고급 모드 화면은 저장된 그룹을 나열하고 각 대상을
-  케이스로 복원하며, 저장된 판단으로 통합 XLSX를 다시 만든다. 이 경로는 Rust 단위 시험
-  (그룹 파일 왕복·형식 거부)과 웹 재마운트 시험으로 확인했다. **미실행인 것은 설치된
-  데스크톱 앱 프로세스를 실제로 재시작한 뒤 통합 보고서를 만드는 Windows 수용 시험과
-  기기 간 그룹 이식이다.**
-- **왜 중요한지**: 실제 운영은 여러 사이트를 한 번에 점검하고 하나의 보고서로 결재·시정
-  요청하는 흐름을 갖는다. 자동 시험은 저장·복원·재생성 로직을 검증하지만, 설치본의
-  WebView2·IPC·파일 잠금이 실제 재시작에서 같은 결과를 내는지는 별개다.
-- **완화·다음 단계**: 지금은 대상별 공식 결과를 각각 보관하고, 사이트별 보고서를 개별
-  생성해 사람이 취합한다. 다음 단계는 대상 2건·판단·메모 포함 → 정상 종료 → 새 프로세스
-  → 통합 XLSX 생성 → 실제 Excel 열람의 순서로 Windows 설치본에서 수용하는 것이다.
-- 근거: `docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」 NOT_RUN,
-  `docs/DOGFOOD_LEDGER_20261014.md` §Task outcomes D08, `docs/PLANNING_DOC.md` §12,
-  `bdcc0e8` commit message.
+최종8628ba4a 설치본에서 공개 NIA·정부24 두 대상의 독립 사례 저장2/2,
+정상 종료·새 프로세스 복원2/2, 동일 caseId·complete/blocked 상태·정확한 페이지 카운터,
+통합 XLSX7시트의 전후 모든 셀 동일과 실제 Excel 열람을 확인했다.
+정부24는 `plus.gov.kr` 외부 이동으로 미점검이며 성공 점검으로 바꾸지 않았다.
+
+두 대상의 탐지가0건이므로 판단·메모를 포함한 두 대상 통합 보고서 수용은 NOT_RUN이다.
+소유 loopback 단일 양성의17탐지·f13 메모·suspected·reviewed는 새 설치본에서 복원됐고,
+원본과 같은 JSON 및 검토 기록을 포함한 XLSX·Excel 열람도 확인했다. 이 보충 증거를
+두 대상 양성 수용으로 합치지 않는다. 기기 간 그룹 이식도 NOT_RUN이다.
+
+이전0361562d의 NIA 진입 누락·D08 저장 실패는43c6ff5/3598f48로 수정했다.
+중간70a599fb에서 발견한 복원 카드 카운터0도 dd5ceb4로 수정해 최종 설치본에서 확인했다.
+검증기를 완화하지 않았으며 과거 실패 그룹과 공식 원본은 보존했다.
+실행은 `artifacts/dogfood-20261023/resumed-windows/`, 파일·환경·수치는
+[VERIFICATION_SUMMARY.md](VERIFICATION_SUMMARY.md) §4를 따른다.
 
 ## 2. 실사이트 이미지 광고 재현율
 
@@ -38,10 +40,16 @@
 - **왜 중요한지**: 공모전 평가의 핵심 축이 실제 사이트 탐지이고, 이미지형 배너가 주요
   매체이기 때문이다. 회귀 자료의 높은 숫자를 모집단 정확도로 읽으면 안 된다.
 - **완화·다음 단계**: 확장 상한 적용 후 실사이트 표본을 다시 측정하고, 누락 유형을
-  OCR·임베딩 단계별로 분류한다. 회귀 자료는 실제 출처 불법 배너 60/60, 실제 정상 광고
-  오탐 0/74, 파생 양성 17/18, 파생 정상 오탐 0/38로 기록되어 있으나 이는 개발·회귀
-  자료이며 법적 위반 확정률이 아니다. EasyOCR·Korean TrOCR 비교에서 TrOCR은 알려진
-  정상 입력 3/10 오탐으로 기각됐다.
+  OCR·임베딩 단계별로 분류한다. 회귀 자료(190입력, 29묶음)는 **이전 소스 `f481d73`에서
+  같은 `inputs.json`(sha256 `eb1572b6…e8ad3`)으로 다시 측정한 결과** 실제 출처 불법 배너
+  60/60, 실제 정상 광고 오탐 **0/74**, 파생 양성 17/18, 파생 정상 오탐 **0/38**이다.
+  판정이 바뀐 7행은 v4 검토→v3 규칙으로 강화된 양성이고, 남은 누락은 파생 BUTTER 1건이다.
+  이는 개발·회귀 자료이며 법적 위반 확정률이 아니다. EasyOCR·Korean TrOCR 비교에서 TrOCR은
+  알려진 정상 입력 3/10 오탐으로 기각됐다.
+- **Windows 범위**: `e54fe63`에서 강화한 이미지 광고 규칙(정산 앵커 `가입코드`/`테더`/
+  `usdt`, `첫충(?!전)`)은 **Windows 설치본에서 실행되지 않았다.** synthetic fixture가 배너·
+  추가 단서 0건을 내기 때문이다. Windows v3 관측은 *변하지 않은* 17개 문자 탐지의
+  무회귀까지이며, 이미지 규칙의 근거는 위 Linux 재측정이다.
 - 근거: `docs/PLANNING_DOC.md` §12, `docs/DOGFOOD_LEDGER_20261014.md`,
   `docs/EMBEDDING_QUANTIZATION_20261022.md`, `docs/VISION_CPU_OPTIMIZATION_20261022.md`,
   `docs/OCR_ENGINE_COMPARISON_20261021.md`, `docs/ADR/0017-...md` §Alternatives and limits.
@@ -66,23 +74,25 @@
 - 근거: `docs/ADOPTION_LEDGER.md` §「실측 잔여 위험」, §「2026-10-23 통합 검증과 최종
   후보」, `953ce2c` commit message(측정값 원문).
 
-## 4. 설치 크기 712.76 MiB와 pruning 이후 남은 payload
+## 4. 설치 크기 712.34 MiB와 pruning 이후 남은 payload
 
-- **무엇인지**: 최종 후보 installer는 `747,381,035` B(712.76 MiB)다. 모델 약 1.31 GB와
+- **무엇인지**: 현재 후보 installer는 `746,947,332` B(712.34 MiB)이고 sha256은
+  `33ce86950fe11ef2dc2e210c60e6604797c2a2ffb4c8e222f4c28a0015b36d56`이다. 모델 약 1.31 GB와
   스테이징 `node_modules` 약 153 MB를 포함한다. `1c0e8a3`이 `onnxruntime-node`에서
   `bin/napi-v6/win32/x64`(binding DLL + 로더/라이선스)만 staging하고 타 플랫폼 바이너리를
   제거했다. 스테이징 `node_modules`는 376 MB → 153 MB(−233,962,380 B)이고 lock은
-  1197 → 1177 항목이다. 이전 후보(759.46 MiB) 대비 installer는 **−46.7 MiB**다.
+  1197 → 1177 항목이다. 이 staging 비교는 pruning 당시의 역사 측정이며 현재 후보의
+  기능·속도 개선 수치로 전용하지 않는다.
   invariant(누락·타 플랫폼 잔존)는 빌드 시 실패하도록 단언하며, closure 시험 8/8과
   `--verify` 1177 files가 통과했다.
 - **왜 중요한지**: 내려받기·설치 시간과 기관 배포·백업·패치 비용에 직접 영향을 준다.
-  모델 자산 약 1.31 GB가 여전히 크기의 대부분이며, Windows에서의 실제 설치 후 크기·
-  파일 잠금·네이티브 추론 비용은 별도로 측정하지 않았다(설치 디렉터리 2,135,273,452 B는
-  v2 수용에서 관측).
+- 모델 자산 약 1.31 GB가 여전히 크기의 대부분이며, Windows v3 수용에서 설치 디렉터리
+  크기는 2,135,273,579 B로 관측했다. 파일 잠금·네이티브 추론 비용은 별도로
+  측정하지 않았다.
 - **완화·다음 단계**: 모델 자산을 설치 후 내려받는 옵션은 점검 중 다운로드 금지 정책과
   충돌하므로 별도 계약으로 설계해야 한다(현재 그대로 바꾸지 않는다). Windows 설치 후
   크기·콜드 스타트 시간을 함께 재측정한다.
-- 근거: `docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」, 후보
+- 근거: `docs/ADOPTION_LEDGER.md` §「2026-10-23 최종 후보 (f481d73)」, 후보
   `manifest.json` `files`, `1c0e8a3` commit message, `docs/BUILD_MANUAL.md`
   §`npm run package:windows` 준비 3항.
 
@@ -107,7 +117,7 @@
   Tauri가 "실험적"으로 표시한다. 수신팀의 주 배포 경로는 Windows MSVC 빌드다. MSVC
   경로의 CI(`windows-native`, `required`)는 계정 결제 차단으로 시작되지 않았다. 실제
   Windows에서의 `cargo test` 실행도 cross sysroot 부재로 NOT_RUN이다. gnullvm 후보의
-  Windows 11 설치·대화형 UI는 v2로 관측했지만(§`VERIFICATION_SUMMARY.md` §6), 그것은
+  Windows 11 설치·대화형 UI는 v3로 관측했지만(§`VERIFICATION_SUMMARY.md` §7), 그것은
   MSVC 산출물의 검증이 아니다.
 - **왜 중요한지**: 컴파일러·CRT·링커가 다르면 예외 처리, 로케일, DLL 로딩, WebView2
   interop 같은 경계에서 동작이 달라질 수 있다. gnullvm 후보의 verify 통과는 MSVC
@@ -146,6 +156,7 @@
 | 다중 사례 인프라 통합 | 여러 케이스 통합·능동 외부 탐색·추가 단서 지속 검토 미제공 | 단일 케이스 분석으로 한정해 안내 | `docs/PLANNING_DOC.md` §12, `docs/UX_FLOW.md` |
 | 성능 근거의 범위 | Windows 수치는 2026-10-07 통합 후보 워커 기준이며 최신 이미지 분석 경로 미포함. 단일 실행 | 이미지 분석 포함 전체 점검 시간을 Windows에서 재측정 | `docs/PLANNING_DOC.md` §8.3·§12 |
 | CI 부재 | 현재 HEAD의 CI 통과 기록 없음(계정 결제 차단) | 저장소 결제 정상화 후 `main` 대상 PR로 `verify`·`windows-native`·`required` 실행 | `docs/ADOPTION_LEDGER.md` §CI 시도와 차단 원인 |
+| 스캐너 문서 전환 | 초기0361562d에서 NIA entry 누락 재현 |3598f48의 최대2회 문서 전환 처리·최종 HTTP 분류, loopback13시험 및 Windows5checked/0failed 관측. 새 후보 수용은 검증 요약 참조 | `resumed-validation/`, `resumed-windows/` |
 
 ## 9. 이 문서를 읽는 방법
 

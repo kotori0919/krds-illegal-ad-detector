@@ -1,146 +1,137 @@
 # 검증 기록 요약
 
-이 문서는 2026-10-23 제출물에 포함된 검증 기록만 모은다. 각 행은 실행 환경과
-성공/미실행을 구분한다. 출처를 적지 않은 수치는 싣지 않았다. 제출물 목록은
-[`README.md`](README.md), 제품 요약은 [`APPLICATION_SUMMARY.md`](APPLICATION_SUMMARY.md),
-절차는 [`BUILD_AND_RUN.md`](BUILD_AND_RUN.md), 잔여 위험은
-[`LIMITATIONS_AND_RISKS.md`](LIMITATIONS_AND_RISKS.md)를 따른다.
+> 제품 `dd5ceb4`, source `8628ba4a4488…`, 서명 없는 gnullvm 내부 평가 후보.
+> Windows에서 NIA 5페이지·실패 0, 공개 두 대상 저장·재시작 복원·통합 XLSX·Excel 열람을 확인했다.
+> JS/TS 770 passed / 1 skipped, 최종 native 82 passed / 0 failed / 2 ignored. 전체 E2E·제출 완료 표시는 아니다.
 
-## 1. 실행 환경과 시점
+## 1. 실행 환경과 소스
 
-| 항목 | 값 |
-| --- | --- |
-| 호스트 | Linux x64 개발기(Chromium sandbox 없음) |
-| 코드 기준 commit(후보·전체 suite 동일) | `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` |
-| 교차 빌드 target | `x86_64-pc-windows-gnullvm` |
-| LLVM-MinGW | `20260908`, clang `23.1.1`, `bin/clang` sha256 `bab7f174d7e136ae093ad232d5a894ee00f0a8f9051bcff4eb6a70c132898248` |
-| NSIS | `3.09-4`(Ubuntu noble), makensis sha256 `ca9f28d9726d38d33b403187871af920b59c265eade7fa463684cf1e8b322d3e` |
-| Windows 수용 호스트 | `ssh win` → `Pocket4`, `pocket4\dbsgu`, Windows 11 Pro `10.0.26200`, PowerShell `7.6.6`, Cua Driver `0.30.1` |
+- Linux x64, Rust 1.98.1. Windows 교차 target `x86_64-pc-windows-gnullvm`.
+- LLVM-MinGW 20260908 / clang 23.1.1, NSIS 3.09-4. 내장 Node 22.19.0, runtime closure1177 files.
+- Windows11 Pro10.0.26200, Pocket4, PowerShell7.6.6, Cua Driver0.30.1.
+- 제품 commit `dd5ceb414e941ea8deef448899d1042e8d49a010`, source SHA-256
+  `8628ba4a4488d9b3c6bf9a3080151784b1376aa7ced929f6cce545eb7b64b97c`.
+- 빌드 시 dirty=true는 제출/인계 문서 편집이다. 제품 파일은 커밋되어 있으며 manifest를 고쳐 쓰지 않는다.
 
-이번에는 **전체 suite와 후보 빌드가 같은 commit(`1c0e8a3`)에서 실행되었다.**
-`85a286f` 후보(`76e7d5ec…`)는 이 후보로 대체(superseded)되었다. 근거:
-`docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」.
+## 2. 자동 검사 (OBSERVED)
 
-## 2. 로컬 suite
-
-| 항목 | 결과 | 근거 |
+| 검사 | 실제 결과 | 근거 |
 | --- | --- | --- |
-| 명령 | `PATH=/usr/bin:$PATH KRDS_TEST_UNSANDBOXED=1 npm run check` | `ADOPTION_LEDGER.md` §통합 검증과 최종 후보 |
-| 종료 코드 | `0` | 같은 절 |
-| 파일 수 | `Test Files 98 passed \| 1 skipped (99)` | 같은 절 |
-| 테스트 수 | `Tests 754 passed \| 1 skipped (755)` | 같은 절 |
-| 소요 시간 | `216.7`초 | 같은 절 |
-| 내장 worker 런타임 | `22.19.0`(runtime lock `nodeVersion`) | 같은 절 |
-| 원시 로그 | 저장소 밖 임시 경로(같은 절) | 같은 절 |
+| scanner build 후 `KRDS_TEST_UNSANDBOXED=1 npm run check` | EXIT0, 99 files passed/1 skipped, 770 tests passed/1 skipped, 220.15s | resumed-validation/check.log |
+| Node build-boundaries/runtime-closure | 13 passed/0 failed | resumed-validation/build-boundaries.log |
+| 최종 native host `cargo test --bins --locked --offline` | EXIT0, 82 passed/0 failed/2 ignored, 15.28s | restored-progress-native-verified.log |
+| fmt | EXIT0 | restored-progress-windows-checks.log |
+| Windows gnullvm clippy all-targets `-D warnings`, check all-targets | 둘 다 EXIT0 | 같은 로그 |
 
-`KRDS_TEST_UNSANDBOXED=1`은 **소유 loopback fixture의 Chromium sandbox만** 해제한다.
-외부 사이트 탐지나 배포본 sandbox를 우회하는 권한이 아니며 production 격리 증거로
-전용하지 않는다 (`docs/BUILD_MANUAL.md` §공통 명령, `ADOPTION_LEDGER.md` 같은 절).
+위 로그의 공통 경로는 `artifacts/dogfood-20261023/resumed-validation/`이다.
+770/1 suite의 소스 hash는 `70a599fb…`이며, 이후 `dd5ceb4`는 네이티브 사례 복원과
+그 회귀 시험만 변경했다. JS/TS·worker는 동일하고 최종 native만 다시 검사했다.
+`KRDS_TEST_UNSANDBOXED=1`은 소유 loopback fixture의 Linux Chromium에 한정된다.
+Windows 설치본의 Chromium sandbox·네트워크 정책·호스트 제한은 유지했다.
 
-## 3. 빌드
+초기 전체 검사에서1초 취소 fixture의 회귀를 발견해 준비 guard를 제거했고, stale dist로
+실행한 첫 재검사도 보존했다. canonical scanner 재빌드 후 전체 검사를 통과했다.
+추가 native 시험 fixture의 pageOutcomes 누락과 canonical formatting 비교 오류도 수정했다.
+실패 로그와 최종 로그를 함께 보존하며 재시도만으로 통과 처리하지 않았다.
 
-| 항목 | 결과 | 근거 |
+## 3. 수정과 검증 경계
+
+| 결함 | 수정 | 관측 |
 | --- | --- | --- |
-| `npm run build` | EXIT `0` | `ADOPTION_LEDGER.md` §통합 검증과 최종 후보 |
-| `npm run build:desktop` | EXIT `0` | 같은 절 |
-| `npm run package:windows` | EXIT `0` | 같은 절 |
-| 런타임 closure 검증 | `node scripts/prepare-windows-runtime.mjs --verify` → EXIT 0, **1177 files** | 같은 절 |
-| closure 시험 | `scripts/test/windows-runtime-closure.test.mjs` 8/8 | 같은 절 |
-| closure lock | `scripts/windows-runtime.lock.json` 1177개 항목(`1c0e8a3` pruning 이전 1197) | 같은 절 |
+| NIA200 이후 JS 이동 시 홈페이지 누락 | committed main document 추적, 준비 단계 최대2회 전환, 최종 상태 분류 | loopback 회귀13건, Windows source worker·최종 설치본 NIA 5 checked / 0 failed |
+| D08 묶음 저장 거부 | 공통 serializer에서 값 없는 error/finishedAt 생략, 실제 오류 유지 | native 회귀, 최종 설치본 공개 두 대상 저장·실제 재시작 복원 2/2 |
+| 복원 카드 카운터0 | 검증된 저장 evidence의 checked+failed를 open_case에서 progress로 복원 | persistent roundtrip 시험과 최종 설치본의 기존·신규 그룹 카운터 복원 확인 |
 
-`npm run build`는 contracts → evidence(보고서 포함) → web 순서로 컴파일한다
-(`package.json` scripts, `docs/BUILD_MANUAL.md` §공통 명령).
+문서 전환 수정은 host·port 경계, 기존 페이지/전체 마감, 단일 live 분석을 유지한다.
+콜백 실행 뒤 문서가 바뀌면 stale 결과를 성공으로 남기지 않는다. Correction D는
+중간 실험 이력이며 현재 구현은 `3598f48`이다. 검증기 완화나 특정 사이트 예외는 없다.
 
-## 4. Windows target Rust 검사
+## 4. 최종 Windows 설치본 관측 (8628ba4a, OBSERVED_CUA_OPERATOR)
 
-| 명령 | 결과 | 비고 |
+공통 증거 경로는 `artifacts/dogfood-20261023/resumed-windows/`다.
+Cua Driver로 실제 설치본을 조작했다. 사람 사용성 평가나 기관 수용을 뜻하지 않는다.
+
+| 경로 | 실제 관측 | 근거 |
 | --- | --- | --- |
-| `cargo check --target x86_64-pc-windows-gnullvm --all-targets` | EXIT `0` | Linux 호스트에서 교차 검사 |
-| Windows target clippy(CI와 같은 명령) | EXIT `0` | 같은 절 |
-| `cargo test --bins` | `80 passed / 0 failed / 2 ignored` | **호스트 실행**. Windows 실행이 아니다 |
-| `cargo fmt --check` | EXIT `0` | 같은 절 |
+| 대화형 재설치 | NSIS Installation Complete, 예상 installed EXE·worker hash 일치 |0164·0170, installed-final-receipt.json |
+| NIA 단일 | 최대 5페이지·깊이 1·90초, 5 checked / 0 failed / 0 findings, 18.414초. 진입200 checked, 최종 `/site/nia_kor/main.do` |0246·0252, nia-final-receipt.json |
+| 공개 두 대상 batch | 입력한 페이지만(1페이지·깊이0·60초), 기본 연결. NIA complete(1 checked / 0 failed), 정부24 blocked(0 checked / 1 failed), 각각 findings0. 저장2/2 |0191·0194, batch-final-complete-verified-receipt.json |
+| 실제 재시작 | PID14196 정상 종료 후 새 PID28640. 두 caseId·complete/blocked 상태·확인 시도1/1·실패0/1 복원 |0204·0212·0214, batch-final-restart-comparison.json |
+| 공식 원본 | 두 공개 사례의 재시작 전후 result SHA-256 동일 | 같은 comparison |
+| 통합 XLSX | 전후 7개 시트의 모든 셀 값 동일, 수식0, ZIP 정상. 사례·확인/실패수·최종URL·external-redirect도 대조 | exports/restart-final-workbook-comparison.json |
+| 실제 Excel | 통합 보고서 7시트·대상 요약의 확인1/0·실패0/1·완료/접근제한 관측, 복구 경고 없음 |0224·0230 |
+| 소유 단일 양성 복원 | 이전 설치에서 만든 17 findings / 15 checked / 0 failed 사례를 최종 앱에서 재열기. f13 메모 원문·광고 의심·검토 완료, review revision3 보존 |0263, positive-final-receipt.json |
+| 양성 공식 JSON |4,586B, BOM 없음,17 findings, 설치 전 result.json과 byte-identical. SHA `ee73ffa07ac758efff7dfd6bceb7e6f0a4c2b1a2e945c8105b47019ed554f0bd` | exports/positive-final-official.json |
+| 양성 XLSX |16,508B,6시트, 탐지 상세18행·검토 기록2행. f13 메모·검토 완료·위반 의심 포함, 수식0·ZIP 정상. 실제 Excel 검토 시트 관측 | exports/positive-final-workbook-inspection.json,0289 |
+| 보존·종료 | 최초36사례286파일 전부 byte-identical. 설치 전40사례338파일 중337개 불변·기존 그룹 updatedAt만1건 갱신. 삭제0·예상치 못한 변경0, 현재43사례. 앱·Excel·소유 worker·시험 listener0 | final-closed-receipt.json, owned-cleanup.log |
 
-근거: `docs/ADOPTION_LEDGER.md` §「2026-10-23 통합 검증과 최종 후보」. 이 절은 "Windows에서의
-시험 실행(cross sysroot 없음)"을 NOT_RUN으로 명시하므로 `cargo test --bins`의 80 pass를
-Windows 실행 결과로 읽지 않는다. CI의 Windows lane 정의는
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) `windows-native` job
-(`cargo fmt --check`, `cargo clippy --locked --all-targets -- -D warnings`,
-`cargo test --locked`, `integration-smoke --packaged`, `build:desktop`)이다.
+정부24는 `https://plus.gov.kr/`로 외부 이동해 미점검으로 남는다. 성공 점검이나
+문제 없음으로 간주하지 않는다. 공개 두 대상의 탐지가0건이므로 **판단·메모를 포함한
+두 대상 통합 D08 수용은 NOT_RUN**이다. 소유 단일 양성은 별도 보충 증거다.
 
-## 5. Windows 설치 후보 identity
+신규 그룹은 `c92ac68e-e7f7-497f-bdeb-378cf5ac3a84`이며 NIA case
+`5661f10f-40af-4ba0-a2c8-df2a04c3e62a`, 정부24 case
+`58d39d56-29c9-49d7-baa4-9354f7d4cacd`를 연결한다.
+NIA 5페이지 단일 case는 `324adbc4-c8ba-4807-9991-590670d5d12c`,
+보충 양성 case는 `83af74d3-34b3-46df-b7cd-419064f21e22`다.
 
-후보: `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z/`
+보존 검사가 기존 그룹 `38c182c0…`의 변경을 탐지했다. 실제 파일과 설치 전 백업을
+대조한 결과 명시적 복원 시 `updatedAt`만 갱신됐고 대상·caseId·상태는 같았다.
+그 정확한 파일의 다른 필드가 모두 같은 증가 시각 갱신만 예상 변경으로 기록했다.
+다른 변경·삭제는 계속 실패시킨다. 제품 검증기는 변경하지 않았다. 초기 검사 실패도 보존했다.
 
-| 항목 | 값 |
-| --- | --- |
-| buildId | `0.2.1-x86_64-pc-windows-gnullvm-307f6b6ff09b-20261023T013033441Z` |
-| appVersion / target | `0.2.1` / `x86_64-pc-windows-gnullvm` |
-| source.commit / dirty | `1c0e8a34c407776ea6fb16943a1e8c73961c6d77` / `false` |
-| sourceSha256 | `307f6b6ff09b9ce04e0b157c6a9b9e1d87cf8c25148605e7731a4892addab731` |
-| installer | `747,381,035` B (712.76 MiB), sha256 `753b873c2b1454eae27fb5524cafaf4f70e682ae6ad660be2412a877a44f5ebc` |
-| standalone `krds-detector.exe` | `20,356,608` B, sha256 `112e1099daf303eacadee12339fa31083f96b55c6f61e8452aa33059b4cb8f9c` |
-| 설치본 exe(marker 변환 후, `markerOffset` 13534994) | sha256 `b6cc4411d2feecb9048dbb8f7dc3ecd568a4a944c368bedb7cb3877270211699` |
-| `releaseStatus` / `signing` | `candidate` / `unsigned-internal-candidate` |
-| 빌드 도구(manifest `tools`) | node `v26.8.1`, rustc `1.98.1`, tauri `2.12.1` |
+## 5. 전달 후보와 이전 후보 구분
 
-`verify-artifact` 결과: `node scripts/verify-artifact.mjs <candidate>/manifest.json`
-EXIT `0`, **8 files, 8/8 hash 일치, 목록 밖 파일 없음**
-(`ADOPTION_LEDGER.md` §통합 검증과 최종 후보). 이 검증은 설치 파일·native exe·manifest·
-build/resource manifest·SBOM·Cargo license inventory·third-party notices의 무결성을
-확인하며, **발행자 인증이 아니다**. standalone과 설치본 hash 차이는 Tauri의 `UNK`→`NSS`
-marker 변환에 따른 예상된 차이다 (`docs/BUILD_MANUAL.md` §산출물과 한계).
+buildId `0.2.1-x86_64-pc-windows-gnullvm-8628ba4a4488-20261023T061726351Z`.
+`build:desktop`, `package:windows`, `verify:artifact` EXIT0,8개 파일 검증·runtime1,177파일.
+파일별 크기·해시는 [EVIDENCE_INDEX.md](EVIDENCE_INDEX.md) §1을 따른다.
+빌드 후 제품 소스를 바꾸지 않았으며 문서 커밋은 별도다.
 
-installer 크기는 predecessor `…76e7d5ec…`(759.46 MiB, `796,348,611` B) 대비
-**−46.7 MiB**다. `1c0e8a3`의 `onnxruntime` payload pruning(win32-x64만 staging)에 따른
-결과이며, 스테이징 `node_modules`는 376 MB → 153 MB다.
+- `0361562d…`: NIA 진입 누락·D08 저장 실패가 재현된 이전 후보. 최종 통과본이 아니다.
+- `70a599fb…`: NIA5/0·공개2대상 저장/재시작/보고서는 확인했으나 복원 카드 카운터0 결함 발견.
+  최종 후보에서 같은 경로를 다시 관측했고 중간 후보와 실패 증거는 보존했다.
+- 양성 fixture의 탐지17개는 기존 Windows v3와 주소·위치·기법·원문·판정 튜플 및 순서가
+  동일하다(`positive-findings-comparison.json`). ML 모집단 재현율 주장은 아니다.
 
-## 6. Windows 11 실제 환경 수용 (v2, OBSERVED)
+## 6. 정밀도 재측정 (Linux, `f481d73`, MEASURED)
 
-증거: `artifacts/win-verify-20261023/README.md` v2 절·`RECEIPT-v2.json`·`screenshots/v2-*`·
-`exports-v2/`. 후보는 §5와 같다.
+`e54fe63`의 규칙 강화(정산 앵커 `가입코드`/`테더`/`usdt`로 축소, `환전`·`꽁머니`·`롤링`은
+리베이트 용어로만, `첫충`은 `/첫충(?!전)/`)를 **같은 190개 입력**에 다시 적용했다.
+입력은 `artifacts/vision-cpu-20261022/inputs.json`, sha256
+`eb1572b6162e76790ae477d921ae5ee1b96789bb7370add137c78a9f3a3e8ad3`이다. 원시 자료:
+`/mnt/nas/illegal-ad-artifacts-archive-20261023/vision-cpu-current-head/`.
 
-| 항목 | 관측값 |
-| --- | --- |
-| 전송·해시 | ASCII tar 767,805,440 B → installer 747,381,035 B, 4m32s, EXIT 0. Windows `Get-FileHash` installer `753b873c…f5ebc`, standalone `112e1099…8f9c` — 기대값 일치 |
-| 설치(대화형 NSIS) | UAC 없음(per-user), "Setup was completed successfully". 설치본 EXE `b6cc4411…1699`, 20,356,608 B — expected installed-marker와 정확히 일치 |
-| 실행 | 설치 관리자 Run 옵션으로 시작, 시작 화면 정상, 오류 대화상자 없음 |
-| loopback 점검 | detached Node fixture(127.0.0.1:18777, SSH 세션 비소유) → case `8991fad4-6aa4-41f5-9227-03e7f8a0f986`: **탐지 17건**, 확인 **15페이지**, 실패 **0**, 경과 **15초**, 기법 `TRANSPARENT`/`HOMOGLYPH`/`JAMO`/`OFFSCREEN`, 서버 로그에 앱 요청 19건 |
-| 닫힌 포트 | 127.0.0.1:18779(리스너 없음) → `502 access-navigation`(`network-policy` 아님) |
-| 검토 | 근거 보기 + 판단 **`광고 의심`**(저장값 `suspected`) + 메모 저장 |
-| 공식 JSON | 4,586 B, BOM 없음, 17 findings, `elapsed_sec` 15.407, sha256 `701ed484fc76106c1b94be34a9a1a461140e45d7f07a17f6d98f0eb6375f0a3d` — 저장된 `result.json`과 **byte-identical** |
-| XLSX | 16,514 B, 6 시트(`점검 요약, 반복 항목, 탐지 상세, 페이지·점검 범위, 추가 분석, 검토 기록`), 메모·판단 라벨 포함. **Excel 열람은 NOT_RUN** |
-| 재시작 | 종료 후 재실행: 메모 원문 복원, 담당자 판단 `광고 의심` 복원, 공식 bytes 불변 |
-| 프로세스 | `krds-detector` 0, `setup` 0, `chrome`/`chromium` 0 (`msedgewebview2` 6은 기존 baseline) |
-| 보존 | AppData 194 → 218 files, **추가 24·삭제 0·기존 수정 0**. 기존 케이스·설치본 삭제 없음 |
-
-**v1 정정**: 같은 날 v1 기록이 loopback 점검을 `403 access-network-policy` 회귀로 적은
-것은 **철회**한다. v1 fixture 서버는 스캔 시점에 이미 죽어 있었고(로그에 앱 요청 없음),
-[INFERENCE] 닫힌 포트를 측정한 것이었다. v2는 살아 있는 loopback 서버의 정상 점검과
-닫힌 포트의 `502 access-navigation` 분류를 모두 관측했다. v1 절은 역사 기록으로 남는다.
-
-**범위 제한**: 이 결과는 Windows 11 설치본·대화형 UI에 대한 것이다. MSVC 제품 경로,
-사람 사용성, 보조기기, 실제 Excel, D08 실제 앱 재시작 수용을 대신하지 않는다.
-
-## 7. NOT_RUN 표
-
-| 항목 | 상태 | 이유 / 근거 |
+| 묶음 | 결과 | 이전 측정 대비 |
 | --- | --- | --- |
-| Windows MSVC CI(`windows-native`, `required`) | BLOCKED | 계정 결제 차단으로 job 미시작(§8 원문) |
-| Windows target 시험 실행 | NOT_RUN | cross sysroot 없음 (`ADOPTION_LEDGER.md` §통합 검증과 최종 후보) |
-| D08 실제 Tauri window 재시작 후 통합 보고서 | NOT_RUN | 그룹 파일·IPC·재마운트 복원·통합 XLSX 재생성은 구현·자동 시험으로 확인(`bdcc0e8`). 설치된 앱 프로세스를 실제로 재시작하는 Windows 수용 시험은 없음 |
-| 기기 간 그룹 이식 | NOT_RUN | `bdcc0e8` commit message에 명시 |
-| WebView2 부재 offline 설치 | NOT_RUN | offline 설치 profile 없음 (`BUILD_MANUAL.md` §산출물과 한계) |
-| 코드 서명(Authenticode) | NOT_RUN | 조직 인증서·승인 없음, `unsigned-internal-candidate` |
-| Excel에서 내보낸 XLSX 실제 열람 | NOT_RUN | v2 수용에서 파일 구조만 검증 |
-| 무인 설치·제거·선행 후보 업그레이드 스크립트 경로 | NOT_RUN | 대화형 "Already Installed" 재설치만 수행 |
-| 실제 사람 사용성 평가 | NOT_RUN | 수행하지 않음 (`PLANNING_DOC.md` §8.4) |
-| 보조기기(AT) 판독 | NOT_RUN | 수행하지 않음, `ADOPTION_LEDGER.md` A11 |
+| 실제 출처 불법광고 배너 | `60/60` | 동일 |
+| 실제 정상 광고 오탐 | `0/74` | 동일 |
+| 파생 양성 대조군 | `17/18` | 동일 |
+| 파생 정상 대조군 오탐 | `0/38` | 동일 |
+
+판정이 바뀐 7행(`knownBlacktoon` original-1·2·3·4·5·8, `positive-bets8`)은 모두
+**v4 검토 → v3 규칙**으로 강화된 양성이며 pass/fail이 바뀐 행은 없다. 남은 누락은
+파생 `new-positive-butter` 1건이다. 이 표는 Linux CPU 환경의 측정이며 Windows 이미지
+경로의 실행 증거가 아니다. 상세: `docs/VISION_CPU_OPTIMIZATION_20261022.md` §정확도.
+
+
+## 7. 미실행 항목
+
+| 항목 | 상태 | 경계 |
+| --- | --- | --- |
+| 판단·메모 포함 공개2대상 D08 | NOT_RUN | 공개 두 대상 탐지0건, 소유 단일 양성은 별도 증거 |
+| Windows MSVC CI/제품 경로 | BLOCKED/NOT_RUN | 계정 결제 차단 이력, 새 remote 실행 없음 |
+| Windows Rust 단위 시험 실행 | NOT_RUN | host 실행과 교차 check만 수행 |
+| 강화된 이미지 광고의 Windows 실사이트 경로 | NOT_RUN | Linux190입력 역사 측정과 구분 |
+| 기기 간 그룹 이식 | NOT_RUN | 동일 PC 재시작만 확인 |
+| WebView2 부재 offline 설치/무인 관리·제거 | NOT_RUN | 대화형 per-user 재설치만 확인 |
+| 코드 서명 | NOT_RUN | unsigned-internal-candidate |
+| 사람 사용성·AT·저사양 목표환경 | NOT_RUN | Cua 조작·현재 PC 관측과 구분 |
 
 ## 8. CI 차단 기록(원문 인용 1회)
 
 이 브랜치의 Actions는 5회 시도 후 계정 결제 차단으로 job이 시작되지 않았고, 이후
-push(`1c0e8a3`, `e87799a`)에 대해서도 동일하게 시작되지 않았다. 마지막으로 step이
-실행된 시도는 HEAD `16d4b56`(dispatch `39806914699`, PR `39806920316`)이며 그조차
+push(`1c0e8a3`, `e87799a`, `ee123bb`, `e54fe63`, `f481d73`)에 대해서도 동일하게 시작되지
+않았다. 당시 기록된 시도는 HEAD `16d4b56`(dispatch `39806914699`, PR `39806920316`)이며 그조차
 실행된 step은 0개다. GitHub 표기 원문:
 
 > The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings
@@ -154,16 +145,9 @@ push(`1c0e8a3`, `e87799a`)에 대해서도 동일하게 시작되지 않았다. 
 `37967491010`의 Linux verify도 SUCCESS다. 이는 당시 commit의 기록이며 **현재 HEAD의
 CI 통과를 뜻하지 않는다** (`ADOPTION_LEDGER.md` §마일스톤과 검증 범위).
 
-## 9. 재현 명령
 
-```sh
-npm ci
-npx playwright-core install chromium --only-shell
-KRDS_TEST_UNSANDBOXED=1 npm run check
-npm run build
-node --test scripts/test/build-boundaries.test.mjs
-node --test scripts/test/windows-runtime-closure.test.mjs
-```
+## 9. 재현 자료
 
-Windows 후보 검증은 [`BUILD_AND_RUN.md`](BUILD_AND_RUN.md) §6, 전체 절차는
-[`docs/BUILD_MANUAL.md`](../BUILD_MANUAL.md)를 따른다.
+정확한 명령·버전·실패와 최종 결과는 `resumed-validation/COMMANDS.md`와
+`check-native-final.sh`, Windows `resumed-windows/*.ps1`, Cua 원시 요청/응답에 보존했다.
+빌드 절차는 [BUILD_AND_RUN.md](BUILD_AND_RUN.md)를 따른다.
