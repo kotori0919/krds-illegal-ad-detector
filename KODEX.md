@@ -15,6 +15,24 @@ It applies to:
 
 `GOAL.md` defines the current delivery objective.
 
+## Adoption invariants (2026-10-09)
+
+The current user-authorized adoption goal supersedes historical product freezes
+for internal behavior; the official JSON schema and historical artifacts remain
+immutable. Corrected detector output records a new engine/policy version.
+Raw evidence is never replaced by normalization, operator judgment or graph
+projections. Commit validated official output before publishing an exportable
+terminal state; optional evidence failures degrade independently. Cases belong
+in writable per-user storage, never the installation directory. Review revisions
+must reject stale writes. Reopening never crawls or fetches missing evidence.
+
+Keep browser isolation fail-closed, public-only pinned batch transport, bounded
+single-pass work, monotonic deadlines and owned process cleanup. External models
+remain disabled and optional. React uses typed HostBridge operations only.
+KRDS list/detail/keyboard/error behavior applies to saved cases and graph review.
+Build inputs, source/policy identities, migrations and external NOT_RUN acceptance
+must be explicit so a receiving team can build and operate without chat history.
+
 If a temporary task conflicts with this file, this file wins unless the user
 explicitly overrides the conflicting requirement.
 
@@ -71,6 +89,77 @@ It must be a usable inspection tool that:
 8. emits valid result.json;
 9. runs on Windows 11 without requiring a GPU;
 10. can be built from the submitted source code.
+
+
+# PRODUCT / OPERATOR UX CONSTITUTION
+
+The canonical user is a NIA or public-sector employee responsible for
+Internet and public-website operations, not a developer. The interface must
+remain understandable across ages and levels of computer proficiency.
+
+Design around the operator's job: 점검할 사이트 입력 → 자동 점검 → 문제 확인 →
+근거 검토 → 결과 저장 / 후속 업무. The three primary workflow states are
+점검 설정, 사이트 점검, 결과 검토. Evidence inspection and export are actions
+within 결과 검토, never separate workflow steps. Do not add permanent
+dashboard navigation to this single-task product without a demonstrated need.
+
+Normal operation requires one site address and sensible defaults. Put optional
+controls under 상세 설정, technical evidence under 기술 정보, and non-official
+intelligence under 추가 분석. Raw CSS selectors, session IDs, enum values,
+model scores, pHashes, worker statistics, and JSON are never primary UI.
+Keep essential decision evidence visible; progressive disclosure must not
+conceal why a finding matters.
+
+Use clear Korean labels, readable text and target sizes, keyboard navigation,
+visible focus, explicit non-colour-only status, actionable errors, and simple
+recovery paths. No user must know DOM, CSS, Unicode normalization, iframe
+internals, Playwright, OCR architecture, or model confidence mechanics to
+complete a scan. A finding must name the affected page and explain the
+observed advertisement and concealment in ordinary Korean. Inference must
+remain distinguishable from observation.
+
+Performance is part of the user experience. Show real scan stage, elapsed
+time, confirmed counts, meaningful recent activity, partial results and page
+failures where available, and a safe cancel action. Never show invented
+percentages or block the UI for background scanning. Preserve the cheap-first
+pipeline; capture visual evidence selectively, not for every element.
+
+Optimize repeated work: filters, page grouping, and finding inspection must
+retain list context; saving results and starting another scan must be direct.
+KRDS is the normative behavioural source for hierarchy, forms, statuses,
+search and filtering, result lists, feedback, dialogs, errors, accessibility,
+responsive layout, and task completion, not merely for colours and tokens.
+Record the applied patterns and any unverified behaviour in
+`docs/KRDS_COMPLIANCE.md`.
+
+Product V2 includes scanner architecture and Windows acceptance, not only the
+three-stage interface. A single monotonic deadline governs discovery,
+detection, evidence, and finalization. Process each live page once where
+possible: discover links, inspect DOM/CSS/geometry and live frames, detect,
+capture selected evidence, then close it. Use a bounded page-worker pool,
+initially 2 workers on <=4 logical CPUs, 3 on 5-8, and 4 above 8, with a
+hard maximum of 4. Benchmark this policy on the 4-vCPU/8-GB/no-GPU Windows
+target. Never launch an unbounded `Promise.all` over discovered pages or
+re-navigate each crawled page solely to detect it.
+
+Concurrent completion order must not choose pages at a scope limit or assign
+finding IDs. Apply deterministic frontier admission, canonical deduplication
+and sorting, then assign IDs. The official finding set must agree at worker
+counts 1, 2, 3, and 4 on the same realistic scenario. A worker may spend
+remaining time on official detection only if safe finalization remains;
+optional visual evidence yields first. Desired acceptance time is 1200 s,
+normal configured budget 1500 s, internal hard stop 1650 s, and the official
+ceiling 1800 s. Do not show the internal guard to ordinary operators.
+
+KRDS Adaptive is the V2 style track. Stay close to the base KRDS appearance
+unless a service need justifies an extension. Implement primitive -> semantic
+-> component tokens; components must not use arbitrary raw style values where
+KRDS tokens exist. Map each interaction to an official component/basic/service
+pattern before implementing it. The Product V2 release gate covers keyboard
+operation, focus and restoration, 360px reflow, 200% zoom, non-colour states,
+loading/empty/error/partial/cancel/save states, dialog focus, live status,
+clear Korean wording, and targets suitable for mixed-age operators. An
+unexplained KRDS pattern deviation blocks release.
 
 
 # 3. Evaluation-driven engineering priorities
@@ -862,19 +951,11 @@ The public-sector use case makes this especially important.
 
 Primary workflow:
 
-    URL
+    점검 설정 (URL 입력)
       ->
-    탐지 시작
+    사이트 점검 (진행 및 중지)
       ->
-    진행 상태
-      ->
-    탐지 결과
-      ->
-    근거 확인
-      ->
-    결과 검증
-      ->
-    result.json 생성
+    결과 검토 (탐지 항목별 / 페이지별, 근거 확인, 결과 저장)
 
 Avoid unnecessary dashboard pages.
 

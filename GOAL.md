@@ -1,5 +1,36 @@
 # GOAL.md
 
+## Current authorized maintenance (2026-10-23, after submission)
+
+The user has submitted the competition package. Preserve the tagged submission
+and its published ZIPs. Establish `main` from the reviewed submission source and
+protect it with pull requests, required Linux/Windows CI and resolved review
+conversations; apply the same rules to administrators and block force pushes and
+deletion. Author and validate subsequent fixes on `codex/` branches, then integrate
+through reviewed PRs. This instruction supersedes the historical Draft-only,
+no-merge and no-publication restrictions below for this repository.
+
+Continue the remaining defects. When the Windows test machine is reachable,
+install the candidate matching the corrected source and finish D08 using two
+public targets with official positive findings: save separate judgments and
+memos, restart the installed app, restore both cases and the batch, regenerate
+the integrated XLSX and inspect it in Excel. Preserve official JSON bytes and
+existing case data. Controlled regression tests are separate evidence from this
+installed-app acceptance. Current state: docs/ADOPTION_HANDOFF_KO.md and
+docs/ADOPTION_LEDGER.md.
+
+## Current authorized delivery (2026-10-09)
+
+Implement CODEX_NIA_ADOPTION_GOAL.md M0-M5 against dev/bootstrap and keep PR #2
+Draft. Reviewed baseline d14b8fe; preserve later work and historical RCs. The
+current implementation ledger is docs/ADOPTION_LEDGER.md. Internal adoption
+criteria extend the accepted V2.1 product; they are not NIA certification or
+new competition rules. No new Product Freeze approval gate applies.
+Completion requires the operator, maintainer, operations and evaluator
+demonstrations, a separately identified candidate and Korean handoff. External
+acceptance not run must remain explicit. No merge, release publication,
+submission, licensing change or signing credential acquisition is authorized.
+
 # 공공 웹사이트 불법광고 탐지 도구 개발 공모전
 ## Production Goal
 
@@ -13,6 +44,20 @@ Build, verify, package and document a complete Windows 11 submission for the
 "공공 웹사이트 불법광고 탐지 도구 개발 공모전".
 
 This goal is complete only when the actual submission artifact is ready.
+
+Product steering (2026-10-05): the Phase 11 five-screen layout below records
+the original implementation milestone, not the final information architecture.
+`KODEX.md` PRODUCT / OPERATOR UX CONSTITUTION and ADR-0010 set the current
+three-stage product target. The official competition and output requirements
+in this file remain unchanged. Product V2, realistic scenario validation, and
+current-build Windows acceptance are still pending.
+
+V2 scope expansion (2026-10-05): ADR-0011 adds a global monotonic deadline,
+single-pass live-page scanning, a bounded adaptive page-worker pool, stable
+concurrent result ordering, and a Windows 1–4 worker benchmark. ADR-0012 adds
+KRDS Adaptive pattern and primitive/semantic/component-token release gates.
+The original Phase 11 screen milestone and Phase 20 serial baseline are not
+Product V2 acceptance evidence.
 
 
 # 1. Success definition

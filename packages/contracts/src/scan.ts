@@ -1,5 +1,5 @@
 /**
- * Contract v0 (draft): scan lifecycle.
+ * Contract v0.2: one running state for concurrent discovery and analysis.
  *
  * The UI drives scans only through HostBridge; these types are the shared
  * vocabulary between the React app, the Tauri host, and the scanner worker.
@@ -10,29 +10,29 @@ export interface ScanLimits {
   maxPages: number;
   /** Max crawl depth below the entry URL. */
   maxDepth: number;
-  /** Hard wall-clock budget in seconds (official hard timeout: 1800). */
+  /** Configured scan budget in seconds; operator/host range is 60..1500. */
   timeoutSec: number;
   /** Max nested iframe depth to traverse. */
   maxFrameDepth: number;
 }
 
-export const DEFAULT_SCAN_LIMITS: ScanLimits = {
-  maxPages: 200,
-  maxDepth: 4,
-  timeoutSec: 1500,
-  maxFrameDepth: 4,
-};
+import { SCAN_POLICY } from "./config.js";
+
+export const DEFAULT_SCAN_LIMITS: ScanLimits = SCAN_POLICY.scan.defaults;
+
+export type ScanConnection = "direct" | "warp";
 
 export interface ScanRequest {
+  /** HostBridge fills the IPC version; ordinary UI inputs may omit it. */
+  configVersion?: 1;
   entryUrl: string;
-  topic?: string;
+  connection?: ScanConnection;
   limits?: Partial<ScanLimits>;
 }
 
 export type ScanStatus =
   | "queued"
-  | "crawling"
-  | "analyzing"
+  | "running"
   | "finalizing"
   | "succeeded"
   | "cancelled"
@@ -41,15 +41,19 @@ export type ScanStatus =
 export interface ScanSession {
   id: string;
   entryUrl: string;
-  topic: string;
   status: ScanStatus;
   startedAt: string;
   finishedAt?: string;
   error?: string;
+  /** Host sets this only after validated result artifacts have been persisted. */
+  hasResult?: boolean;
+  progress: ScanProgress;
 }
 
 export type ScanEventKind =
   | "session-started"
+  | "page-started"
+  | "page-failed"
   | "page-visited"
   | "page-queued"
   | "frame-inspected"
@@ -62,14 +66,28 @@ export type ScanEventKind =
   | "session-failed";
 
 export interface ScanProgress {
+  sequence: number;
   visitedPages: number;
+  failedPages: number;
   queuedPages: number;
+  currentPages: string[];
+  recentActivity: ScanActivity[];
   framesInspected: number;
   elementsAnalyzed: number;
   candidates: number;
   confirmedFindings: number;
   elapsedSec: number;
-  stage: string;
+  stage: ScanStatus;
+}
+
+export interface ScanActivity {
+  sequence: number;
+  kind: "session-started" | "finding-confirmed" | "page-failed" | "stage-changed"
+    | "session-finished" | "session-cancelled" | "session-failed";
+  elapsedSec: number;
+  stage: ScanStatus;
+  pageUrl?: string;
+  findingCount?: number;
 }
 
 export interface ScanEvent {
@@ -81,10 +99,14 @@ export interface ScanEvent {
   pageUrl?: string;
 }
 
-export function initialProgress(stage = "queued"): ScanProgress {
+export function initialProgress(stage: ScanStatus = "queued"): ScanProgress {
   return {
+    sequence: 0,
     visitedPages: 0,
+    failedPages: 0,
     queuedPages: 0,
+    currentPages: [],
+    recentActivity: [],
     framesInspected: 0,
     elementsAnalyzed: 0,
     candidates: 0,

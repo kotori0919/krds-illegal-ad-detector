@@ -8,7 +8,26 @@ coverage/
 *.tsbuildinfo
 apps/web/dist/
 packages/*/dist/
+packages/evidence/.model-cache/
 src-tauri/target/
+# same path as a symlink (git does not treat it as a directory)
+src-tauri/target
+benchmarks/native-session-l3/target/
+src-tauri/binaries/scanner-worker-*.mjs
+src-tauri/binaries/ocr-worker.mjs
+src-tauri/binaries/ocr-data/
+src-tauri/binaries/text-embedding-data/
+src-tauri/binaries/node.exe
+src-tauri/binaries/node-LICENSE
+src-tauri/binaries/usque.exe
+src-tauri/binaries/usque-LICENSE.md
+src-tauri/binaries/llvm-LICENSE
+src-tauri/binaries/*.dll
+src-tauri/binaries/node_modules/
+src-tauri/binaries/ms-playwright/
+src-tauri/binaries/build-manifest.json
+src-tauri/binaries/resources-manifest.json
+artifacts/
 playwright-report/
 test-results/
 result.json
@@ -21,3 +40,4 @@ result_extra.json
 **/*.js.map
 **/*.d.ts
 **/*.d.ts.map
+src-tauri/gen/

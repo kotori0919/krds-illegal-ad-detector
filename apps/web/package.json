@@ -1,6 +1,6 @@
 {
   "name": "@krds-detector/web",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,12 +11,17 @@
   },
   "dependencies": {
     "@krds-detector/contracts": "0.1.0",
+    "@krds-detector/evidence": "0.1.0",
+    "@tauri-apps/api": "^2.12.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^6.1.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^26.1.0",
     "vite": "^8.0.0"
   }
 }

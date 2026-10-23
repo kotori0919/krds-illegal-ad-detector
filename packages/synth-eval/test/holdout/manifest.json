@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "datasetVersion": "adoption-holdout-1",
+  "origin": "synthetic-authored-2026-10-09",
+  "rights": "Repository-authored text and markup; no captured website data, personal data, external image, or model data",
+  "splitUnit": [
+    "synthetic-site",
+    "template",
+    "creative-copy"
+  ],
+  "developmentSeedsExcluded": true,
+  "limitations": "Six authored templates are not an estimate of public-web prevalence or independent TP21; audit word categories remain known. No tuning based on this set is permitted without moving it to regression.",
+  "sites": [
+    {
+      "id": "municipal-agenda",
+      "templateId": "municipal-agenda-v1",
+      "file": "municipal-agenda.html",
+      "creativeId": "municipal-agenda-copy-1",
+      "expected": [
+        {
+          "selector": "#agenda-hidden",
+          "technique": "OFFSCREEN"
+        }
+      ]
+    },
+    {
+      "id": "cooperative-guide",
+      "templateId": "cooperative-guide-v1",
+      "file": "cooperative-guide.html",
+      "creativeId": "cooperative-guide-copy-1",
+      "expected": [
+        {
+          "selector": "#guide-jamo",
+          "technique": "JAMO"
+        }
+      ]
+    },
+    {
+      "id": "festival-catalog",
+      "templateId": "festival-catalog-v1",
+      "file": "festival-catalog.html",
+      "creativeId": "festival-catalog-copy-1",
+      "expected": [
+        {
+          "selector": "#catalog-transparent",
+          "technique": "TRANSPARENT"
+        }
+      ]
+    },
+    {
+      "id": "archive-help",
+      "templateId": "archive-help-v1",
+      "file": "archive-help.html",
+      "creativeId": "archive-help-copy-1",
+      "expected": [
+        {
+          "selector": "#archive-width",
+          "technique": "HOMOGLYPH"
+        }
+      ]
+    },
+    {
+      "id": "museum-catalog",
+      "templateId": "museum-catalog-v1",
+      "file": "museum-catalog.html",
+      "creativeId": "museum-catalog-normal-copy",
+      "expected": []
+    },
+    {
+      "id": "service-hours",
+      "templateId": "service-hours-v1",
+      "file": "service-hours.html",
+      "creativeId": "service-hours-normal-copy",
+      "expected": []
+    }
+  ]
+}

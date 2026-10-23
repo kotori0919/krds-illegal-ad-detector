@@ -1,0 +1,13 @@
+{
+  "positive": [
+    { "page": "/post.html", "selector": "#comment-ad", "technique": "HOMOGLYPH" },
+    { "page": "/post.html", "selector": "#hidden-ad", "technique": "TRANSPARENT" },
+    { "page": "/post.html", "selector": "#late-comment", "technique": "JAMO" },
+    { "page": "/post.html", "selector": "#late-comment", "technique": "OFFSCREEN" },
+    { "page": "/frame.html", "selector": "#frame-ad", "technique": "JAMO" }
+  ],
+  "expectedAttemptedPages": 6,
+  "expectedCheckedPages": 5,
+  "expectedFailedPages": 1,
+  "negativePages": ["/", "/board.html", "/notice.html", "/report.html"]
+}

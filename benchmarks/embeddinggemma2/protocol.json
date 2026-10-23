@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "createdBeforeInference": true,
+  "objective": "Paired offline comparison on the same eight archived Blacktoon banner crops and ordinary controls. Determine whether a frozen multimodal embedding model adds useful review candidates without false positives.",
+  "model": "google/embeddinggemma-2",
+  "revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+  "device": "cpu",
+  "dtype": "float32",
+  "threads": 2,
+  "seeds": [17, 29, 43],
+  "normalizeEmbeddings": true,
+  "embeddingDimension": 768,
+  "cosineTolerance": 0.00001,
+  "primaryVariant": "baseline OR (observed external candidate AND interleaved image+OCR positive-minus-negative cosine margin >= 0.05)",
+  "margin": 0.05,
+  "diagnosticVariants": ["text-only OCR", "image-only", "interleaved image+OCR", "nearest class at margin 0; diagnostic only"],
+  "decisionRole": "Review candidate only. Embedding similarity is not OCR transcription or legal proof and never adds an official concealment finding.",
+  "positivePrompts": [
+    "온라인 카지노 신규 가입과 첫 입금 보너스를 광고하는 배너",
+    "사설 도박 사이트의 첫충, 페이백, 콤프와 롤링 혜택 광고",
+    "스포츠 토토 베팅 사이트의 충전과 환전 및 가입코드 홍보",
+    "테더와 USDT 입출금을 받는 카지노와 바카라 도박 광고",
+    "An online casino advertisement offering first deposit bonuses and cash withdrawals.",
+    "A gambling banner advertising cashback, comp rewards and wagering rollover bonuses.",
+    "An advertisement inviting people to join a sports betting website with a referral code.",
+    "A casino promotion for anonymous cryptocurrency deposits, USDT and payouts."
+  ],
+  "negativePrompts": [
+    "공식 쇼핑몰의 제품 구매 할인, 회원 가입 쿠폰과 무료 배송 광고",
+    "정상 온라인 게임의 아이템과 게임 머니 충전 이벤트 광고",
+    "불법 도박과 카지노 광고를 신고하고 피해를 예방하라는 공공 교육 안내",
+    "도서관 전자책 대출 서비스 안내와 웹사이트의 단순 로고 그림",
+    "An ordinary retailer advertisement for phones or home appliances, discounts and purchase benefits.",
+    "A legal mobile game promotion for virtual items and in-game currency recharge.",
+    "A public information poster warning about gambling harm and reporting illegal casino advertisements.",
+    "A library lending service announcement, website logo or ordinary illustration."
+  ],
+  "scoring": "For each embedding take maximum cosine against positive text descriptions minus maximum against negative descriptions. Texts use the official Classification prefix; images do not. No model fitting, prompt tuning or threshold selection on these evaluated images.",
+  "split": "All eight known positives and original five controls are development regression data, not holdout. Additional ordinary official-retailer advertisements and synthetic hard negatives are frozen before inference and reported separately; this small selected corpus is not population performance.",
+  "ablation": "Compare identical inputs with text only, image only and interleaved image+OCR. Also compare all-white image replacement and OCR text omission. Repeat frozen inference for paired seeds; report output dispersion and median latency with range.",
+  "success": "At the predeclared primary margin, at least one additional true review candidate with no extra false positives on either original controls or additional normal advertisements. Otherwise do not claim a useful primary improvement or enable in production.",
+  "nonGoals": ["Windows verification", "production model adoption before measurement", "new concealment techniques", "cross-case discovery", "remote AI inference", "threshold fitting on evaluation data"]
+}

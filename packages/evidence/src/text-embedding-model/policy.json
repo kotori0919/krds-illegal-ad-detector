@@ -1,0 +1,35 @@
+{
+  "policy": "text-ad-embedding-v3",
+  "threshold": 0,
+  "prefix": "task: classification | query: ",
+  "maxCharacters": 4096,
+  "maxTokens": 256,
+  "positivePrompts": [
+    "온라인 카지노 신규 가입과 첫 입금 보너스를 광고하는 배너",
+    "사설 도박 사이트의 첫충, 페이백, 콤프와 롤링 혜택 광고",
+    "스포츠 토토 베팅 사이트의 충전과 환전 및 가입코드 홍보",
+    "테더와 USDT 입출금을 받는 카지노와 바카라 도박 광고",
+    "An online casino advertisement offering first deposit bonuses and cash withdrawals.",
+    "A gambling banner advertising cashback, comp rewards and wagering rollover bonuses.",
+    "An advertisement inviting people to join a sports betting website with a referral code.",
+    "A casino promotion for anonymous cryptocurrency deposits, USDT and payouts."
+  ],
+  "negativePrompts": [
+    "공식 쇼핑몰의 제품 구매 할인, 회원 가입 쿠폰과 무료 배송 광고",
+    "정상 온라인 게임의 아이템과 게임 머니 충전 이벤트 광고",
+    "불법 도박과 카지노 광고를 신고하고 피해를 예방하라는 공공 교육 안내",
+    "도서관 전자책 대출 서비스 안내와 웹사이트의 단순 로고 그림",
+    "An ordinary retailer advertisement for phones or home appliances, discounts and purchase benefits.",
+    "A legal mobile game promotion for virtual items and in-game currency recharge.",
+    "A public information poster warning about gambling harm and reporting illegal casino advertisements.",
+    "A library lending service announcement, website logo or ordinary illustration.",
+    "외국어 시험 점수 향상을 위한 학원 강의와 무료 교재 및 학습 자료 배포 광고",
+    "An education advertisement for language classes, exam preparation, free textbooks and study materials.",
+    "An exam course advertisement offering a tuition refund, scholarship or money back on passing a qualification test.",
+    "A game item redemption code giving a profile border or cosmetic reward rather than money deposits or cash withdrawals."
+  ],
+  "imageNegativePrompts": [
+    "정상 교육기관의 자격시험 강의 패키지, 수강 할인 쿠폰과 교재 제공 광고",
+    "게임 아이템 교환코드를 입력하면 프로필 테두리나 꾸미기 보상을 얻는 이벤트 안내"
+  ]
+}

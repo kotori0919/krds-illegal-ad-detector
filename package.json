@@ -1,24 +1,56 @@
 {
   "name": "krds-illegal-ad-detector",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.1",
   "type": "module",
   "workspaces": [
     "apps/web",
-    "packages/contracts"
+    "packages/contracts",
+    "packages/synth-eval",
+    "packages/scanner",
+    "packages/detection",
+    "packages/evidence"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/web",
-    "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json",
+    "typecheck": "tsc -b && tsc --noEmit -p packages/contracts/tsconfig.check.json && tsc --noEmit -p packages/synth-eval/tsconfig.check.json && tsc --noEmit -p packages/scanner/tsconfig.check.json && tsc --noEmit -p packages/detection/tsconfig.check.json && tsc --noEmit -p packages/evidence/tsconfig.check.json",
     "test": "vitest run",
-    "build": "npm run build -w apps/web",
+    "build": "npm run build -w packages/contracts && npm run build -w packages/evidence && npm run build -w apps/web",
+    "build:scanner": "npm run build -w packages/contracts && npm run build -w packages/synth-eval && npm run build -w packages/scanner && npm run build -w packages/evidence && npm run build -w packages/detection",
+    "build:sidecar": "node scripts/build-sidecar.mjs",
+    "prepare:windows-runtime": "node scripts/prepare-windows-runtime.mjs",
+    "prepare:embedding-references": "node scripts/prepare-embedding-references.mjs",
+    "benchmark:concurrency": "npm run build:scanner && node benchmarks/concurrency.mjs",
+    "benchmark:banner-recall": "npm run build:scanner && node benchmarks/banner-recall.mjs",
+    "smoke:worker": "npm run build:scanner && node benchmarks/worker-l3.mjs",
+    "smoke:sidecar": "npm run build:sidecar && node benchmarks/worker-l3.mjs --bundled",
+    "smoke:native-session": "npm run build:sidecar && cargo test --manifest-path benchmarks/native-session-l3/Cargo.toml --locked --offline host_persistence -- --nocapture",
+    "smoke:real-evidence-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-real-evidence-smoke.mjs",
+    "smoke:live-progress-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-live-progress-smoke.mjs",
+    "smoke:ui-modes": "npm run build && node benchmarks/ui-modes-smoke.mjs",
+    "smoke:ui-states": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-states-smoke.mjs",
+    "smoke:extra-ui": "npm run build:scanner && npm run build -w apps/web && node benchmarks/ui-extra-smoke.mjs",
+    "smoke:ui-native-zoom": "xvfb-run -a node benchmarks/ui-native-zoom-smoke.mjs",
     "lint": "eslint .",
-    "clean": "rm -rf packages/contracts/dist apps/web/dist"
+    "clean": "node scripts/clean.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "test:integration": "npm run build:scanner && node scripts/integration-smoke.mjs",
+    "build:desktop": "node scripts/desktop.mjs build",
+    "package:windows": "node scripts/desktop.mjs package",
+    "verify:artifact": "node scripts/verify-artifact.mjs",
+    "supply-chain": "node scripts/supply-chain.mjs"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.0",
+    "@types/node": "22.19.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9.34.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.41.0",
     "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": "^22.19.0 || ^24.0.0 || ^26.0.0"
   }
 }

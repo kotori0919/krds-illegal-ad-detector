@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "hg-casino",
+      "kind": "positive",
+      "page": "/positives/homoglyph.html",
+      "selector": "#ad-hg-casino",
+      "techniques": [
+        "HOMOGLYPH"
+      ],
+      "notes": "Fullwidth K + casino ad semantics"
+    },
+    {
+      "id": "hg-baccarat",
+      "kind": "positive",
+      "page": "/positives/homoglyph.html",
+      "selector": "#ad-hg-baccarat",
+      "techniques": [
+        "HOMOGLYPH"
+      ],
+      "notes": "Fullwidth B + baccarat ad semantics"
+    },
+    {
+      "id": "jamo-casino",
+      "kind": "positive",
+      "page": "/positives/jamo.html",
+      "selector": "#ad-jamo-casino",
+      "techniques": [
+        "JAMO"
+      ],
+      "notes": "Compatibility Jamo spelling of casino"
+    },
+    {
+      "id": "jamo-loan",
+      "kind": "positive",
+      "page": "/positives/jamo.html",
+      "selector": "#ad-jamo-loan",
+      "techniques": [
+        "JAMO"
+      ],
+      "notes": "Spaced syllables spelling loan ad"
+    },
+    {
+      "id": "tr-opacity",
+      "kind": "positive",
+      "page": "/positives/transparent.html",
+      "selector": "#ad-tr-opacity",
+      "techniques": [
+        "TRANSPARENT"
+      ],
+      "notes": "opacity:0 loan ad"
+    },
+    {
+      "id": "tr-samecolor",
+      "kind": "positive",
+      "page": "/positives/transparent.html",
+      "selector": "#ad-tr-samecolor",
+      "techniques": [
+        "TRANSPARENT"
+      ],
+      "notes": "Same fg/bg cash-conversion ad"
+    },
+    {
+      "id": "off-displaynone",
+      "kind": "positive",
+      "page": "/positives/offscreen.html",
+      "selector": "#ad-off-displaynone",
+      "techniques": [
+        "OFFSCREEN"
+      ],
+      "notes": "display:none betting ad"
+    },
+    {
+      "id": "off-negpos",
+      "kind": "positive",
+      "page": "/positives/offscreen.html",
+      "selector": "#ad-off-negpos",
+      "techniques": [
+        "OFFSCREEN"
+      ],
+      "notes": "left:-9999px casino bonus ad"
+    },
+    {
+      "id": "off-fontsize",
+      "kind": "positive",
+      "page": "/positives/offscreen.html",
+      "selector": "#ad-off-fontsize",
+      "techniques": [
+        "OFFSCREEN"
+      ],
+      "notes": "font-size:0 holdem exchange ad"
+    },
+    {
+      "id": "combo-hg",
+      "kind": "positive",
+      "page": "/positives/combined.html",
+      "selector": "#ad-combo",
+      "techniques": [
+        "HOMOGLYPH",
+        "TRANSPARENT"
+      ],
+      "notes": "One element, two techniques: fullwidth C + opacity:0"
+    },
+    {
+      "id": "frame-jamo",
+      "kind": "positive",
+      "page": "/structural/inner.html",
+      "selector": "#ad-frame-jamo",
+      "techniques": [
+        "JAMO"
+      ],
+      "framePath": [
+        {
+          "src": "/structural/middle.html",
+          "selector": "#frame-outer"
+        },
+        {
+          "src": "/structural/inner.html",
+          "selector": "#frame-inner"
+        }
+      ],
+      "notes": "Nested iframe Jamo ad; outer page /structural/outer.html"
+    },
+    {
+      "id": "query-hg",
+      "kind": "positive",
+      "page": "/structural/board.html?id=101",
+      "selector": "#ad-query-hg",
+      "techniques": [
+        "HOMOGLYPH"
+      ],
+      "notes": "Query-param page; id=102 variant is clean (tests value-preserving dedup)"
+    },
+    {
+      "id": "delayed-offscreen",
+      "kind": "positive",
+      "page": "/structural/delayed.html",
+      "selector": "#ad-delayed-injected",
+      "techniques": [
+        "JAMO",
+        "OFFSCREEN"
+      ],
+      "notes": "JS-injected after ~1.2s; Jamo loan text placed offscreen (two techniques, one element)"
+    },
+    {
+      "id": "neg-skip-link",
+      "kind": "negative",
+      "page": "/negatives.html",
+      "selector": "#skip-link",
+      "notes": "sr-only accessibility content, no ad semantics"
+    },
+    {
+      "id": "neg-nav",
+      "kind": "negative",
+      "page": "/negatives.html",
+      "selector": "#nav-hidden",
+      "notes": "Hidden navigation, no ad semantics"
+    },
+    {
+      "id": "neg-modal",
+      "kind": "negative",
+      "page": "/negatives.html",
+      "selector": "#modal-hidden",
+      "notes": "Legitimate display:none dialog"
+    },
+    {
+      "id": "neg-responsive",
+      "kind": "negative",
+      "page": "/negatives.html",
+      "selector": "#responsive-note",
+      "notes": "Responsive element hidden at narrow widths"
+    },
+    {
+      "id": "neg-jamo",
+      "kind": "negative",
+      "page": "/negatives.html",
+      "selector": "#jamo-legit",
+      "notes": "Legitimate Jamo educational text, visible, no concealment"
+    },
+    {
+      "id": "neg-unicode",
+      "kind": "negative",
+      "page": "/negatives.html",
+      "selector": "#unicode-legit",
+      "notes": "Legitimate multilingual city names, no ad semantics"
+    },
+    {
+      "id": "neg-appstate",
+      "kind": "negative",
+      "page": "/negatives.html",
+      "selector": "#app-state",
+      "notes": "Normal display:none application state"
+    },
+    {
+      "id": "struct-dedup",
+      "kind": "structural",
+      "page": "/posts/notice.html",
+      "notes": "Same content via /posts/notice.html and ?ref=main; crawler must deduplicate"
+    },
+    {
+      "id": "struct-query-clean",
+      "kind": "structural",
+      "page": "/structural/board.html?id=102",
+      "notes": "Clean query variant; must NOT merge with id=101"
+    },
+    {
+      "id": "comment-hidden",
+      "kind": "positive",
+      "page": "/posts/comments.html",
+      "selector": "#comment-2",
+      "techniques": [
+        "HOMOGLYPH",
+        "OFFSCREEN"
+      ],
+      "notes": "Hidden comment ad: fullwidth S + display:none"
+    }
+  ]
+}

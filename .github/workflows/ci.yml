@@ -2,19 +2,82 @@ name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      package_candidate:
+        description: 'Build an unsigned internal Windows MSVC candidate (no release)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Model asset provisioning on first run (OCR + embedding assets)
+    timeout-minutes: 35
+    env:
+      # Controlled test fixtures only; the Windows worker lane exercises the
+      # production sandbox without this explicit Vitest adapter.
+      KRDS_TEST_UNSANDBOXED: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.19.0
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run test
+      - run: npx playwright-core install chromium --only-shell
+      - run: npm run build:scanner
+      - run: npm run check
+      - run: node --test scripts/test/build-boundaries.test.mjs
+      - run: node --test scripts/test/windows-runtime-closure.test.mjs
       - run: npm run build
+
+  windows-native:
+    runs-on: windows-latest
+    # Model asset provisioning on first run + Rust build
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.19.0
+          cache: npm
+      - run: rustup toolchain install 1.98.1 --profile minimal --component rustfmt,clippy
+      - run: npm ci
+      - run: npm run prepare:windows-runtime
+      - run: npm run build:scanner
+      - run: node scripts/desktop.mjs resources
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets -- -D warnings
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked
+      - run: node scripts/integration-smoke.mjs --packaged
+      - run: npm run build:desktop
+      - if: github.event_name == 'workflow_dispatch' && inputs.package_candidate
+        run: npm run package:windows
+      - if: github.event_name == 'workflow_dispatch' && inputs.package_candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-internal-msvc-candidate
+          path: artifacts/candidate-*/
+          retention-days: 14
+
+  required:
+    if: always()
+    needs: [verify, windows-native]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require both boundaries
+        env:
+          TS_RESULT: ${{ needs.verify.result }}
+          WINDOWS_RESULT: ${{ needs.windows-native.result }}
+        run: test "$TS_RESULT" = success && test "$WINDOWS_RESULT" = success

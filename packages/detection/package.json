@@ -1,0 +1,17 @@
+{
+  "name": "@krds-detector/detection",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json"
+  },
+  "dependencies": {
+    "@krds-detector/contracts": "0.1.0",
+    "@krds-detector/evidence": "0.1.0",
+    "@krds-detector/scanner": "0.1.0",
+    "@krds-detector/synth-eval": "0.1.0",
+    "playwright-core": "^1.63.0"
+  }
+}

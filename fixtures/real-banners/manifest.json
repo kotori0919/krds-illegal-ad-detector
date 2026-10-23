@@ -1,0 +1,87 @@
+{
+  "sourceUrl": "https://blacktoon424.com/",
+  "sourceScreenshot": "artifacts/dogfood-20261014/blacktoon-usque.png",
+  "scope": "Fixed internal regression corpus; eight manually selected visible gambling promotions, four synthetic controls; not independent holdout; other seven positives remain measured misses, not expected negatives",
+  "inputs": [
+    {
+      "file": "blacktoon-1.png",
+      "kind": "positive",
+      "sha256": "e516e03c16ee0f89a68616a966e41ef45e4c91bfbf2fd7859ff7a9d35167269a",
+      "source": "archived real BlackToon screenshot crop, not original resource bytes",
+      "knownFixed": false
+    },
+    {
+      "file": "blacktoon-2.png",
+      "kind": "positive",
+      "sha256": "66a47f5ddc28a561ab0546d992c44f0cb333e2b6e244619c6c6216171243d8c0",
+      "source": "archived real BlackToon screenshot crop, not original resource bytes",
+      "knownFixed": false
+    },
+    {
+      "file": "blacktoon-3.png",
+      "kind": "positive",
+      "sha256": "e888a88d2207c67abb0542e2e69b45fa9827423a42628025e6d27f8a5d9f1cae",
+      "source": "archived real BlackToon screenshot crop, not original resource bytes",
+      "knownFixed": false
+    },
+    {
+      "file": "blacktoon-4.png",
+      "kind": "positive",
+      "sha256": "7dffbf3c177a88055bb82d4eafc0777499fad1a0d891e5dc59a02ca8e6bd0adc",
+      "source": "archived real BlackToon screenshot crop, not original resource bytes",
+      "knownFixed": false
+    },
+    {
+      "file": "blacktoon-5.png",
+      "kind": "positive",
+      "sha256": "61a20ade9e6a5ac434bb732d593d0763f98b4a546f0c65c37c8c20a90c5deb45",
+      "source": "archived real BlackToon screenshot crop, not original resource bytes",
+      "knownFixed": false
+    },
+    {
+      "file": "blacktoon-6.png",
+      "kind": "positive",
+      "sha256": "aafd865c689b992434ed96354d99ddf66031a0b8b65a08b0cfd8c35a0505bd3b",
+      "source": "archived real BlackToon screenshot crop, not original resource bytes",
+      "knownFixed": false
+    },
+    {
+      "file": "blacktoon-7.png",
+      "kind": "positive",
+      "sha256": "ea4f5ff3b632845f8562dd2ef6cdb6b0b0eaa6478e0111f9cd9a9580ad938317",
+      "source": "archived real BlackToon screenshot crop, not original resource bytes",
+      "knownFixed": true
+    },
+    {
+      "file": "blacktoon-8.png",
+      "kind": "positive",
+      "sha256": "af9369949d014a88d22a1a830d8933c7405985d28c1524a29048096fed3face8",
+      "source": "archived real BlackToon screenshot crop, not original resource bytes",
+      "knownFixed": false
+    },
+    {
+      "file": "negative-logo.png",
+      "kind": "negative",
+      "sha256": "9fbecec1fa51530a8ec96c2a7a9d4ea2d71bdb832b1a55778de98c226d891caa",
+      "source": "synthetic control, not real-world false-positive prevalence"
+    },
+    {
+      "file": "negative-commercial.png",
+      "kind": "negative",
+      "sha256": "2c9cd1ddc1103487da38482d33b8ebc6d1057e91bc9d21bd60974484f13279b7",
+      "source": "synthetic control, not real-world false-positive prevalence"
+    },
+    {
+      "file": "negative-public-notice.png",
+      "kind": "negative",
+      "sha256": "951c094e8e09ad5db5394007708a0c61fc25f0bf8d93875d651231e4f2370211",
+      "source": "synthetic control, not real-world false-positive prevalence"
+    },
+    {
+      "file": "negative-library-service.png",
+      "kind": "negative",
+      "sha256": "5bbe7f1fa9eb48f356af1854f4da335a8d117cbf4f0d311b9f1a2c36e6d3f62f",
+      "source": "synthetic control, not real-world false-positive prevalence"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "valid": {
+    "rawText": "前😀ＣＡＳＩＮＯ 가입後",
+    "textPolicy": {
+      "version": "text-policy-2", "reasonCodes": ["AD_CATEGORY", "AD_OFFER"],
+      "analysisText": "😀ＣＡＳＩＮＯ 가입", "alignment": "exact",
+      "sourceMapping": [{ "analysisStart": 0, "sourceStart": 1, "length": 11 }],
+      "matches": [{ "term": "casino", "start": 2, "end": 8, "raw": "ＣＡＳＩＮＯ", "transforms": ["width", "case"] }],
+      "techniqueSpans": [{ "term": "casino", "start": 2, "end": 8, "raw": "ＣＡＳＩＮＯ", "transforms": ["width", "case"] }],
+      "offerSpans": [{ "start": 9, "end": 11, "raw": "가입" }], "quotedSpans": [], "truncated": false
+    },
+    "renderingIssues": ["unsupported inset clip"],
+    "timing": { "workerStartedAt": "2026-10-09T00:00:00Z", "officialFinalizedAt": "2026-10-09T00:00:01Z", "analysisFinishedAt": "2026-10-09T00:00:02Z", "analysisElapsedMs": 1200.25 }
+  },
+  "invalid": [
+    { "name": "future policy", "path": ["textPolicy", "version"], "value": "text-policy-3" },
+    { "name": "unknown reason", "path": ["textPolicy", "reasonCodes"], "value": ["invented"] },
+    { "name": "duplicate reason", "path": ["textPolicy", "reasonCodes"], "value": ["AD_CATEGORY", "AD_CATEGORY"] },
+    { "name": "non-string text", "path": ["textPolicy", "analysisText"], "value": 4 },
+    { "name": "invalid alignment", "path": ["textPolicy", "alignment"], "value": "guessed" },
+    { "name": "fake exact mapping", "path": ["textPolicy", "sourceMapping", 0, "sourceStart"], "value": 0 },
+    { "name": "mapping exceeds analysis", "path": ["textPolicy", "sourceMapping", 0, "length"], "value": 12 },
+    { "name": "mapping gap", "path": ["textPolicy", "sourceMapping", 0, "analysisStart"], "value": 1 },
+    { "name": "mapping not array", "path": ["textPolicy", "sourceMapping"], "value": null },
+    { "name": "span beyond UTF16 text", "path": ["textPolicy", "matches", 0, "end"], "value": 12 },
+    { "name": "span raw differs", "path": ["textPolicy", "matches", 0, "raw"], "value": "CASINO" },
+    { "name": "surrogate split", "path": ["textPolicy", "offerSpans"], "value": [{"start":0,"end":1,"raw":"😀"}] },
+    { "name": "negative offset", "path": ["textPolicy", "matches", 0, "start"], "value": -1 },
+    { "name": "fractional offset", "path": ["textPolicy", "matches", 0, "start"], "value": 2.5 },
+    { "name": "unknown transform", "path": ["textPolicy", "techniqueSpans", 0, "transforms"], "value": ["invented"] },
+    { "name": "untyped truncated", "path": ["textPolicy", "truncated"], "value": "false" },
+    { "name": "invalid rendering issue", "path": ["renderingIssues"], "value": [3] },
+    { "name": "empty rendering issue", "path": ["renderingIssues"], "value": [""] },
+    { "name": "negative duration", "path": ["timing", "analysisElapsedMs"], "value": -1 },
+    { "name": "invalid timestamp", "path": ["timing", "workerStartedAt"], "value": "tomorrow" },
+    { "name": "invalid calendar date", "path": ["timing", "workerStartedAt"], "value": "2026-02-30T00:00:00Z" },
+    { "name": "reverse timing", "path": ["timing", "analysisFinishedAt"], "value": "2026-10-08T23:59:59Z" }
+  ]
+}

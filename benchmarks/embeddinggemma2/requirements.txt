@@ -1,0 +1,7 @@
+# CPU torch comes from https://download.pytorch.org/whl/cpu; use a separate venv.
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+transformers==5.20.2
+sentence-transformers==6.1.0
+pillow==12.3.0
+numpy==2.5.4

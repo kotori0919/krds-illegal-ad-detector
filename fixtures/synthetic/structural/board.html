@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>쿼리 게시판</title>
+  </head>
+  <body>
+    <main>
+      <h1>게시판</h1>
+      <div id="board-body">로딩 중…</div>
+      <script>
+        var params = new URLSearchParams(location.search);
+        var body = document.getElementById("board-body");
+        if (params.get("id") === "101") {
+          var p = document.createElement("p");
+          p.id = "ad-query-hg";
+          p.textContent = "Ｓ슬롯 무료체험 머니 지급";
+          body.replaceChildren(p);
+        } else {
+          body.textContent = "정상 공지입니다. 정기 점검이 예정되어 있습니다.";
+        }
+      </script>
+    </main>
+  </body>
+</html>

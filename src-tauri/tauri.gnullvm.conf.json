@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "resources": {
+      "binaries/libunwind.dll": "libunwind.dll",
+      "binaries/WebView2Loader.dll": "WebView2Loader.dll",
+      "binaries/llvm-LICENSE": "llvm-LICENSE"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>불법광고 탐지 평가 허브</title>
+  </head>
+  <body>
+    <main id="main">
+      <h1>평가 허브</h1>
+      <p>결정적 로컬 평가 사이트. Ground truth: <code>ground-truth.json</code>.</p>
+      <h2>공식 양성</h2>
+      <ul>
+        <li><a href="/positives/homoglyph.html">HOMOGLYPH 양성</a></li>
+        <li><a href="/positives/jamo.html">JAMO 양성</a></li>
+        <li><a href="/positives/transparent.html">TRANSPARENT 양성</a></li>
+        <li><a href="/positives/offscreen.html">OFFSCREEN 양성</a></li>
+        <li><a href="/positives/combined.html">복합 기법 (한 요소, 두 기법)</a></li>
+      </ul>
+      <h2>구조 케이스</h2>
+      <ul>
+        <li><a href="/structural/outer.html">중첩 iframe</a></li>
+        <li><a href="/structural/board.html?id=101">쿼리 페이지 (광고 있음)</a></li>
+        <li><a href="/structural/board.html?id=102">쿼리 페이지 (정상)</a></li>
+        <li><a href="/structural/delayed.html">지연 삽입 콘텐츠</a></li>
+      </ul>
+      <h2>게시글과 댓글</h2>
+      <ul>
+        <li><a href="/posts/comments.html">댓글 광고 포함 게시글</a></li>
+      </ul>
+      <h2>동일 콘텐츠, 다른 링크 (크롤러 중복 제거 대상)</h2>
+      <ul>
+        <li><a href="/posts/notice.html">공지 상세</a></li>
+        <li><a href="/posts/notice.html?ref=main">공지 상세 (ref 링크)</a></li>
+      </ul>
+      <h2>음성 케이스</h2>
+      <ul>
+        <li><a href="/negatives.html">정상 숨김 UI 모음</a></li>
+      </ul>
+    </main>
+  </body>
+</html>

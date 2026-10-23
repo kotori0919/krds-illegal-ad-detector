@@ -1,0 +1,26 @@
+[package]
+name = "krds-detector"
+version = "0.2.1"
+edition = "2021"
+description = "Tauri 2 thin native host for the illegal-ad detector (scanner lifecycle, filesystem export, process supervision)"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+base64 = "0.22"
+url = "=2.5.8"
+tauri-plugin-dialog = "2.8.0"
+tauri-plugin-fs = "2.6.0"
+
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

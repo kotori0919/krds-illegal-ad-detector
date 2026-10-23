@@ -1,82 +1,270 @@
-import { useState, type FormEvent } from "react";
-import type { HostBridge } from "@krds-detector/contracts";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import type { HostBridge, ScanConnection } from "@krds-detector/contracts";
+import { ConnectionChoice } from "./ConnectionChoice.js";
 
 interface Props {
   host: HostBridge;
-  onStarted: (sessionId: string) => void;
+  onStarted: (sessionId: string, connection?: ScanConnection) => void;
+  onBatch?: () => void;
+  showSavedCases?: boolean;
+  onWarpSetup?: () => void;
+  simple?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }
 
-export function ScanStart({ host, onStarted }: Props) {
+type FieldName = "url" | "maxPages" | "maxDepth" | "timeoutSec";
+type ScopeMode = "automatic" | "quick" | "custom";
+
+/** DOM order. The first entry carrying an error is the one focused on submit. */
+const FIELD_ORDER: FieldName[] = ["url", "maxPages", "maxDepth", "timeoutSec"];
+
+export function ScanStart({ host, onStarted, onBatch, showSavedCases, onWarpSetup, simple = false, onBusyChange }: Props) {
   const [url, setUrl] = useState("");
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [scopeMode, setScopeMode] = useState<ScopeMode>("automatic");
+  const [maxPages, setMaxPages] = useState("200");
+  const [maxDepth, setMaxDepth] = useState("4");
+  const [timeoutSec, setTimeoutSec] = useState("1500");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldName, string>>>({});
+  const [formError, setFormError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [connection, setConnection] = useState<ScanConnection>("direct");
+  const urlRef = useRef<HTMLInputElement>(null);
+  const pagesRef = useRef<HTMLInputElement>(null);
+  const depthRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<HTMLInputElement>(null);
+  const advancedRef = useRef<HTMLDetailsElement>(null);
+
+  // Focus the URL field on mount: evaluators (and automation) type
+  // immediately without tab-hunting. Invalid-submit still refocuses via
+  // focusFirstInvalid; this only sets the initial focus.
+  useEffect(() => {
+    urlRef.current?.focus();
+  }, []);
+
+  const FIELD_REFS: Record<FieldName, () => HTMLInputElement | null> = {
+    url: () => urlRef.current,
+    maxPages: () => pagesRef.current,
+    maxDepth: () => depthRef.current,
+    timeoutSec: () => timeoutRef.current,
+  };
+
+  /** Move focus to the first invalid field, opening 고급 설정 first if the target is hidden there. */
+  function focusFirstInvalid(errors: Partial<Record<FieldName, string>>) {
+    const target = FIELD_ORDER.find((f) => errors[f]);
+    if (!target) return;
+    if (target !== "url" && advancedRef.current && !advancedRef.current.open) {
+      advancedRef.current.open = true;
+    }
+    FIELD_REFS[target]()?.focus();
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const entryUrl = url.trim();
+    const errors: Partial<Record<FieldName, string>> = {};
     if (!entryUrl) {
-      setError("검사할 웹사이트 주소를 입력해 주세요.");
+      errors.url = "검사할 웹사이트 주소를 입력해 주세요.";
+    } else {
+      let parsed: URL | undefined;
+      try {
+        parsed = new URL(entryUrl);
+      } catch {
+        parsed = undefined;
+      }
+      if (!parsed || (parsed.protocol !== "http:" && parsed.protocol !== "https:")) {
+        errors.url = "http(s)로 시작하는 올바른 주소를 입력해 주세요.";
+      }
+    }
+    const scope = simple ? "automatic" : scopeMode;
+    const selectedConnection = simple ? "direct" : connection;
+    const pages = scope === "quick" ? 50 : scope === "automatic" ? 200 : Number(maxPages);
+    const depth = scope === "quick" ? 2 : scope === "automatic" ? 4 : Number(maxDepth);
+    const timeout = scope === "quick" ? 600 : scope === "automatic" ? 1500 : Number(timeoutSec);
+    if (scope === "custom" && (!Number.isInteger(pages) || pages < 1 || pages > 2000)) {
+      errors.maxPages = "최대 페이지 수는 1부터 2000까지 입력해 주세요.";
+    }
+    if (scope === "custom" && (!maxDepth.trim() || !Number.isInteger(depth) || depth < 0 || depth > 10)) {
+      errors.maxDepth = "탐색 깊이는 0부터 10까지 입력해 주세요.";
+    }
+    if (scope === "custom" && (!Number.isInteger(timeout) || timeout < 60 || timeout > 1500)) {
+      errors.timeoutSec = "60~1500초로 입력해 주세요.";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFormError(undefined);
+      setFieldErrors(errors);
+      focusFirstInvalid(errors);
       return;
     }
-    try {
-      void new URL(entryUrl);
-    } catch {
-      setError("http(s)로 시작하는 올바른 주소를 입력해 주세요.");
-      return;
-    }
-    setError(undefined);
+    const limits: Record<string, number> = {
+      maxPages: pages,
+      maxDepth: depth,
+      timeoutSec: timeout,
+    };
+    setFieldErrors({});
+    setFormError(undefined);
     setBusy(true);
+    onBusyChange?.(true);
     try {
-      const session = await host.startScan({ entryUrl });
-      onStarted(session.id);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "탐지를 시작하지 못했습니다.",
-      );
+      if (selectedConnection === "warp" && (await host.getWarpStatus()).state !== "ready") {
+        setFormError("WARP 등록·구성을 확인하지 못했습니다. 연결 설정을 확인하거나 기본 연결을 선택해 주세요.");
+        return;
+      }
+      const session = await host.startScan({
+        entryUrl,
+        connection: selectedConnection,
+        limits,
+      });
+      onStarted(session.id, selectedConnection);
+    } catch {
+      // Not the user's URL text: report at form level so the URL input is not marked invalid.
+      setFormError("점검을 시작하지 못했습니다. 주소와 현재 네트워크를 확인하고 다시 시도해 주세요. 기존 결과는 유지됩니다.");
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
   return (
-    <main className="page">
-      <h1>불법광고 탐지 도구</h1>
-      <p>
-        공공 웹사이트의 숨겨진 불법광고를 검사합니다. 검사할 웹사이트 첫
-        주소를 입력하면 관련 하위 페이지를 수집하고 4가지 공식 은폐 기법을
-        판별합니다.
-      </p>
-      <form onSubmit={onSubmit} aria-label="탐지 시작">
-        <label htmlFor="entry-url">검사할 웹사이트 주소</label>
-        <input
-          id="entry-url"
-          name="entry-url"
-          type="url"
-          inputMode="url"
-          autoComplete="url"
-          placeholder="https://example.kr/"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? "entry-url-error" : undefined}
-          required
-        />
-        {error ? (
-          <p id="entry-url-error" role="alert" className="error">
-            {error}
-          </p>
+    <main className="page start-page">
+      <header className="start-heading"><p className="eyebrow">새 점검</p>
+      <h1>공공 웹사이트 점검</h1>
+      {showSavedCases ? <a href="#saved-case-search">저장된 결과 다시 열기 ↓</a> : null}
+      <p className="lede">웹사이트 주소를 입력하고, 의심 문구와 숨겨진 광고의 근거를 확인하세요.</p></header>
+      <form className="scan-form" onSubmit={onSubmit} aria-label="탐지 시작" noValidate>
+        <div className="field">
+          <label htmlFor="entry-url">점검할 웹사이트 <span className="required">필수</span></label>
+          <input
+            id="entry-url"
+            name="entry-url"
+            type="text"
+            inputMode="url"
+            autoComplete="url"
+            placeholder="https://example.kr/"
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              if (fieldErrors.url) {
+                setFieldErrors((prev) => ({ ...prev, url: undefined }));
+              }
+            }}
+            ref={urlRef}
+            aria-invalid={fieldErrors.url ? true : undefined}
+            aria-describedby={fieldErrors.url ? "entry-url-error" : "scan-hint"}
+            required
+          />
+          <p id="scan-hint" className="hint">입력한 사이트와 같은 사이트의 하위 페이지를 점검합니다.</p>
+          {fieldErrors.url ? (
+            <p id="entry-url-error" role="alert" className="error">
+              {fieldErrors.url}
+            </p>
+          ) : null}
+        </div>
+        {formError ? (
+          <><p id="scan-form-error" role="alert" className="error">
+            {formError}
+          </p>{!simple && connection === "warp" && onWarpSetup ? <button type="button" className="secondary" onClick={onWarpSetup}>WARP 연결 설정 확인</button> : null}</>
         ) : null}
-        <button type="submit" disabled={busy}>
-          {busy ? "시작 중…" : "탐지 시작"}
-        </button>
-        <details>
-          <summary>고급 설정</summary>
-          <p>
-            최대 페이지 수·탐색 깊이·제한 시간은 데스크톱 앱에서 조정합니다.
-            브라우저 미리보기는 실제 스캔을 수행하지 않습니다.
-          </p>
-        </details>
+        {simple ? <p className="hint">최대 200페이지 · 하위 4단계 · 최대 25분<br />현재 PC의 인터넷 연결로 점검합니다.</p> : <details className="advanced" ref={advancedRef}>
+          <summary><span>상세 설정</span><span className="scope-current">{scopeMode === "quick" ? "빠른 점검 · 최대 50페이지 · 10분" : scopeMode === "automatic" ? "자동 점검 · 최대 200페이지 · 25분" : `직접 설정 · 최대 ${maxPages}페이지 · ${timeoutSec}초`}</span></summary>
+          <fieldset className="scope-options">
+            <legend>점검 범위</legend>
+            <label><input type="radio" name="scope-mode" value="automatic" checked={scopeMode === "automatic"} onChange={() => setScopeMode("automatic")} /> 자동 점검 — 최대 200페이지, 하위 4단계, 25분</label>
+            <label><input type="radio" name="scope-mode" value="quick" checked={scopeMode === "quick"} onChange={() => setScopeMode("quick")} /> 빠른 점검 — 최대 50페이지, 하위 2단계, 10분</label>
+            <label><input type="radio" name="scope-mode" value="custom" checked={scopeMode === "custom"} onChange={() => setScopeMode("custom")} /> 직접 설정</label>
+          </fieldset>
+          {scopeMode === "custom" ? <div className="advanced-grid">
+            <div className="field">
+              <label htmlFor="limit-pages">최대 페이지 수</label>
+              <input
+                id="limit-pages"
+                ref={pagesRef}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={2000}
+                step={1}
+                value={maxPages}
+                onChange={(e) => {
+                  setMaxPages(e.target.value);
+                  if (fieldErrors.maxPages) {
+                    setFieldErrors((prev) => ({ ...prev, maxPages: undefined }));
+                  }
+                }}
+                aria-invalid={fieldErrors.maxPages ? true : undefined}
+                aria-describedby={
+                  fieldErrors.maxPages ? "limit-pages-error" : undefined
+                }
+              />
+              {fieldErrors.maxPages ? (
+                <p id="limit-pages-error" role="alert" className="error">
+                  {fieldErrors.maxPages}
+                </p>
+              ) : null}
+            </div>
+            <div className="field">
+              <label htmlFor="limit-depth">탐색 깊이</label>
+              <input
+                id="limit-depth"
+                ref={depthRef}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={10}
+                step={1}
+                value={maxDepth}
+                onChange={(e) => {
+                  setMaxDepth(e.target.value);
+                  if (fieldErrors.maxDepth) {
+                    setFieldErrors((prev) => ({ ...prev, maxDepth: undefined }));
+                  }
+                }}
+                aria-invalid={fieldErrors.maxDepth ? true : undefined}
+                aria-describedby={
+                  fieldErrors.maxDepth ? "limit-depth-error" : undefined
+                }
+              />
+              {fieldErrors.maxDepth ? (
+                <p id="limit-depth-error" role="alert" className="error">
+                  {fieldErrors.maxDepth}
+                </p>
+              ) : null}
+            </div>
+            <div className="field">
+              <label htmlFor="limit-timeout">제한 시간(초)</label>
+              <input
+                id="limit-timeout"
+                ref={timeoutRef}
+                type="number"
+                inputMode="numeric"
+                min={60}
+                max={1500}
+                step={1}
+                value={timeoutSec}
+                onChange={(e) => {
+                  setTimeoutSec(e.target.value);
+                  if (fieldErrors.timeoutSec) {
+                    setFieldErrors((prev) => ({ ...prev, timeoutSec: undefined }));
+                  }
+                }}
+                aria-invalid={fieldErrors.timeoutSec ? true : undefined}
+                aria-describedby={
+                  fieldErrors.timeoutSec ? "limit-timeout-error" : undefined
+                }
+              />
+              {fieldErrors.timeoutSec ? (
+                <p id="limit-timeout-error" role="alert" className="error">
+                  {fieldErrors.timeoutSec}
+                </p>
+              ) : null}
+            </div>
+          </div> : null}
+          <ConnectionChoice value={connection} onChange={setConnection} onSetup={onWarpSetup} />
+        </details>}
+        <div className="scan-submit"><p className="hint">점검 중에도 중지할 수 있습니다.<br />완료된 페이지의 결과는 보관됩니다.</p>
+          <button type="submit" disabled={busy} className="primary">{busy ? "시작 중…" : "점검 시작"}<span aria-hidden="true"> →</span></button>
+        </div>
       </form>
+      {onBatch ? <section className="batch-entry"><div><h2>여러 사이트를 한 번에 점검하려면</h2><p className="hint">대상 목록 파일을 불러와 사이트별 진행과 결과를 관리하세요.</p></div><button type="button" className="secondary" onClick={onBatch}>여러 사이트 일괄 점검</button></section> : null}
     </main>
   );
 }

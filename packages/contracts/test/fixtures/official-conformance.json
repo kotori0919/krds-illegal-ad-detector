@@ -1,0 +1,21 @@
+{
+  "contract": "official-v0",
+  "valid": {
+    "meta": {"topic":"TOPIC","entry_url":"https://example.kr/","started_at":"2026-10-09T00:00:00Z","finished_at":"2026-10-09T00:00:01Z","elapsed_sec":1,"tool_version":"0.2.0-policy2"},
+    "findings": [{"id":"f1","url":"https://example.kr/","is_violation":true,"location":"#ad","evidence_text":"ＣＡＳＩＮＯ 가입","technique":"HOMOGLYPH"}]
+  },
+  "invalid": [
+    {"name":"topic literal","path":["meta","topic"],"value":"wrong"},
+    {"name":"entry URL type","path":["meta","entry_url"],"value":7},
+    {"name":"negative time","path":["meta","elapsed_sec"],"value":-1},
+    {"name":"start timestamp","path":["meta","started_at"],"value":"not-a-date"},
+    {"name":"finish timestamp","path":["meta","finished_at"],"value":true},
+    {"name":"missing version","path":["meta","tool_version"],"value":""},
+    {"name":"empty identity","path":["findings",0,"id"],"value":""},
+    {"name":"relative page","path":["findings",0,"url"],"value":"/ad"},
+    {"name":"judgment type","path":["findings",0,"is_violation"],"value":"true"},
+    {"name":"empty location","path":["findings",0,"location"],"value":""},
+    {"name":"evidence type","path":["findings",0,"evidence_text"],"value":{}},
+    {"name":"extra in official","path":["findings",0,"technique"],"value":"ETC"}
+  ]
+}

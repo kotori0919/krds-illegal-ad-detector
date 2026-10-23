@@ -11,12 +11,12 @@ import {
 function validResult(): OfficialResult {
   return {
     meta: {
-      topic: "test",
+      topic: "TOPIC",
       entry_url: "https://example.kr/",
       started_at: "2026-09-30T00:00:00.000Z",
       finished_at: "2026-09-30T00:01:00.000Z",
       elapsed_sec: 60,
-      tool_version: "0.1.0-bootstrap",
+      tool_version: "0.1.0",
     },
     findings: [
       {
@@ -130,6 +130,17 @@ describe("validateOfficialResultText", () => {
     expect(validateOfficialResultText("{oops").errors).toContain(
       "result.json must be valid JSON",
     );
+  });
+
+  it("round-trips Korean text as strict UTF-8 without BOM", () => {
+    const r = validResult();
+    r.findings[0].evidence_text = "Ｋ카지노 신규가입 꽁머니 3만원 지급";
+    const text = serializeOfficialResult(r);
+    const bytes = new TextEncoder().encode(text);
+    expect([bytes[0], bytes[1], bytes[2]].join(",")).not.toBe("239,187,191");
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    expect(validateOfficialResultText(decoded).ok).toBe(true);
+    expect(JSON.parse(decoded).findings[0].evidence_text).toBe(r.findings[0].evidence_text);
   });
 });
 

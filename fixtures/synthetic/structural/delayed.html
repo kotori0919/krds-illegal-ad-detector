@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>지연 삽입</title>
+  </head>
+  <body>
+    <main>
+      <h1>속보</h1>
+      <div id="delayed-slot"><p>기사 본문입니다.</p></div>
+      <script>
+        setTimeout(function () {
+          var p = document.createElement("p");
+          p.id = "ad-delayed-injected";
+          p.style.cssText = "position:absolute;left:-9999px";
+          p.textContent = "대출 무서류 당일 승인";
+          document.getElementById("delayed-slot").appendChild(p);
+        }, 1200);
+      </script>
+    </main>
+  </body>
+</html>

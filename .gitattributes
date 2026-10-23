@@ -1,0 +1,5 @@
+# Hash-pinned assets: their committed bytes are SHA-256 checked at build time, so never apply EOL conversion.
+packages/evidence/src/ocr-models/*.json -text
+packages/evidence/src/text-embedding-model/*.json -text
+
+*.pdf binary

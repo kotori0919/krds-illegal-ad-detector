@@ -1,0 +1,4948 @@
+{
+  "findings": [
+    {
+      "evidence_text": "바카라",
+      "id": "f1",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f2",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f3",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f4",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f5",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f6",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f7",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-adult"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f8",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-adult"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f9",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-adult"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f10",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f11",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f12",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f13",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-end"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f14",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-end"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f15",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime-end"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f16",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/10879"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f17",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/10879"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f18",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/10879"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f19",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11007"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f20",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11007"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f21",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11007"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f22",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11008"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f23",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11008"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f24",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11008"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f25",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11013"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f26",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11013"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f27",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11013"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f28",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11014"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f29",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11014"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f30",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11014"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f31",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11022"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f32",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11022"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f33",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11022"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f34",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11027"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f35",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11027"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f36",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11027"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f37",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11029"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f38",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11029"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f39",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11029"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f40",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11030"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f41",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11030"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f42",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11030"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f43",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11032"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f44",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11032"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f45",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11032"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f46",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11035"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f47",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11035"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f48",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11035"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f49",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11051"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f50",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11051"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f51",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11051"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f52",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11053"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f53",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11053"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f54",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11053"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f55",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11054"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f56",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11054"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f57",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11054"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f58",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11055"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f59",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11055"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f60",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11055"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f61",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11056"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f62",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11056"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f63",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11056"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f64",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11057"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f65",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11057"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f66",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11057"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f67",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11059"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f68",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11059"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f69",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11059"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f70",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11060"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f71",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11060"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f72",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11060"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f73",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11061"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f74",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11061"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f75",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11061"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f76",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11066"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f77",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11066"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f78",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11066"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f79",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11069"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f80",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11069"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f81",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/11069"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f82",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/1425"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f83",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/1425"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f84",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/1425"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f85",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/1682"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f86",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/1682"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f87",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/1682"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f88",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/197"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f89",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/197"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f90",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/197"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f91",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19936"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f92",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19936"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f93",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19936"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f94",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19939"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f95",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19939"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f96",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19939"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f97",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19941"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f98",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19941"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f99",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19941"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f100",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19943"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f101",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19943"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f102",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19943"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f103",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19947"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f104",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19947"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f105",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/19947"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f106",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20083"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f107",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20083"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f108",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20083"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f109",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20095"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f110",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20095"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f111",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20095"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f112",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20177"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f113",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20177"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f114",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20177"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f115",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20214"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f116",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20214"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f117",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20214"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f118",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20227"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f119",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20227"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f120",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20227"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f121",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20274"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f122",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20274"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f123",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20274"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f124",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20276"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f125",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20276"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f126",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20276"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f127",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20280"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f128",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20280"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f129",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20280"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f130",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20283"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f131",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20283"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f132",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20283"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f133",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20307"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f134",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20307"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f135",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20307"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f136",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20320"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f137",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20320"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f138",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20320"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f139",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20322"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f140",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20322"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f141",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20322"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f142",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20325"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f143",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20325"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f144",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20325"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f145",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20335"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f146",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20335"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f147",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20335"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f148",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20339"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f149",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20339"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f150",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20339"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f151",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20345"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f152",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20345"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f153",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20345"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f154",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20346"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f155",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20346"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f156",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20346"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f157",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20352"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f158",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20352"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f159",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20352"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f160",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20355"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f161",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20355"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f162",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20355"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f163",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20356"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f164",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20356"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f165",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20356"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f166",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20357"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f167",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20357"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f168",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/20357"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f169",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/2087"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f170",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/2087"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f171",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/2087"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f172",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21323"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f173",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21323"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f174",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21323"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f175",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21324"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f176",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21324"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f177",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21324"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f178",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21325"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f179",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21325"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f180",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21325"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f181",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21326"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f182",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21326"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f183",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21326"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f184",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21329"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f185",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21329"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f186",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21329"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f187",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21330"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f188",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21330"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f189",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21330"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f190",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21331"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f191",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21331"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f192",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21331"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f193",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21333"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f194",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21333"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f195",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21333"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f196",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21334"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f197",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21334"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f198",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21334"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f199",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21335"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f200",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21335"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f201",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21335"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f202",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21336"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f203",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21336"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f204",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21336"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f205",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21337"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f206",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21337"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f207",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21337"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f208",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21338"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f209",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21338"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f210",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21338"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f211",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21339"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f212",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21339"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f213",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21339"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f214",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21340"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f215",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21340"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f216",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21340"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f217",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21341"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f218",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21341"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f219",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21341"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f220",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21343"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f221",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21343"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f222",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21343"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f223",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21344"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f224",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21344"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f225",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/21344"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f226",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/updates"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f227",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/updates"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f228",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anime/updates"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f229",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anonymous-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f230",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anonymous-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f231",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/anonymous-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f232",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/bbs/random.php"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f233",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/bbs/random.php"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f234",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/bbs/random.php"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f235",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/bl-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f236",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/bl-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f237",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/bl-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f238",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f239",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f240",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f241",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390429"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f242",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390429"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f243",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390429"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f244",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390432"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f245",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390432"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f246",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390432"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f247",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390435"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f248",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390435"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f249",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390435"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f250",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390438"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f251",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390438"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f252",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390438"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f253",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390442"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f254",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390442"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f255",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390442"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f256",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390446"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f257",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390446"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f258",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390446"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f259",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390452"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f260",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390452"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f261",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/board/390452"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f262",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/eunkkol-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f263",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/eunkkol-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f264",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/eunkkol-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f265",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/eunkkol-man-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f266",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/eunkkol-man-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f267",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/eunkkol-man-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f268",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/event"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f269",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/event"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f270",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/event"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f271",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/favorites"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f272",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/favorites"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f273",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/favorites"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f274",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f275",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f276",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f277",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/baccarat"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f278",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/baccarat"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f279",
+      "is_violation": true,
+      "location": "li.sub-on > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/baccarat"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f280",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/baccarat"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f281",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/baccarat?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/baccarat?theme_embed=1"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f282",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f283",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f284",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f285",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f286",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/rpg"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f287",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/rpg"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f288",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/rpg"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f289",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/rpg"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f290",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/cards/rpg?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/rpg?theme_embed=1#login"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f291",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/world"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f292",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/world"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f293",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/world"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f294",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/world"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f295",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/cards/world?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards/world?theme_embed=1"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f296",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/cards?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/cards?theme_embed=1#login"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f297",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/crash"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f298",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/crash"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f299",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/crash"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f300",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/crash"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f301",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/crash?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/crash?theme_embed=1"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f302",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/marble"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f303",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/marble"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f304",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/marble"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f305",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/marble"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f306",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/marble?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/marble?theme_embed=1"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f307",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/minesweeper"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f308",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/minesweeper"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f309",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/minesweeper"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f310",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/minesweeper"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f311",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/minesweeper?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/minesweeper?theme_embed=1"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f312",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/mining"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f313",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/mining"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f314",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/mining"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f315",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/mining"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f316",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/mining?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/mining?theme_embed=1"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f317",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/plinko"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f318",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/plinko"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f319",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/plinko"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f320",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/plinko"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f321",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/game/plinko?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/game/plinko?theme_embed=1"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f322",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f323",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f324",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f325",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390055"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f326",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390055"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f327",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390055"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f328",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390058"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f329",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390058"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f330",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390058"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f331",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390069"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f332",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390069"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f333",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390069"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f334",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390082"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f335",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390082"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f336",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390082"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f337",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390299"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f338",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390299"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f339",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390299"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f340",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390425"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f341",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390425"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f342",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390425"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f343",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390444"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f344",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390444"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f345",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/humor-board/390444"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f346",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/index.php?device=mobile"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f347",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/index.php?device=mobile"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f348",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/index.php?device=mobile"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f349",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/ladder"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f350",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/ladder"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f351",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/ladder"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f352",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/ladder"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f353",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/ladder?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/ladder?theme_embed=1"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f354",
+      "is_violation": true,
+      "location": "div.m-nav-sub > ul > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/lottery"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f355",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/lottery"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f356",
+      "is_violation": true,
+      "location": "ul.pull-left > li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/lottery"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f357",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/lottery"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f358",
+      "is_violation": true,
+      "location": "iframe[src=\"https://sample.invalid/lottery?theme_embed=1\"] >>> a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/lottery?theme_embed=1"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f359",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f360",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f361",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f362",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f363",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f364",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f365",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/12725"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f366",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/12725"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f367",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/12725"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f368",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/12751"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f369",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/12751"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f370",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/12751"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f371",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/2"
+    },
+    {
+      "evidence_text": "원피스는 ㄹㅇ 재미가보장되있네 ㅋㅋㅋ",
+      "id": "f372",
+      "is_violation": true,
+      "location": "div:nth-of-type(30) > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(1)",
+      "technique": "JAMO",
+      "url": "https://sample.invalid/manhwa/2"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f373",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/2"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f374",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/2"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f375",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/21475"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f376",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/21475"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f377",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/21475"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f378",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/24365"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f379",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/24365"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f380",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/24365"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f381",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/26842"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f382",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/26842"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f383",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/26842"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f384",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/32961"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f385",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/32961"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f386",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/32961"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f387",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34609"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f388",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34609"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f389",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34609"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f390",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34732"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f391",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34732"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f392",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34732"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f393",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34911"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f394",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34911"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f395",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34911"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f396",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34978"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f397",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34978"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f398",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/34978"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f399",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/35436"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f400",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/35436"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f401",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/35436"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f402",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/36762"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f403",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/36762"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f404",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/36762"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f405",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/4127"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f406",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/4127"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f407",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/4127"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f408",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/8605"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f409",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/8605"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f410",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/8605"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f411",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/updates"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f412",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/updates"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f413",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/manhwa/updates"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f414",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f415",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f416",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f417",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/106"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f418",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/106"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f419",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/106"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f420",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/131117"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f421",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/131117"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f422",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/131117"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f423",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/275"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f424",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/275"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f425",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/275"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f426",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/76853"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f427",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/76853"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f428",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/notice/76853"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f429",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f430",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f431",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f432",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f433",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f434",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f435",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/17709"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f436",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/17709"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f437",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/17709"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f438",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/24869"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f439",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/24869"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f440",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/24869"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f441",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/33663"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f442",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/33663"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f443",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/33663"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f444",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/33821"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f445",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/33821"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f446",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/33821"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f447",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34025"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f448",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34025"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f449",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34025"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f450",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34240"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f451",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34240"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f452",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34240"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f453",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34341"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f454",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34341"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f455",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34341"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f456",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34815"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f457",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34815"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f458",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34815"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f459",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34827"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f460",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34827"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f461",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/34827"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f462",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/35151"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f463",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/35151"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f464",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/35151"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f465",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/35155"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f466",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/35155"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f467",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/35155"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f468",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/57317"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f469",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/57317"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f470",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/57317"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f471",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/57318"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f472",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/57318"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f473",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/57318"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f474",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63219"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f475",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63219"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f476",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63219"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f477",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63422"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f478",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63422"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f479",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63422"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f480",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63887"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f481",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63887"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f482",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/novel/63887"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f483",
+      "is_violation": true,
+      "location": "a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/patch-notes"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f484",
+      "is_violation": true,
+      "location": "a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/point-rank"
+    },
+    {
+      "evidence_text": "🃏바카라",
+      "id": "f485",
+      "is_violation": true,
+      "location": "a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/recent"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f486",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/request-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f487",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/request-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f488",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/request-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f489",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/rom-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f490",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/rom-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f491",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/rom-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f492",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/shop"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f493",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/shop"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f494",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/shop"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f495",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/suggest"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f496",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/suggest"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f497",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/suggest"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f498",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/trans-board"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f499",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/trans-board"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f500",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/trans-board"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f501",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f502",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f503",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f504",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/%EC%A0%84%EC%83%9D%EC%9E%90-%EC%B9%B4%EC%B9%B4%EC%98%A4"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f505",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/%EC%A0%84%EC%83%9D%EC%9E%90-%EC%B9%B4%EC%B9%B4%EC%98%A4"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f506",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/%EC%A0%84%EC%83%9D%EC%9E%90-%EC%B9%B4%EC%B9%B4%EC%98%A4"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f507",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/16331"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f508",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/16331"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f509",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/16331"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f510",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/16986"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f511",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/16986"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f512",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/16986"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f513",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/17585"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f514",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/17585"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f515",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/17585"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f516",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/17970"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f517",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/17970"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f518",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/17970"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f519",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18767"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f520",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18767"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f521",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18767"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f522",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18768"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f523",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18768"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f524",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18768"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f525",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18939"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f526",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18939"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f527",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/18939"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f528",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/19115"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f529",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/19115"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f530",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/19115"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f531",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/19226"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f532",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/19226"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f533",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/19226"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f534",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/55884394"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f535",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/55884394"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f536",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/55884394"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f537",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/56611441"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f538",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/56611441"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f539",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/56611441"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f540",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/60328750"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f541",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/60328750"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f542",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/60328750"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f543",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/60720041"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f544",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/60720041"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f545",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/60720041"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f546",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/61614855"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f547",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/61614855"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f548",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/61614855"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f549",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/63056941"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f550",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/63056941"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f551",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/63056941"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f552",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/6307000001"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f553",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/6307000001"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f554",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/6307000001"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f555",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/64688681"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f556",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/64688681"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f557",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/64688681"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f558",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/66906923"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f559",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/66906923"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f560",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/66906923"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f561",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/66948591"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f562",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/66948591"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f563",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/66948591"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f564",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/67331670"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f565",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/67331670"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f566",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/67331670"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f567",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/68288343"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f568",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/68288343"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f569",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/68288343"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f570",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/68929124"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f571",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/68929124"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f572",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/68929124"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f573",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/70383839"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f574",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/70383839"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f575",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/70383839"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f576",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/769209"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f577",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/769209"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f578",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/769209"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f579",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/802278"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f580",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/802278"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f581",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/802278"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f582",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/9098"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f583",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/9098"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f584",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/9098"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f585",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-The_Cursed_Vessel-1a3336cf"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f586",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-The_Cursed_Vessel-1a3336cf"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f587",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-The_Cursed_Vessel-1a3336cf"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f588",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-_sahondam-3e40074a"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f589",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-_sahondam-3e40074a"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f590",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-_sahondam-3e40074a"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f591",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-deep_city-22ff7e6b"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f592",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-deep_city-22ff7e6b"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f593",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-deep_city-22ff7e6b"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f594",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-mudangxdevil19-f7a36310"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f595",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-mudangxdevil19-f7a36310"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f596",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-bt-mudangxdevil19-f7a36310"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f597",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-mpcp8x4q-i9i7"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f598",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-mpcp8x4q-i9i7"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f599",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon/u-mpcp8x4q-i9i7"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f600",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%84%B1%EC%9D%B8%EC%9B%B9%ED%88%B0&sst=as_view&sod=desc"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f601",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%84%B1%EC%9D%B8%EC%9B%B9%ED%88%B0&sst=as_view&sod=desc"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f602",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%84%B1%EC%9D%B8%EC%9B%B9%ED%88%B0&sst=as_view&sod=desc"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f603",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%9D%BC%EB%B0%98%EC%9B%B9%ED%88%B0&sst=as_view&sod=desc"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f604",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%9D%BC%EB%B0%98%EC%9B%B9%ED%88%B0&sst=as_view&sod=desc"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f605",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%9D%BC%EB%B0%98%EC%9B%B9%ED%88%B0&sst=as_view&sod=desc"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f606",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=BL%2FGL"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f607",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=BL%2FGL"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f608",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=BL%2FGL"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f609",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%84%B1%EC%9D%B8%EC%9B%B9%ED%88%B0"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f610",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%84%B1%EC%9D%B8%EC%9B%B9%ED%88%B0"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f611",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%84%B1%EC%9D%B8%EC%9B%B9%ED%88%B0"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f612",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%99%84%EA%B2%B0%EC%9B%B9%ED%88%B0"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f613",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%99%84%EA%B2%B0%EC%9B%B9%ED%88%B0"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f614",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%99%84%EA%B2%B0%EC%9B%B9%ED%88%B0"
+    },
+    {
+      "evidence_text": "바카라",
+      "id": "f615",
+      "is_violation": true,
+      "location": "div.theme-quick-link-grid > a[href=\"/game/baccarat\"] > span",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%9D%BC%EB%B0%98%EC%9B%B9%ED%88%B0"
+    },
+    {
+      "evidence_text": "\n        바카라\n      ",
+      "id": "f616",
+      "is_violation": true,
+      "location": "li.sub-off > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%9D%BC%EB%B0%98%EC%9B%B9%ED%88%B0"
+    },
+    {
+      "evidence_text": "\n        \n        바카라\n      ",
+      "id": "f617",
+      "is_violation": true,
+      "location": "ul.treeview-menu > li > a[href=\"/game/baccarat\"]",
+      "technique": "OFFSCREEN",
+      "url": "https://sample.invalid/webtoon?toon=%EC%9D%BC%EB%B0%98%EC%9B%B9%ED%88%B0"
+    }
+  ],
+  "meta": {
+    "elapsed_sec": 150.328,
+    "entry_url": "https://sample.invalid/",
+    "finished_at": "2026-10-08T02:15:42.105Z",
+    "started_at": "2026-10-08T02:13:11.777Z",
+    "tool_version": "0.1.0",
+    "topic": "TOPIC"
+  }
+}

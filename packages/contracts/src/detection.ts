@@ -1,5 +1,5 @@
 /**
- * Contract v0 (draft): detection evidence vocabulary.
+ * Contract v0 (frozen 2026-10-01): detection evidence vocabulary.
  *
  * Two-axis decision: TechniqueEvidence + IllegalAdvertisementEvidence ->
  * OfficialFinding. Concealment alone never proves an illegal ad.

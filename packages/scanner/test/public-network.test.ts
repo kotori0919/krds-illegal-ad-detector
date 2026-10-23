@@ -1,0 +1,304 @@
+import { createServer } from "node:http";
+import { describe, expect, it } from "vitest";
+import { crawlSite } from "../src/crawl.js";
+import { isPublicAddress, PublicNetworkPolicy, startPublicNetworkProxy, type PublicNetworkProxy } from "../src/public-network.js";
+import { ScanDeadline } from "../src/deadline.js";
+import { scanSite } from "../../detection/src/scan.js";
+import { request as httpRequest } from "node:http";
+import { chromium, type Browser } from "playwright-core";
+import { createConnectTransport } from "../src/pinned-transport.js";
+
+const scanTimeoutSec = 30;
+// One scan per test; the outer deadline also allows browser finalization.
+const testTimeoutMs = scanTimeoutSec * 1000 + 30_000;
+interface NetworkFixture {
+  origin: string;
+  protectedOrigin: string;
+  requests: string[];
+  protectedConnections: () => number;
+}
+const networkTest = it.extend<{ network: NetworkFixture }>({
+  network: async ({ signal }, use) => {
+    let origin = "";
+    let protectedOrigin = "";
+    const requests: string[] = [];
+    let protectedConnections = 0;
+    const protectedServer = createServer((_req, res) => res.end("private target"));
+    protectedServer.on("connection", () => { protectedConnections += 1; });
+    const server = createServer((req, res) => {
+      const path = req.url ?? "/";
+      requests.push(path);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      if (path === "/robots.txt" || path === "/sitemap.xml") { res.statusCode = 404; return res.end(); }
+      if (path === "/redirect") { res.writeHead(302, { Location: protectedOrigin }); return res.end(); }
+      if (path === "/https-redirect") { res.writeHead(302, { Location: protectedOrigin.replace("http:", "https:") }); return res.end(); }
+      if (path === "/input-index.xml") { res.setHeader("Content-Type", "text/xml"); return res.end(`<sitemapindex><sitemap><loc>${origin}/nested.xml</loc></sitemap></sitemapindex>`); }
+      if (path === "/nested.xml") { res.setHeader("Content-Type", "text/xml"); return res.end(`<urlset><url><loc>${origin}/listed-b</loc></url><url><loc>${origin}/listed-a</loc></url></urlset>`); }
+      if (path.startsWith("/listed-")) return res.end('<title>Owned site</title><p id="offer" style="opacity:0">카지노 가입 보너스 지급</p>');
+      res.end(`<title>Owned public fixture</title><img src="${protectedOrigin}/image"><iframe src="${protectedOrigin}/frame"></iframe><script>fetch('${protectedOrigin}/fetch').catch(()=>{});fetch('${protectedOrigin.replace("http:", "https:")}/secure').catch(()=>{});fetch('${protectedOrigin.replace("127.0.0.1", "localhost")}/named').catch(()=>{});fetch('${protectedOrigin.replace("127.0.0.1", "[::ffff:127.0.0.1]")}/mapped').catch(()=>{});</script>`);
+    });
+    const abort = () => { server.closeAllConnections(); protectedServer.closeAllConnections(); };
+    signal.addEventListener("abort", abort, { once: true });
+    try {
+      await new Promise<void>((resolve) => protectedServer.listen(0, "127.0.0.1", resolve));
+      protectedOrigin = `http://127.0.0.1:${(protectedServer.address() as { port: number }).port}`;
+      await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+      origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+      await use({ origin, protectedOrigin, requests, protectedConnections: () => protectedConnections });
+    } finally {
+      signal.removeEventListener("abort", abort);
+      await Promise.all([server, protectedServer].map((site) => new Promise<void>((resolve, reject) => {
+        if (!site.listening) { resolve(); return; }
+        site.close((error) => error ? reject(error) : resolve());
+        site.closeAllConnections();
+      })));
+    }
+  },
+});
+
+/** One authenticated absolute-form request through the enforcing proxy.
+ * `Promise.withResolvers` needs lib ES2024, which this package does not target. */
+function proxiedStatus(proxy: PublicNetworkProxy, target: string): Promise<number> {
+  const credentials = Buffer.from(`${proxy.proxy.username}:${proxy.proxy.password}`).toString("base64");
+  return new Promise<number>((resolve, reject) => {
+    const request = httpRequest(proxy.proxy.server, { path: target, headers: { "proxy-authorization": `Basic ${credentials}` } },
+      (response) => { response.resume(); resolve(response.statusCode ?? 0); });
+    request.on("error", reject); request.end();
+  });
+}
+
+describe("public-only runtime navigation", () => {
+  networkTest("rejects imported loopback before any crawler or discovery connection", async ({ network, signal }) => {
+    await expect(crawlSite({ entryUrl: network.origin, publicNetworkOnly: true, signal,
+      limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 0 })).rejects.toThrow(/public network/i);
+    expect(network.requests).toEqual([]);
+  }, testTimeoutMs);
+  networkTest("pins explicit fixture DNS-like origins without authorizing another host or port", async ({ network, signal }) => {
+    const { origin, protectedOrigin } = network;
+    const port = new URL(origin).port;
+    const fixtureOrigin = `http://first.fixture.invalid:${port}`;
+    const policy = PublicNetworkPolicy.forFixtureTargets([{ origin: fixtureOrigin, address: "127.0.0.1" }]);
+    expect((await policy.fetch(fixtureOrigin + "/listed-a")).status).toBe(200);
+    await expect(policy.fetch(`http://second.fixture.invalid:${port}/`)).rejects.toThrow();
+    await expect(policy.fetch(`http://127.0.0.1:${port}/`)).rejects.toThrow(/public network/i);
+    await expect(policy.fetch(fixtureOrigin.replace(port, new URL(protectedOrigin).port))).rejects.toThrow();
+    const summary = await crawlSite({ entryUrl: fixtureOrigin + "/listed-a", publicNetworkOnly: true, signal,
+      networkPolicy: policy, settleMs: 0, limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } });
+    expect(summary.pages.map((page) => [page.finalUrl, page.status, page.issue])).toEqual([[fixtureOrigin + "/listed-a", 200, undefined]]);
+  }, testTimeoutMs);
+  networkTest("rejects actual navigation after an initially public DNS answer rebinds to loopback", async ({ network, signal }) => {
+    const { protectedOrigin } = network;
+    let lookups = 0;
+    const policy = new PublicNetworkPolicy(async () => [{ address: ++lookups === 1 ? "8.8.8.8" : "127.0.0.1", family: 4 }]);
+    const summary = await crawlSite({ entryUrl: `http://rebinding.fixture.invalid:${new URL(protectedOrigin).port}/`,
+      publicNetworkOnly: true, networkPolicy: policy, settleMs: 0, signal,
+      limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec } });
+    expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
+    expect(lookups).toBeGreaterThanOrEqual(3);
+    expect(network.protectedConnections()).toBe(0);
+  }, testTimeoutMs);
+  networkTest("routes actual Chromium HTTP/HTTPS subresources through the enforcing proxy", async ({ network, signal }) => {
+    const { origin } = network;
+    const policy = PublicNetworkPolicy.forFixtureOrigins([origin]);
+    const summary = await crawlSite({ entryUrl: origin, publicNetworkOnly: true, networkPolicy: policy, signal,
+      limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 300 });
+    expect(summary.pages[0]?.status).toBe(200);
+    expect(summary.pages[0]?.issue).toBeUndefined();
+    expect(summary.timedOut).toBe(false);
+    expect(network.protectedConnections()).toBe(0);
+  }, testTimeoutMs);
+  networkTest.for(["/redirect", "/https-redirect"])("blocks private redirect %s through the enforcing proxy", { timeout: testTimeoutMs }, async (path, { network, signal }) => {
+    const { origin } = network;
+    const redirected = await crawlSite({ entryUrl: origin + path, publicNetworkOnly: true, signal,
+      networkPolicy: PublicNetworkPolicy.forFixtureOrigins([origin]),
+      limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 0 });
+    expect(redirected.pages[0]?.issue?.kind).toBe("network-policy");
+    expect(redirected.timedOut).toBe(false);
+    expect(network.protectedConnections()).toBe(0);
+  });
+  networkTest("settles real browser shutdown when context disposal waits for transport disconnect", async ({ network, signal }) => {
+    const originalLaunch = chromium.launch;
+    let browser: Browser | undefined;
+    let disposalStalled = false;
+    chromium.launch = async (options) => {
+      const launched = await originalLaunch.call(chromium, options);
+      browser = launched;
+      const newContext = launched.newContext.bind(launched);
+      launched.newContext = async (options) => {
+        const context = await newContext(options);
+        const close = context.close.bind(context);
+        context.close = async () => {
+          // Controlled transport fault around a real Chromium context: disposal
+          // cannot settle until the browser disconnects. A guard releases the
+          // failing test without leaving a real child or listener behind.
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          let disconnected: (() => void) | undefined;
+          try {
+            if (launched.isConnected()) await new Promise<void>((resolve, reject) => {
+              disconnected = () => resolve();
+              launched.once("disconnected", disconnected);
+              timer = setTimeout(() => { disposalStalled = true; reject(new Error("context disposal stalled awaiting browser disconnect")); }, 5000);
+            });
+            await close();
+          } finally {
+            if (timer) clearTimeout(timer);
+            if (disconnected) launched.removeListener("disconnected", disconnected);
+          }
+        };
+        return context;
+      };
+      return launched;
+    };
+    try {
+      const summary = await crawlSite({ entryUrl: network.origin + "/redirect", publicNetworkOnly: true, signal,
+        networkPolicy: PublicNetworkPolicy.forFixtureOrigins([network.origin]),
+        limits: { maxPages: 1, maxDepth: 0, timeoutSec: scanTimeoutSec }, settleMs: 0 });
+      expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
+      expect(browser?.isConnected()).toBe(false);
+      expect(network.protectedConnections()).toBe(0);
+      expect(disposalStalled).toBe(false);
+    } finally {
+      chromium.launch = originalLaunch;
+      await browser?.close();
+    }
+  }, testTimeoutMs);
+  networkTest("enforces the standalone deadline while page disposal awaits browser disconnect", async ({ network, signal }) => {
+    const originalLaunch = chromium.launch;
+    let browser: Browser | undefined;
+    let disposalStalled = false;
+    let disposalStarted = false;
+    chromium.launch = async (options) => {
+      const launched = await originalLaunch.call(chromium, options);
+      browser = launched;
+      const newContext = launched.newContext.bind(launched);
+      launched.newContext = async (options) => {
+        const context = await newContext(options);
+        const newPage = context.newPage.bind(context);
+        context.newPage = async () => {
+          const page = await newPage();
+          const close = page.close.bind(page);
+          page.close = async () => {
+            disposalStarted = true;
+            let timer: ReturnType<typeof setTimeout> | undefined;
+            let disconnected: (() => void) | undefined;
+            try {
+              if (launched.isConnected()) await new Promise<void>((resolve, reject) => {
+                disconnected = () => resolve();
+                launched.once("disconnected", disconnected);
+                // Test-only release for the failing baseline. Production must
+                // settle through its existing deadline, before this guard.
+                timer = setTimeout(() => { disposalStalled = true; reject(new Error("page disposal outlived standalone deadline")); }, 8000);
+              });
+              await close();
+            } finally {
+              if (timer) clearTimeout(timer);
+              if (disconnected) launched.removeListener("disconnected", disconnected);
+            }
+          };
+          return page;
+        };
+        return context;
+      };
+      return launched;
+    };
+    try {
+      const summary = await crawlSite({ entryUrl: network.origin + "/redirect", publicNetworkOnly: true, signal,
+        networkPolicy: PublicNetworkPolicy.forFixtureOrigins([network.origin]),
+        deadline: new ScanDeadline(6), limits: { maxPages: 1, maxDepth: 0, timeoutSec: 6 }, settleMs: 0 });
+      expect(disposalStarted).toBe(true);
+      expect(summary.pages[0]?.issue?.kind).toBe("network-policy");
+      expect(summary.timedOut).toBe(true);
+      expect(browser?.isConnected()).toBe(false);
+      expect(network.protectedConnections()).toBe(0);
+      expect(disposalStalled).toBe(false);
+    } finally {
+      chromium.launch = originalLaunch;
+      await browser?.close();
+    }
+  }, testTimeoutMs);
+  networkTest("scans exact sitemap-index input pages with original official metadata and no XML checked page", async ({ network, signal }) => {
+    const { origin, requests } = network;
+    const entryUrl = origin + "/input-index.xml";
+    const output = await scanSite({ entryUrl, signal, crawl: { publicNetworkOnly: true, entryKind: "sitemap",
+      networkPolicy: PublicNetworkPolicy.forFixtureOrigins([origin]), settleMs: 0,
+      limits: { maxPages: 2, maxDepth: 0, timeoutSec: scanTimeoutSec } } });
+    expect(output.result.meta.entry_url).toBe(entryUrl);
+    expect(output.detailBundle.coverage.checkedPages).toBe(2);
+    expect(output.detailBundle.pageOutcomes?.map((page) => [new URL(page.url).pathname, page.depth, page.discoverySource]))
+      .toEqual([["/listed-a", 0, "sitemap"], ["/listed-b", 0, "sitemap"]]);
+    expect(output.result.findings.map((finding) => new URL(finding.url).pathname)).toEqual(["/listed-a", "/listed-b"]);
+    expect(requests.filter((path) => path === "/input-index.xml")).toHaveLength(1);
+  }, testTimeoutMs);
+});
+
+describe("public address and DNS boundaries", () => {
+  it("rejects private, metadata, mapped IPv6, transition and reserved literals", async () => {
+    for (const address of ["0.0.0.0", "10.1.2.3", "100.100.100.200", "127.0.0.1", "169.254.169.254", "172.31.2.3", "192.168.1.1", "192.0.2.1", "198.18.0.1", "224.0.0.1", "::1", "::ffff:127.0.0.1", "::ffff:8.8.8.8", "fc00::1", "fe80::1", "64:ff9b::7f00:1", "2002:7f00:1::", "2001:db8::1"]) {
+      expect(isPublicAddress(address), address).toBe(false);
+      await expect(new PublicNetworkPolicy().resolveTarget(`http://${address.includes(":") ? `[${address}]` : address}/`)).rejects.toThrow(/public network/i);
+    }
+    expect(isPublicAddress("8.8.8.8")).toBe(true);
+    expect(isPublicAddress("2606:4700:4700::1111")).toBe(true);
+  });
+  networkTest("rejects mixed safe/private DNS answers and reevaluates rebinding before every new connection", async ({ network }) => {
+    const { protectedOrigin } = network;
+    const transport = createConnectTransport({ port: Number(new URL(network.protectedOrigin).port), username: "fixture", password: "fixture" });
+    const mixed = new PublicNetworkPolicy(async () => [{ address: "8.8.8.8", family: 4 }, { address: "127.0.0.1", family: 4 }], transport);
+    await expect(mixed.resolveTarget("http://fixture.example/")).rejects.toThrow(/public network/i);
+    await expect(mixed.fetch("http://fixture.example/")).rejects.toThrow(/public network/i);
+    await transport.close();
+    expect(network.protectedConnections()).toBe(0);
+    let lookups = 0;
+    const rebound = new PublicNetworkPolicy(async () => {
+      lookups += 1;
+      return [{ address: lookups === 1 ? "8.8.8.8" : "127.0.0.1", family: 4 }];
+    });
+    expect((await rebound.resolveTarget("http://fixture.example/")).address).toBe("8.8.8.8");
+    const before = network.protectedConnections();
+    await expect(rebound.fetch(`http://fixture.example:${new URL(protectedOrigin).port}/`)).rejects.toThrow(/public network/i);
+    expect(lookups).toBe(2);
+    expect(network.protectedConnections()).toBe(before);
+  });
+  networkTest("requires proxy authentication and closes the listener on cancellation", async ({ network }) => {
+    const controller = new AbortController();
+    const proxy = await startPublicNetworkProxy(PublicNetworkPolicy.forFixtureOrigins([network.origin]), new ScanDeadline(scanTimeoutSec), controller.signal);
+    try {
+      const status = await new Promise<number>((resolve, reject) => {
+        const req = httpRequest(proxy.proxy.server, { path: network.origin }, (response) => { response.resume(); resolve(response.statusCode ?? 0); });
+        req.on("error", reject); req.end();
+      });
+      expect(status).toBe(407);
+      controller.abort();
+      await proxy.close();
+      await expect(fetch(proxy.proxy.server)).rejects.toThrow();
+    } finally { await proxy.close(); }
+  });
+  networkTest("records a policy rejection as 403 for the denied target", async ({ network }) => {
+    const denied: string[] = [];
+    const controller = new AbortController();
+    const proxy = await startPublicNetworkProxy(PublicNetworkPolicy.forFixtureOrigins([network.origin]),
+      new ScanDeadline(scanTimeoutSec), controller.signal, (url) => { denied.push(url); });
+    try {
+      expect(await proxiedStatus(proxy, `${network.protectedOrigin}/image`)).toBe(403);
+      expect(denied).toEqual([`${network.protectedOrigin}/image`]);
+      expect(network.protectedConnections()).toBe(0);
+    } finally { controller.abort(); await proxy.close(); }
+  });
+  it("reports an unreachable authorized origin as an upstream failure, never a policy denial", async () => {
+    const reserved = createServer();
+    await new Promise<void>((resolve) => reserved.listen(0, "127.0.0.1", resolve));
+    const address = reserved.address();
+    if (address === null || typeof address === "string") throw new Error("loopback listener unavailable");
+    const closedPort = address.port;
+    await new Promise<void>((resolve) => reserved.close(() => resolve()));
+    const origin = `http://127.0.0.1:${closedPort}`;
+    const denied: string[] = [];
+    const controller = new AbortController();
+    const proxy = await startPublicNetworkProxy(await PublicNetworkPolicy.forManualEntry(`${origin}/`),
+      new ScanDeadline(scanTimeoutSec), controller.signal, (url) => { denied.push(url); });
+    try {
+      expect(await proxiedStatus(proxy, `${origin}/entry`)).toBe(502);
+      expect(denied).toEqual([]);
+    } finally { controller.abort(); await proxy.close(); }
+  });
+});

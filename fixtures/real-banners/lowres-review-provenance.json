@@ -1,0 +1,30 @@
+{
+  "notAdditionalEvaluationSamples": true,
+  "referenceExclusion": "All three fixtures excluded from image reference exemplars, used only as regression inputs. Two are current known development misses, not fresh holdout.",
+  "inputs": [
+    {
+      "file": "kci-smile.png",
+      "sourceFile": "artifacts/ocr-grounding-20261021/fresh/images/kci-smile.png",
+      "sha256": "4a50b86991b0c4d1d1440831f24ba1bc00632841151f50c460178e9db598610c",
+      "provenance": "2023KCI source screenshot nativecrop",
+      "kind": "positive",
+      "sourceManifest": "artifacts/ocr-grounding-20261021/fresh/manifest.json"
+    },
+    {
+      "file": "kci-boutique.png",
+      "sourceFile": "artifacts/ocr-grounding-20261021/fresh/images/kci-dubai.png",
+      "sha256": "fd466e234af6b859cd9cf6a2826697140e10a70f06ef687f2119cde0541224cd",
+      "provenance": "2023KCI source screenshot nativecrop",
+      "kind": "positive",
+      "sourceManifest": "artifacts/ocr-grounding-20261021/fresh/manifest.json"
+    },
+    {
+      "file": "lg-tv-reduced.png",
+      "sourceFile": "artifacts/embeddinggemma2-eval-20261021/normal-ads/lg-tv.png",
+      "sha256": "0f9255d14ea9c4730a5f0c5e4013fea98d1f015c7fe44a4e0a0b273afd261634",
+      "provenance": "Existing actual LG TV retail advertisement, earlier206x62derivedreduction; not new actual ad",
+      "kind": "negative-derived",
+      "sourceManifest": "artifacts/embeddinggemma2-eval-20261021/inputs.json"
+    }
+  ]
+}

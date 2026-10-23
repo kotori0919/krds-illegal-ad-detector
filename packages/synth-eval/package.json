@@ -1,0 +1,16 @@
+{
+  "name": "@krds-detector/synth-eval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./serve.js": "./dist/serve.js",
+    "./evaluate.js": "./dist/evaluate.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "serve": "node ./dist/serve.js",
+    "eval": "node ./dist/cli.js",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json"
+  }
+}

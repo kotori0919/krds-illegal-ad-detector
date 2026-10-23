@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   normalizeFrameSrc,
+  parseFrameLocation,
   serializeFramePath,
 } from "../src/selector.js";
 
@@ -21,8 +22,16 @@ describe("serializeFramePath", () => {
         selector: "#ad",
       }),
     ).toBe(
-      'iframe[src="https://ads.example/x"] >>> iframe[src="https://ads.example/y"] >>> #ad',
+      '#outer >>> #inner >>> #ad',
     );
+  });
+
+  it("keeps duplicate document sources distinct and parses quoted separator text", () => {
+    const left = serializeFramePath({ framePath: [{ src: "about:blank", selector: '#left[title="a >>> b"]' }], selector: "#ad" });
+    const right = serializeFramePath({ framePath: [{ src: "about:blank", selector: "#right" }], selector: "#ad" });
+    expect(left).not.toBe(right);
+    expect(parseFrameLocation(left)).toEqual(['#left[title="a >>> b"]', "#ad"]);
+    expect(() => parseFrameLocation("#left >>> ")).toThrow("invalid frame location");
   });
 });
 
