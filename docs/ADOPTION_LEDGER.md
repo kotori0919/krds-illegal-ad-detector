@@ -1287,3 +1287,33 @@ actual error retained. targeted 1 pass, EXIT 0. **Full native validation은 이�
   gov는external-redirect로blocked이며미점검이다. MSVC현재제품·CI/Windows이미지실사이트
   재현율/WebView2부재offline/사람·AT/목표8GB환경/기기간그룹이식도미실행이다.
   원래재현된3결함의수정·관측은완료했지만전체E2E나실제제출완료로확장하지않는다.
+
+### 공개 양성 두 대상 후속 실행과 정상 충전기 오탐 수정 (2026-10-23)
+
+- 시작b186651/clean/stash없음을확인했다. 기존43사례369파일을백업·대조했다.
+- 기존8628설치본의새배치39158f46: blacktoon425공식1/이미지5,
+  별도blacktoonurls/address-collection공식0/이미지14. 각1checked/0failed.
+  group/case/coverage원문은d08-positive-20261023/batch-complete-receipt.json이다.
+- 두번째x5의원본이미지SHAa6ee86aa5cda87ed7154bc244dfa28f36f7654f94a2d89915c749c29863c1dda는
+  정상100W/GaN충전기다. 목적지는mkt.shopping.naver.com, OCRconfidence.96777,
+  text-embedding-v3 margin+.003644로v4review오탐. 원본case·charger-diagnostic2.log보존.
+- 2e43ec9는충전기+실제사양문맥을보조의미/이미지승격에서제외하되베팅/정산어를보호한다.
+  정확OCR·목적지·임베딩수치회귀와양성보존관련97pass. 검증기는완화하지않았다.
+- 전체check최초778pass/1fail/1skip: 이미지복원후focus effect직전assertion race를확인했다.
+  포커스요구는유지하고waitFor로기다리게수정. check-final-verified.log는
+  typecheck/lint+779pass/1skip,225.32초/EXIT0. 최초실패로그도보존했다.
+- 새설치전45사례410파일백업완료. 새제품source98fd0102후보빌드/재설치/최종D08는진행중.
+  소유단일양성이나이전탐지0배치와합산해양성D08완료로처리하지않는다.
+
+### 제출 우선 전환과 새 후보 확정
+
+- 새후보98fd/source2e43의builddesktop/package/verifyartifactEXIT0. 설치파일746959183B,
+  SHA fbaa7b6f8e957a6ecd46e4549e54863ebc23fb68ff8fb8b7d7a0296772808d23.
+- 새workerWindows원인대조: 동일충전기imageSHAa6ee86aa…를실수집한상태로14->13,
+  제거위치#img_comp-mrxpkrp0만/추가0. prefilter-causal-comparison.json 근거.
+- 공식0/extra13은isCaseReview의공식ID계약상영구검토대상이아님을소스로확인했다.
+  두번째공식양성이필요하며이쌍을판단/메모D08완료로쓰지않는다.
+- 앱정상종료확인후Pocket4오프라인/SSH+Cua단절. 사용자가현재복구불가를확인하고
+  제출준비우선,GitHubpublic전환과단일ZIP을명시적으로요청했다. 최신설치본수용미완료.
+- 제출앞문서는제품기능과수행한실험의환경/버전/수치만정확히제시하며내부작업회고는제외.
+  이원장과원시증거의미완료기록을유지하고검증완료를허위로확장하지않는다.

@@ -1,11 +1,48 @@
 # 채택 후보와 수신팀 인계
 
-> 현재 제품은 `dev/bootstrap@dd5ceb4`, source `8628ba4a4488…`다.
+## 현재 인계 — 2026-10-23 제출 준비
+
+사용자는 Windows 시험기 복구가 현재 불가능하므로 제출 준비를 우선하도록 지시했고,
+GitHub public 전환과 단일 ZIP을 요청했다. 제출 문서는 대회 심사 자료로 정리하며,
+수행한 실험만 버전·환경과 함께 제시한다. 실제 하지 않은 수용을 통과로 쓰지 않는다.
+내부 진행·한계 기록은 이 원장과 원시 증거에 보존한다.
+
+제품 커밋 `2e43ec97f426e9406e585b21b92e659a92f4c5ac`,
+source SHA `98fd01026e36a56313984a0630486aa1930140befda608aa8583fa1588e1cae3`.
+새 후보 `artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-98fd01026e36-20261023T075711454Z/`.
+installer746,959,183B/712.36MiB, SHA
+`fbaa7b6f8e957a6ecd46e4549e54863ebc23fb68ff8fb8b7d7a0296772808d23`.
+build:desktop/package:windows/verify:artifact EXIT0, 후보8파일+manifest 검증.
+새 설치 후 예상 EXE SHA는ea24329d…이나 실제 설치 관측값이 아니다.
+JS/TS typecheck·lint+779pass/1skip(225.32초), native 소스는82pass/2ignored 검증본과 동일하다.
+
+기존8628 설치본의 새 공개 배치39158f46: BlackToon공식1/이미지5,
+blacktoonurls/address-collection공식0/이미지14, 각1checked/0failed.
+x5는 실제이미지SHAa6ee86aa…·OCR·Naver쇼핑목적지로 확인한 정상100W/GaN충전기 오탐이다.
+새코드는 명확한 상품 사양 문맥을 임베딩 보조승격에서 제외하고 베팅/정산 문구를 보호한다.
+새worker2e362d…를 실제Windows에서 실행해 동일이미지SHA에서충전기만제거하고
+나머지13위치유지/추가0을 확인했다. official0/extra13인 대상은 계약상 지속판단·메모
+대상이 아니므로 이 쌍으로 양성두대상D08를 완료할 수 없다. 첫번째f1 입력은 관측했지만
+두번째 공식양성 선정·새설치본 두대상저장·재시작·XLSX·Excel은 미완료다.
+
+기존43사례369파일 변경/누락0, 새 설치 전45사례410파일 백업·읽기대조 완료.
+앱 정상 종료는Cua0046으로 확인했다. 그후Pocket4가오프라인이되어SSH/Cua가끊겼고
+사용자가복구불가를확인했다. 새후보설치및최종D08검증을실행한것으로표시하지않는다.
+원시증거는 `artifacts/dogfood-20261023/d08-positive-20261023/`,
+기획PDF8쪽/한국어글꼴/시각검증은 `submission-planning/`에 있다.
+
+시작HEADb186651/clean/stash없음을확인했고자동stash/restore는하지않았다.
+허용범위는로컬수정/커밋·Windows시험·승인NAS/HDD0인계 및 이번 명시적 GitHub 공개 요청이다.
+실제공모전접수·PR병합·릴리스생성은하지않는다. 최종소스/문서커밋과ZIP/사본무결성을
+확인한뒤전달한다. Windows재개시첫작업은새후보실제설치후공식양성두공개대상을선정해
+각판단·메모저장/정상재시작복원/통합XLSX/Excel을검증하는것이다.
+
+> 이전 평가 제품은 `dev/bootstrap@dd5ceb4`, source `8628ba4a4488…`다.
 > 최신 검증·한계·파일 식별은 [제출 자료](SUBMISSION_20261023/README.md)와
 > [채택 원장](ADOPTION_LEDGER.md)의 세션 인계 재개 이후 절을 따른다.
 > 아래565·509 등은 역사 기록이며 현재 전달 후보가 아니다.
 
-## 현재 인계 — 2026-10-23 재개 결과
+## 이전 인계 — 2026-10-23 16시대 재개 결과
 
 목표는 NIA JS 문서 전환 누락과 D08 묶음 저장 실패를 수정하고 실제 Windows에서
 두 대상 저장·정상 재시작·통합 XLSX를 확인하는 것이다. 시작 HEAD는 f481d73이며
