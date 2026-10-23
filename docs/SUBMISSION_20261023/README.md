@@ -5,7 +5,9 @@ Windows 11에서 웹사이트의 광고 의심 문구와 은폐 기법을 점검
 
 ## 제출물 구성
 
-제출 압축 파일: `KRDS_ILLEGAL_AD_SUBMISSION_20261023.zip`
+접수 첨부 파일: [문서 ZIP — 491,570B](https://github.com/kotori0919/krds-illegal-ad-detector/releases/download/submission-2026-10-23/KRDS_ILLEGAL_AD_SUBMISSION_10MB_20261023.zip)
+
+실행 파일과 전체 소스: [GitHub 전체 패키지](https://github.com/kotori0919/krds-illegal-ad-detector/releases/download/submission-2026-10-23/KRDS_ILLEGAL_AD_SUBMISSION_20261023.zip)
 
 | 자료 | 내용 |
 | --- | --- |

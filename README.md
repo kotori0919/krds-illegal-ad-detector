@@ -4,6 +4,11 @@
 
 2026 행정안전부·한국지능정보사회진흥원 「공공 웹사이트 불법광고 탐지 도구 개발 공모전」 제출 프로젝트입니다.
 
+## 다운로드
+
+- [접수 첨부용 문서 ZIP — 10MB 이하](https://github.com/kotori0919/krds-illegal-ad-detector/releases/download/submission-2026-10-23/KRDS_ILLEGAL_AD_SUBMISSION_10MB_20261023.zip)
+- [Windows 설치 파일·전체 소스 패키지](https://github.com/kotori0919/krds-illegal-ad-detector/releases/download/submission-2026-10-23/KRDS_ILLEGAL_AD_SUBMISSION_20261023.zip)
+
 ## 주요 기능
 
 - **웹사이트 점검**: 시작 URL에서 하위 페이지와 중첩 iframe을 탐색하고, 확인한 페이지와 접근 실패를 구분합니다.
