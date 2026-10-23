@@ -1396,3 +1396,27 @@ OBSERVED: 관련6파일38시험 통과, 최종 typecheck/lint EXIT0.
 후속 HEAD의 GitHub 필수 CI로 확인한다. 3211e43의 새 패키징은 추가 결함을 반영하기
 위해 소유한 process group만 TERM으로 중단(EXIT143)했으며 후보로 채택하지 않았다.
 제출 설치본과 릴리스 자산은 그대로 보존한다.
+
+### 최종 CI·main 통합·Windows 재개 후보
+
+OBSERVED: 최종 HEAD `59933580b4fc27fd5e6fc3ec50b7b1c3326dcc35`, source SHA
+`d42ae4ab1879aa26da24f4c6402344d9d19b0c262727706d31eedad801d3176f`의
+GitHub run39931222789 verify/windows-native/required 모두 성공.
+Linux791pass/1skip, Windows MSVC80pass/2ignored, fmt/clippy,
+production sandbox packaged worker 공식1탐지·요청2건, desktop release build 성공이다.
+미해결 리뷰0·MERGEABLE/CLEAN과 정확한 HEAD를 확인하고 보호 규칙을 유지한 채
+PR #2를 merge했다. main `3e20d5830c2447b53c7873c06595364f5aa61a14`는 검증 HEAD와
+동일한 tree다. 후속 브랜치도 main으로 fast-forward하고 이후 기록·검증을 이어간다.
+
+OBSERVED: 같은 clean source290파일에서 gnullvm 새 후보 제작·verify:artifact EXIT0,
+runtime1177파일/8payload+manifest 검증. 후보 폴더는
+`candidate-0.2.1-x86_64-pc-windows-gnullvm-d42ae4ab1879-20261023T092151358Z`다.
+installer747,014,364B, SHA37181bd5eefd9d3620676e402c6f5d01575310b43dae9033a994722f6857fb24.
+NAS/HDD0의 `illegal-ad-maintenance-20261023/`에 후보9파일770,467,147B를 복사해
+누락0/해시불일치0을 확인했다. 원시 CI·패키징·검증·사본 receipt는
+`artifacts/post-submission-20261023/`에 보존한다. main push의 별도 CI 재실행과
+검증 PR의 통과를 구분하며, tree 동일성 때문에 같은 검사를 수동 반복하지 않는다.
+
+NOT_RUN: Pocket4 재확인도 SSH timeout이다. 이 후보의 실제 설치 및 공식 양성 두
+공개 대상 판단·메모·정상 재시작 복원·통합 XLSX·실제 Excel은 기기 복구 후 수행한다.
+제출 태그·두 ZIP·과거 사례 및 설치 후보는 보존한다.

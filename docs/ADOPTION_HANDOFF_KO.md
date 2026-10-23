@@ -2,6 +2,25 @@
 
 ## 현재 인계 — 2026-10-23 제출 후 유지보수
 
+최신 상태: PR #2를 필수 CI와 리뷰 대화 해결 후 병합했다. main은
+`3e20d5830c2447b53c7873c06595364f5aa61a14`이며 검증 HEAD5993358과 tree가 동일하다.
+후속 활성 브랜치는 `codex/post-submission-d08`이고 main에서 이어간다.
+최종 CI run39931222789: Linux791pass/1skip, Windows MSVC80pass/2ignored,
+fmt/clippy·packaged worker 공식1탐지/요청2건·desktop release build 성공이다.
+
+Windows 재개 후보는
+`artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-d42ae4ab1879-20261023T092151358Z/`다.
+clean source5993358, SHA `d42ae4ab1879aa26da24f4c6402344d9d19b0c262727706d31eedad801d3176f`,
+290소스 파일, runtime1177파일, candidate8payload+manifest 검증 EXIT0.
+installer747,014,364B/712.41MiB, SHA
+`37181bd5eefd9d3620676e402c6f5d01575310b43dae9033a994722f6857fb24`.
+설치 후 예상 EXE SHA는
+`e4591c3151dc83ceb9e49324bdf86905b2a330c06232bf65ec1d349101c8613b`이며 실제 설치 관측값이 아니다.
+NAS/HDD0 `illegal-ad-maintenance-20261023/`의 후보9파일은 총770,467,147B,
+누락0/해시불일치0으로 읽기 검증했다. 마지막 Pocket4 재확인도 SSH timeout이다.
+다음 작업은 아래 기존 자료 보존 절차 후 이 후보를 실제 설치하고 양성 두 대상 D08를
+수행하는 것이다. 아직 해당 설치·재시작·XLSX·Excel을 통과로 처리하지 않는다.
+
 사용자가 제출 완료를 알렸고, 남은 결함 수정과 Windows 복구 후 실제 설치본 D08
 검증을 요청했다. `main`을 보호하고 이후 수정·검증은 독립 브랜치에서 수행한다.
 제출 태그 `submission-2026-10-23`과 두 공개 ZIP은 변경하지 않는다.
