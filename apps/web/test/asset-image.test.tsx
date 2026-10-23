@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { HostBridge } from "@krds-detector/contracts";
 import { AssetImage } from "../src/screens/AssetImage.js";
 import { evidenceHost, warpHost } from "./evidence-host.js";
@@ -31,7 +31,7 @@ describe("optional evidence image reads", () => {
     fireEvent.click(screen.getByRole("button", { name: "이미지 다시 불러오기" }));
     const image = await screen.findByRole("img", { name: "탐지 당시 화면" });
     expect(image.getAttribute("src")).toBe("data:image/png;base64,YQ==");
-    expect(document.activeElement).toBe(image);
+    await waitFor(() => expect(document.activeElement).toBe(image));
     expect(screen.queryByRole("button", { name: "이미지 다시 불러오기" })).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });

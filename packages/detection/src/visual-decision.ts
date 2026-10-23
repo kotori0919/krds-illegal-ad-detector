@@ -119,6 +119,11 @@ export function canReviewVisualImage(candidate: VisualCandidate, ocr: ImageAnaly
 function hasOrdinaryCommercialContext(ocr: ImageAnalysis["ocr"]): boolean {
   if (ocr.state !== "available") return false;
   const text = semanticGate(ocr.text).normalizedText;
+  // Product charging is ordinary commerce; betting wording and settlement
+  // handles still keep mixed creatives eligible for the existing ad paths.
+  if (/충전기/.test(text) && /초고속|케이블|gan|\d+(?:\.\d+)?w/i.test(text)
+    && !hasVisualAdCategory(text) && !/입금|입급|입들금/.test(text)
+    && matchedTermsIn(text, [...BETTING_DEPOSIT_TERMS, ...BETTING_REWARD_TERMS, ...SETTLEMENT_ANCHORS]).length === 0) return true;
   // Readable ordinary transactions take precedence over image style. Actual
   // gambling categories or deposit jargon prevent this conservative exclusion.
   if (hasVisualAdCategory(text) || /첫충|매충|콤프|롤링|페이백|입금|충전/.test(text)) return false;
