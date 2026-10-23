@@ -1,6 +1,46 @@
 # 채택 후보와 수신팀 인계
 
-## 현재 인계 — 2026-10-23 제출 준비
+## 현재 인계 — 2026-10-23 제출 후 유지보수
+
+사용자가 제출 완료를 알렸고, 남은 결함 수정과 Windows 복구 후 실제 설치본 D08
+검증을 요청했다. `main`을 보호하고 이후 수정·검증은 독립 브랜치에서 수행한다.
+제출 태그 `submission-2026-10-23`과 두 공개 ZIP은 변경하지 않는다.
+
+시작 상태는 `dev/bootstrap@d47299e`, clean, stash 없음이다. 별도 기존 worktree
+`/home/monad/orca/workspaces/illegal_ad/grampus`는 그대로 둔다. 후속 작업 브랜치는
+`codex/post-submission-d08`다. `origin/main@a866bd4`는 초기 상태로 403커밋 뒤이며
+기존 PR #2로 통합을 준비한다. GitHub main 보호는 관리자 포함 PR 필수,
+GitHub Actions `required` 성공·최신 base·대화 해결 필수, force push/삭제 금지다.
+필수 집계 job은 Linux verify와 Windows native가 모두 성공해야 통과한다.
+별도 사람 승인 인원은 0이며 사람 승인 수행을 뜻하지 않는다.
+
+기존 제출 소스의 GitHub CI run `39926440891`은 verify/windows-native/required
+모두 성공했다. Windows lane의 native 시험·packaged worker smoke·MSVC desktop
+빌드는 실행됐지만 Pocket4 설치본의 D08 수용을 대신하지 않는다.
+
+후속 브랜치에서 두 결함을 재현했다. 첫째, 저장 사례를 받은 뒤 묶음 최종 상태
+기록 전에 종료하면 `running + caseId`가 복원 때 pending이 되어 재점검된다.
+복원은 저장 세션·coverage로 상태를 판별하고 미저장 대상만 자동 재개하도록 수정한다.
+둘째, 삭제 후 같은 ID·revision의 전달 사례를 가져오면 CaseReviewWriter의 loaded
+캐시가 옛 메모를 반환한다. 다시 열 때 디스크를 재조회하고 진행 중 저장을 먼저
+정리한다. 재현 실패 로그와 후속 검증은 `artifacts/post-submission-20261023/`다.
+
+수정 커밋은 `0ee497f`와 `7e6f87a`다. 최종 로컬 check는 typecheck/lint와
+789pass/1skip, 224.56초로 EXIT0다. React 재열기·저장 동시성 포함 관련51시험도
+통과했다. 초기 main 통합은 기존 PR #2의 새 HEAD CI를 통과한 뒤 진행한다.
+
+Pocket4 SSH는 연결 시간 초과다. 마지막 실제 설치는 source8628이며 제출 후보
+source98fd 설치는 수행하지 않았다. 새 UI 수정이 포함된 후보도 별도 제작해야 한다.
+Windows 복구 시 기존45사례410파일 기준과 현재 파일을 먼저 백업·해시 대조하고,
+새 설치 identity 확인 → 공식 양성 두 공개 대상 → 각 판단/메모 저장 완료 → 정상 종료
+및 새 프로세스 → 묶음·판단·메모 복원 → 통합 XLSX → 실제 Excel 순서로 확인한다.
+공식0/추가13 대상은 판단·메모 D08의 양성 대상으로 사용하지 않는다.
+기존 설치·제출 자료와 원시 근거를 성공으로 확대하지 않는다.
+
+현재 사용자는 이 저장소의 main 정리·보호와 독립 브랜치 검증·개선을 승인했다.
+과거 인계의 PR Draft 유지·merge/publication 금지 문구는 이 범위에서 대체됐다.
+
+## 이전 인계 — 2026-10-23 제출 준비
 
 사용자는 Windows 시험기 복구가 현재 불가능하므로 제출 준비를 우선하도록 지시했고,
 GitHub public 전환과 단일 ZIP을 요청했다. 제출 문서는 대회 심사 자료로 정리하며,

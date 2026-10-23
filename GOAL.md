@@ -1,5 +1,24 @@
 # GOAL.md
 
+## Current authorized maintenance (2026-10-23, after submission)
+
+The user has submitted the competition package. Preserve the tagged submission
+and its published ZIPs. Establish `main` from the reviewed submission source and
+protect it with pull requests, required Linux/Windows CI and resolved review
+conversations; apply the same rules to administrators and block force pushes and
+deletion. Author and validate subsequent fixes on `codex/` branches, then integrate
+through reviewed PRs. This instruction supersedes the historical Draft-only,
+no-merge and no-publication restrictions below for this repository.
+
+Continue the remaining defects. When the Windows test machine is reachable,
+install the candidate matching the corrected source and finish D08 using two
+public targets with official positive findings: save separate judgments and
+memos, restart the installed app, restore both cases and the batch, regenerate
+the integrated XLSX and inspect it in Excel. Preserve official JSON bytes and
+existing case data. Controlled regression tests are separate evidence from this
+installed-app acceptance. Current state: docs/ADOPTION_HANDOFF_KO.md and
+docs/ADOPTION_LEDGER.md.
+
 ## Current authorized delivery (2026-10-09)
 
 Implement CODEX_NIA_ADOPTION_GOAL.md M0-M5 against dev/bootstrap and keep PR #2

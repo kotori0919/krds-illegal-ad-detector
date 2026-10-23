@@ -69,3 +69,7 @@ npm run dev
 ```
 
 Windows 실행 파일은 `npm run build:desktop`, 설치 패키지는 `npm run package:windows`로 생성합니다.
+
+`main`은 PR과 Linux·Windows CI를 통과한 변경을 통합하는 기준 브랜치입니다.
+후속 수정과 검증은 `codex/` 독립 브랜치에서 진행합니다. 제출 당시 소스와 패키지는
+`submission-2026-10-23` 태그와 다운로드 파일로 보존합니다.

@@ -1317,3 +1317,62 @@ actual error retained. targeted 1 pass, EXIT 0. **Full native validation은 이�
   제출준비우선,GitHubpublic전환과단일ZIP을명시적으로요청했다. 최신설치본수용미완료.
 - 제출앞문서는제품기능과수행한실험의환경/버전/수치만정확히제시하며내부작업회고는제외.
   이원장과원시증거의미완료기록을유지하고검증완료를허위로확장하지않는다.
+
+## 2026-10-23 제출 후 main 정리와 저장·복원 수정
+
+사용자는 제출 완료 후 남은 결함 수정, Windows 복구 후 실제 설치본 D08,
+GitHub main 정리·보호와 후속 독립 브랜치 작업을 요청했다. 시작은
+`dev/bootstrap@d47299e`, clean/stash 없음이다. `main@a866bd4`는 403커밋 뒤였고
+보호가 없었다. `codex/post-submission-d08`에서 수정·검증하며 기존 PR #2로
+초기 main 통합을 준비한다. 제출 태그와 ZIP은 유지한다.
+
+OBSERVED: main branch protection API 읽기 대조로 PR 필수, GitHub Actions app15368의
+`required` 성공·최신 base·대화 해결 필수, 관리자 적용, force push/삭제 금지를
+확인했다. 사람 승인 인원은 0이다. GitHub run39926440891은 세 job 모두 성공:
+Linux779pass/1skip, Windows MSVC80pass/2ignored, fmt/clippy,
+packaged worker 공식1탐지·요청2건, release desktop build를 실행했다.
+로컬82와 Windows80은 플랫폼별 시험 구성이 다른 실제 관측값이다.
+
+OBSERVED: 묶음 running 상태에 이미 저장된 caseId가 있으면 복원 때 pending으로
+되돌아가는 실패를 재현했다. 실제 coordinator는 저장 결과 수신을 publish한 뒤
+coverage 조회를 기다리므로 이 중간 상태가 디스크에 남을 수 있다. 복원은 같은
+batchResultStatus 판별을 사용해 완료/부분/차단/실패/취소를 유지하고, 미저장 대상만
+재개한다. 기존 공식 결과·판단의 JSON이 변하지 않고 미완료 둘째 대상만 시작하는
+회귀 및 상태별 시험을 추가했다.
+
+OBSERVED: PR #2의 미해결 지적 중 삭제·같은 ID 가져오기 후 검토 캐시가 오래된
+레코드를 반환하는 실패를 재현했다. 다시 열 때 캐시를 디스크에서 갱신하고 진행 중
+저장을 기다린다. 읽는 동안 loaded=false로 새 revision 확인 전 저장을 막으며,
+수정한 로컬 메모는 조회 결과와 병합한다. App에서 저장 목록/묶음 화면을 떠나 다시
+검토 화면으로 들어올 때 load가 실행되도록 활성 조건을 연결했다. 실제 React 화면의
+재열기에서도 옛 메모가 남는 실패를 확인한 뒤 수정했다. 별도 Windows 수용은 아니다.
+
+기존 PR의 오래된 지적은 현재 구현·실행 근거를 직접 대조했다.
+
+| 검토 주제 | 현재 근거 |
+| --- | --- |
+| worker/runtime 묶음 | tauri.conf resources, scripts/desktop.mjs, CI resources·packaged smoke·MSVC build |
+| entry URL·limits 전달 | main.rs start_scan → --entry-url/max-pages/max-depth/timeout-sec, worker args 시험 |
+| 결과 수신·종료 | session.rs collect_output/commit, main.rs finished emit, native 시험·packaged smoke |
+| 자식 Job Object | session.rs spawn_sidecar의 JobGuard::assign_pid(child PID), Windows native 시험 |
+| 탐지 deadline | worker.ts/scan.ts 공유 ScanDeadline, deadline-scan·cancelled-scan·single-pass 시험 |
+| ID 없는 요소 | pipeline.ts extractTextOwners와 selector engine, general-text·selector-generation 시험 |
+| private network 차단 | PublicNetworkPolicy/강제 proxy, public-network·manual-network·pinned-transport 시험 |
+| 양수 화면 좌표 제안 | viewport 밖이라는 이유만으로 OFFSCREEN 처리하는 제안은 채택하지 않음. policy2는 스크롤 가능한 본문을 은닉으로 보지 않으며 rendering-observation의 below 대조가 이를 보호함. 실제 clip/negative/unrendered 조건과 구분 |
+| watchdog 유예 | session.rs sidecar_watchdog_sec의 worker deadline + hostGraceSec, hardLimitSec 상한과 native 시험 |
+| 외부 최종 문서 | crawl.ts requireSameSiteDocument, redirect-scope·redirect-domready 시험 |
+| query 충돌 | urls.ts URLSearchParams 직렬화와 urls·redirect-scope 시험 |
+| URL 자격 정보 | main.rs url_like_valid에서 세션/argv 전 거부, native URL 시험 |
+| 삭제/가져오기 후 캐시 | 이번 CaseReviewWriter + App 수정과 class/React 회귀 시험 |
+
+NOT_RUN: Pocket4는 SSH 연결 시간 초과로 현재 사용할 수 없다. 새 수정 포함
+설치본의 공식 양성 두 공개 대상 판단·메모·정상 재시작·통합 XLSX·Excel 검증은
+Windows 복구 후 수행한다. 기준45사례410파일 및 공식 결과 해시를 보존한다.
+원시 검증: `artifacts/post-submission-20261023/`.
+
+OBSERVED: 제품 커밋 `0ee497f`(묶음 복원), `7e6f87a`(검토 재열기).
+최종 `PATH=/usr/bin:$PATH KRDS_TEST_UNSANDBOXED=1 npm run check` EXIT0,
+99파일 통과/1파일 skip, 789pass/1skip, 224.56초. 수정 전 두 재현과 화면 재현 실패를
+각각 보존했고 최종 관련6파일51시험이 통과했다. 추가 sandbox 예외·검증기 완화·시험
+skip은 없다. 제출 릴리스의 ZIP 두 개는 공개 API size/digest 재조회로 기존 해시와
+일치했다. source/test 변경 검토 후 기존 PR #2의 초기 main 통합에 반영한다.
