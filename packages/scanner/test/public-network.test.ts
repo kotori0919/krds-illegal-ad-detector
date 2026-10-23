@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { describe, expect, it } from "vitest";
 import { crawlSite } from "../src/crawl.js";
-import { isPublicAddress, PublicNetworkPolicy, startPublicNetworkProxy } from "../src/public-network.js";
+import { isPublicAddress, PublicNetworkPolicy, startPublicNetworkProxy, type PublicNetworkProxy } from "../src/public-network.js";
 import { ScanDeadline } from "../src/deadline.js";
 import { scanSite } from "../../detection/src/scan.js";
 import { request as httpRequest } from "node:http";
@@ -55,6 +55,17 @@ const networkTest = it.extend<{ network: NetworkFixture }>({
     }
   },
 });
+
+/** One authenticated absolute-form request through the enforcing proxy.
+ * `Promise.withResolvers` needs lib ES2024, which this package does not target. */
+function proxiedStatus(proxy: PublicNetworkProxy, target: string): Promise<number> {
+  const credentials = Buffer.from(`${proxy.proxy.username}:${proxy.proxy.password}`).toString("base64");
+  return new Promise<number>((resolve, reject) => {
+    const request = httpRequest(proxy.proxy.server, { path: target, headers: { "proxy-authorization": `Basic ${credentials}` } },
+      (response) => { response.resume(); resolve(response.statusCode ?? 0); });
+    request.on("error", reject); request.end();
+  });
+}
 
 describe("public-only runtime navigation", () => {
   networkTest("rejects imported loopback before any crawler or discovery connection", async ({ network, signal }) => {
@@ -261,5 +272,33 @@ describe("public address and DNS boundaries", () => {
       await proxy.close();
       await expect(fetch(proxy.proxy.server)).rejects.toThrow();
     } finally { await proxy.close(); }
+  });
+  networkTest("records a policy rejection as 403 for the denied target", async ({ network }) => {
+    const denied: string[] = [];
+    const controller = new AbortController();
+    const proxy = await startPublicNetworkProxy(PublicNetworkPolicy.forFixtureOrigins([network.origin]),
+      new ScanDeadline(scanTimeoutSec), controller.signal, (url) => { denied.push(url); });
+    try {
+      expect(await proxiedStatus(proxy, `${network.protectedOrigin}/image`)).toBe(403);
+      expect(denied).toEqual([`${network.protectedOrigin}/image`]);
+      expect(network.protectedConnections()).toBe(0);
+    } finally { controller.abort(); await proxy.close(); }
+  });
+  it("reports an unreachable authorized origin as an upstream failure, never a policy denial", async () => {
+    const reserved = createServer();
+    await new Promise<void>((resolve) => reserved.listen(0, "127.0.0.1", resolve));
+    const address = reserved.address();
+    if (address === null || typeof address === "string") throw new Error("loopback listener unavailable");
+    const closedPort = address.port;
+    await new Promise<void>((resolve) => reserved.close(() => resolve()));
+    const origin = `http://127.0.0.1:${closedPort}`;
+    const denied: string[] = [];
+    const controller = new AbortController();
+    const proxy = await startPublicNetworkProxy(await PublicNetworkPolicy.forManualEntry(`${origin}/`),
+      new ScanDeadline(scanTimeoutSec), controller.signal, (url) => { denied.push(url); });
+    try {
+      expect(await proxiedStatus(proxy, `${origin}/entry`)).toBe(502);
+      expect(denied).toEqual([]);
+    } finally { controller.abort(); await proxy.close(); }
   });
 });

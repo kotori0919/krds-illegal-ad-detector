@@ -98,7 +98,13 @@ it("authorizes only the exact manual private origin while retaining public resou
   expect((await policy.resolveTarget("http://127.0.0.1:4567/frame")).address).toBe("127.0.0.1");
   expect((await policy.resolveTarget("http://127.0.0.1:4567/frame")).route).toBe("owned-origin");
   await expect(policy.resolveTarget("http://127.0.0.1:4568/")).rejects.toThrow("policy rejected");
+  await expect(policy.resolveTarget("http://127.0.0.2:4567/")).rejects.toThrow("policy rejected");
+  await expect(policy.resolveTarget("https://127.0.0.1:4567/")).rejects.toThrow("policy rejected");
   await expect(policy.resolveTarget("http://localhost:4567/")).rejects.toThrow("policy rejected");
+  // Public-network-only mode stays strict for the same loopback origin.
+  const strict = new PublicNetworkPolicy();
+  await expect(strict.resolveTarget("http://127.0.0.1:4567/")).rejects.toThrow("policy rejected");
+  await expect(strict.resolveTarget("http://127.0.0.2:4567/")).rejects.toThrow("policy rejected");
   expect((await policy.resolveTarget("https://8.8.8.8/")).address).toBe("8.8.8.8");
   expect((await policy.resolveTarget("https://8.8.8.8/")).route).toBe("public");
   await expect(PublicNetworkPolicy.forManualEntry("http://169.254.169.254/")).rejects.toThrow("policy rejected");
@@ -140,4 +146,18 @@ it.for(["/", "/redirect"])("blocks actual private traffic outside a manually ent
       server.closeAllConnections();
     })));
   }
+});
+
+it("reports an unreachable manual-entry fixture as a navigation failure, not a policy denial", { timeout: testTimeoutMs }, async ({ signal }) => {
+  const reserved = createServer();
+  await new Promise<void>((resolve) => reserved.listen(0, "127.0.0.1", resolve));
+  const address = reserved.address();
+  if (address === null || typeof address === "string") throw new Error("loopback listener unavailable");
+  const port = address.port;
+  await new Promise<void>((resolve) => reserved.close(() => resolve()));
+  const summary = await crawlSite({ entryUrl: `http://127.0.0.1:${port}/`, signal, settleMs: 0,
+    limits: { maxPages: 1, maxDepth: 0, timeoutSec: 20 } });
+  expect(summary.pages[0]?.status).toBe(502);
+  expect(summary.pages[0]?.issue).toEqual({ kind: "navigation", retryable: true });
+  expect(summary.pages[0]?.collectionIssues ?? []).not.toContain("network-policy-denied");
 });

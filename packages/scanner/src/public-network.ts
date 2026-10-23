@@ -13,7 +13,15 @@ interface Address { address: string; family: number }
 type Resolver = (hostname: string) => Promise<Address[]>;
 export interface PinnedTarget { url: URL; address: string; family: 4 | 6; port: number; route: "public" | "owned-origin" }
 
-function denied(): Error { return new Error("public network policy rejected target"); }
+/** Marks policy rejections so a failed upstream connection (unreachable
+ * fixture, DNS outage, reset) is never reported as an SSRF denial. */
+const POLICY_DENIAL = Symbol("krds.network-policy-denial");
+function denied(): Error {
+  const error = new Error("public network policy rejected target");
+  Object.defineProperty(error, POLICY_DENIAL, { value: true });
+  return error;
+}
+function isPolicyDenial(error: unknown): boolean { return error instanceof Error && POLICY_DENIAL in error; }
 
 /** Conservative global-unicast policy; mapped/tunnel/reserved forms are denied. */
 export function isPublicAddress(address: string): boolean {
@@ -238,8 +246,15 @@ export async function startPublicNetworkProxy(policy: PublicNetworkBoundary, dea
         upstream.on("error", () => { if (!response.headersSent) response.writeHead(502); response.end(); });
         response.once("close", () => { upstream.destroy(); connection.destroy(); });
         request.pipe(upstream);
-      } catch {
+      } catch (error) {
         if (response.destroyed || requestController.signal.aborted) return;
+        if (!isPolicyDenial(error)) {
+          // The upstream was unreachable or reset: report a gateway failure,
+          // never a policy denial and never a denied-target record.
+          if (!response.headersSent) response.writeHead(502, { Connection: "close" });
+          response.end("public network upstream failed");
+          return;
+        }
         onDenied?.(request.url ?? ""); if (!response.headersSent) response.writeHead(403, { Connection: "close" }); response.end("public network policy rejected target");
       }
     })();
@@ -266,7 +281,10 @@ export async function startPublicNetworkProxy(policy: PublicNetworkBoundary, dea
         client.write("HTTP/1.1 200 Connection Established\r\n\r\n");
         if (head.length) upstream.write(head);
         upstream.pipe(client); client.pipe(upstream);
-      } catch { onDenied?.(`https://${request.url ?? ""}`); client.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n"); }
+      } catch (error) {
+        if (!isPolicyDenial(error)) { client.end("HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n"); return; }
+        onDenied?.(`https://${request.url ?? ""}`); client.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+      }
     })();
   });
   let closing: Promise<void> | undefined;

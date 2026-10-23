@@ -190,7 +190,9 @@ it("does not acknowledge the browser CONNECT when upstream authentication fails"
       request.on("connect", (response, socket) => { socket.destroy(); resolve(response.statusCode); });
       request.on("error", reject); request.end();
     });
-    expect(status).toBe(403); expect(f.accepts()).toBe(1);
+    // An upstream CONNECT rejection is a gateway failure; it is not an SSRF
+    // policy denial, so it must not fabricate a network-policy record.
+    expect(status).toBe(502); expect(f.accepts()).toBe(1);
   } finally { await boundary.close(); await f.close(); }
 });
 

@@ -156,7 +156,10 @@ remain available through the same checked, pinned transport. Link-local,
 metadata, multicast, reserved and mixed public/private answers are denied
 even for a manual entry. Denials appear as `network-policy` failed navigation
 or a `network-policy-denied` resource collection issue; a resource omission
-does not manufacture a checked finding.
+does not manufacture a checked finding. An unreachable, reset or unauthenticated
+upstream (for example an owned fixture that is not listening) is answered with
+`502` by the proxy and reported as a retryable `navigation` failure — never as
+a policy denial, so an availability fault cannot masquerade as an SSRF block.
 The worker accepts `--entry-kind site|sitemap`; a sitemap
 input is fetched as the first XML/index discovery seed, never checked as HTML.
 Its discovered pages start at depth 0 and share the configured page limit.
