@@ -108,8 +108,15 @@ async function loadTextReferences(directory: URL): Promise<number[][]> {
   return data.references.map(row => row.vector);
 }
 
+/** Shared CPU embedding engine. `warm` pays lazy session creation up front. */
+export interface TextEmbeddingEngine {
+  analyzeText(text: string): Promise<TextEmbeddingEvidence>;
+  analyzeImage(bytes: Uint8Array, text: string): Promise<VisualEmbeddingEvidence>;
+  warm(): Promise<void>;
+}
+
 /** Runs only inside the killable OCR child; assets are pinned at build time. */
-export async function createTextEmbedding(directory: URL) {
+export async function createTextEmbedding(directory: URL): Promise<TextEmbeddingEngine> {
   const references = await loadTextReferences(directory);
   const { tokenizer, encode } = await createEncoder(directory);
   const classify = (vector: number[], positives = references.slice(0, policy.positivePrompts.length), negatives = references.slice(policy.positivePrompts.length)) => {
@@ -131,6 +138,12 @@ export async function createTextEmbedding(directory: URL) {
   };
   let vision: Promise<ort.InferenceSession> | undefined;
   let imageReferences: { positives: number[][]; negatives: number[][] } | undefined;
+  // Session creation is initialization, not analysis. Callers may therefore
+  // pay it before their own bounded analysis clock starts.
+  const visionSession = async (): Promise<ort.InferenceSession> => {
+    vision ??= ort.InferenceSession.create(fileURLToPath(new URL("onnx/vision_encoder_quantized.onnx", directory)), { executionProviders: ["cpu"], intraOpNumThreads: Math.min(6, availableParallelism()), interOpNumThreads: 1 });
+    return vision;
+  };
   const analyzeImage = async (bytes: Uint8Array, text: string): Promise<VisualEmbeddingEvidence> => {
     const rawIds = tokenizer.encode(policy.prefix + text).ids;
     if (text.length > 4096 || /<\|/.test(text) || rawIds.length > 256 || rawIds.some(id => [255999,258880,258882,256000,258881,258883,258884].includes(id))) return { state: "unavailable", reason: "invalid-input" };
@@ -138,8 +151,7 @@ export async function createTextEmbedding(directory: URL) {
     // separate from text review, so numeric OCR is never presented as words.
     const source = Buffer.from(bytes);
     if (source.length < 33 || source.length > 250000 || !source.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])) || source.readUInt32BE(20) > 96 || source.readUInt32BE(16) < source.readUInt32BE(20) * 3) return { state: "unavailable", reason: "invalid-input" };
-    vision ??= ort.InferenceSession.create(fileURLToPath(new URL("onnx/vision_encoder_quantized.onnx", directory)), { executionProviders: ["cpu"], intraOpNumThreads: Math.min(6, availableParallelism()), interOpNumThreads: 1 });
-    const engine = await vision;
+    const engine = await visionSession();
     if (!imageReferences) {
       validateImageReferences(imagePolicy);
       imageReferences = { positives: imagePolicy.references.filter(reference => reference.kind === "positive").map(reference => reference.vector),
@@ -168,5 +180,5 @@ export async function createTextEmbedding(directory: URL) {
       shuffledPositiveSimilarity: shuffled.positiveSimilarity, shuffledNegativeSimilarity: shuffled.negativeSimilarity, shuffledMargin: shuffled.margin,
       threshold: 0, control: "pixel-shuffle-v1", seed: 1701, passed: real.margin >= 0 && shuffled.margin < 0, elapsedMs: 0 };
   };
-  return { analyzeText, analyzeImage };
+  return { analyzeText, analyzeImage, warm: async (): Promise<void> => { await visionSession(); } };
 }

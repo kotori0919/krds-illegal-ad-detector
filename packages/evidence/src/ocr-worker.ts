@@ -3,8 +3,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { createWorker, PSM } from "tesseract.js";
 import { createNeuralOcr } from "./neural-ocr.js";
-import { createTextEmbedding } from "./text-embedding.js";
+import { createTextEmbedding, type TextEmbeddingEngine } from "./text-embedding.js";
+import { analyzeAfterInit } from "./ocr-timing.js";
 
+const embeddingDirectory = new URL("./text-embedding-data/", import.meta.url);
 const engine = (async () => {
   const worker = await createWorker("kor+eng", 1, { cacheMethod: "none", gzip: true,
     langPath: fileURLToPath(new URL("./ocr-data", import.meta.url)), errorHandler: () => undefined });
@@ -12,28 +14,42 @@ const engine = (async () => {
   return worker;
 })();
 let neural: ReturnType<typeof createNeuralOcr> | undefined;
-let embedding: ReturnType<typeof createTextEmbedding> | undefined;
+let embedding: Promise<TextEmbeddingEngine> | undefined;
 // Parent loss must not leave a native inference process behind. Process kill
 // avoids unsafe native-addon teardown inside a terminated JS worker thread.
 process.on("disconnect", () => process.kill(process.pid, "SIGKILL"));
 
-process.on("message", async (input: { imageBytes: Uint8Array; variant?: "small-banner" | "neural-review" } | { text: string } | { visual: { imageBytes: Uint8Array; text: string } }) => {
-  if ("visual" in input) {
-    const started = performance.now();
+// One lazily created engine serves every message, so initialization is shared
+// rather than repeated. Requests resolve it before their analysis clock starts.
+const initializeEmbedding = (): Promise<TextEmbeddingEngine> =>
+  (embedding ??= createTextEmbedding(embeddingDirectory));
+
+type Input = { imageBytes: Uint8Array; variant?: "small-banner" | "neural-review" } | { text: string }
+  | { visual: { imageBytes: Uint8Array; text: string } } | { warm: true };
+
+process.on("message", async (input: Input) => {
+  if ("warm" in input) {
     try {
-      embedding ??= createTextEmbedding(new URL("./text-embedding-data/", import.meta.url));
-      const evidence = await (await embedding).analyzeImage(input.visual.imageBytes, input.visual.text);
-      if (evidence.state === "available") evidence.elapsedMs = performance.now() - started;
+      // Initialize the same engines the first real request would pay for, so
+      // that request is charged only for analysis.
+      await engine;
+      await initializeEmbedding();
+      process.send?.({ warmed: true });
+    } catch { process.send?.({ error: "OCR initialization failed" }); }
+    return;
+  }
+  if ("visual" in input) {
+    const { imageBytes, text } = input.visual;
+    try {
+      const evidence = await analyzeAfterInit(initializeEmbedding,
+        model => model.analyzeImage(imageBytes, text), model => model.warm());
       process.send?.({ visualEmbedding: evidence });
     } catch { process.send?.({ visualEmbedding: { state: "unavailable", reason: "model-error" } }); }
     return;
   }
   if ("text" in input) {
-    const started = performance.now();
     try {
-      embedding ??= createTextEmbedding(new URL("./text-embedding-data/", import.meta.url));
-      const evidence = await (await embedding).analyzeText(input.text);
-      if (evidence.state === "available") evidence.elapsedMs = performance.now() - started;
+      const evidence = await analyzeAfterInit(initializeEmbedding, model => model.analyzeText(input.text));
       process.send?.({ embedding: evidence });
     } catch { process.send?.({ embedding: { state: "unavailable", reason: "model-error" } }); }
     return;

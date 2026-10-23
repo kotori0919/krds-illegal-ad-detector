@@ -7,8 +7,14 @@ import { scanSite } from "../src/scan.js";
 
 // These cases isolate text/OCR selection; pixel-model quality is exercised separately.
 let visualMock: { mockRestore(): void };
-beforeEach(() => { visualMock = vi.spyOn(LocalOcrBackend.prototype, "analyzeImage").mockResolvedValue({ state: "unavailable", reason: "model-error" }); });
-afterEach(() => { visualMock.mockRestore(); });
+let warmMock: { mockRestore(): void };
+beforeEach(() => {
+  visualMock = vi.spyOn(LocalOcrBackend.prototype, "analyzeImage").mockResolvedValue({ state: "unavailable", reason: "model-error" });
+  // Every boundary case below mocks the analysis methods; a real warm-up would
+  // fork the production worker and load its models for no coverage.
+  warmMock = vi.spyOn(LocalOcrBackend.prototype, "warm").mockResolvedValue(undefined);
+});
+afterEach(() => { visualMock.mockRestore(); warmMock.mockRestore(); });
 
 it.each(["positive", "failed", "cancelled", "oversized-alternative"] as const)("keeps official output immutable when optional text analysis is %s", async state => {
   const image = await readFile("fixtures/real-banners/blacktoon-1.png");
@@ -118,4 +124,35 @@ it.each(["weak-positive", "negative", "public", "dom", "education"] as const)("k
     expect(analysis.ocrAlternatives?.[0]).toMatchObject({ state: "available", text: excluded ? primary : alternative });
     expect(validateScanDetailBundle(output.detailBundle, output.result, output.extraResult)).toEqual({ ok: true, errors: [] });
   } finally { recognition.mockRestore(); embedding.mockRestore(); server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
+}, 15_000);
+
+it("warms the shared engine once and records a failed warm-up without failing the scan", async () => {
+  const image = await readFile("fixtures/real-banners/blacktoon-1.png");
+  const server = createServer((request, response) => {
+    response.setHeader("content-type", request.url === "/ad.png" ? "image/png" : "text/html;charset=utf-8");
+    response.end(request.url === "/ad.png" ? image
+      : '<p style="opacity:0">카지노 가입 보너스 지급</p><a href="https://offer.example/"><img class="banner" id="offer" src="/ad.png"></a>');
+  });
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("No fixture address");
+  const recognition = vi.spyOn(LocalOcrBackend.prototype, "recognize").mockImplementation(async () => ({ sourceId: "ad", backend: "boundary-fixture",
+    text: "페이백10x 콤프3.5x 입금 가능", confidence: 0.6 }));
+  const embedding = vi.spyOn(LocalOcrBackend.prototype, "analyzeText").mockResolvedValue({ state: "available", policy: "text-ad-embedding-v1",
+    model: "embeddinggemma-2-text-f32", revision: "daa72c51243991dfcaf9f9137d2c573d8f7790c0", positiveSimilarity: 0.7, negativeSimilarity: 0.6,
+    margin: 0.1, threshold: 0, passed: true, elapsedMs: 1 } satisfies TextEmbeddingEvidence);
+  const warm = vi.spyOn(LocalOcrBackend.prototype, "warm").mockRejectedValue(new Error("OCR warm-up failed"));
+  try {
+    const output = await scanSite({ entryUrl: `http://127.0.0.1:${address.port}/`,
+      crawl: { settleMs: 20, limits: { maxPages: 1, maxDepth: 0, timeoutSec: 60 } } });
+    // Warm-up is advisory: attempted exactly once, recorded, and never fatal.
+    expect(warm).toHaveBeenCalledOnce();
+    expect(output.detailBundle.analysisIssues).toContain("embedding-warm:error");
+    expect(output.result.findings.map(finding => finding.technique)).toEqual(["TRANSPARENT"]);
+    expect(output.detailBundle.imageAnalysis![0]!.ocr).toMatchObject({ state: "available", text: "페이백10x 콤프3.5x 입금 가능" });
+    expect(validateScanDetailBundle(output.detailBundle, output.result, output.extraResult)).toEqual({ ok: true, errors: [] });
+  } finally {
+    warm.mockRestore(); embedding.mockRestore(); recognition.mockRestore(); server.closeAllConnections();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
 }, 15_000);

@@ -37,6 +37,17 @@ import { buildOfficialResult, serializeValidatedResult } from "./result-engine.j
 import { CaptureStore, VisualScheduler, VISUAL_LIMITS } from "./visual-scheduler.js";
 import { CandidateAccumulator } from "./candidate-accumulator.js";
 
+/**
+ * One-time OCR/embedding warm-up budget for a scan: one full analysis call's
+ * budget (8 s), further bounded by the post-commit deadline, which keeps its
+ * usual 2 s reserve, and skipped below 500 ms. Engine plus text-encoder
+ * startup measured on this host is 0.9 s under two pinned cores with evicted
+ * page cache and 3.3 s on a busy host. The vision session is deliberately not
+ * warmed here: most scans never compare images, so it is created immediately
+ * before the first comparison instead, outside that call's timing.
+ */
+const WARM_UP_TIMEOUT_MS = SCAN_POLICY.visual.ocrTimeoutMs;
+
 export interface ScanInput {
   entryUrl: string;
   /** Controlled baseline comparison only; normal scans always use the offline helper. */
@@ -348,8 +359,19 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
     visualAnalysisCoverage.selection = selection;
     if (selection.excludedRecords > 0) visualSkip("byte-limit", "image", selection.excludedRecords);
     if (selection.retainedAssets > VISUAL_LIMITS.ocrImages) visualSkip("ocr-image-limit", "image", selection.retainedAssets - VISUAL_LIMITS.ocrImages);
+    const ocrSelected = visualScheduler.selectOcr();
+    // OCR and embeddings share one engine. Pay its initialization once here,
+    // inside its own bounded budget, so no analysis call is charged for it and
+    // the first call cannot be killed by a cold start. Warm-up is advisory: a
+    // failure is recorded and the scan continues with whatever remains.
+    if (ocrSelected.length > 0 && !input.signal?.aborted) {
+      const warmTimeoutMs = deadline.postCommitTimeoutMs(WARM_UP_TIMEOUT_MS);
+      if (warmTimeoutMs < 500) analysisIssues.push("embedding-warm:budget");
+      else try { await ocr.warm(warmTimeoutMs, input.signal); }
+      catch (error) { analysisIssues.push(error instanceof Error && error.message === "OCR budget exhausted" ? "embedding-warm:budget" : "embedding-warm:error"); }
+    }
     const recognitions = new Map<string, ImageAnalysis["ocr"]>();
-    for (const { image } of visualScheduler.selectOcr()) {
+    for (const { image } of ocrSelected) {
       const timeoutMs = deadline.postCommitTimeoutMs(SCAN_POLICY.visual.ocrTimeoutMs);
       if (timeoutMs < 500 || input.signal?.aborted) {
         visualSkip(input.signal?.aborted ? "cancelled" : "deadline", "image");
@@ -405,7 +427,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       if (evidence.state === "unavailable") analysisIssues.push(`text-embedding:${evidence.reason}`);
       return evidence;
     };
-    for (const { image } of visualScheduler.selectOcr()) {
+    for (const { image } of ocrSelected) {
       const recognition = recognitions.get(image.sha256);
       if (!recognition || !canReviewVisualImage(image.candidate, recognition)
         || decideVisualImage(image.candidate, recognition, recurringShas.has(image.sha256)).decision.passed) continue;
@@ -461,7 +483,7 @@ export async function scanSite(input: ScanInput): Promise<ScanOutput> {
       }
     }
     const visualEmbeddings = new Map<string, VisualEmbeddingEvidence>();
-    for (const { image } of visualScheduler.selectOcr()) {
+    for (const { image } of ocrSelected) {
       const recognition = recognitions.get(image.sha256);
       if (input.textEmbedding === "disabled" || !recognition || recognition.state !== "available" || image.mimeType !== "image/png"
         || image.height > 96 || image.width < image.height * 3 || !canReviewVisualImage(image.candidate, recognition)

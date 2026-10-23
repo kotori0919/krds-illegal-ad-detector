@@ -8,24 +8,13 @@ it("distinguishes unreadable gambling banners from retail pixels without using t
   const engine = new LocalOcrBackend();
   // The production defaults (8 s text, 16 s image) reserve time for one
   // inference over already-loaded models. A cold worker instead pays the
-  // 1.2 GiB ONNX encoder plus the vision session from disk, and the worker
-  // charges that initialization to evidence.elapsedMs, so the first measured
-  // call can exceed the contract cap even though it produced a correct
-  // verdict. Warm the worker through the visual path once: it lazily builds
-  // both the text encoder and the vision session. On a cold runner that
-  // warm-up can itself be rejected over cap; LocalOcrBackend then recycles
-  // the worker, and the only repeat cost is session construction, because
-  // the weight files stay in the OS page cache. That single expected
-  // rejection is tolerated here; every verdict call below keeps its explicit
-  // budget and its assertions unchanged.
+  // 1.2 GiB ONNX encoder plus the vision session from disk. Payment is now
+  // explicit: warm() resolves the shared engines outside every analysis call,
+  // and each verdict call below keeps its own budget and assertions.
   const verdictBudgetMs = 60_000;
   const warmUpBudgetMs = 60_000;
   try {
-    const warmUpBytes = await readFile("fixtures/real-banners/kci-smile.png");
-    try {
-      await engine.analyzeImage({ sourceId: "warm-up", imageBytes: warmUpBytes,
-        width: warmUpBytes.readUInt32BE(16), height: warmUpBytes.readUInt32BE(20), mediaType: "image/png" }, "", warmUpBudgetMs);
-    } catch { /* over-cap cold start; weights are now in the page cache */ }
+    await engine.warm(warmUpBudgetMs);
     await engine.analyzeText("광고 문자 의미 비교", verdictBudgetMs);
     for (const [file, passed] of [["kci-smile.png", true], ["kci-boutique.png", true], ["lg-tv-reduced.png", false]] as const) {
       const imageBytes = await readFile(`fixtures/real-banners/${file}`);

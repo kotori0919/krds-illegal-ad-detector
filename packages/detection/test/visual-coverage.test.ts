@@ -62,6 +62,7 @@ it("keeps a failed OCR attempt separate from completed OCR and preserves officia
   const address=server.address();
   if (!address || typeof address === "string") throw new Error("fixture address unavailable");
   const failure=vi.spyOn(LocalOcrBackend.prototype,"recognize").mockRejectedValue(new Error("offline OCR unavailable"));
+  const warm=vi.spyOn(LocalOcrBackend.prototype,"warm").mockResolvedValue(undefined);
   try {
     const output=await scanSite({entryUrl:`http://127.0.0.1:${address.port}/`,
       crawl:{settleMs:20,limits:{maxPages:1,timeoutSec:20}}});
@@ -72,6 +73,6 @@ it("keeps a failed OCR attempt separate from completed OCR and preserves officia
     expect(output.detailBundle.imageAnalysis![0]).toMatchObject({ocr:{state:"unavailable",reason:"recognition-error"},decision:{passed:false}});
     expect(output.extraResult.findings).toEqual([]);
   } finally {
-    failure.mockRestore();server.closeAllConnections();await new Promise<void>((done)=>server.close(()=>done()));
+    failure.mockRestore();warm.mockRestore();server.closeAllConnections();await new Promise<void>((done)=>server.close(()=>done()));
   }
 },25_000);

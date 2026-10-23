@@ -50,6 +50,16 @@ export class LocalOcrBackend implements OcrBackend {
     }, timeoutMs, signal);
   }
 
+  /**
+   * Initializes the worker's shared engines once. Analysis calls then report
+   * only their own elapsed time, and the first one costs no cold-start budget.
+   */
+  warm(timeoutMs = 8000, signal?: AbortSignal): Promise<void> {
+    return this.enqueue({ warm: true }, value => {
+      if ((value as { warmed?: unknown } | null)?.warmed !== true) throw new Error("OCR warm-up failed");
+    }, timeoutMs, signal);
+  }
+
   private enqueue<T>(payload: object, parse: (value: unknown) => T, timeoutMs: number, signal?: AbortSignal): Promise<T> {
     const queuedAt = performance.now();
     const result = this.queue.then(() => this.run(payload, parse, timeoutMs - (performance.now() - queuedAt), signal));

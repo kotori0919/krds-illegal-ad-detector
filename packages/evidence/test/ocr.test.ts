@@ -166,3 +166,40 @@ it("recovers the missing exam context despite a high average Tesseract confidenc
     expect(comparison.state==="available"&&comparison.passed).toBe(false);
   } finally {await engine.close();}
 },15_000);
+
+it("warms the shared engines once and keeps warm-up time out of analysis evidence", async () => {
+  const engine = new LocalOcrBackend();
+  try {
+    await engine.warm(8000);
+    const started = performance.now();
+    const evidence = await engine.analyzeText("사설 도박 사이트의 첫충, 페이백, 콤프와 롤링 혜택 광고");
+    expect(evidence.state).toBe("available");
+    // Warm-up already paid initialization, so this call is analysis only.
+    expect(performance.now() - started).toBeLessThan(4000);
+    expect(evidence.state === "available" && evidence.elapsedMs).toBeLessThan(1500);
+  } finally { await engine.close(); }
+}, 30_000);
+
+it("excludes cold engine initialization from the reported analysis window", async () => {
+  const engine = new LocalOcrBackend();
+  try {
+    const started = performance.now();
+    const evidence = await engine.analyzeText("사설 도박 사이트의 첫충, 페이백, 콤프와 롤링 혜택 광고", 8000);
+    const wallMs = performance.now() - started;
+    expect(evidence.state).toBe("available");
+    const elapsedMs = evidence.state === "available" ? evidence.elapsedMs : Number.NaN;
+    // A cold worker pays the encoder from disk inside wall time, never inside elapsedMs.
+    expect(wallMs - elapsedMs).toBeGreaterThan(500);
+    expect(elapsedMs).toBeLessThan(1500);
+  } finally { await engine.close(); }
+}, 30_000);
+
+it("bounds warm-up by its own timeout and recovers on the next request", async () => {
+  const engine = new LocalOcrBackend();
+  try {
+    await expect(engine.warm(1)).rejects.toThrow("OCR budget exhausted");
+    await engine.warm(8000);
+    expect((await engine.analyzeText("정상 광고")).state).toBe("available");
+  } finally { await engine.close(); }
+}, 30_000);
+
