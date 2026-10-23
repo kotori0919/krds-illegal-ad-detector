@@ -27,7 +27,7 @@
 
 | 문서 | 내용 |
 | --- | --- |
-| [기획서](docs/PLANNING_DOC.md) | 개발 배경, 목표, 기술, 구성과 기대 효과 |
+| [기획서 PDF](docs/SUBMISSION_20261023/PLANNING_8P.pdf) | 개발 배경, 목표, 기술, 구성과 기대 효과 |
 | [사용 설명서](docs/USER_MANUAL.md) | 설치, 점검, 근거 검토와 결과 저장 |
 | [빌드 설명서](docs/BUILD_MANUAL.md) | 개발 환경, 소스 빌드와 Windows 패키징 |
 | [검증 결과](docs/SUBMISSION_20261023/VERIFICATION_SUMMARY.md) | 실행한 시험의 환경과 관측 결과 |

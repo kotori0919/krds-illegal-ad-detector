@@ -26,7 +26,7 @@ Get-FileHash '.\불법광고 탐지 도구_0.2.1_x64-setup.exe' -Algorithm SHA25
 
 | 자료 | 내용 |
 | --- | --- |
-| [기획서 PDF](../../artifacts/dogfood-20261023/submission-planning/KRDS_ILLEGAL_AD_PLANNING_20261023.pdf) | A4 8쪽, 제품 설계·기술·화면·검증 |
+| [기획서 PDF](PLANNING_8P.pdf) | A4 8쪽, 제품 설계·기술·화면·검증 |
 | [실행한 검증 결과](VERIFICATION_SUMMARY.md) | 합성17쌍·지자체형5건·공공 안내 음성 회귀·Windows 실행 |
 | [빌드·실행 설명](BUILD_AND_RUN.md) | 의존성, Windows 빌드, 교차 빌드, 산출물 검증 |
 | [사용자 설명서](../USER_MANUAL.md) | 실제 화면의 점검·검토·저장 절차 |

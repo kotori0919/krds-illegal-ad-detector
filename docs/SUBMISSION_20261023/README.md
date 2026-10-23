@@ -11,7 +11,7 @@ Windows 11에서 웹사이트의 광고 의심 문구와 은폐 기법을 점검
 | --- | --- |
 | `불법광고 탐지 도구_0.2.1_x64-setup.exe` | Windows x64 설치 파일, 버전0.2.1 |
 | 소스코드 | 제품 소스와 의존성 lock, 빌드 스크립트 |
-| [기획서 PDF](../../artifacts/dogfood-20261023/submission-planning/KRDS_ILLEGAL_AD_PLANNING_20261023.pdf) | A4 8쪽: 목적·기술·구현·검증 |
+| [기획서 PDF](PLANNING_8P.pdf) | A4 8쪽: 목적·기술·구현·검증 |
 | [빌드·실행 설명](BUILD_AND_RUN.md) | 설치, 실행, 소스 빌드 |
 | [사용자 설명서](../USER_MANUAL.md) | 점검 설정, 검토, 결과 저장 |
 | [제품 설명](APPLICATION_SUMMARY.md) | 기능, 입출력, 기술 구성 |
