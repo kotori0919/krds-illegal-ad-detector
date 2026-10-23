@@ -6,6 +6,40 @@ export function hasVisualAdCategory(normalizedText: string): boolean {
   return /카지노|바카라|슬롯|토토|홀덤|casino|대출|현금화|머니상|소액결제|환전/i.test(normalizedText);
 }
 
+// Deposit-bonus wording recovered from the observed Korean betting creatives.
+// It is not a category word: these banners name only the offer. The axis
+// therefore needs a settlement anchor (referral code, USDT/Tether settlement,
+// exchange) plus two independent offer words, and a generic "10% 보너스"
+// beside an anchor is never enough on its own. 첫중/입급/입들금/메이백/매이백
+// are the corruptions this corpus actually produced (첫충/입금/페이백).
+const REFERRAL_TERM = "가입코드";
+const SETTLEMENT_ANCHORS = [REFERRAL_TERM, "테더", "usdt", "환전", "꽁머니", "롤링"] as const;
+const DEPOSIT_TERMS = ["첫충", "첫중", "첫입금", "매충", "충전", "입금", "입급", "입들금"] as const;
+const OFFER_REWARD_TERMS = ["페이백", "메이백", "매이백", "콤프", "롤링", "꽁머니", "보너스", "쿠폰", "퍼센트", "%"] as const;
+const BETTING_DEPOSIT_TERMS = ["첫충", "첫중", "첫입금", "매충"] as const;
+const BETTING_REWARD_TERMS = ["페이백", "메이백", "매이백", "콤프", "롤링", "꽁머니"] as const;
+
+const matchedTermsIn = (text: string, terms: readonly string[]): string[] => terms.filter((term) => text.includes(term));
+
+/** Observed deposit-offer terms; empty when the reading carries one signal only. */
+export function depositCreativeTerms(normalizedText: string): string[] {
+  const settlement = matchedTermsIn(normalizedText, SETTLEMENT_ANCHORS);
+  if (!settlement.length) return [];
+  const reward = matchedTermsIn(normalizedText, OFFER_REWARD_TERMS);
+  const bettingReward = matchedTermsIn(normalizedText, BETTING_REWARD_TERMS);
+  // A referral code plus betting rebate wording is a complete offer by itself.
+  if (normalizedText.includes(REFERRAL_TERM) && bettingReward.length) {
+    return [...new Set([...settlement, ...reward])];
+  }
+  const deposit = matchedTermsIn(normalizedText, DEPOSIT_TERMS);
+  if (!deposit.length) return [];
+  const bettingDeposit = matchedTermsIn(normalizedText, BETTING_DEPOSIT_TERMS);
+  // Generic 충전/입금 only counts beside betting rebate wording; betting
+  // first-deposit wording may also pair with a plain percentage.
+  const offer = bettingReward.length > 0 || (bettingDeposit.length > 0 && reward.length > 0);
+  return offer ? [...new Set([...settlement, ...deposit, ...reward])] : [];
+}
+
 /** OCR text alone cannot classify an image-only advertisement. */
 export function decideVisualImage(candidate: VisualCandidate, ocr: ImageAnalysis["ocr"], repeatedAdCreative: boolean, embedding?: TextEmbeddingEvidence, visual?: VisualEmbeddingEvidence) {
   const semantic = semanticGate(ocr.state === "available" ? ocr.text : "");
@@ -18,8 +52,11 @@ export function decideVisualImage(candidate: VisualCandidate, ocr: ImageAnalysis
     && /콤프|롤링/.test(text) && jargon.length >= 2 && /입금|첫충(?!전)/.test(text);
   const category = hasVisualAdCategory(text);
   const promotion = semantic.offerIntent || /고액전용|신규회원|첫입금|첫충(?!전)|충전보너스|롤링|콤프/.test(text);
-  const gate = { ...semantic, passed: !publicNotice && (semantic.passed && category && promotion || compoundDeposit),
-    matchedTerms: compoundDeposit ? [...new Set([...semantic.matchedTerms, ...jargon])] : semantic.matchedTerms };
+  const depositTerms = publicNotice ? [] : depositCreativeTerms(text);
+  const depositOffer = depositTerms.length > 0;
+  const gate = { ...semantic, passed: !publicNotice && (semantic.passed && category && promotion || compoundDeposit || depositOffer),
+    matchedTerms: compoundDeposit ? [...new Set([...semantic.matchedTerms, ...jargon])]
+      : depositOffer ? [...new Set([...semantic.matchedTerms, ...depositTerms])] : semantic.matchedTerms };
   const visibleDomEquivalent = gate.passed && candidate.visibleDomAdTexts.some((text) =>
     normalizeForMatch(text).includes(gate.normalizedText));
   // Opaque advertiser domains and numeric image names carry no ad marker.
@@ -27,7 +64,7 @@ export function decideVisualImage(candidate: VisualCandidate, ocr: ImageAnalysis
   // never a category word, logo or ordinary linked illustration alone.
   const externalOffer = candidate.candidateEvidence.includes("external-destination")
     && isExternalDestination(candidate)
-    && category && promotion;
+    && (category && promotion || depositOffer);
   const corroboration = candidate.candidateEvidence.includes("ad-marker")
     || hasSuspiciousDestination(candidate.destinationUrl) || repeatedAdCreative || externalOffer || compoundDeposit;
   const score = Number(gate.passed) + Number(corroboration) + Number(!visibleDomEquivalent);
