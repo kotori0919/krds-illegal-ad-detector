@@ -121,6 +121,7 @@ export class TauriHost implements HostBridge {
   private invokePromise: Promise<TauriInvoke> | undefined;
   private handlers = new Set<ScanEventHandler>();
   private subscribed = false;
+  private subscriptionPending: Promise<void> | undefined;
 
   private async invoke(): Promise<TauriInvoke> {
     if (!this.invokePromise) {
@@ -131,13 +132,23 @@ export class TauriHost implements HostBridge {
 
   private async ensureSubscribed(): Promise<void> {
     if (this.subscribed) return;
+    if (this.subscriptionPending) return this.subscriptionPending;
     // Subscription failure must surface: silent best-effort hides ACL
-    // denials and loses completion events. Callers decide how to proceed.
-    const { listen } = await loadTauri();
-    await listen("scan-event", (e) => {
-      for (const h of this.handlers) h(e.payload);
-    });
-    this.subscribed = true;
+    // denials and loses completion events. Share registration with callers
+    // arriving before listen settles; all must wait before invoking a scan.
+    this.subscriptionPending = (async () => {
+      const { listen } = await loadTauri();
+      await listen("scan-event", (e) => {
+        for (const h of this.handlers) h(e.payload);
+      });
+      this.subscribed = true;
+    })();
+    try {
+      await this.subscriptionPending;
+    } finally {
+      // A rejected registration must not poison subsequent retries.
+      this.subscriptionPending = undefined;
+    }
   }
 
   /** True once the scan-event subscription succeeded. */

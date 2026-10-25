@@ -51,6 +51,61 @@ async function mockTauri(opts: { listenFails?: boolean; onListen?: () => void } 
 }
 
 describe("TauriHost subscription lifecycle", () => {
+  it("shares a pending subscription across handler registration and scan starts", async () => {
+    let finish!: () => void;
+    const registered = new Promise<void>((resolve) => { finish = resolve; });
+    const callbacks: Array<(event: { payload: unknown }) => void> = [];
+    const listen = vi.fn(async (_event: string, callback: (event: { payload: unknown }) => void) => {
+      callbacks.push(callback);
+      await registered;
+      return vi.fn();
+    });
+    const invoke = vi.fn(async () => session());
+    vi.doMock("@tauri-apps/api/core", () => ({ invoke }));
+    vi.doMock("@tauri-apps/api/event", () => ({ listen }));
+    const { TauriHost: H } = await import("../src/host/tauri.js");
+    const host = new H();
+    const handler = vi.fn();
+    const stop = host.onScanEvent(handler);
+    await act(async () => {});
+    const start = host.startScan({ entryUrl: "https://example.kr/" });
+    const batch = host.startBatchScan({ entryUrl: "https://example.kr/", kind: "site" });
+    await act(async () => {});
+    expect(invoke).not.toHaveBeenCalled();
+    finish();
+    await Promise.all([start, batch]);
+    for (const callback of callbacks) callback({ payload: { type: "fixture-event" } });
+    expect(listen).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledTimes(1);
+    stop();
+    for (const callback of callbacks) callback({ payload: { type: "fixture-event" } });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("shares subscription failure, prevents scan invokes and allows a fresh retry", async () => {
+    let fail!: (error: Error) => void;
+    const failed = new Promise<never>((_resolve, reject) => { fail = reject; });
+    const listen = vi.fn().mockImplementationOnce(() => failed).mockResolvedValue(vi.fn());
+    const invoke = vi.fn(async () => session());
+    vi.doMock("@tauri-apps/api/core", () => ({ invoke }));
+    vi.doMock("@tauri-apps/api/event", () => ({ listen }));
+    const { TauriHost: H } = await import("../src/host/tauri.js");
+    const host = new H();
+    host.onScanEvent(vi.fn());
+    await act(async () => {});
+    const starts = [host.startScan({ entryUrl: "https://example.kr/" }), host.startScan({ entryUrl: "https://example.kr/" })];
+    const settled = Promise.allSettled(starts);
+    await act(async () => {});
+    fail(new Error("subscription unavailable"));
+    expect((await settled).map((result) => result.status)).toEqual(["rejected", "rejected"]);
+    expect(invoke).not.toHaveBeenCalled();
+    expect(host.subscribedToEvents()).toBe(false);
+    await host.startScan({ entryUrl: "https://example.kr/" });
+    expect(host.subscribedToEvents()).toBe(true);
+    expect(listen).toHaveBeenCalledTimes(2);
+    expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
   it("subscribes before invoking so immediate completion cannot be lost", async () => {
     const order: string[] = [];
     const invoke = vi.fn(async () => {
