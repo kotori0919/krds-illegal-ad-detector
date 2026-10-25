@@ -44,6 +44,16 @@ interface TauriListen {
   (event: string, handler: (e: { payload: ScanEvent }) => void): Promise<Unsubscribe>;
 }
 
+interface EvidenceRead {
+  promise: Promise<unknown>;
+  bytes?: number;
+}
+
+// Conservatively account for UTF-16 serialized data, including base64 images.
+// The active view owns its response independently; eviction only costs a later IPC read.
+const EVIDENCE_CACHE_BYTES = 16 * 1024 * 1024;
+const EVIDENCE_CACHE_ENTRIES = 128;
+
 async function loadTauri(): Promise<{ invoke: TauriInvoke; listen: TauriListen }> {
   const core = (await import("@tauri-apps/api/core")) as unknown as {
     invoke: TauriInvoke;
@@ -105,17 +115,50 @@ export class TauriHost implements HostBridge {
     if (!isCaseId(caseId)) throw new Error("INVALID_CASE_ID");
     await (await this.invoke())("case_delete", { caseId });
     this.evidenceReads.clear();
+    this.evidenceCacheBytes = 0;
   }
   async getDiagnostics(): Promise<SupportDiagnostics> { return parseCaseValue(await (await this.invoke())<unknown>("support_diagnostics"), isSupportDiagnostics); }
-  private evidenceReads = new Map<string, Promise<unknown>>();
+  private evidenceReads = new Map<string, EvidenceRead>();
+  private evidenceCacheBytes = 0;
+
+  private forgetEvidenceRead(key: string, entry: EvidenceRead): void {
+    // A late failure/completion from a deleted case must not evict its replacement.
+    if (this.evidenceReads.get(key) !== entry) return;
+    this.evidenceReads.delete(key);
+    this.evidenceCacheBytes -= entry.bytes ?? 0;
+  }
 
   private cachedRead<T>(command: string, args: Record<string, unknown>): Promise<T | undefined> {
     const key = JSON.stringify([command, args]);
     const pending = this.evidenceReads.get(key);
-    if (pending) return pending as Promise<T | undefined>;
+    if (pending) {
+      this.evidenceReads.delete(key);
+      this.evidenceReads.set(key, pending);
+      return pending.promise as Promise<T | undefined>;
+    }
     const read = this.invoke().then((invoke) => invoke<T | undefined>(command, args));
-    this.evidenceReads.set(key, read);
-    void read.then((value) => { if (value == null) this.evidenceReads.delete(key); }, () => this.evidenceReads.delete(key));
+    const entry: EvidenceRead = { promise: read };
+    this.evidenceReads.set(key, entry);
+    void read.then((value) => {
+      if (this.evidenceReads.get(key) !== entry) return;
+      if (value == null) { this.forgetEvidenceRead(key, entry); return; }
+      try {
+        const bytes = 2 * (key.length + JSON.stringify(value).length);
+        // A single oversized response is usable by its caller, but must not
+        // displace the entire useful cache before being evicted itself.
+        if (bytes > EVIDENCE_CACHE_BYTES) { this.forgetEvidenceRead(key, entry); return; }
+        entry.bytes = bytes;
+      } catch {
+        // Optional caching must never turn an otherwise successful IPC read into an error.
+        this.forgetEvidenceRead(key, entry); return;
+      }
+      this.evidenceCacheBytes += entry.bytes;
+      for (const [oldKey, oldEntry] of this.evidenceReads) {
+        if (this.evidenceReads.size <= EVIDENCE_CACHE_ENTRIES && this.evidenceCacheBytes <= EVIDENCE_CACHE_BYTES) break;
+        // Keep in-flight coalescing; bounded retention applies once reads settle.
+        if (oldEntry.bytes !== undefined) this.forgetEvidenceRead(oldKey, oldEntry);
+      }
+    }, () => this.forgetEvidenceRead(key, entry));
     return read;
   }
   private invokePromise: Promise<TauriInvoke> | undefined;
