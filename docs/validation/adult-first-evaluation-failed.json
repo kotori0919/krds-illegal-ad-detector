@@ -1,0 +1,91 @@
+{
+  "dataset": "authored-adult-evaluation-20261026-v1",
+  "sha256": "9bdc640d07f8991d973094f42854113b69636781d5f014fafe19480bddbc2e29",
+  "scope": "Authored same-author text/DOM corpus; production crawler + detector + official serializer + live locator roundtrip. Excludes OCR, native UI, persistence, cold process start, Windows and external sites.",
+  "browser": "actual Playwright Chromium",
+  "concurrency": 1,
+  "checkedPages": 3,
+  "documents": 5,
+  "expected": 6,
+  "tp": 6,
+  "fp": 1,
+  "fn": 0,
+  "duplicates": 0,
+  "resolved": 7,
+  "officialFindings": 7,
+  "failedPages": 0,
+  "timedOut": false,
+  "observed": [
+    {
+      "page": "/board?id=41",
+      "location": "li:nth-of-type(2)",
+      "technique": "TRANSPARENT",
+      "raw": "성인 사이트 지금 가입",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=41",
+      "location": "li:nth-of-type(3)",
+      "technique": "TRANSPARENT",
+      "raw": "성인 사이트 지금 가입",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=41",
+      "location": "#outer >>> #inner >>> #nested",
+      "technique": "OFFSCREEN",
+      "raw": "성인방송 가입 즉시 시청",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=42",
+      "location": "#a",
+      "technique": "OFFSCREEN",
+      "raw": "포르노 무제한 시청",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=42",
+      "location": "#b",
+      "technique": "HOMOGLYPH",
+      "raw": "성.인.방.송 지금 입장",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=42",
+      "location": "#c",
+      "technique": "JAMO",
+      "raw": "ㅇㅑㄷㅗㅇ 무료 시청",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=42",
+      "location": "#f",
+      "technique": "OFFSCREEN",
+      "raw": "도서관 성인 영상자료 대출 회원가입",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    }
+  ],
+  "elapsedSec": 0.522
+}

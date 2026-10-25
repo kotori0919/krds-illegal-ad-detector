@@ -1,0 +1,235 @@
+
+> krds-illegal-ad-detector@0.2.1 test
+> vitest run --maxWorkers=1
+
+
+ RUN  v3.2.7 /home/monad/Documents/Codex/2026-10-26/task/krds-adult-semantic
+
+stdout | packages/detection/test/realistic.test.ts > L2 municipal-style public site > preserves all five known findings and the failed page at worker counts 1–4
+L2 wall seconds C1/C2/C3/C4: 9.767/6.034/4.635/4.613
+
+ ✓ |packages| packages/detection/test/realistic.test.ts (1 test) 25059ms
+   ✓ L2 municipal-style public site > preserves all five known findings and the failed page at worker counts 1–4  25054ms
+ ✓ |packages| packages/detection/test/scan.test.ts (2 tests) 19114ms
+   ✓ end-to-end scan on synthetic fixtures > reports exact per-page counters with real page URLs  1413ms
+   ✓ end-to-end scan on synthetic fixtures > recovers all 17 ground-truth pairs with zero FP/FN  17694ms
+ ❯ |packages| packages/evidence/test/image-embedding.test.ts (1 test | 1 failed) 52600ms
+   × distinguishes unreadable gambling banners from retail pixels without using the supplied transcript 52596ms
+     → OCR recognition failed
+ ✓ |packages| packages/detection/test/visual-candidates.test.ts (13 tests) 18232ms
+   ✓ bounds GIF acquisition and reports fallback honestly: frame-cap  3277ms
+   ✓ bounds GIF acquisition and reports fallback honestly: inspection-cap  867ms
+   ✓ bounds GIF acquisition and reports fallback honestly: unavailable-decoder  483ms
+   ✓ keeps a later readable GIF frame while excluding duplicate blank flashes  486ms
+   ✓ captures more than eight lazy banners with observed button destinations without clicking controls  666ms
+   ✓ captures gated IMG, background, SVG and canvas candidates with visible DOM provenance  785ms
+   ✓ preserves full frame selectors and stops at candidate, byte and abort bounds  7039ms
+   ✓ retains readable brief text previously lost to thumbnail dedup or global ranking: 'brief-gray-offer.gif'  423ms
+   ✓ retains readable brief text previously lost to thumbnail dedup or global ranking: 'brief-late-offer.gif'  2400ms
+   ✓ retains readable brief text previously lost to thumbnail dedup or global ranking: 'brief-competing-decoration.gif'  1087ms
+ ✓ |packages| packages/evidence/test/ocr.test.ts (13 tests) 21870ms
+   ✓ reads the deposit and comp offer in the archived real banner that sparse OCR missed  1299ms
+   ✓ continues with the next banner after one corrupt candidate fails  379ms
+   ✓ keeps the host alive through warmed OCR deadlines, recovery and cancellation  3022ms
+   ✓ uses actual text embeddings, preserves normal/public text and recovers after a native deadline  2706ms
+   ✓ retains OCR when the optional model assets are missing without retrying initialization  486ms
+   ✓ preserves primary OCR while a bounded small-banner pass recovers actual lost percentages  1581ms
+   ✓ recovers the missing exam context despite a high average Tesseract confidence  2612ms
+   ✓ warms the shared engines once and keeps warm-up time out of analysis evidence  3379ms
+   ✓ excludes cold engine initialization from the reported analysis window  2775ms
+   ✓ bounds warm-up by its own timeout and recovers on the next request  3388ms
+ ✓ |packages| packages/scanner/test/redirect-domready.test.ts (13 tests) 10837ms
+   ✓ crawlSite client-side same-site redirect > analyzes the final document for a domready redirect and follows the discovered link  1832ms
+   ✓ crawlSite client-side same-site redirect > analyzes the final document for a onload redirect and follows the discovered link  1116ms
+   ✓ crawlSite client-side same-site redirect > analyzes the final document for a meta-same redirect and follows the discovered link  1104ms
+   ✓ crawlSite client-side same-site redirect > analyzes the final document for a two-hops redirect and follows the discovered link  1111ms
+   ✓ crawlSite client-side same-site redirect > rejects an external-host meta-refresh redirect without invoking onLivePage  588ms
+   ✓ crawlSite client-side same-site redirect > stops a document redirect loop as navigation failure before live analysis  589ms
+   ✓ crawlSite client-side same-site redirect > does not count history and fragment updates as document replacements  396ms
+   ✓ crawlSite client-side same-site redirect > classifies the final redirected response (403) instead of the entry 200  573ms
+   ✓ crawlSite client-side same-site redirect > classifies the final redirected response (429) instead of the entry 200  588ms
+   ✓ crawlSite client-side same-site redirect > classifies the final redirected response (503) instead of the entry 200  580ms
+   ✓ crawlSite client-side same-site redirect > retains a page timeout during a stalled client redirect  1580ms
+   ✓ crawlSite client-side same-site redirect > analyzes a redirected document without waiting for a hanging image to load  389ms
+   ✓ crawlSite client-side same-site redirect > does not repeat live analysis or keep stale links after navigation during the callback  391ms
+ ✓ |packages| packages/scanner/test/crawl.test.ts (5 tests) 9182ms
+   ✓ crawlSite on synthetic fixtures > discovers all hub-linked pages with query values kept distinct  3119ms
+   ✓ crawlSite on synthetic fixtures > captures nested iframe chain with absolute srcs  398ms
+   ✓ crawlSite on synthetic fixtures > observes delayed injection only after settle  1956ms
+   ✓ crawlSite on synthetic fixtures > flags duplicate content for ref-linked post  3109ms
+   ✓ crawlSite on synthetic fixtures > executes query-param page content in the live DOM  594ms
+ ✓ |packages| packages/detection/test/false-positive-site.test.ts (1 test) 9108ms
+   ✓ L2 public-information false-positive site > keeps education, reporting and hidden accessibility text out of official findings  9104ms
+ ✓ |packages| packages/detection/test/visual-scheduler.test.ts (5 tests) 14557ms
+   ✓ finds the same observed creative on early, ninth and final pages after real live acquisition and OCR  12015ms
+   ✓ real one-versus-200-finding pages serialize shared screenshot references without repeated bytes  2530ms
+ ✓ |packages| packages/detection/test/extra-creatives.test.ts (2 tests) 10326ms
+   ✓ live creative and infrastructure extra result > correlates exact creative, destination and redirect domains while excluding benign frames (redirected=false)  5273ms
+   ✓ live creative and infrastructure extra result > correlates exact creative, destination and redirect domains while excluding benign frames (redirected=true)  5048ms
+ ✓ |packages| packages/scanner/test/public-network.test.ts (14 tests) 7039ms
+   ✓ public-only runtime navigation > pins explicit fixture DNS-like origins without authorizing another host or port  349ms
+   ✓ public-only runtime navigation > routes actual Chromium HTTP/HTTPS subresources through the enforcing proxy  465ms
+   ✓ public-only runtime navigation > enforces the standalone deadline while page disposal awaits browser disconnect  5407ms
+ ✓ |packages| packages/detection/test/visual-pipeline.test.ts (4 tests) 15138ms
+   ✓ detects an unmarked externally linked image offer through real capture and offline OCR  2636ms
+   ✓ calls real OCR for all gated visual sources and preserves an empty official result  4727ms
+   ✓ preserves valid official findings when extended classification fails  2079ms
+   ✓ suppresses image-only classification only for equivalent visible DOM advertisement text  5694ms
+ ✓ |packages| packages/detection/test/deadline-scan.test.ts (4 tests) 5947ms
+   ✓ L3 global deadline settlement > retains failed coverage when no attempted page was successfully checked  795ms
+   ✓ L3 global deadline settlement > retains completed findings and does not admit another page inside the reserve  5140ms
+ ✓ |packages| packages/detection/test/visual-coverage.test.ts (3 tests) 11577ms
+   ✓ reports reached capacities separately from known exclusions: {"pages":9,"imageCount":7}  4392ms
+   ✓ reports reached capacities separately from known exclusions: {"pages":8,"imageCount":6}  5758ms
+   ✓ keeps a failed OCR attempt separate from completed OCR and preserves official output  1424ms
+ ✓ |packages| packages/detection/test/visual-cross-frame.test.ts (4 tests) 13009ms
+   ✓ uses visible cross-frame advertisement text: {"bannerInFrame":true,"frameStyle":"","equivalent":true}  2570ms
+   ✓ uses visible cross-frame advertisement text: {"bannerInFrame":false,"frameStyle":"","equivalent":true}  3248ms
+   ✓ uses visible cross-frame advertisement text: {"bannerInFrame":false,"frameStyle":"opacity:0","equivalent":false}  3275ms
+   ✓ uses visible cross-frame advertisement text: {"bannerInFrame":false,"frameStyle":"position:absolute;left:-10000px","equivalent":false}  3914ms
+ ✓ |packages| packages/scanner/test/access-sitemap.test.ts (5 tests) 4681ms
+   ✓ typed access outcomes on real navigation > classifies challenge headers before status and leaves ordinary proxy pages inspectable  1530ms
+   ✓ typed access outcomes on real navigation > reports navigation failure and timeout without inspecting either failed document  1341ms
+   ✓ typed access outcomes on real navigation > honors a Retry-After before the next queued page without retrying the rate-limited URL  1283ms
+   ✓ bounded sitemap discovery on real HTTP fixtures > merges links and nested sitemap pages deterministically while excluding hostile/external/private inputs  442ms
+ ✓ |packages| packages/detection/test/extra-infrastructure.test.ts (2 tests) 9303ms
+   ✓ live extra infrastructure result > retains repeated CDN, analytics, fonts and externally linked logo observations without advertising findings  3674ms
+   ✓ live extra infrastructure result > attributes a repeated official advertisement destination without changing official finding objects  5618ms
+ ✓ |packages| packages/detection/test/detection.test.ts (11 tests) 3770ms
+   ✓ live page pipeline > detects HOMOGLYPH + JAMO on fixture positives, silent on negatives  3282ms
+   ✓ live page pipeline > emits valid result.json with identity dedup  483ms
+ ✓ |packages| packages/scanner/test/sitemap-bounds.test.ts (7 tests) 3125ms
+   ✓ sitemap resource boundaries > bounds slow HTTP discovery and reacts to cancellation  3005ms
+ ✓ |packages| packages/detection/test/text-embedding-scan.test.ts (16 tests) 3461ms
+   ✓ keeps official output immutable when optional text analysis is positive  432ms
+   ✓ keeps official output immutable when optional text analysis is failed  328ms
+   ✓ keeps official output immutable when optional text analysis is oversized-alternative  315ms
+   ✓ warms the shared engine once and records a failed warm-up without failing the scan  331ms
+ ✓ |packages| packages/detection/test/single-pass.test.ts (1 test) 2861ms
+   ✓ single-pass live-page processing > navigates each page and iframe once while preserving findings across worker counts  2856ms
+ ✓ |packages| packages/scanner/test/selectors.test.ts (3 tests) 2556ms
+   ✓ selector engine > round-trips every direct ground-truth positive selector  415ms
+   ✓ selector engine > emits nested iframe locations with absolute srcs via contract  2061ms
+ ✓ |packages| packages/detection/test/adversarial.test.ts (1 test) 2361ms
+   ✓ adversarial fixtures > defeats none of the four detectors; legitimate cases stay silent  2361ms
+ ✓ |packages| packages/detection/test/cross-origin-frame.test.ts (1 test) 2255ms
+   ✓ L3 live cross-origin frames > analyzes nested live Frames once with absolute official paths and a depth bound  2250ms
+ ✓ |packages| packages/detection/test/warp-runtime.test.ts (15 tests) 1725ms
+   ✓ closes an active runtime when its shared deadline expires  1002ms
+ ✓ |packages| packages/scanner/test/redirect-scope.test.ts (4 tests) 1525ms
+   ✓ excludes the external main document after '/script'  353ms
+   ✓ retains same-host redirect and external frame findings  862ms
+ ✓ |packages| packages/detection/test/text-policy.test.ts (22 tests) 341ms
+stdout | packages/scanner/test/collection-bounds.test.ts > bounds collected bytes/items while varying DOM, frame and resource dimensions independently
+COLLECTION_OBSERVATIONS {"method":"one fresh browser launch per row; Linux host + browser descendants RSS sampled 25ms, shared mappings counted per process; no percentile claim","observations":[{"input":{"dom":100,"frames":0,"resources":0},"elapsedMs":241,"processTreePeakRssKiB":612092,"retainedSnapshotBytes":2339,"retainedFrames":0,"resourceRequests":0,"issues":[]},{"input":{"dom":25000,"frames":0,"resources":0},"elapsedMs":376,"processTreePeakRssKiB":797912,"retainedSnapshotBytes":65519,"retainedFrames":0,"resourceRequests":0,"issues":["html-snapshot-truncated","link-discovery-limit"]},{"input":{"dom":100,"frames":24,"resources":0},"elapsedMs":320,"processTreePeakRssKiB":691116,"retainedSnapshotBytes":4219,"retainedFrames":15,"resourceRequests":0,"issues":["frame-count-limit"]},{"input":{"dom":100,"frames":0,"resources":600},"elapsedMs":449,"processTreePeakRssKiB":849672,"retainedSnapshotBytes":16629,"retainedFrames":0,"resourceRequests":62,"issues":["request-limit"]}]}
+
+ ✓ |packages| packages/scanner/test/collection-bounds.test.ts (1 test) 1392ms
+   ✓ bounds collected bytes/items while varying DOM, frame and resource dimensions independently  1391ms
+ ✓ |packages| packages/detection/test/image-analysis.test.ts (1 test) 3331ms
+   ✓ stores real candidate-image OCR and structured decisions with page coverage  3330ms
+ ✓ |packages| packages/detection/test/image-embedding-scan.test.ts (6 tests) 2184ms
+   ✓ does not override an exclusion in the unused OCR transcript: public  1129ms
+ ✓ |packages| packages/detection/test/adult-evaluation.test.ts (2 tests) 1189ms
+   ✓ evaluates multipage/query/comment/repeated/nested-frame identities: cases.json  653ms
+   ✓ evaluates multipage/query/comment/repeated/nested-frame identities: holdout.json  535ms
+ ✓ |packages| packages/scanner/test/worker-pool.test.ts (3 tests) 2091ms
+   ✓ bounded live page worker pool > reports a finished sibling while another page is still running  422ms
+   ✓ bounded live page worker pool > runs concurrent page callbacks up to the selected cap without losing the frontier  1663ms
+ ✓ |packages| packages/detection/test/general-text.test.ts (8 tests) 828ms
+ ✓ |packages| packages/scanner/test/manual-network.test.ts (8 tests) 848ms
+ ✓ |packages| packages/scanner/test/retry-after.test.ts (3 tests) 415ms
+ ✓ |packages| packages/detection/test/worker-transport.test.ts (2 tests) 444ms
+ ✓ |packages| packages/scanner/test/pinned-transport.test.ts (16 tests) 765ms
+   ✓ routes fetch and browser HTTP/HTTPS through numeric tunnels with original Host/SNI and verified certificates  682ms
+ ✓ |packages| packages/detection/test/operator-candidates.test.ts (2 tests) 759ms
+   ✓ operator candidate review on an owned live site > retains a deliberate hidden offer while excluding ordinary comments, responsive controls and reporting help  372ms
+   ✓ operator candidate review on an owned live site > requires real navigation evidence and retains offers/actions even inside convincing UI  386ms
+ ✓ |packages| packages/evidence/test/report.test.ts (12 tests) 515ms
+ ✓ |packages| packages/detection/test/cancelled-scan.test.ts (2 tests) 545ms
+   ✓ preserves completed findings and page outcomes when cancelled during another navigation  302ms
+ ✓ |packages| packages/scanner/test/frame-identity.test.ts (1 test) 445ms
+   ✓ resolves complete owner paths to the same occurrence, including duplicate, nested, relative, srcdoc and blank frames  440ms
+ ✓ |packages| packages/evidence/test/adapters.test.ts (3 tests) 281ms
+ ✓ |packages| packages/evidence/test/text-reference-data.test.ts (3 tests) 443ms
+   ✓ keeps actual OCR available when fixed reference data is corrupt  414ms
+ ✓ |packages| packages/detection/test/coverage-failures.test.ts (1 test) 296ms
+ ✓ |packages| packages/evidence/test/target-import.test.ts (52 tests) 336ms
+ ✓ |packages| packages/detection/test/rendering-observation.test.ts (4 tests) 243ms
+ ✓ |packages| packages/detection/test/adult-semantics.test.ts (21 tests) 160ms
+ ✓ |packages| packages/scanner/test/scan-access.test.ts (1 test) 117ms
+ ✓ |packages| packages/scanner/test/selector-generation.test.ts (1 test) 104ms
+ ✓ |packages| packages/evidence/test/graph-bounds.test.ts (1 test) 46ms
+ ✓ |packages| packages/evidence/test/neural-resources.test.ts (2 tests) 50ms
+ ✓ |packages| packages/detection/test/candidate-accumulator.test.ts (2 tests) 16ms
+ ✓ |packages| packages/detection/test/text-embedding-decision.test.ts (26 tests) 13ms
+ ✓ |packages| packages/detection/test/image-embedding-decision.test.ts (17 tests) 13ms
+ ✓ |packages| packages/evidence/test/graph-product.test.ts (10 tests) 15ms
+ ✓ |packages| packages/evidence/test/review-patterns.test.ts (2 tests) 13ms
+ ✓ |packages| packages/detection/test/visual-deposit-recall.test.ts (25 tests) 11ms
+ ✓ |packages| packages/detection/test/visual-decision.test.ts (29 tests) 7ms
+ ✓ |packages| packages/evidence/test/evidence.test.ts (10 tests) 11ms
+ ✓ |packages| packages/synth-eval/test/evaluate.test.ts (12 tests) 8ms
+ ✓ |packages| packages/contracts/test/detail.test.ts (12 tests) 5ms
+ ✓ |packages| packages/scanner/test/queue.test.ts (6 tests) 6ms
+ ✓ |packages| packages/detection/test/operator-rules.test.ts (26 tests) 6ms
+ ✓ |packages| packages/detection/test/worker-args.test.ts (25 tests) 4ms
+ ✓ |packages| packages/contracts/test/result.test.ts (18 tests) 5ms
+ ✓ |packages| packages/contracts/test/case.test.ts (28 tests) 3ms
+ ✓ |packages| packages/contracts/test/detail-policy.test.ts (2 tests) 3ms
+ ✓ |packages| packages/contracts/test/batch-group.test.ts (16 tests) 4ms
+ ✓ |packages| packages/scanner/test/urls.test.ts (6 tests) 3ms
+ ✓ |packages| packages/evidence/test/neural-decoding.test.ts (2 tests) 2ms
+ ✓ |packages| packages/contracts/test/config.test.ts (13 tests) 2ms
+ ✓ |packages| packages/evidence/test/contributions.test.ts (3 tests) 2ms
+ ✓ |packages| packages/scanner/test/deadline.test.ts (4 tests) 2ms
+ ✓ |packages| packages/contracts/test/conformance.test.ts (13 tests) 2ms
+ ✓ |packages| packages/contracts/test/selector.test.ts (4 tests) 2ms
+ ✓ |packages| packages/evidence/test/ocr-timing.test.ts (2 tests) 2ms
+ ✓ |packages| packages/evidence/test/demo-contribution.test.ts (1 test) 2ms
+ ✓ |packages| packages/contracts/test/technique.test.ts (1 test) 1ms
+ ↓ |packages| packages/synth-eval/test/adoption-holdout.test.ts (1 test | 1 skipped)
+ ✓ |web| apps/web/test/scan-result-delayed.test.tsx (7 tests) 3801ms
+   ✓ ScanResult delayed availability > distinguishes pending coverage from absence and preserves official findings when coverage settles  592ms
+   ✓ ScanResult delayed availability > reports a rejected coverage read while keeping the valid official list and save action  538ms
+   ✓ ScanResult delayed availability > settles rejected result reads with an error, blocked save and an enabled new-scan action  508ms
+   ✓ ScanResult delayed availability > updates result count for search and filter, with a clear reset action  536ms
+   ✓ ScanResult delayed availability > renders the stored result even when the first fetch precedes the store  1519ms
+ ✓ |web| apps/web/test/app-modes.test.tsx (6 tests) 1954ms
+   ✓ keeps a case and memo across modes, and advances within unreviewed results after the save settles  626ms
+   ✓ blocks navigation while a stored case is opening instead of replacing a later active scan  550ms
+   ✓ refreshes the memo when the same case is reopened from saved results  607ms
+ ✓ |web| apps/web/test/WarpSetup.test.tsx (7 tests) 1616ms
+   ✓ opens, edits and reopens an actual saved result fixture offline while unregistered  1433ms
+ ✓ |web| apps/web/test/scan-result-analysis.test.tsx (28 tests) 425ms
+ ✓ |web| apps/web/test/review-collection.test.tsx (2 tests) 311ms
+ ✓ |web| apps/web/test/ScanStart.test.tsx (13 tests) 277ms
+ ✓ |web| apps/web/test/relation-graph.test.tsx (3 tests) 255ms
+ ✓ |web| apps/web/test/operator-read-recovery.test.tsx (11 tests) 242ms
+ ✓ |web| apps/web/test/lazy-evidence.test.tsx (5 tests) 277ms
+ ✓ |web| apps/web/test/export-save.test.tsx (12 tests) 252ms
+ ✓ |web| apps/web/test/infrastructure-analysis.test.tsx (8 tests) 195ms
+ ✓ |web| apps/web/test/saved-cases.test.tsx (1 test) 152ms
+ ✓ |web| apps/web/test/scan-progress.test.tsx (11 tests) 164ms
+ ✓ |web| apps/web/test/batch-group-restore.test.tsx (9 tests) 163ms
+ ✓ |web| apps/web/test/evidence-relations.test.tsx (8 tests) 140ms
+ ✓ |web| apps/web/test/workbook-export.test.tsx (2 tests) 113ms
+ ✓ |web| apps/web/test/evidence-detail.test.tsx (4 tests) 92ms
+ ✓ |web| apps/web/test/app-steps.test.tsx (5 tests) 88ms
+ ✓ |web| apps/web/test/asset-image.test.tsx (3 tests) 60ms
+ ✓ |web| apps/web/test/tauri-host.test.tsx (14 tests) 85ms
+ ✓ |web| apps/web/test/batch-coordinator.test.tsx (4 tests) 12ms
+ ✓ |web| apps/web/test/case-review.test.tsx (10 tests) 8ms
+ ✓ |web| apps/web/test/tauri-case-contract.test.tsx (3 tests) 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |packages| packages/evidence/test/image-embedding.test.ts > distinguishes unreadable gambling banners from retail pixels without using the supplied transcript
+Error: OCR recognition failed
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 100 passed | 1 skipped (102)
+      Tests  1 failed | 819 passed | 1 skipped (821)
+   Start at  00:28:37
+   Duration  354.89s (transform 2.59s, setup 11.93s, collect 10.09s, tests 310.23s, environment 4.00s, prepare 4.81s)
+

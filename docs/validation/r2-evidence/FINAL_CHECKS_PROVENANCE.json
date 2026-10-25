@@ -1,0 +1,26 @@
+{
+  "identity_sha256": "4125496324d80b8da50a5407510a67595e16cb25004b42490ec342a9981b7993",
+  "source_entries": 23,
+  "current_matches_before_after": true,
+  "typecheck_projects": 6,
+  "typecheck_scope": "current source noEmit projection; not literal npm lifecycle/build",
+  "lint": {
+    "targets": 265,
+    "errors": 0,
+    "warnings": 0
+  },
+  "artifacts": [
+    {
+      "source": "/home/monad/Documents/Codex/2026-10-26/task-2/STATIC-R2-FINAL-CHECKS-REPORT.md",
+      "copy": "docs/validation/r2-evidence/STATIC-R2-FINAL-CHECKS-REPORT.md",
+      "bytes": 5789,
+      "sha256": "1ee9aca7fb4837756f39986b95ce37d7e21082a4748263467df12103929eecf2"
+    },
+    {
+      "source": "/home/monad/Documents/Codex/2026-10-26/task-2/STATIC-R2-FINAL-CHECKS-COMPLETE.json",
+      "copy": "docs/validation/r2-evidence/STATIC-R2-FINAL-CHECKS-COMPLETE.json",
+      "bytes": 14736,
+      "sha256": "0e50502a1c8581266f7cd6fb6c3ab9e945200d5904f99255b9b956f1386d9eab"
+    }
+  ]
+}

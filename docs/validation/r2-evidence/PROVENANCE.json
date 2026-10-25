@@ -1,0 +1,73 @@
+{
+  "scope": "Read-only artifact/source-hash comparison and small documentation copies; no product execution",
+  "identity_sha256": "4125496324d80b8da50a5407510a67595e16cb25004b42490ec342a9981b7993",
+  "source_hash_entries_matched": 23,
+  "source_before_after_current_match": true,
+  "unit_results": [
+    {
+      "profile": "r2-semantic-27",
+      "expected": 27,
+      "collected": 27,
+      "passed": 27,
+      "failed": 0,
+      "exit": 0,
+      "unit": "codex-krds-guard-4e4522312d50456587426f30ba10ee6d.scope"
+    },
+    {
+      "profile": "r2-ocr-11",
+      "expected": 11,
+      "collected": 11,
+      "passed": 11,
+      "failed": 0,
+      "exit": 0,
+      "unit": "codex-krds-guard-cea448d4d46d48ee914f81dfe31ea07f.scope"
+    },
+    {
+      "profile": "r2-result-19",
+      "expected": 19,
+      "collected": 19,
+      "passed": 19,
+      "failed": 0,
+      "exit": 0,
+      "unit": "codex-krds-guard-ede8f86ab4d04e46801051fa1b98fff7.scope"
+    },
+    {
+      "profile": "r2-config-13",
+      "expected": 13,
+      "collected": 13,
+      "passed": 13,
+      "failed": 0,
+      "exit": 0,
+      "unit": "codex-krds-guard-96412e69e4b94b999817092a78604483.scope"
+    },
+    {
+      "profile": "r2-case-38",
+      "expected": 38,
+      "collected": 38,
+      "passed": 38,
+      "failed": 0,
+      "exit": 0,
+      "unit": "codex-krds-guard-0d57520a1be24f1885232f2f201e13c3.scope"
+    }
+  ],
+  "collected_total": 108,
+  "passed_total": 108,
+  "artifacts": [
+    {
+      "source": "/home/monad/Documents/Codex/2026-10-26/task-2/STATIC-R2-VALIDATION-REPORT.md",
+      "copy": "docs/validation/r2-evidence/STATIC-R2-VALIDATION-REPORT.md",
+      "sha256": "19a6eb6c229a678f1bed58a2c01cd5d453071e61f55deba2599acf8dc2d98332"
+    },
+    {
+      "source": "/home/monad/Documents/Codex/2026-10-26/task-2/STATIC-R2-VALIDATION-BATCH.json",
+      "copy": "docs/validation/r2-evidence/STATIC-R2-VALIDATION-BATCH.json",
+      "sha256": "d0338117fd5df327bc21780f1eece828c9c3a35301fcc428e523f4b74a9c3a5c"
+    },
+    {
+      "source": "/tmp/krds-r2-final-review-dwb20neu/R2_REVIEW_KO.md",
+      "copy": "docs/validation/r2-evidence/R2_REVIEW_KO.md",
+      "sha256": "10d39f94657686f60b023a3c076d9d2b43e49dc39847ca0823f6e6a22799cd15"
+    }
+  ],
+  "pending": "Parent-directed type/lint evidence; no stage/commit authorized. Model/Windows/nativeRust/fullsuite/build and current DOM not established by this batch."
+}

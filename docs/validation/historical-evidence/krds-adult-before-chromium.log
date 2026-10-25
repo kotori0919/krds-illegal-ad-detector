@@ -1,0 +1,91 @@
+
+ RUN  v3.2.7 /home/monad/Documents/Codex/2026-10-26/task/krds-adult-semantic
+
+ ❯ |packages| packages/detection/test/adult-semantics.test.ts (20 tests | 7 failed) 448ms
+   × adult service solicitation > recognizes service and solicitation together: 성인영상 신규가입 즉시 시청 4ms
+     → expected false to be true // Object.is equality
+   × adult service solicitation > recognizes service and solicitation together: 야동 성인방송 지금 가입 0ms
+     → expected false to be true // Object.is equality
+   × adult service solicitation > recognizes service and solicitation together: 성인 사이트 무료 시청 0ms
+     → expected false to be true // Object.is equality
+   × adult service solicitation > recognizes service and solicitation together: 음란물 지금 입장 0ms
+     → expected false to be true // Object.is equality
+   × adult service solicitation > recognizes service and solicitation together: 포르노 무제한 시청 0ms
+     → expected false to be true // Object.is equality
+   × adult service solicitation > recognizes service and solicitation together: 성인방송 예방 안내. 성인영상 지금 가입 0ms
+     → expected false to be true // Object.is equality
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인 예방 교육 안내 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인 성교육 회원가입 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인영상 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인방송 단속 기사 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인영상 예방 교육 회원가입 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인방송 가입 광고 신고 안내 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 야동 시청 중독 예방 상담 신청 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인영상 예방 안내: "신규가입 즉시 시청" 광고 예시 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 교육 자료: "성인영상 신규가입" 문구를 차단하세요 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인영상 무료 시청 광고 피해 예방 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 도서관 성인영상 자료 무료 시청 회원가입 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 정상 교육 가입 안내. 성인영상 중독 예방 0ms
+   ✓ adult service solicitation > rejects public information and unsupported category mentions: 성인 건강검진 예약 0ms
+   × adult service solicitation > reproduces the independent Chromium miss and checks four techniques and raw evidence 441ms
+     → expected [ '#casino-opacity:TRANSPARENT', …(1) ] to deeply equal [ '#adult-hidden:TRANSPARENT', …(6) ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |packages| packages/detection/test/adult-semantics.test.ts > adult service solicitation > recognizes service and solicitation together: 성인영상 신규가입 즉시 시청
+ FAIL  |packages| packages/detection/test/adult-semantics.test.ts > adult service solicitation > recognizes service and solicitation together: 야동 성인방송 지금 가입
+ FAIL  |packages| packages/detection/test/adult-semantics.test.ts > adult service solicitation > recognizes service and solicitation together: 성인 사이트 무료 시청
+ FAIL  |packages| packages/detection/test/adult-semantics.test.ts > adult service solicitation > recognizes service and solicitation together: 음란물 지금 입장
+ FAIL  |packages| packages/detection/test/adult-semantics.test.ts > adult service solicitation > recognizes service and solicitation together: 포르노 무제한 시청
+ FAIL  |packages| packages/detection/test/adult-semantics.test.ts > adult service solicitation > recognizes service and solicitation together: 성인방송 예방 안내. 성인영상 지금 가입
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ packages/detection/test/adult-semantics.test.ts:13:25
+     11|   ])("recognizes service and solicitation together: %s", text => {
+     12|     const gate = semanticGate(text, "https://media.example/watch");
+     13|     expect(gate.passed).toBe(true);
+       |                         ^
+     14|     expect(gate.reasonCodes).toContain("AD_CATEGORY");
+     15|     expect(gate.reasonCodes).toContain("AD_OFFER");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  |packages| packages/detection/test/adult-semantics.test.ts > adult service solicitation > reproduces the independent Chromium miss and checks four techniques and raw evidence
+AssertionError: expected [ '#casino-opacity:TRANSPARENT', …(1) ] to deeply equal [ '#adult-hidden:TRANSPARENT', …(6) ]
+
+- Expected
++ Received
+
+  [
+-   "#adult-hidden:TRANSPARENT",
+-   "#adult-jamo:JAMO",
+-   "#adult-offscreen:OFFSCREEN",
+-   "#adult-opacity:TRANSPARENT",
+-   "#adult-separated:HOMOGLYPH",
+    "#casino-opacity:TRANSPARENT",
+-   "#loan-hidden:TRANSPARENT",
++   "#loan-hidden:OFFSCREEN",
+  ]
+
+ ❯ packages/detection/test/adult-semantics.test.ts:50:79
+     48|         <p id="visible">성인영상 신규가입 즉시 시청</p></main>`);
+     49|       const found = await detectPageCandidates(page, { pageUrl: "https…
+     50|       expect(found.map(c => `${c.selector}:${c.technique.technique}`).…
+       |                                                                               ^
+     51|       for (const c of found) {
+     52|         const row = rows.find(r => `#${r.id}` === c.selector)!;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 13 passed (20)
+   Start at  00:23:33
+   Duration  772ms (transform 84ms, setup 123ms, collect 109ms, tests 448ms, environment 0ms, prepare 28ms)
+
