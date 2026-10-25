@@ -10,7 +10,7 @@ pub fn policy() -> &'static Value {
                 .expect("shipped policy JSON");
         assert!(
             value["configVersion"] == 1
-                && value["detectorPolicyVersion"] == 2
+                && value["detectorPolicyVersion"] == 3
                 && value["optionalModels"]["enabled"] == false,
             "unsupported shipped policy"
         );

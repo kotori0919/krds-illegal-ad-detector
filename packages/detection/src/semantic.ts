@@ -6,9 +6,15 @@
  * destination URL. Public reporting/education text without an offer is not
  * an ad. Local public context is never a page-wide exemption.
  */
+import { adultInformationContext, adultSolicitations } from "./adult-solicitation.js";
 import { findTextMatches, restoreText, TEXT_POLICY_VERSION, MAX_TEXT_CODE_UNITS, type SourceSpan, type TextMatch, type TextRepresentation } from "./text-policy.js";
 
+// Deliberately excludes the demographic word 성인 on its own. Compounds use
+// the same restoration/alignment as the existing financial/gambling terms.
+const ADULT_SERVICE_TERMS = ["성인영상", "성인방송", "성인사이트", "야동", "음란물", "포르노"] as const;
+const ADULT_SERVICE_SET = new Set<string>(ADULT_SERVICE_TERMS);
 export const AD_TERMS = [
+  ...ADULT_SERVICE_TERMS,
   "카지노",
   "바카라",
   "슬롯",
@@ -110,10 +116,11 @@ export function semanticGate(rawText: string, destinationUrl?: string, represent
   const destHit = hasSuspiciousDestination(destinationUrl);
   const boundedSource = rawText.slice(0, MAX_TEXT_CODE_UNITS);
   const readableText = boundedSource.normalize("NFKC");
-  const publicInformation = PUBLIC_INFORMATION_CONTEXT.test(readableText);
+  const publicInformation = PUBLIC_INFORMATION_CONTEXT.test(readableText)
+    || (matches.some((match) => ADULT_SERVICE_SET.has(match.term)) && adultInformationContext(boundedSource));
   // Original offsets, never the offsets of length-changing NFKC output.
   const quotes = publicInformation ? quotedSpans(boundedSource) : [];
-  const adMatches = matches.filter((match) => !quotes.some((quote) => match.start < quote.end && match.end > quote.start));
+  const unquotedMatches = matches.filter((match) => !quotes.some((quote) => match.start < quote.end && match.end > quote.start));
   const offerRepresentation = restoreText(maskSpans(boundedSource, quotes));
   const offsets = offerRepresentation.units.flatMap((unit) => Array.from({ length: unit.text.length }, () => unit));
   const offerSpans: SourceSpan[] = [];
@@ -121,12 +128,22 @@ export function semanticGate(rawText: string, destinationUrl?: string, represent
     const first = offsets[match.index]; const last = offsets[match.index + match[0].length - 1];
     if (first && last) offerSpans.push({ start: first.start, end: last.end, raw: rawText.slice(first.start, last.end) });
   }
+  const adultMatches = unquotedMatches.filter(match => ADULT_SERVICE_SET.has(match.term));
+  const hasAdultCategory = matches.some(match => ADULT_SERVICE_SET.has(match.term));
+  const adult = adultSolicitations(maskSpans(boundedSource, quotes), adultMatches);
+  const adultSolicitation = adult.offers.length > 0;
+  const adMatches = unquotedMatches.filter(match => !ADULT_SERVICE_SET.has(match.term) || adult.categories.includes(match));
+  const legacyCategory = adMatches.some(match => !ADULT_SERVICE_SET.has(match.term) && !WEAK_AD_TERMS.has(match.term));
+  // Negated/public adult CTAs must not re-enter through generic offer handling.
+  if (hasAdultCategory && !legacyCategory) offerSpans.splice(0, offerSpans.length, ...adult.offers);
+  else offerSpans.push(...adult.offers);
   const offer = offerSpans.length > 0;
-  const strongTerm = adMatches.some((match) => !WEAK_AD_TERMS.has(match.term));
+  const strongTerm = adultSolicitation || adMatches.some((match) => !WEAK_AD_TERMS.has(match.term) && !ADULT_SERVICE_SET.has(match.term));
   const libraryService = /도서|도서관|전자책|자료실|열람|반납|독서/u.test(readableText) && matches.some((match) => match.term === "대출")
     && !/무서류|무직자|신용\s*무관|당일\s*승인|현금|첫충|꽁머니/u.test(readableText)
-    && !adMatches.some((match) => match.term !== "대출" && !WEAK_AD_TERMS.has(match.term));
-  const passed = (strongTerm || (adMatches.length > 0 && offer) || destHit)
+    && !adMatches.some((match) => match.term !== "대출" && !WEAK_AD_TERMS.has(match.term)
+      && (!ADULT_SERVICE_SET.has(match.term) || adultSolicitation));
+  const passed = (strongTerm || (adMatches.length > 0 && offer && (!hasAdultCategory || adultSolicitation)) || destHit)
     && (!publicInformation || offer || destHit) && (!libraryService || destHit);
   const reasonCodes: SemanticReasonCode[] = [];
   if (strongTerm) reasonCodes.push("AD_CATEGORY");
@@ -138,7 +155,7 @@ export function semanticGate(rawText: string, destinationUrl?: string, represent
   if (!passed) reasonCodes.push("NO_SUPPORTED_AD_EVIDENCE");
   if (representation.truncated) reasonCodes.push("TEXT_ANALYSIS_LIMIT");
   const detail = passed
-    ? `ad-semantics: terms=[${matchedTerms.join(",")}]${destHit ? " observed destination pattern (not visited)" : ""}`
+    ? `ad-semantics: terms=[${matchedTerms.join(",")}]${destHit ? " observed destination pattern (not visited)" : ""}${adultSolicitation ? " adult-service-solicitation-v2" : ""}`
     : libraryService && !destHit ? "library borrowing service without financial solicitation"
     : publicInformation && !offer && !destHit
       ? "public information; quoted examples do not establish solicitation"

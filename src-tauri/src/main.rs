@@ -633,7 +633,7 @@ async fn batch_group_save(
 #[tauri::command]
 async fn support_diagnostics(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     Ok(
-        serde_json::json!({"toolVersion":env!("CARGO_PKG_VERSION"),"policyVersion":2,"caseSchema":1,"storageRoot":state.registry.case_store()?.root(),"network":"batch-public-pinned/single-evaluator","model":"disabled","signing":"unsigned-internal"}),
+        serde_json::json!({"toolVersion":env!("CARGO_PKG_VERSION"),"policyVersion":config::policy()["detectorPolicyVersion"],"caseSchema":1,"storageRoot":state.registry.case_store()?.root(),"network":"batch-public-pinned/single-evaluator","model":"disabled","signing":"unsigned-internal"}),
     )
 }
 

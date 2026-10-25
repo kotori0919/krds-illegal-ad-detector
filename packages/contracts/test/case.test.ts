@@ -53,3 +53,27 @@ it("retains ordinary operator transport and rejects invalid connection choices w
   expect(isCaseManifest({ ...manifest, settings: { connection: "automatic" } }, corpus.valid.official)).toBe(false);
   expect(isCaseManifest({ ...manifest, settings: {} }, corpus.valid.official)).toBe(true);
 });
+
+it("reads historical policy2 cases and requires policy3 labels to match new metadata", () => {
+  const previous = corpus.valid.manifest as Record<string, unknown>;
+  expect(isCaseManifest(previous, corpus.valid.official)).toBe(true);
+  const official = structuredClone(corpus.valid.official);
+  official.meta.tool_version = "0.2.1-policy3";
+  const current = { ...previous, toolVersion: official.meta.tool_version, policyVersion: 3 };
+  expect(isCaseManifest(current, official)).toBe(true);
+  expect(isCaseManifest({ ...current, policyVersion: 2 }, official)).toBe(false);
+  expect(isCaseManifest({ ...previous, policyVersion: 3 }, corpus.valid.official)).toBe(false);
+  expect(isCaseManifest({ ...current, toolVersion: "0.2.1-policy4", policyVersion: 4 })).toBe(false);
+});
+
+it.each(["0.2.1-policy2", "0.2.1-policy3", "0.2.1-policy4"].flatMap(toolVersion =>
+  (["missing", "undefined", "null"] as const).map(field => ({ toolVersion, field })),
+))("rejects $toolVersion manifest with $field policyVersion", ({ toolVersion, field }) => {
+  const manifest: Record<string, unknown> = { ...(corpus.valid.manifest as Record<string, unknown>), toolVersion };
+  if (field === "missing") Reflect.deleteProperty(manifest, "policyVersion");
+  else manifest.policyVersion = field === "undefined" ? undefined : null;
+  const official = structuredClone(corpus.valid.official);
+  official.meta.tool_version = toolVersion;
+  expect(isCaseManifest(manifest)).toBe(false);
+  expect(isCaseManifest(manifest, official)).toBe(false);
+});

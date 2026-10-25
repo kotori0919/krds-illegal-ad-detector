@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "detectorPolicyVersion": 2,
+  "detectorPolicyVersion": 3,
   "scan": {
     "defaults": {
       "maxPages": 200,

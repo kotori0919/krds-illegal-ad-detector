@@ -1,0 +1,12 @@
+{
+  "dataset":"authored-adult-holdout-20261026-v1",
+  "scope":"Created after implementation and regression repair; not used to tune policy. Same author, not independently blinded. Synthetic text only.",
+  "pages":[
+    {"path":"/board?id=41","html":"<section><h2>시민 게시판</h2><div class='card'>성인 동아리 가입 안내</div><div class='card' style='color:transparent'>성인방송 회원가입</div><div class='card' style='color:transparent'>성인방송 회원가입</div><a href='/board?id=42'>다음</a><iframe id='wrap' src='/outer'></iframe></section>","expected":[{"selector":"div.card:nth-of-type(2)","text":"성인방송 회원가입","technique":"TRANSPARENT"},{"selector":"div.card:nth-of-type(3)","text":"성인방송 회원가입","technique":"TRANSPARENT"}]},
+    {"path":"/board?id=42","html":"<main><p id='move' style='transform:translateX(-9999px)'>야동 지금 입장</p><p id='dots'>성.인.사.이.트 회원가입</p><p id='letters'>ㅍㅗㄹㅡㄴㅗ 즉시 시청</p><p style='opacity:0'>성인방송 피해 보도: ‘회원가입’ 광고 사례</p><p style='display:none'>도서관 성인영상 전자자료 대출 연장</p><p style='visibility:hidden'>성인방송 치료 상담 회원가입</p><a href='/board?id=41'>이전</a></main>","expected":[{"selector":"#move","text":"야동 지금 입장","technique":"OFFSCREEN"},{"selector":"#dots","text":"성.인.사.이.트 회원가입","technique":"HOMOGLYPH"},{"selector":"#letters","text":"ㅍㅗㄹㅡㄴㅗ 즉시 시청","technique":"JAMO"}]},
+    {"path":"/outer","html":"<div><iframe id='content' src='/inner'></iframe></div>","expected":[]},
+    {"path":"/inner","html":"<a id='private' style='visibility:hidden' href='/watch'>음란물 무료 시청</a><p style='opacity:0'>성인영상 차단 프로그램 교육 신청</p>","expected":[{"selector":"#private","text":"음란물 무료 시청","technique":"OFFSCREEN"}]},
+    {"path":"/normal","html":"<p style='opacity:0'>성인사이트 보건 교육 가입 안내</p><p style='display:none'>포르노 예방 자료 무료 시청</p><p style='font-size:0'>성인 영상 통계 조사 신청</p><p style='color:transparent'>야동 신고 절차 도움말</p><p>성.인.방.송 피해 통계</p><p>ㅍㅗㄹㅡㄴㅗ 예방 교육</p>","expected":[]}
+  ],
+  "entries":["/board?id=41","/board?id=42","/normal"]
+}
