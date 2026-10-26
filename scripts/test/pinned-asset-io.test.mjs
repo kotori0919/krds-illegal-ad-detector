@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import fsPromises, { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
+import { mock, test } from "node:test";
 import { publishPinnedFile, verifyPinnedFile } from "../lib/pinned-asset-io.mjs";
 
 async function fixture(run, size = 4097) {
@@ -82,5 +83,64 @@ test("fails closed for invalid pins and non-file sources", async () => {
     }
     await assert.rejects(publishPinnedFile({ ...asset, file: directory }, destination), /size changed/);
     assert.deepEqual(await readdir(directory), ["source.bin"]);
+  });
+});
+
+test("republishes an existing destination on the same inode without a temporary leak", async () => {
+  await fixture(async ({ directory, destination, bytes, asset }) => {
+    await publishPinnedFile(asset, destination, { preferHardlink: true });
+    const before = await stat(destination);
+    await publishPinnedFile(asset, destination, { preferHardlink: true });
+    const after = await stat(destination);
+    assert.equal(after.dev, before.dev); assert.equal(after.ino, before.ino);
+    assert.equal(after.ino, (await stat(asset.file)).ino);
+    assert.equal(after.nlink, 2);
+    assert.deepEqual(await readFile(destination), bytes);
+    assert.deepEqual((await readdir(directory)).sort(), ["output.bin", "source.bin"]);
+  });
+});
+
+test("preserves the previous destination and cleans the temporary file on rename failure", async () => {
+  await fixture(async ({ directory, destination, bytes, asset }) => {
+    await writeFile(destination, "previous output");
+    const failure = Object.assign(new Error("synthetic rename failure"), { code: "EACCES" });
+    let attempts = 0;
+    const rename = mock.method(fsPromises, "rename", async (source, target) => {
+      assert.equal(target, destination);
+      assert.deepEqual(await readFile(source), bytes); // Failure occurs after copy and verification.
+      attempts++;
+      throw failure;
+    });
+    syncBuiltinESMExports();
+    try {
+      await assert.rejects(publishPinnedFile(asset, destination), error => error === failure);
+      assert.equal(attempts, 1);
+      assert.equal(await readFile(destination, "utf8"), "previous output");
+      assert.deepEqual(await readFile(asset.file), bytes);
+      assert.deepEqual((await readdir(directory)).sort(), ["output.bin", "source.bin"]);
+    } finally { rename.mock.restore(); syncBuiltinESMExports(); }
+  });
+});
+
+test("forces EXDEV fallback while retaining full verification and failure cleanup", async () => {
+  await fixture(async ({ directory, destination, bytes, asset }) => {
+    let attempts = 0;
+    const link = mock.method(fsPromises, "link", async (source) => {
+      assert.equal(source, asset.file);
+      attempts++;
+      throw Object.assign(new Error("synthetic cross-device link"), { code: "EXDEV" });
+    });
+    syncBuiltinESMExports();
+    try {
+      await publishPinnedFile(asset, destination, { preferHardlink: true });
+      assert.equal(attempts, 1);
+      assert.notEqual((await stat(destination)).ino, (await stat(asset.file)).ino);
+      assert.deepEqual(await readFile(destination), bytes);
+      await writeFile(asset.file, Buffer.alloc(asset.bytes, 0x41));
+      await assert.rejects(publishPinnedFile(asset, destination, { preferHardlink: true }), /checksum changed/);
+      assert.equal(attempts, 2);
+      assert.deepEqual(await readFile(destination), bytes);
+      assert.deepEqual((await readdir(directory)).sort(), ["output.bin", "source.bin"]);
+    } finally { link.mock.restore(); syncBuiltinESMExports(); }
   });
 });
