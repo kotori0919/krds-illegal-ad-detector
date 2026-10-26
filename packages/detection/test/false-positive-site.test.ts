@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { validateOfficialResultText } from "@krds-detector/contracts";
+import { validateOfficialResultText, validateScanDetailBundle, type ScanProgress } from "@krds-detector/contracts";
 import { scanSite } from "../src/scan.js";
 
 const pages: Record<string, string> = {
@@ -66,6 +66,29 @@ const pages: Record<string, string> = {
     <aside hidden>성인 콘텐츠 차단 설정 도움말</aside>`,
 };
 
+// Hand-counted text owners, including hidden text and SVG title/desc/text.
+// Images are not eligible here: the two SVGs have neither ad markers nor an
+// external destination (creative.ts selectVisuals gate). No iframe is authored.
+// /report links to /public/casino-report at depth 2, outside the unchanged
+// maxDepth:1 crawl. It is not one of the ten authored inspection targets.
+const expectedTextOwners: Record<string, number> = {
+  "/": 12, "/report": 5, "/accessibility": 4, "/glossary": 4, "/campaign": 3,
+  "/dialog": 6, "/tabs": 5, "/carousel": 5, "/chart": 5, "/adult-block": 4,
+};
+const expectedPaths = Object.keys(expectedTextOwners).sort();
+const expectedElements = Object.values(expectedTextOwners).reduce((sum, count) => sum + count, 0);
+function fixturePath(url?: string): string {
+  if (!url) return "<none>";
+  const path = new URL(url).pathname;
+  return Object.hasOwn(pages, path) ? path : "<unlisted>";
+}
+function observe(concurrency: number, phase: string, detail: object = {}): void {
+  // Existing guard captures stdout. Fixed labels/counters only, no browser
+  // argv, image bytes, arbitrary error text or external URLs are logged.
+  console.info(`FALSE_POSITIVE_SITE ${JSON.stringify({ concurrency, phase,
+    wallTimeMs: Date.now(), monotonicNs: process.hrtime.bigint().toString(), ...detail })}`);
+}
+
 let server: Server;
 let origin = "";
 beforeAll(async () => {
@@ -85,16 +108,70 @@ afterAll(async () => { await new Promise<void>((resolve) => server.close(() => r
 describe("L2 public-information false-positive site", () => {
   it("keeps education, reporting and hidden accessibility text out of official findings", async () => {
     for (const concurrency of [1, 2, 3, 4]) {
-      const output = await scanSite({ entryUrl: `${origin}/`, crawl: {
-        concurrency, settleMs: 300, perPageMs: 7000,
-        limits: { maxPages: 10, maxDepth: 1, timeoutSec: 60 },
-      } });
-      expect(output.pagesVisited).toBe(10);
-      expect(output.failedPages).toBe(0);
-      expect(output.timedOut).toBe(false);
-      expect(validateOfficialResultText(output.json).ok).toBe(true);
-      expect(output.result.findings).toEqual([]);
-      expect(output.extraResult.findings).toEqual([]);
+      let output: Awaited<ReturnType<typeof scanSite>> | undefined;
+      let finalProgress: ScanProgress | undefined;
+      let pageEvents = 0;
+      let passed = false;
+      observe(concurrency, "scan-start", { expectedPages: 10, expectedElements, expectedTextOwners });
+      try {
+        output = await scanSite({ entryUrl: `${origin}/`, crawl: {
+          concurrency, settleMs: 300, perPageMs: 7000,
+          limits: { maxPages: 10, maxDepth: 1, timeoutSec: 60 },
+        }, onEvent: event => {
+          if (event.kind === "session-finished") finalProgress = event.progress;
+          if (["page-started", "page-visited", "page-failed"].includes(event.kind)) {
+            pageEvents++;
+            if (pageEvents <= 20) observe(concurrency, event.kind, { path: fixturePath(event.pageUrl),
+              visitedPages: event.progress.visitedPages, elementsAnalyzed: event.progress.elementsAnalyzed });
+          }
+        } });
+        expect(output.pagesVisited).toBe(10);
+        expect(output.failedPages).toBe(0);
+        expect(output.timedOut).toBe(false);
+        expect(validateOfficialResultText(output.json).ok).toBe(true);
+        expect(output.result.findings).toEqual([]);
+        expect(output.extraResult.findings).toEqual([]);
+        const detail = output.detailBundle;
+        expect(detail.analysisIssues).toEqual([]);
+        expect(detail.coverage).toEqual({ checkedPages: 10, failedPages: [], timedOut: false, cancelled: false });
+        expect(detail.pageOutcomes).toHaveLength(10);
+        expect(detail.pageOutcomes!.map(page => fixturePath(page.url)).sort()).toEqual(expectedPaths);
+        for (const page of detail.pageOutcomes!) {
+          expect(page).toMatchObject({ outcome: "checked", status: 200, depth: fixturePath(page.url) === "/" ? 0 : 1 });
+          expect(page.issue).toBeUndefined();
+          expect(page.collectionIssues ?? []).toEqual([]); // Optional means no reported collection issue.
+          expect(fixturePath(page.finalUrl)).toBe(fixturePath(page.url));
+        }
+        expect(pageEvents).toBe(20); // Exactly one start and one successful visit per authored page.
+        expect(finalProgress).toMatchObject({ stage: "succeeded", visitedPages: 10, failedPages: 0,
+          queuedPages: 0, currentPages: [], framesInspected: 0, elementsAnalyzed: expectedElements,
+          candidates: 0, confirmedFindings: 0 });
+        expect(detail.visualAnalysisCoverage).toMatchObject({ pagesConsidered: 10, pagesNotConsidered: 0,
+          candidatesObserved: 0, candidateTotal: null, imagesAcquired: 0, imageAnalysisRecords: 0,
+          ocrImagesAttempted: 0, ocrImagesCompleted: 0, ocrImagesUnavailable: 0, limitsReached: [], skips: [],
+          selection: { retainedRecords: 0, retainedAssets: 0, retainedBytes: 0, excludedRecords: 0, ocrSha256: [] } });
+        expect(detail.imageAnalysis).toEqual([]);
+        expect(validateScanDetailBundle(detail, output.result, output.extraResult).ok).toBe(true);
+        passed = true;
+      } finally {
+        const detail = output?.detailBundle;
+        observe(concurrency, output ? passed ? "scan-pass" : "assertion-failed" : "scan-rejected", {
+          pageEvents, pageEventLogTruncated: pageEvents > 20,
+          progress: finalProgress && { stage: finalProgress.stage, visitedPages: finalProgress.visitedPages,
+            elementsAnalyzed: finalProgress.elementsAnalyzed, framesInspected: finalProgress.framesInspected,
+            failedPages: finalProgress.failedPages, candidates: finalProgress.candidates, confirmedFindings: finalProgress.confirmedFindings,
+            queuedPages: finalProgress.queuedPages, currentPageCount: finalProgress.currentPages.length },
+          analysisIssueCount: detail?.analysisIssues?.length,
+          analysisIssues: detail?.analysisIssues?.slice(0, 32).map(issue => issue.slice(0, 160)),
+          coverage: detail && { checkedPages: detail.coverage.checkedPages, failedPages: detail.coverage.failedPages.length,
+            timedOut: detail.coverage.timedOut, cancelled: detail.coverage.cancelled },
+          pageOutcomes: detail?.pageOutcomes?.slice(0, 10).map(page => ({ path: fixturePath(page.url),
+            status: page.status, outcome: page.outcome, depth: page.depth,
+            collectionIssues: page.collectionIssues?.slice(0, 8).map(issue => issue.slice(0, 160)) ?? [] })),
+          visualAnalysisCoverage: detail?.visualAnalysisCoverage,
+          expectedNotApplicable: ["no-authored-iframes", "unmarked-local-SVGs:no-gated-visual-candidates", "depth-2-guide-outside-maxDepth-1"],
+        });
+      }
     }
   }, 30_000);
 });
