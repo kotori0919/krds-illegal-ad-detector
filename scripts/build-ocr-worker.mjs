@@ -1,6 +1,6 @@
 /** Bundle the CPU worker and copy pinned offline language assets beside it. */
 import { build } from "esbuild";
-import { cp, mkdir, readFile, rm } from "node:fs/promises";
+import { cp, mkdir, readFile, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { createRequire } from "node:module";
@@ -8,6 +8,7 @@ import { resolve, join } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import process from "node:process";
 import { downloadPinnedAsset } from "./lib/model-download.mjs";
+import { publishPinnedFile } from "./lib/pinned-asset-io.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const target = resolve(process.argv[2] ?? "packages/evidence/dist");
@@ -27,12 +28,13 @@ await mkdir(modelCache, { recursive: true });
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 for (const model of manifest.models) {
   const file = join(modelCache, model.file);
-  let bytes;
-  try { bytes = await readFile(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
-  if (bytes && (bytes.length !== model.bytes || digest(bytes) !== model.sha256)) throw new Error(`Pinned OCR model changed: ${model.file}`);
-  if (!bytes) await downloadPinnedAsset(
-    { file, url: model.url, bytes: model.bytes, sha256: model.sha256, label: `ocr-data/${model.file}` });
-  await cp(file, join(target, "ocr-data", model.file));
+  try { await stat(file); } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    await downloadPinnedAsset(
+      { file, url: model.url, bytes: model.bytes, sha256: model.sha256, label: `ocr-data/${model.file}` });
+  }
+  await publishPinnedFile({ file, bytes: model.bytes, sha256: model.sha256, label: `ocr-data/${model.file}` },
+    join(target, "ocr-data", model.file));
 }
 const vocabulary = await readFile(join(modelRoot, manifest.vocabulary.file));
 if (digest(vocabulary) !== manifest.vocabulary.sha256) throw new Error("OCR vocabulary checksum failed");
@@ -40,11 +42,8 @@ for (const name of [manifest.vocabulary.file, "manifest.json", "Tesseract-LICENS
   await cp(join(modelRoot, name), join(target, "ocr-data", name));
 }
 
-// The text backbone is ~1 GB. Stream validation/downloads and hardlink
-// immutable build assets on the same filesystem instead of duplicating RAM
-// and disk for every staging directory. EXDEV falls back to a regular copy.
-const { createReadStream } = await import("node:fs");
-const { stat, link } = await import("node:fs/promises");
+// Every build still verifies the complete pinned SHA. Publish with a bounded
+// stream and hardlink immutable assets; EXDEV copies and hashes in one pass.
 const embeddingRoot = join(root, "packages/evidence/src/text-embedding-model");
 const embeddingManifest = JSON.parse(await readFile(join(embeddingRoot, "manifest.json"), "utf8"));
 const validatorBundle = await build({ entryPoints: [join(root, "packages/evidence/src/text-reference-data.ts")],
@@ -59,21 +58,14 @@ for (const asset of embeddingManifest.files) {
   const destination = join(embeddingTarget, asset.path);
   await mkdir(join(file, ".."), { recursive: true });
   await mkdir(join(destination, ".."), { recursive: true });
-  const verify = async path => {
-    if ((await stat(path)).size !== asset.bytes) throw new Error(`Pinned text model size changed: ${asset.path}`);
-    const hash = createHash("sha256");
-    for await (const chunk of createReadStream(path)) hash.update(chunk);
-    if (hash.digest("hex") !== asset.sha256) throw new Error(`Pinned text model checksum changed: ${asset.path}`);
-  };
-  try { await verify(file); }
+  try { await stat(file); }
   catch (error) {
     if (error.code !== "ENOENT") throw error;
     await downloadPinnedAsset(
       { file, url: asset.source, bytes: asset.bytes, sha256: asset.sha256, label: `text-embedding-data/${asset.path}` });
   }
-  await rm(destination, { force: true });
-  try { await link(file, destination); }
-  catch (error) { if (error.code !== "EXDEV") throw error; await cp(file, destination); }
+  await publishPinnedFile({ file, bytes: asset.bytes, sha256: asset.sha256, label: `text-embedding-data/${asset.path}` },
+    destination, { preferHardlink: true });
 }
 for (const name of ["manifest.json", "policy.json", "text-references.json", "image-references.json", "LICENSE.txt", "NOTICE.txt"]) {
   await cp(join(embeddingRoot, name), join(embeddingTarget, name));
