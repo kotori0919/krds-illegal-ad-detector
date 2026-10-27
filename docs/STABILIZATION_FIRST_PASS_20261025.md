@@ -2,15 +2,15 @@
 
 ## 범위와 기준
 
-mathcat에서 실제 canonical checkout `/home/monad/develop/illegal_ad`을 확인했다.
+mathcat에서 실제 canonical checkout `<repository>`을 확인했다.
 기준 HEAD는 `7bf3e6837c9d98d8a38b634091487bdf29195eb0`, branch는
 `codex/post-submission-d08`, 시작 시 `git status --short`는 비어 있었다.
 remote는 `https://github.com/snowman0919/krds-illegal-ad-detector.git`이며
 사용자가 제공한 현재 GitHub 사용자는 kotori0919다. remote/계정 설정은 변경하지 않았다.
 
 전용 branch는 `codex/stabilize-first-pass-20261025`, worktree는
-`/home/monad/Documents/Codex/2026-10-25/task/krds-stabilization`이다.
-`/home/monad/develop/AGENTS.md`의 해당 루트 아래 worktree 금지와 기존 변경 보존을 지켰다.
+`<stabilization-worktree>`이다.
+`<workspace-instructions>/AGENTS.md`의 해당 루트 아래 worktree 금지와 기존 변경 보존을 지켰다.
 원본 checkout, 기존 grampus worktree, 모델 원본, 사례 데이터에는 쓰지 않았다.
 
 [행정안전부 공식 공고](https://mois.go.kr/frt/bbs/type013/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000006&nttId=129458)를
@@ -100,7 +100,7 @@ web 하위 의존성 복사 전 plugin-react 누락, NAS 캐시 링크 ENOTDIR. 
 변수는 소유 fixture 시험에만 사용하고 production worker 통합에는 설정하지 않는다.
 
 ```sh
-cd /home/monad/Documents/Codex/2026-10-25/task/krds-stabilization
+cd "$STABILIZATION_WORKTREE" # 검수 대상 독립 checkout 경로를 지정
 npm run build:scanner
 npm run check # Linux fixture sandbox 지원이 없으면 아래의 명시적 시험 방식 사용
 # npm run typecheck && npm run lint && KRDS_TEST_UNSANDBOXED=1 npm run test

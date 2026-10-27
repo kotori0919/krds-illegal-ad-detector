@@ -2,7 +2,7 @@
 
 공식 원본은 `result.json`, 추가 탐지는 `result_extra.json`, 검토 기록은
 `review.json`으로 분리한다. 원본은 재열기·판단·메모·보고서 생성으로 변경하지
-않는다. 새 검사의 policy 2 결과가 과거 결과와 달라질 수 있으며 재검사는 새
+않는다. 새 검사의 policy 3 결과가 과거 결과와 달라질 수 있으며 재검사는 새
 case ID를 사용한다. schema/config/policy 규칙은 CONTRACTS.md가 기준이다.
 
 Windows 보관 위치는 `%APPDATA%\kr.go.nia.illegal-ad-detector\cases`다.
@@ -49,7 +49,7 @@ Windows 보관 위치는 `%APPDATA%\kr.go.nia.illegal-ad-detector\cases`다.
 모델 다운로드는 없다. 빌드 최초 준비에서는 고정 URL·크기·SHA-256으로 모델을
 가져오며 언어 데이터·모델·라이선스를 결과 패키지에 포함한다. GIF에서 선택된
 프레임은 기존 이미지 보관 범위에 포함하고 프레임 번호·시각을 상세 근거에 기록한다.
-EmbeddingGemma 2는 평가 후보이며 현재 점검 경로에 포함하지 않는다.
+EmbeddingGemma 2의 고정 텍스트·이미지 참조와 로컬 CPU 임베딩 비교는 현재 점검의 추가 분석 경로에 포함된다. 공식4기법 판정과 별도로 취급하며 법적 위반 확정이 아니다. 모델 오류·제한으로 분석이 완료되지 않은 경우 이를 확인해야 한다. 출처·고정 revision·SHA·라이선스는 [데이터 출처 인덱스](DATA_PROVENANCE_KO.md)를 따른다.
 
 진단 미리보기는 버전·저장 경로·네트워크 정책·선택적 VLM off·서명 상태만 다룬다.
 사용자명이 포함된 경로는 공유 전 검토/삭제한다. 일반 로그에 원문·메모·토큰을

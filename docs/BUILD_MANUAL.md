@@ -1,6 +1,6 @@
 # 빌드 매뉴얼
 
-버전0.2.1, 탐지 정책2, Case 형식1의 빌드 절차입니다. 산출물의 commit/sourceSha256와
+버전0.2.1, 탐지 정책3, Case 형식1의 빌드 절차입니다. 산출물의 commit/sourceSha256와
 파일 SHA-256은 후보 폴더의 `manifest.json`에 기록됩니다.
 
 ## 준비와 다운로드
@@ -20,7 +20,7 @@ npm run doctor
 
 ### 첫 빌드의 네트워크 요구
 
-`npm run build`는 `packages/evidence` 빌드 중에 고정된 모델 자산을 내려받는다. 다운로드는 빌드 시점에만 일어나며, 검사/탐지 실행은 네트워크를 사용하지 않는다.
+`npm run build`는 `packages/evidence` 빌드 중에 고정된 모델 자산을 내려받는다. 다운로드는 빌드 시점에만 일어나며, 점검 중 모델 다운로드나 외부 AI 호출은 없다. URL 탐색과 이미지 수집에는 대상 사이트 인터넷 접속이 필요하다. 저장된 사례의 검토·내보내기는 오프라인에서 가능하다.
 
 | 자산 | 호스트 | 크기 | 고정 위치 |
 | --- | --- | --- | --- |
@@ -54,7 +54,9 @@ packages/evidence/.model-cache/
 
 ```powershell
 npm run doctor
+npm run build:scanner
 KRDS_TEST_UNSANDBOXED=1 npm run check
+node --test --test-concurrency=1 scripts/test/build-policy.test.mjs scripts/test/pinned-asset-io.test.mjs
 npm run test:integration
 npm run dev
 npm run build:desktop
@@ -74,7 +76,7 @@ PowerShell에서는 `$env:KRDS_TEST_UNSANDBOXED="1"; npm run check`로 같은 �
 
 1. `npm ci`와 `cargo fetch --locked --manifest-path src-tauri/Cargo.toml` 완료.
 2. 런타임 준비: 최초 1회 `npm run prepare:windows-runtime`(네트워크 필요). 이후 beforeBuild가 `node scripts/prepare-windows-runtime.mjs --verify`로 `scripts/windows-runtime.lock.json`의 1177개 항목(`node.exe`, `node-LICENSE`, `ms-playwright/`, 스테이징된 `node_modules/`, `usque.exe`, `usque-LICENSE.md`)과 크기·SHA-256을 대조한다. lock의 `node_modules/` 항목은 `tesseract.js`, `@tesseract.js-data/kor`, `@tesseract.js-data/eng`, `onnxruntime-node`, `pngjs`에서 시작하는 런타임 의존성 closure 전체다. 각 패키지는 `package.json` 존재로 탐색하며(`require.resolve`는 entry point가 없는 types-only 패키지, 예: `type-fest`에서 실패한다), 프로젝트 `node_modules`와 같은 상대 경로에 스테이징하므로 nested 중복 버전이 보존된다. optional dependency는 설치된 경우에만 포함한다. 불일치는 실패이며 자동으로 갱신하지 않는다. worker 자산(`scanner-worker-*.mjs`, `ocr-worker.mjs`, `ocr-data/`, `text-embedding-data/`)은 이 lock 대조 대상이 아니고 `build-manifest.json` 해시로 검증된다.
-3. 스테이징: `src-tauri/binaries`에 detection worker, `ocr-worker.mjs`, `ocr-data/`, `text-embedding-data/`가 있어야 한다(`scripts/build-sidecar.mjs`가 기록). 이 디렉터리 안의 symlink는 `inventory`/`verifyFiles`가 `Resource symlink rejected`로 거부하므로 패키징이 실패한다. 스테이징은 `dist`의 symlink를 그대로 복사하지 않고 실제 디렉터리를 새로 만들지만, `src-tauri/binaries`에 symlink를 남기면 안 된다. 스테이징된 `node_modules`는 현재 약 153 MB다. `onnxruntime-node`는 win32-x64 런타임 바이너리만 포함하도록 정리하며, 런타임 lock의 실제 파일 크기·SHA로 검증한다. 2026-10-23 source `98fd01026e36` gnullvm 후보의 NSIS 설치 파일은 712.36 MiB(746,959,183 B)다. 전체 도구 체인과 준비된 npm/Cargo/runtime/NSIS 캐시는 오프라인 재빌드에 필요하므로 보존한다. 최신 후보 식별과 실행 근거는 [제출 빌드 안내](SUBMISSION_20261023/BUILD_AND_RUN.md)를 따른다.
+3. 스테이징: `src-tauri/binaries`에 detection worker, `ocr-worker.mjs`, `ocr-data/`, `text-embedding-data/`가 있어야 한다(`scripts/build-sidecar.mjs`가 기록). 이 디렉터리 안의 symlink는 `inventory`/`verifyFiles`가 `Resource symlink rejected`로 거부하므로 패키징이 실패한다. 스테이징은 `dist`의 symlink를 그대로 복사하지 않고 실제 디렉터리를 새로 만들지만, `src-tauri/binaries`에 symlink를 남기면 안 된다. 스테이징된 `node_modules`는 현재 약 153 MB다. `onnxruntime-node`는 win32-x64 런타임 바이너리만 포함하도록 정리하며, 런타임 lock의 실제 파일 크기·SHA로 검증한다. 2026-10-23 source `98fd01026e36` gnullvm 후보의 NSIS 설치 파일은 712.36 MiB(746,959,183 B)다. 전체 도구 체인과 준비된 npm/Cargo/runtime/NSIS 캐시는 오프라인 재빌드에 필요하므로 보존한다. 10월23일 제출 후보 식별과 실행 근거는 [제출 빌드 안내](SUBMISSION_20261023/BUILD_AND_RUN.md)를 따른다.
 4. 도구 체인: MSVC 경로는 `rust-toolchain.toml`의 Rust와 `x86_64-pc-windows-msvc`, C++ Build Tools, Windows SDK가 필요하다. GNU 경로는 `KRDS_LLVM_MINGW`와 `KRDS_NSIS_ROOT`가 필요하다. Tauri가 고정한 NSIS 3.11과 플러그인은 최초 패키징에서 프로젝트 target 아래로 내려받으므로 그 회차에는 네트워크가 필요하다.
 
 ## 보존하는 별도 경로: GNU LLVM 교차 빌드
@@ -102,6 +104,8 @@ PR이 열린 개발 브랜치의 push와 PR 이벤트가 같은 Windows 빌드�
 개발 브랜치 push는 별도 실행하지 않는다. PR이 없는 브랜치는 로컬 canonical 명령을
 실행하거나 Actions에서 해당 ref의 수동 실행을 선택한다. Linux·Windows·required
 검사 항목과 후보 package의 수동 opt-in 조건은 그대로 유지한다.
+
+현재 정책3 후보의 검증 상태는 [후보 상태](CANDIDATE_STATUS_KO.md)를 따른다. 아래 과거 MSVC 성공 기록은 당시 후보의 기록이며 현재 후보의 설치·실행 완료를 뜻하지 않는다.
 
 ## 산출물과 한계
 

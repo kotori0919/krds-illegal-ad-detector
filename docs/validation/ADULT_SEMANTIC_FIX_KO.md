@@ -2,7 +2,7 @@
 
 **후속 정적검수 수정 안내:** 아래 runtime 수치는 이전 소스의 이력이다. 부정 CTA/문맥/정책 identity 재수정(policy3) 뒤 아직 재실행하지 않았다. 현재 소스 PASS로 전용하지 않는다. 최신 편집 범위와 해시는 STATIC_CORRECTIONS_KO.md 및 STATIC_CORRECTIONS_IDENTITY.json을 참조한다.
 
-기준 커밋 `ae12f7c766d8f1c7f882afb71cd93499b260729f`에서 브랜치 `fix/adult-semantic-20261026`, worktree `/home/monad/Documents/Codex/2026-10-26/task/krds-adult-semantic`을 새로 만들었다. 원본 `/home/monad/develop/illegal_ad`, 기존 안정화 worktree 및 main에는 통합하지 않았다. 최종 커밋은 이 문서를 포함하는 인도 커밋의 `git rev-parse HEAD`로 식별한다. 부모 독립 검수 전 통합 금지. push/PR/remote/배포/제출/Tasks/Windows VM 작업 없음.
+기준 커밋 `ae12f7c766d8f1c7f882afb71cd93499b260729f`에서 브랜치 `fix/adult-semantic-20261026`, worktree `<candidate-worktree>`을 새로 만들었다. 원본 `<repository>`, 기존 안정화 worktree 및 main에는 통합하지 않았다. 최종 커밋은 이 문서를 포함하는 인도 커밋의 `git rev-parse HEAD`로 식별한다. 부모 독립 검수 전 통합 금지. push/PR/remote/배포/제출/Tasks/Windows VM 작업 없음.
 
 ## 결함과 최소 수정
 

@@ -43,8 +43,8 @@ vm-media-host.log/receipt/source manifest에 기록했다.
 
 | 장치 | 기존 설정 경로 | 상태 |
 | --- | --- | --- |
-| sdb, 주 disk qcow2 | /home/monad/clean-vm/clean11.qcow2 | 없음 |
-| sda, 설치 CDROM | /home/monad/clean-vm/win11-install.iso | 없음 |
+| sdb, 주 disk qcow2 | <local-evidence>/clean-vm/clean11.qcow2 | 없음 |
+| sda, 설치 CDROM | <local-evidence>/clean-vm/win11-install.iso | 없음 |
 | sdc, 기존 probe CDROM | /tmp/illegal-ad-toolchain/product-v2-coverage-core-probe.iso | 없음 |
 
 **차단된 다음 동작은 기존 clean11의 시작 및 그 안의 Windows 검증**이다. 주 디스크가

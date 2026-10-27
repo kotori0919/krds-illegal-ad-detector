@@ -123,7 +123,7 @@ formal 비교 중 다른 소유 모델/빌드/테스트/UI replay를 실행하�
 
 `artifacts/ocr-cpu-20261022/`의 protocol/input/source identity와 frozen runtime,
 GNUtime sidecar·원시 receipt·CPU spans·tensor parity·arena 후보·UI 캡처를 보존한다.
-대형 원시 자료는 승인된 `/mnt/nas/illegal-ad/validation/ocr-cpu-20261022/`에 있다.
+대형 원시 자료는 승인된 `<external-evidence>/illegal-ad/validation/ocr-cpu-20261022/`에 있다.
 기존 이미지 지연 최적화/양자화/학습 참조/원시 자료는 덮어쓰지 않았다.
 
 ```sh

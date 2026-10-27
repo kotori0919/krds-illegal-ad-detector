@@ -571,7 +571,7 @@ GIF외3묶음속도우열주장없음. 같은Ryzen9700X/Linux/CPUFP32/동일NAS�
 (+514/-4)/superpowers보존. commit/push/PR/배포/제출/Windows미실행.
 [상세보고와남은제한](OCR_LOWRES_GIF_20261021.md), ADR0017,인계및
 artifacts/ocr-lowres-gif-20261021/{frozen-protocol,frozen-source-identity,summary,audit}.json.
-최종raw는승인된 /mnt/nas/illegal-ad/validation/ocr-lowres-gif-20261021/ 에보관했다.
+최종raw는승인된 <external-evidence>/illegal-ad/validation/ocr-lowres-gif-20261021/ 에보관했다.
 
 
 ## 2026-10-22 FP32 고정 문자 벡터 사전 계산
@@ -756,7 +756,7 @@ NOT_RUN: Windows에서의 시험 실행(cross sysroot 없음), MSVC CI(계정 �
 설치·대화형 UI 수용, WebView2 부재 offline 설치, 코드 서명.
 
 predecessor `candidate-0.2.1-x86_64-pc-windows-gnullvm-3fb23ff998ea-20261022T160030222Z`는
-삭제하지 않고 `/mnt/nas/illegal-ad-artifacts-archive-20261023/`로 이동했다(819,612,236 B,
+삭제하지 않고 `<external-evidence>/illegal-ad-artifacts-archive-20261023/`로 이동했다(819,612,236 B,
 9개 파일 sha256은 이동 manifest에 기록). 빌드 후 호스트 루트 여유는 약 1.3 GB이며
 staging/target은 NAS에 있다.
 
@@ -777,15 +777,15 @@ installer 크기 759.44 MiB는 모델 약 1.31 GB와 스테이징 `node_modules`
 ### 환경 기록 (OBSERVED_ENVIRONMENT)
 
 호스트 루트 파일시스템 여유가 약 3 GB여서 `src-tauri/target`을
-`/mnt/nas/illegal-ad-build/target-gnullvm-20261023`로 symlink했다. `sourceIdentity()`가 그
+`<external-evidence>/illegal-ad-build/target-gnullvm-20261023`로 symlink했다. `sourceIdentity()`가 그
 symlink를 거부했으므로(`git ls-files --others`에서 EISDIR) 로컬 `.git/info/exclude`에
 `src-tauri/target`을 추가했다(추적되지 않으며 commit하지 않는다).
 
 gitignore 대상이던 오래된 증거 4건을 삭제하지 않고 이동했다: `artifacts/detection-improvement-20261021`과
 `artifacts/NIA_ADOPTION_*_CANDIDATE_20261010.zip` 번들(+ 공개 batch `.sha256`) →
-`/mnt/nas/illegal-ad-artifacts-archive-20261023`. 당시 `artifacts/candidate-*`는 건드리지 않았고,
+`<external-evidence>/illegal-ad-artifacts-archive-20261023`. 당시 `artifacts/candidate-*`는 건드리지 않았고,
 이후 85a286f 재빌드에서 predecessor 후보만 같은 archive로 이동했다(위 재빌드 절).
-이동 manifest: `/mnt/nas/illegal-ad-build/moved-artifacts-20261023.txt`, `/tmp/moved-artifacts-20261023.txt`.
+이동 manifest: `<external-evidence>/illegal-ad-build/moved-artifacts-20261023.txt`, `/tmp/moved-artifacts-20261023.txt`.
 
 ## 2026-10-23 통합 검증과 최종 후보
 
@@ -930,7 +930,7 @@ Chromium sandbox만 해제한다. CI는 계정 결제 차단으로 여전히 시
 `e54fe63` 작업 트리에서 **같은 190개 입력**(`artifacts/vision-cpu-20261022/inputs.json`,
 sha256 `eb1572b6162e76790ae477d921ae5ee1b96789bb7370add137c78a9f3a3e8ad3`)을 새 bench
 디렉터리에서 다시 재생했다. 원시 자료:
-`/mnt/nas/illegal-ad-artifacts-archive-20261023/vision-cpu-current-head/`
+`<external-evidence>/illegal-ad-artifacts-archive-20261023/vision-cpu-current-head/`
 (`inputs.json`, `runs/*-after.json`, `protocol.json`).
 
 | 묶음 | 결과 |
@@ -1084,7 +1084,7 @@ actual error retained. targeted 1 pass, EXIT 0. **Full native validation은 이�
 
 ### 상태와 보존
 
-- 시작 ROOT `/home/monad/develop/illegal_ad`, `dev/bootstrap@f481d73`.
+- 시작 ROOT `<repository>`, `dev/bootstrap@f481d73`.
   staged/unmerged 없음. `git stash list`는 비어 있었다. 인계된 문서 8개,
   `crawl.ts`, `session.rs`, untracked `redirect-domready.test.ts`가 모두 존재했다.
 - 시작 diff/stat/status와 시험 원본을

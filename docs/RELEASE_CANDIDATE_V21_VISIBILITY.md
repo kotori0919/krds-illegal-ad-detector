@@ -6,7 +6,7 @@ PR #2 remains Draft. This is separate from both the accepted V2.1 checkpoint
 `rc-v21-105ce20-20261008` and historical `rc-5e44feb-20261008`.
 
 Local directory:
-`/home/monad/.codex/artifacts/illegal-ad/rc-v21-visibility-999c50c-20261008`.
+`<local-evidence>/.codex/artifacts/illegal-ad/rc-v21-visibility-999c50c-20261008`.
 Installer: `불법광고 탐지 도구_0.1.0_x64-setup.exe`, 149,652,131 bytes.
 SHA-256: `e81be6b78599cc8e3f2ad736aa0ebfefcd8b7186d87b1c5ff5ed4b3da312f348`.
 Unsigned Windows GNU LLVM candidate; no release or submission is authorized.

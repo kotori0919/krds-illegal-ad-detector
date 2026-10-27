@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: build identity shares detector policy and preserves independent Case schema
+ok 1 - build identity shares detector policy and preserves independent Case schema
+  ---
+  duration_ms: 0.410442
+  type: 'test'
+  ...
+# Subtest: desktop manifest consumes shared identity without a literal policy override
+ok 2 - desktop manifest consumes shared identity without a literal policy override
+  ---
+  duration_ms: 4.875411
+  type: 'test'
+  ...
+# Subtest: verifies a multi-buffer fixture without publishing any file
+ok 3 - verifies a multi-buffer fixture without publishing any file
+  ---
+  duration_ms: 8.958565
+  type: 'test'
+  ...
+# Subtest: copies and hashes in one pass before replacing the destination
+ok 4 - copies and hashes in one pass before replacing the destination
+  ---
+  duration_ms: 1.781205
+  type: 'test'
+  ...
+# Subtest: verifies the temporary hardlink before publishing the same inode
+ok 5 - verifies the temporary hardlink before publishing the same inode
+  ---
+  duration_ms: 86.400797
+  type: 'test'
+  ...
+# Subtest: rejects same-size corruption and preserves old output (hardlink=false)
+ok 6 - rejects same-size corruption and preserves old output (hardlink=false)
+  ---
+  duration_ms: 1.764472
+  type: 'test'
+  ...
+# Subtest: rejects same-size corruption and preserves old output (hardlink=true)
+ok 7 - rejects same-size corruption and preserves old output (hardlink=true)
+  ---
+  duration_ms: 0.889144
+  type: 'test'
+  ...
+# Subtest: rejects both truncated and oversized files against the pin
+ok 8 - rejects both truncated and oversized files against the pin
+  ---
+  duration_ms: 0.696864
+  type: 'test'
+  ...
+# Subtest: propagates missing source without creating an output
+ok 9 - propagates missing source without creating an output
+  ---
+  duration_ms: 0.387276
+  type: 'test'
+  ...
+# Subtest: fails closed for invalid pins and non-file sources
+ok 10 - fails closed for invalid pins and non-file sources
+  ---
+  duration_ms: 0.515685
+  type: 'test'
+  ...
+# Subtest: republishes an existing destination on the same inode without a temporary leak
+ok 11 - republishes an existing destination on the same inode without a temporary leak
+  ---
+  duration_ms: 1.128586
+  type: 'test'
+  ...
+# Subtest: preserves the previous destination and cleans the temporary file on rename failure
+ok 12 - preserves the previous destination and cleans the temporary file on rename failure
+  ---
+  duration_ms: 1.871238
+  type: 'test'
+  ...
+# Subtest: forces EXDEV fallback while retaining full verification and failure cleanup
+ok 13 - forces EXDEV fallback while retaining full verification and failure cleanup
+  ---
+  duration_ms: 1.368048
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 401.619324

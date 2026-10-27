@@ -1,6 +1,6 @@
 # KRDS 첫 안정화 패스 독립 검수 — 2026-10-25
 
-검수 대상: `/home/monad/Documents/Codex/2026-10-25/task/krds-stabilization`
+검수 대상: `<stabilization-worktree>`
 기준: `7bf3e6837c9d98d8a38b634091487bdf29195eb0`
 제출: `e33b88d983c698175af76c139d1e6a5ca67eff85`
 branch: `codex/stabilize-first-pass-20261025`
@@ -55,7 +55,7 @@ finally { this.subscriptionPending = undefined; }
 
 변경 범위: adapter 23줄(+17/-6), 테스트 +55줄(2개 시험), 문서 +121줄. 탐지·임계치·모델·Rust·패키징·공식 JSON 계약 변경은 없다. 전체 3개 파일, +193/-6.
 
-검수 시작 및 종료 상태: 제출 HEAD/branch 일치, 제출 및 원본 `git status --porcelain=v1` 빈 값. 원본 HEAD는 baseline, branch `codex/post-submission-d08`. `git worktree list --porcelain`에서도 같은 연결 확인. `/home/monad/develop/AGENTS.md`를 읽었고 canonical 루트 아래 새 worktree 금지 정책 확인. 대상/하위에 추가 AGENTS.md는 없었다.
+검수 시작 및 종료 상태: 제출 HEAD/branch 일치, 제출 및 원본 `git status --porcelain=v1` 빈 값. 원본 HEAD는 baseline, branch `codex/post-submission-d08`. `git worktree list --porcelain`에서도 같은 연결 확인. `<workspace-instructions>/AGENTS.md`를 읽었고 canonical 루트 아래 새 worktree 금지 정책 확인. 대상/하위에 추가 AGENTS.md는 없었다.
 
 현재 clean과 HEAD 일치로 추적 원본의 현재 보존은 확인했다. 과거 수행 전체에서 모든 ignored 데이터가 한 번도 바뀌지 않았다는 주장은 현재 git status만으로 증명할 수 없다. 이번 검수는 대상/원본을 읽기만 하고, 실행·빌드·캐시·로그는 /tmp 안에 격리했다. 복사본 외부를 가리키는 symlink 0개 확인. 의존성 설치는 수행하지 않았다.
 

@@ -176,4 +176,4 @@ crop 경계의 색 보간은 최대9단계 차이가 있지만 광고 영역 바
 재현: `KRDS_TEST_UNSANDBOXED=1 node benchmarks/ocr-lowres-gif-recall.mjs`,
 `python3 artifacts/ocr-lowres-gif-20261021/summarize.py`. sandbox 예외는 소유 loopback 페이지뿐이다.
 기록은 `artifacts/ocr-lowres-gif-20261021/`의 protocol/sourceidentity/summary/audit 및 NAS의
-`/mnt/nas/illegal-ad/validation/ocr-lowres-gif-20261021/` 원시 runs에 있다. 소스는 canonical 저장소에 유지했다.
+`<external-evidence>/illegal-ad/validation/ocr-lowres-gif-20261021/` 원시 runs에 있다. 소스는 canonical 저장소에 유지했다.

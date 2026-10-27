@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Windows 제품 통합만 수행한다. canonical `/home/monad/develop/illegal_ad`, 기존 `dev/bootstrap`와 사용자 변경을 보존한다. 별도 worktree·remote 변경은 하지 않는다.
+- Windows 제품 통합만 수행한다. canonical `<repository>`, 기존 `dev/bootstrap`와 사용자 변경을 보존한다. 별도 worktree·remote 변경은 하지 않는다.
 - usque `4.2.1`, commit `6aa03fc97d12848dce34eedbd187fb1077b5d1ea`, `http-proxy` 고정. 자동 모드 선택·재시도·직접 fallback은 없다.
 - archive SHA-256 `f6f7f0a1a2bc9bcc15cf563ec1f892d00690a92c086b23ed3211b802209099e7`; EXE SHA-256 `122f2e40208e81bb814fcb4be4fbbbdc9246860f1f3784f72ae4512b97667e91`.
 - socket 64, DNS answers 32, DNS 2000ms, header 16384 bytes, socket idle 20000ms 및 기존 전역 deadline을 유지한다. 준비 시간도 같은 deadline을 소비한다.

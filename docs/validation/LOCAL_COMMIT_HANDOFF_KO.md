@@ -1,6 +1,6 @@
 # r2 검증 귀속과 local commit 준비 — 제품 소스 동결
 
-상태 갱신: 부모가 r2 108PASS와 최종 noEmit6프로젝트/ESLint265파일을 검수하고 분리된 local commit을 지시했다. 아래는 승인된 커밋 분리 목록이다. 최종 commit SHA와 상태는 FINAL_LOCAL_DELIVERY_KO.md에서 확인한다. 제품 소스·시험·기존 r1/r2 manifest·이전 결과 파일은 변경하지 않았다. 현재 HEAD는 `ae12f7c766d8f1c7f882afb71cd93499b260729f`, branch `fix/adult-semantic-20261026`, worktree `/home/monad/Documents/Codex/2026-10-26/task/krds-adult-semantic`이다. 원본/main/다른 worktree/remote/Tasks/VM을 변경하지 않았다.
+상태 갱신: 부모가 r2 108PASS와 최종 noEmit6프로젝트/ESLint265파일을 검수하고 분리된 local commit을 지시했다. 아래는 승인된 커밋 분리 목록이다. 최종 commit SHA와 상태는 FINAL_LOCAL_DELIVERY_KO.md에서 확인한다. 제품 소스·시험·기존 r1/r2 manifest·이전 결과 파일은 변경하지 않았다. 현재 HEAD는 `ae12f7c766d8f1c7f882afb71cd93499b260729f`, branch `fix/adult-semantic-20261026`, worktree `<candidate-worktree>`이다. 원본/main/다른 worktree/remote/Tasks/VM을 변경하지 않았다.
 
 ## 이번에 대조한 r2 증거
 

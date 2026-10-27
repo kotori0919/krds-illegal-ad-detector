@@ -12,8 +12,8 @@ SHA256SUMS.json을 남겼다. 독립 검수의 실행과 이번 실행을 구분
 이번 제품 코드/시험/probe 커밋은 **7395be2452a3a6a9b2da0f18361378682596923c**다.
 그 뒤에는 인계 및 운영 안내 문서만 커밋한다. 기존 branch
 `codex/stabilize-first-pass-20261025`와 worktree
-`/home/monad/Documents/Codex/2026-10-25/task/krds-stabilization`를 이어 사용했다.
-원본 `/home/monad/develop/illegal_ad`의 HEAD7bf3e683과 기존 worktree는 보존했다.
+`<stabilization-worktree>`를 이어 사용했다.
+원본 `<repository>`의 HEAD7bf3e683과 기존 worktree는 보존했다.
 
 실행 wrapper `artifacts/stabilization-pass2-20261025/verify.py`가 각 실행의
 `.receipt.json`, `.sources.json`, `.log`를 만든다. commit/Git tree/status, 비문서
@@ -34,7 +34,7 @@ spawnSync(git)가 EPERM을 보고해 Python으로 같은 알고리즘을 계산�
 
 ## 실제 Windows 접근과 후보
 
-기존 `/home/monad/.ssh/config`의 `win` 별칭(100.117.248.33)을 사용해
+기존 `<local-evidence>/.ssh/config`의 `win` 별칭(100.117.248.33)을 사용해
 `ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=yes -o UpdateHostKeys=no win hostname`
 만 요청했다. 연결 timeout, **exit255**, 원격 hostname은 얻지 못했다.
 `virsh -c qemu:///session list --all`은 **exit0**, 기존 clean11은 **shut off**다.
@@ -42,7 +42,7 @@ spawnSync(git)가 EPERM을 보고해 Python으로 같은 알고리즘을 계산�
 해당 probe는 windows-ssh/windows-vm receipt에 보존했다.
 
 기존 후보
-`/home/monad/develop/illegal_ad/artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-d42ae4ab1879-20261023T092151358Z/manifest.json`
+`<repository>/artifacts/candidate-0.2.1-x86_64-pc-windows-gnullvm-d42ae4ab1879-20261023T092151358Z/manifest.json`
 의 `verify-artifact`를 읽기 전용 재실행하여 8 payload와 manifest 결속 검증이 **PASS**했다.
 그 소스는 **59933580b4fc27fd5e6fc3ec50b7b1c3326dcc35**, sourceSha **d42ae4ab1879…**로
 이번 코드7395be2와 다르다. installer SHA

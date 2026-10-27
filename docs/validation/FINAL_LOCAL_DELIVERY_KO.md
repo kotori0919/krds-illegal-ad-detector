@@ -1,6 +1,6 @@
 # 성인광고 semantic 보완 — 로컬 인도 상태
 
-검증된 제품 소스는 r2 manifest `4125496324d80b8da50a5407510a67595e16cb25004b42490ec342a9981b7993`와 동일하다. 동결 뒤 제품 코드/시험을 수정하지 않고 승인된 local commit으로 기록했다. 기준은 `ae12f7c766d8f1c7f882afb71cd93499b260729f`, branch는 `fix/adult-semantic-20261026`, worktree는 `/home/monad/Documents/Codex/2026-10-26/task/krds-adult-semantic`이다.
+검증된 제품 소스는 r2 manifest `4125496324d80b8da50a5407510a67595e16cb25004b42490ec342a9981b7993`와 동일하다. 동결 뒤 제품 코드/시험을 수정하지 않고 승인된 local commit으로 기록했다. 기준은 `ae12f7c766d8f1c7f882afb71cd93499b260729f`, branch는 `fix/adult-semantic-20261026`, worktree는 `<candidate-worktree>`이다.
 
 ## 변경과 로컬 커밋
 

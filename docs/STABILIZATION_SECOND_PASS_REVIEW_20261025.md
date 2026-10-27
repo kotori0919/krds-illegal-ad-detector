@@ -1,6 +1,6 @@
 # KRDS 두 번째 패스 독립 검수
 
-대상 `/home/monad/Documents/Codex/2026-10-25/task/krds-stabilization`
+대상 `<stabilization-worktree>`
 직전 검수 `e33b88d983c698175af76c139d1e6a5ca67eff85`
 검증 코드 `7395be2452a3a6a9b2da0f18361378682596923c`
 최종 제출 `bc1e92a925cf31ab79f29e3400e84bdbad5c71d0`

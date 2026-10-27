@@ -6,7 +6,7 @@
 
 - HEAD: `ae12f7c766d8f1c7f882afb71cd93499b260729f`
 - branch: `fix/adult-semantic-20261026`
-- worktree: `/home/monad/Documents/Codex/2026-10-26/task/krds-adult-semantic`
+- worktree: `<candidate-worktree>`
 - 제품 tracked 변경은 `packages/detection/src/semantic.ts`만, 37 additions / 8 deletions.
 - SHA256: `aaf417f72c0fc3ebb3ae140165613912d6074acb3e1abc9010eba13e617f4029` 일치.
 - 기존 untracked: 검증 문서/첫 평가 실패 JSON, adult-semantics.test.ts, adult-evaluation.test.ts, fixtures/adult-evaluation의 README/cases.json/holdout.json. 모두 존재한다. 이 분석 문서만 추가했다.
@@ -31,6 +31,6 @@
 
 복구 후 두 snapshot의 MemAvailable은 7,535,820 / 9,244,476 KiB였다. 후자의 SwapFree 716 KiB, PSI some avg10=0.13%, full avg10=0.09%. 일반 guard 조건(available >=14GiB, swap free >=2GiB, some<1%, full=0) 중 memory/swap/full PSI가 충족되지 않는다. 실제 guard admission 명령을 실행하지 않았으며 exit75를 새 관측 결과로 주장하지 않는다.
 
-모든 후속 build/test/embedding/archive는 `/home/monad/Documents/Codex/2026-10-26/task-2/krds-workload-guard.py`와 `GUARD-HANDOFF.md`의 공유 lock, aggregate2GiB/swap0 제한을 따라야 한다. 부모의 guard 독립검수 완료·일반작업 실행 승인과 실제 admission 통과 전에는 실행하지 않는다. 직접 실행·다른 scope·verify에 임의 argv를 넣는 우회는 금지한다.
+모든 후속 build/test/embedding/archive는 `<validation-evidence>/krds-workload-guard.py`와 `GUARD-HANDOFF.md`의 공유 lock, aggregate2GiB/swap0 제한을 따라야 한다. 부모의 guard 독립검수 완료·일반작업 실행 승인과 실제 admission 통과 전에는 실행하지 않는다. 직접 실행·다른 scope·verify에 임의 argv를 넣는 우회는 금지한다.
 
 다음 안전한 순서: 승인/자원 조건 확인 → guard를 통한 최종 type/lint/build 및 관련 시험 → OCR 실패의 단계/원래 응답을 구분하는 최소 임시 진단(필요 시 부모와 범위 확정) → 단독 재현 결과 비교. 별도 heavy 모델 warm-up/전체 suite 반복을 먼저 시작하지 않는다. 로컬 커밋/최종 완료는 아직 미완료다.

@@ -1,0 +1,89 @@
+{
+  "baselineHEAD": "789a60ef1a4a5544df9bb481ab93ece88f9356ef",
+  "profile": "pr-cleanup-final",
+  "unit": "codex-krds-guard-8d9bef7116514a61b8af4562800a04e4.scope",
+  "timestamp": "2026-10-27T19:06:32+0900",
+  "sourceSha256": {
+    "scripts/desktop.mjs": "0059975eeba56e6ed20ad2357e7d8c3e21df6ce9c38db4b424943874ee8e6e57",
+    "scripts/lib/build-policy.mjs": "676119ac63e163adcb270758085dd77d22d1c798dbc24b0dd1052cdce22f3a02",
+    "scripts/test/build-policy.test.mjs": "5f63c5309b548587dcd98615237ed90f7f206ecc9b8df370389453dedd133902",
+    "scripts/lib/pinned-asset-io.mjs": "2a8effd7367e59bb52262051188467c7593d8d512c299528d3d3fa72fedf46cc",
+    "scripts/test/pinned-asset-io.test.mjs": "701380d7c1a6cb893d8ef82ad07d80041502d82d6e75855f52622e052f1d962c",
+    "packages/contracts/src/policy.json": "02ebb8b0dcd18cd548a2750c6821ad234b037747ca50df26cf545c0b273a0354",
+    ".github/workflows/ci.yml": "743d1d63ebd958f8cc02b042944e0818c2842202734b691d0a6eb7cb92369b2e",
+    "eslint.config.mjs": "4a643170584c8410152fcac31a4362d562c6eb23c4cadfcaa63d2890b35f0df4",
+    "package-lock.json": "3d85234dbce25ca8286266b29a77e5529b78f5c7433579abb37ed37a9e24b899"
+  },
+  "manifestSha256": "956277285735330cedfd6320606f98c63cd5160406c5e24f7d5fd9b393157183",
+  "guardSha256": "6bc5359d94794aa6c9ac25af5943a6ba0f9410adbbd961c04aef5ab578dc4ef7",
+  "commands": [
+    [
+      "node",
+      "--max-old-space-size=64",
+      "--test",
+      "--test-concurrency=1",
+      "--test-reporter=tap",
+      "scripts/test/build-policy.test.mjs",
+      "scripts/test/pinned-asset-io.test.mjs"
+    ],
+    [
+      "node",
+      "--max-old-space-size=128",
+      "node_modules/eslint/bin/eslint.js",
+      "--no-cache",
+      "--no-fix",
+      "scripts/desktop.mjs",
+      "scripts/lib/build-policy.mjs",
+      "scripts/test/build-policy.test.mjs"
+    ]
+  ],
+  "tests": {
+    "status": "PASS",
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "status": "PASS",
+    "files": 3,
+    "errors": 0,
+    "warnings": 0
+  },
+  "scopeLimitsBytes": {
+    "high": 805306368,
+    "max": 1073741824,
+    "swap": 0
+  },
+  "aggregateLimitsBytes": {
+    "high": 1610612736,
+    "max": 2147483648,
+    "swap": 0
+  },
+  "scopePeakBytes": 161652736,
+  "scopePidsPeak": 16,
+  "aggregateMemoryEventDeltas": {
+    "low": 0,
+    "high": 0,
+    "max": 0,
+    "oom": 0,
+    "oom_kill": 0,
+    "oom_group_kill": 0,
+    "sock_throttled": 0
+  },
+  "noModelWorkerBuildOrNetwork": true,
+  "rawEvidenceSha256": {
+    "test.log": "c11f094bf97ca89daf00af175a6fc02354fdc9dbf05abe5714e93b003ed0d699",
+    "lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "RESULT-test.json": "bd724229ffcbfcb3c97f45bf8e1fca2e1bddceef2fa6a839021401ba0bd0fcae",
+    "RESULT-lint.json": "a47015b72114335e70ed77de698f22dcc580edb5415bdefaa784be3d78f617d3",
+    "GUARD-AUDIT.jsonl": "457628e0bdbb3ecfc9695ba10a2b090330ff6a8d3fa6d5ed6a908e6a696dcbb0"
+  },
+  "NOT_RUN": [
+    "latest full suite",
+    "TypeScript projects",
+    "heavy build",
+    "native Rust",
+    "real-model inference",
+    "Windows exe/NSIS/E2E"
+  ]
+}

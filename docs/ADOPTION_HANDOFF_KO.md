@@ -26,7 +26,7 @@ NAS/HDD0 `illegal-ad-maintenance-20261023/`의 후보9파일은 총770,467,147B,
 제출 태그 `submission-2026-10-23`과 두 공개 ZIP은 변경하지 않는다.
 
 시작 상태는 `dev/bootstrap@d47299e`, clean, stash 없음이다. 별도 기존 worktree
-`/home/monad/orca/workspaces/illegal_ad/grampus`는 그대로 둔다. 후속 작업 브랜치는
+`<local-evidence>/orca/workspaces/illegal_ad/grampus`는 그대로 둔다. 후속 작업 브랜치는
 `codex/post-submission-d08`다. `origin/main@a866bd4`는 초기 상태로 403커밋 뒤이며
 기존 PR #2로 통합을 준비한다. GitHub main 보호는 관리자 포함 PR 필수,
 GitHub Actions `required` 성공·최신 base·대화 해결 필수, force push/삭제 금지다.
@@ -149,8 +149,8 @@ stash는 없었다. 기존 dirty와 untracked 시험은 `resume-start*`에 보�
 
 정확한 증거는 `artifacts/dogfood-20261023/resumed-windows/`, 명령·실패·최종 로그는
 `resumed-validation/`에 있다. 중간 후보036/70a와 과거 실패 그룹도 보존한다.
-NAS `/mnt/nas/illegal-ad-submission-20261023-resumed/`, HDD0
-`/mnt/HDD0/illegal-ad-delivery-20261023-resumed/`의 candidate9파일은 복사 해시를 확인했다.
+NAS `<external-evidence>/illegal-ad-submission-20261023-resumed/`, HDD0
+`<external-evidence>/illegal-ad-delivery-20261023-resumed/`의 candidate9파일은 복사 해시를 확인했다.
 문서·원시 증거·소스 bundle의 전체 사본은 각 루트의 DELIVERY_MANIFEST/VERIFICATION을 따른다.
 
 남은 NOT_RUN은 판단·메모 포함 공개 두 대상 D08(탐지0건), Windows 실사이트 이미지
@@ -847,8 +847,8 @@ build:scanner/web/typecheck/lint/675passed1skipped/Linux공유Rust8passed/diff�
 
 사용자NAS지정후cache/stage16파일총3575838201B copy+SHA검증→symlink전환,
 검증된로컬중복약1.8GB만회수했다. 실제NAS모델은
-/mnt/nas/illegal-ad/model-assets/embeddinggemma2-daa72c512439-20261021/{cache,stage}.
-최종raw /mnt/nas/illegal-ad/validation/ocr-grounding-20261021/{runs,warmup-runs}.
+<external-evidence>/illegal-ad/model-assets/embeddinggemma2-daa72c512439-20261021/{cache,stage}.
+최종raw <external-evidence>/illegal-ad/validation/ocr-grounding-20261021/{runs,warmup-runs}.
 root코드canonical경로는그대로고제품소스에는NAS경로없음. 개발NAS링크에는mount필요,
 HDD0도여유확인했으나NAS가충분해쓰지않았다. 소스/모델/과거증거임의삭제없음.
 
@@ -864,7 +864,7 @@ Windows복구가품질검증대체나자동배포승인을뜻하지않는다.
 HEAD dev/bootstrap/56fd3563e031ef1850e88b4fdac0c39ead08eea5, singleworktree,
 광범위기존dirty보존. DOGFOOD(+514/-4)/superpowers미수정. commit/push/PR/배포/제출,
 차단우회/광고주능동탐색/외부AI전송/Windows미실행. 모델기존NAS, 새최종raw는
-/mnt/nas/illegal-ad/validation/ocr-lowres-gif-20261021/{runs,warmup-runs} symlink.
+<external-evidence>/illegal-ad/validation/ocr-lowres-gif-20261021/{runs,warmup-runs} symlink.
 
 보고 docs/OCR_LOWRES_GIF_20261021.md, 증거 artifacts/ocr-lowres-gif-20261021/,
 harness benchmarks/ocr-lowres-gif-recall.mjs. Baseline은직전최종after-runtime을새baseline-runtime에
@@ -957,7 +957,7 @@ benchmark-final.log로 새90+2 전체재실행 중이며 도구session14707이�
 initial-profiles-without-content-length/로 보존했고 정식종료 후 올바른헤더로4profile을 다시
 실행해야 한다. 새정식32receipt시점 양성/정상/점수동일성을 관측했다. 별도ML작업과Chrome
 부하가 있어 전력/온도/ambient는통제불가이며 N5쌍별산포를보고한다.
-원시 runs/warmups는 /mnt/nas/illegal-ad/validation/embedding-precompute-20261022/이고 repo symlink다.
+원시 runs/warmups는 <external-evidence>/illegal-ad/validation/embedding-precompute-20261022/이고 repo symlink다.
 기존 NAS 모델을 그대로 사용한다. 루트 여유1.3GB였으며 임의 삭제하지 않았다.
 다음: 전체tests/lint 완료 확인 → 반복비교90receipts+2warmups → summarize.py 수치/판정/공식원본/
 sourceidentity 감사 → 보고서/이 인계 최종 갱신. 기존 BUTTER 극단축소 미탐은 유지/명시한다.
@@ -1175,7 +1175,7 @@ typecheck/lint/scanner·webbuild/diffcheck통과. 이번Rust/Windows/설치미�
 617건모드·메모·관계·JSON·엑셀보존통과. UI3카드하단302.5px단축/문서649px감소.
 
 보고서 docs/IMAGE_LATENCY_OPTIMIZATION_20261022.md, raw/환경/후보별실행/중단/감사/캡처
-artifacts/image-latency-20261022/; 큰원시자료 /mnt/nas/illegal-ad/validation/image-latency-20261022/.
+artifacts/image-latency-20261022/; 큰원시자료 <external-evidence>/illegal-ad/validation/image-latency-20261022/.
 source82·측정harness/identity·frozen26파일·model6자산·formal90receipt 해시감사를 완료했다.
 raw 실행/중단/profile/warmup도 delivery-audit.json에서 해시로 연결한다.
 branch dev/bootstrap / HEAD56fd3563e031ef1850e88b4fdac0c39ead08eea5, 기존 dirty92범위보존,
@@ -1246,7 +1246,7 @@ UI간단모드에서대체인식원문details접기/원시문구보존/키보드
 측정당시84목록은별도보존하며모두현재와hash일치. 제품runtime동결후변경없음.
 
 보고서 docs/OCR_CPU_OPTIMIZATION_20261022.md; evidence artifacts/ocr-cpu-20261022/,
-원시 /mnt/nas/illegal-ad/validation/ocr-cpu-20261022/. source85/runtime/모델9/98formal/
+원시 <external-evidence>/illegal-ad/validation/ocr-cpu-20261022/. source85/runtime/모델9/98formal/
 CPUsidecar·profile·기각후보·tensor·UI·문서해시를최종delivery-audit.json으로검증해전달한다.
 branch dev/bootstrap / HEAD56fd3563e031ef1850e88b4fdac0c39ead08eea5, 기존dirty92보존,
 보호 DOGFOOD514/4·superpowers불변. Windows는내일사용자지시에서진행한다.
@@ -1262,7 +1262,7 @@ branch dev/bootstrap, HEAD56fd3563e031ef1850e88b4fdac0c39ead08eea5 그대로.
 현재 cap8+최종OCR 최적화 worker를 before-runtime에 동결, 수정 전 warmup과 latestPositive baseline 실행 완료.
 입력190/29묶음, SHA eb1572b6162e76790ae477d921ae5ee1b96789bb7370add137c78a9f3a3e8ad3,
 절대 점수 허용1e-5, 모델/정밀도/참조20+52/임계값/전처리 리사이즈/셔플1701/예산 고정.
-원시결과는 승인 NAS /mnt/nas/illegal-ad/validation/vision-cpu-20261022/와 연결했다.
+원시결과는 승인 NAS <external-evidence>/illegal-ad/validation/vision-cpu-20261022/와 연결했다.
 
 Native ORT 연산 프로파일에서4 forwards 약4.35s/34.77CPU-s, 연산 wall 합계의
 MatMulNBits 약2.133s, MultiHeadAttention 약1.164s를 관측했다(프로파일 별도, 정식성능 수치 아님).
@@ -1320,7 +1320,7 @@ UI: 펼친 이미지 근거에서 관측한 연결 주소를 복사하고 실패
 미사용offline compact 후보 코드를 제외해도 재빌드worker가같아 성능재측정은 불필요했다.
 
 상세 docs/VISION_CPU_OPTIMIZATION_20261022.md; artifacts/vision-cpu-20261022/,
-raw /mnt/nas/illegal-ad/validation/vision-cpu-20261022/. freeze/runtime/모델/입력/소스 해시는
+raw <external-evidence>/illegal-ad/validation/vision-cpu-20261022/. freeze/runtime/모델/입력/소스 해시는
 delivery-audit.json/receipt-audit.json로 연결한다. 모집단 정확도/다른CPU 최적해/새원본불법GIF 증거는 아님.
 Windows는 내일(2026-10-23), 설치/배포/제출/commit/push/PR/외부능동탐색은 미실행.
 다음 사용자 조종 단계에서 Windows/다른CPU의 cap6 대기비용·nativeclipboard·메모리를 확인한다.

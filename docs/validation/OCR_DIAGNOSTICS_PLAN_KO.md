@@ -21,7 +21,7 @@
 
 ## 예정 검증 (아직 실행하지 않음)
 
-부모의 guard 독립검수 완료/허용 profile 실행 승인 및 해당 admission 통과 뒤에만 수행한다. 모든 실행은 `/home/monad/Documents/Codex/2026-10-26/task-2/krds-workload-guard.py`와 최신 GUARD-HANDOFF.md를 따른다. 직접 실행/다른 scope/verify에 임의 argv를 넣는 우회는 금지한다. 새 경량 profile 명칭/한도는 아직 승인받지 않았으므로 이 문서는 명령을 임의로 정하지 않는다.
+부모의 guard 독립검수 완료/허용 profile 실행 승인 및 해당 admission 통과 뒤에만 수행한다. 모든 실행은 `<validation-evidence>/krds-workload-guard.py`와 최신 GUARD-HANDOFF.md를 따른다. 직접 실행/다른 scope/verify에 임의 argv를 넣는 우회는 금지한다. 새 경량 profile 명칭/한도는 아직 승인받지 않았으므로 이 문서는 명령을 임의로 정하지 않는다.
 
 - 작은 회귀 8건: response-validation cause 보존/기존 public 메시지/민감 payload 미출력, ipc-send와 worker-error의 원래 cause identity 및 ENOMEM 분류, spawn 원래 reject와 worker exit 상태, logger 비밀문자열/임의 errno 필터·쓰기실패·속성 getter 안전성, recognize/analyze-image 각각의 legacy 메시지와 내부 validation cause 보존, deadline 메시지/단계 보존.
 - evidence TypeScript check 및 대상 lint. 모듈 import/Node Error.cause/overloaded stderr spy 타입도 실제 check로 확인해야 한다.
