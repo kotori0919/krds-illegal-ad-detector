@@ -1,6 +1,7 @@
 //! Linux-only, opt-in resource staging. The parent CLI/rustc configuration is never changed.
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
+use std::os::unix::fs::DirBuilderExt;
 use std::{
     collections::{BTreeMap, BTreeSet},
     env,
@@ -103,6 +104,8 @@ struct Budget {
     copy_bytes: u64,
     deadline: Duration,
     copy_rate: u64,
+    #[cfg(test)]
+    abort_after_bytes: Option<u64>,
 }
 impl Budget {
     fn new() -> Self {
@@ -112,6 +115,8 @@ impl Budget {
             copy_bytes: 0,
             deadline: Duration::from_secs(1200),
             copy_rate: 2 * 1024 * 1024,
+            #[cfg(test)]
+            abort_after_bytes: None,
         }
     }
     fn check(&self) -> Result<()> {
@@ -122,6 +127,11 @@ impl Budget {
     }
     fn copied(&mut self, n: usize) -> Result<()> {
         self.check()?;
+        #[cfg(test)]
+        if let Some(left) = self.abort_after_bytes.as_mut() {
+            *left = left.saturating_sub(n as u64);
+            need(*left > 0, "fixture copy interrupted")?;
+        }
         self.copy_bytes += n as u64;
         if self.copy_bytes >= 1024 * 1024 {
             let due = Duration::from_secs_f64(self.copy_bytes as f64 / self.copy_rate as f64);
@@ -274,6 +284,55 @@ fn publish_verified(temp: &Path, destination: &Path, proof: &VerifiedOutput) -> 
         .sync_all()
         .map_err(err)
 }
+fn check_pending_base(target: &Path, evidence: &Path, entries: &[Entry]) -> Result<()> {
+    let tm = fs::symlink_metadata(target).map_err(err)?;
+    let em = fs::symlink_metadata(evidence).map_err(err)?;
+    need(
+        tm.is_dir() && !tm.file_type().is_symlink() && em.is_dir() && !em.file_type().is_symlink(),
+        "pending base directory/link",
+    )?;
+    need(
+        tm.dev() == em.dev(),
+        "pending and target must be on the same filesystem",
+    )?;
+    let target = target.canonicalize().map_err(err)?;
+    let evidence = evidence.canonicalize().map_err(err)?;
+    need(
+        !target.starts_with(&evidence),
+        "pending base overlaps target",
+    )?;
+    for entry in entries {
+        let active = target.join(
+            entry
+                .relative
+                .split('/')
+                .next()
+                .ok_or("resource namespace")?,
+        );
+        need(
+            !evidence.starts_with(active),
+            "pending base overlaps active resource subtree",
+        )?;
+    }
+    Ok(())
+}
+fn new_pending(evidence: &Path) -> Result<PathBuf> {
+    let pending = evidence.join(format!(
+        "pending-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::SeqCst)
+    ));
+    fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&pending)
+        .map_err(err)?;
+    File::open(evidence).map_err(err)?.sync_all().map_err(err)?;
+    println!(
+        "cargo:warning=bounded resource pending: {}",
+        pending.display()
+    );
+    Ok(pending)
+}
 fn stage(entries: &[Entry], target: &Path, evidence: &Path, budget: &mut Budget) -> Result<Stats> {
     need(entries.len() <= MAX_FILES, "resource count")?;
     let total = entries.iter().try_fold(0u64, |sum, e| {
@@ -291,6 +350,8 @@ fn stage(entries: &[Entry], target: &Path, evidence: &Path, budget: &mut Budget)
             "resource target collision",
         )?;
     }
+    check_pending_base(target, evidence, entries)?;
+    let mut pending_root: Option<PathBuf> = None;
     let mut stats = Stats::default();
     for e in entries {
         budget.check()?;
@@ -339,9 +400,16 @@ fn stage(entries: &[Entry], target: &Path, evidence: &Path, budget: &mut Budget)
             fs::rename(&dst, &old).map_err(err)?;
             stats.preserved.push(e.relative.clone());
         }
-        let tmp = dst.with_file_name(format!(
-            ".krds-stage-{}-{}",
-            std::process::id(),
+        let pending = match &pending_root {
+            Some(path) => path.clone(),
+            None => {
+                let path = new_pending(evidence)?;
+                pending_root = Some(path.clone());
+                path
+            }
+        };
+        let tmp = pending.join(format!(
+            "resource-{}.part",
             NEXT.fetch_add(1, Ordering::SeqCst)
         ));
         // Preserve a failed temp as evidence. It can never be classified as complete.
@@ -394,7 +462,7 @@ fn stage(entries: &[Entry], target: &Path, evidence: &Path, budget: &mut Budget)
             .map_err(err)?;
         output.sync_all().map_err(err)?;
         drop(output);
-        let f = owned_complete(target, e, &tmp, budget)?;
+        let f = owned_complete(&pending, e, &tmp, budget)?;
         hint_complete(&f)?;
         publish_verified(&tmp, &dst, &f)?;
         drop(f);
@@ -454,6 +522,10 @@ fn stage(entries: &[Entry], target: &Path, evidence: &Path, budget: &mut Budget)
                 )?;
             }
         }
+    }
+    if let Some(pending) = pending_root {
+        fs::remove_dir(&pending).map_err(err)?;
+        File::open(evidence).map_err(err)?.sync_all().map_err(err)?;
     }
     Ok(stats)
 }

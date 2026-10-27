@@ -369,3 +369,64 @@ fn shared_output_inode_is_not_hinted_or_reused() {
     assert_eq!(fs::read(other).unwrap(), b"abc");
     assert_eq!(fs::read_dir(&f.evidence).unwrap().count(), 0);
 }
+#[test]
+fn interrupted_copy_preserves_pending_and_resumes_same_target() {
+    fn files(root: &Path) -> Vec<PathBuf> {
+        let mut stack = vec![root.to_path_buf()];
+        let mut result = Vec::new();
+        while let Some(dir) = stack.pop() {
+            for e in fs::read_dir(dir).unwrap() {
+                let p = e.unwrap().path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else {
+                    result.push(p);
+                }
+            }
+        }
+        result
+    }
+    let f = Fixture::new();
+    let mut e = f.entry("binaries/model.bin");
+    let bytes = vec![0x5au8; 2 * 1024 * 1024];
+    fs::write(&e.source, &bytes).unwrap();
+    e.size = bytes.len() as u64;
+    e.sha = hex(Sha256::digest(&bytes));
+    let mut first = f.budget();
+    first.abort_after_bytes = Some(CHUNK as u64);
+    assert!(stage(&[e.clone()], &f.target, &f.evidence, &mut first)
+        .unwrap_err()
+        .contains("fixture copy interrupted"));
+    assert!(
+        files(&f.target).is_empty(),
+        "interrupted temp leaked into active resources"
+    );
+    let pending = files(&f.evidence);
+    assert_eq!(pending.len(), 1);
+    let partial = pending[0].clone();
+    assert_eq!(fs::read(&partial).unwrap(), bytes[..CHUNK]);
+    let id = identity(&fs::metadata(&partial).unwrap());
+    let stats = stage(&[e.clone()], &f.target, &f.evidence, &mut f.budget()).unwrap();
+    assert_eq!((stats.copied, stats.reused), (1, 0));
+    assert_eq!(fs::read(f.target.join(&e.relative)).unwrap(), bytes);
+    assert_eq!(identity(&fs::metadata(&partial).unwrap()), id);
+    assert_eq!(fs::read(&partial).unwrap(), bytes[..CHUNK]);
+    // A caller-created lookalike in active resources still fails, even with our prefix.
+    fs::write(f.target.join("binaries/.krds-stage-untrusted"), b"extra").unwrap();
+    assert!(stage(&[e], &f.target, &f.evidence, &mut f.budget())
+        .unwrap_err()
+        .contains("unexpected output resource"));
+    assert_eq!(
+        fs::read(f.target.join("binaries/.krds-stage-untrusted")).unwrap(),
+        b"extra"
+    );
+}
+#[test]
+fn pending_base_cannot_overlap_active_resource_subtree() {
+    let f = Fixture::new();
+    let e = f.entry("binaries/a");
+    let bad = f.target.join("binaries/private-evidence");
+    fs::create_dir_all(&bad).unwrap();
+    assert!(stage(&[e], &f.target, &bad, &mut f.budget()).is_err());
+    assert_eq!(fs::read_dir(&bad).unwrap().count(), 0);
+}
