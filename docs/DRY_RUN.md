@@ -232,11 +232,11 @@ shut off. The 4-vCPU/8-GB/no-GPU Windows 11 IoT Enterprise LTSC VM then booted
 and ran the portable V2 ISO under `cleanval`, without a development checkout.
 The actual app reached 5 official findings, 6 checked pages and 1 failed page;
 real JPEG evidence rendered, the native Save As dialog opened, and the app
-reported `C:\Users\cleanval\Documents\result.json` saved. The revised
+reported `C:\Users\<user>\Documents\result.json` saved. The revised
 operator build (`f778c12c56b862e3d917230da7a207f33a23a3ae5fc9b56ec57bb28ad109d69a`)
 then fit the Windows work area, kept both result/dialog actions above the
 taskbar, cycled dialog focus with Tab and restored it to export on Escape.
-Native save produced `C:\Users\cleanval\Documents\result-v2-copy.json`;
+Native save produced `C:\Users\<user>\Documents\result-v2-copy.json`;
 the actual bytes passed UTF-8/no-BOM and the official validator: 1466 bytes,
 5 TP / 0 FP / 0 FN, nonempty selectors, SHA-256
 `063b291edfeeee0d03e97ebe07aa7b14139888fbdc6728e5cfa02e6dd25b04c4`.
@@ -268,7 +268,7 @@ transformations and OFFSCREEN coordinates were observed. Captures
 and corresponding `native-review-*.png` record the walk.
 The compact 21-finding export dialog showed only the relevant failed-page
 notice. Cancelling native Save As produced no false success/error and restored
-save focus. Saving `C:\Users\cleanval\Documents\result-v2-large.json` produced
+save focus. Saving `C:\Users\<user>\Documents\result-v2-large.json` produced
 5323 bytes, SHA-256
 `bd2fba75b9282bdb2fe0eb341bd32d0450fe4702bc4ff71e5f676b4707ecd35c`:
 UTF-8, no BOM, official validator pass, 21 TP / 0 FP / 0 FN and nonempty
@@ -305,7 +305,7 @@ It was generated through Tauri CLI 2.12.0 and Ubuntu NSIS 3.09; a temporary
 compiler launcher restored `NSISDIR` for the user-local extracted toolset
 because the Tauri bundler clears that variable. No system package was installed.
 The corrected package reinstalled under
-`C:\Users\cleanval\AppData\Local\불법광고 탐지 도구` and its finish action
+`C:\Users\<user>\AppData\Local\불법광고 탐지 도구` and its finish action
 opened the real app with URL focus, replacing both launch errors. This is
 observed GNU LLVM package execution, not a verified MSVC build or a timed
 cold-start measurement. `nsis-v2-first-paint.png`, `nsis-v2-fixed-welcome.png`
@@ -398,14 +398,14 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
 9. [x] PASS (PACKAGED APP END-TO-END, OBSERVED 2026-10-02) — build
    `FFEF22E3…` (interactive-Documents lane): export screen 6 checks
    green → native save dialog (Documents default) → file on disk
-   `C:\Users\dbsgu\OneDrive\Documents\result.json`, 4650 bytes,
+   `C:\Users\<user>\OneDrive\Documents\result.json`, 4650 bytes,
    magic `7B 0A 20 20`, `valid=true`, 17 findings
    (H 5 / J 4 / T 3 / O 5), entry `http://127.0.0.1:4123/`,
    tool `0.1.0` (contracts validator on VM; screenshots
    win11-afterenter + dialog series). Desktop scan→terminal→export→
    UTF-8 bytes PROVEN through the actual desktop host.
 10. [x] PASS (PACKAGED APP BYTES, OBSERVED 2026-10-02) — desktop
-    export `C:\Users\dbsgu\OneDrive\Documents\result.json`: UTF-8,
+    export `C:\Users\<user>\OneDrive\Documents\result.json`: UTF-8,
     no BOM (magic `7B 0A 20 20`), 4650 bytes. Worker-CLI files also
     BOM-free.
 11. [x] PASS (worker CLI content) — `meta` + flat `findings`;
@@ -497,7 +497,7 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   prefilled (proof-save-dialog); Esc cancel is a silent no-op, no file,
   no error, no download (proof-save-cancel-noop; unit-tested);
   dialog-confirmed save writes
-  `C:\Users\dbsgu\OneDrive\Documents\result-dialog.json`, 4650 bytes,
+  `C:\Users\<user>\OneDrive\Documents\result-dialog.json`, 4650 bytes,
   magic `7B 0A 20 20`, `valid=true`, 17 findings H5/J4/T3/O5,
   ids+identity unique (contracts validator on VM; screenshots
   proof-save-dialog2 + proof-save-disk). Worker-CLI byteproof
@@ -513,7 +513,7 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   proof-6green-adv, proof-nested-iframe).
 - Overwrite save (OBSERVED 2026-10-03, build `3ED6C5F7…`): existing
   `result.json` → confirm-replace dialog (proof-overwrite-confirm) →
-  saved path shown `저장됨: C:\Users\dbsgu\OneDrive\Documents\result.json`
+  saved path shown `저장됨: C:\Users\<user>\OneDrive\Documents\result.json`
   (proof-saved-path); on-disk bytes re-verified 4650, `7B 0A 20 20`,
   `valid=true`, 17 findings.
 - Portable layout (OBSERVED 2026-10-03, build `3ED6C5F7…`):
@@ -546,7 +546,7 @@ evidence. NSIS installer requires the MSVC lane (SDK-gated).
   on the session clean VM `clean11` (see below).
 - Clean-install acceptance: UNVERIFIED (미근거) — clean VM RUNNING
   2026-10-03 via user-space session URI (no privilege needed):
-  `qemu:///session` + pool `clean` at `/home/monad/clean-vm` +
+  `qemu:///session` + pool `clean` at `<local-evidence>/clean-vm` +
   disk `clean11.qcow2` 80G qcow2 + ISO copy `win11-install.iso`
   (5.06 GB, `CESE_X64FREE_EN-US_DV9`). Domain `clean11`: q35 +
   EFI secure-boot (`OVMF_CODE_4M.ms.fd`), 8 GB RAM, 4 vCPU

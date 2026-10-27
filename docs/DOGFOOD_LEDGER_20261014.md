@@ -22,7 +22,7 @@ not yet met.
 - Task source: user-attached `KRDS_DOGFOOD_SPRINT_20261013.md`.
 - OBSERVED: local and remote `dev/bootstrap` HEAD both
   `c7d3c841b01bdb07edeae0b37f09accc23de410e`; initially clean canonical tree
-  `/home/monad/develop/illegal_ad`, one worktree, no submodules.
+  `<repository>`, one worktree, no submodules.
 - OBSERVED: Windows installed source
   `565d9f6e49f857c6a0a9aaf2ab3b829452584e1e`, build
   `0.2.1-x86_64-pc-windows-msvc-d33dc9f7c097-20261009T185838006Z`.
@@ -950,7 +950,7 @@ after exit was0. No new device registration occurred. Receipts:
 SHA256SUMS. Pinned Windows resource inventory verified672 files.
 
 OBSERVED: the required engineering-profile skills were found under
-`/home/monad/develop/engineering-profile/skills`; the earlier commit deferral
+`<local-evidence>/develop/engineering-profile/skills`; the earlier commit deferral
 is superseded. Reviewed Task1 and Task2 changes are local commits
 `0b93263c2c07c80c5a99c5fcfdb36db80110c09e` and
 `fa98c3382d402e006242c19d37cb9b5482aab1b0`. Task3 is in progress.

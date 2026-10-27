@@ -166,7 +166,7 @@ python3 artifacts/image-latency-20261022/summarize.py
 기존 frozen runtime/receipt는 덮어쓰기를 거부한다. 재현은 별도 새 증거 경로에 protocol/입력/source/runtime을 준비해야 한다.
 고정 fixture 외 사이트에 sandbox 예외를 쓰지 않았다. source/asset/runtime/receipt SHA와 raw latency/memory,
 별도 profile CPU spans, 제외/실패 로그와 before/after UI 캡처를 `artifacts/image-latency-20261022/`에 보존한다.
-큰 자료는 승인 NAS의 `/mnt/nas/illegal-ad/validation/image-latency-20261022/`를 쓴다.
+큰 자료는 승인 NAS의 `<external-evidence>/illegal-ad/validation/image-latency-20261022/`를 쓴다.
 초기 후보의 esbuild CWD 차이는 주석만 바뀐 bundle을 만들어 canonical CWD로 바로잡았고,
 profile CLI 인수 순서 오류는 모델 실행 전 실패했다. 두 실패는 보존했고 formal 수치에 넣지 않았다.
 전체 비교 중 긴 상위 실행이 SIGTERM(exit143)으로 중단됐다. 원인은 확인하지 못했다.

@@ -1,0 +1,31 @@
+{
+  "scope": "Historical pre-r2 source observations only; not current-code PASS or real-world performance",
+  "baselineSourceHEAD": "ae12f7c766d8f1c7f882afb71cd93499b260729f",
+  "historicalSemanticSHA256": "aaf417f72c0fc3ebb3ae140165613912d6074acb3e1abc9010eba13e617f4029",
+  "artifacts": [
+    {
+      "source": "/tmp/krds-adult-before-chromium.log",
+      "copy": "docs/validation/historical-evidence/krds-adult-before-chromium.log",
+      "bytes": 6473,
+      "sha256": "eed5aac8a043ea658649bb6cc6d963a9ec3628f24d2e6e566bcaba0b5178e1a3"
+    },
+    {
+      "source": "/tmp/krds-adult-related.log",
+      "copy": "docs/validation/historical-evidence/krds-adult-related.log",
+      "bytes": 1368,
+      "sha256": "0a519fbf0de8dd4b53f01239cf2830b2fd73a843afcd0d10b87823ece698304c"
+    },
+    {
+      "source": "/tmp/krds-adult-full-tests.log",
+      "copy": "docs/validation/historical-evidence/krds-adult-full-tests.log",
+      "bytes": 21763,
+      "sha256": "45d8f08c48ca67c4f582d86209c09bb954b64ebd071abb47147e61532e56de5a"
+    },
+    {
+      "source": "/tmp/krds-adult-final.holdout.json",
+      "copy": "docs/validation/historical-evidence/krds-adult-final.holdout.json",
+      "bytes": 2047,
+      "sha256": "74ca8a5c61b1516cdacd09891a361f94efdb9f87683b12464afa4d0a2fa6b923"
+    }
+  ]
+}

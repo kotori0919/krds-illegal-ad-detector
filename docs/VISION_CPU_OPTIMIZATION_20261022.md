@@ -148,7 +148,7 @@ freeze는 기존 identity를 덮어쓰지 않는다. 재현 시 새 evidence 디
 수정 전 source를 보존하고 freeze before→첫 baseline→변경/build→freeze after 순서로 실행한다.
 프로파일은 `--freeze before --profile`/`--freeze after --profile` 후 `--profile before/after`로 별도 실행한다.
 `KRDS_TEST_UNSANDBOXED=1`은 소유 loopback fixture만 사용하며 외부 사이트 sandbox 우회 허가가 아니다.
-source는 canonical repo, raw는 승인 NAS /mnt/nas/illegal-ad/validation/vision-cpu-20261022/에 있다.
+source는 canonical repo, raw는 승인 NAS <external-evidence>/illegal-ad/validation/vision-cpu-20261022/에 있다.
 commit/push/PR/배포/설치/대회 제출은 하지 않았다.
 
 최종 검증: scanner/web build, typecheck, lint, git diff --check 통과.
@@ -163,7 +163,7 @@ commit/push/PR/배포/설치/대회 제출은 하지 않았다.
 
 후보 정의:
 - `before`: 출하 그래프 `packages/evidence/dist/text-embedding-data/onnx/vision_encoder_quantized.onnx` + 출하 세션 프로필(추가 extra 없음).
-- `attention64`: `/mnt/nas/illegal-ad/validation/vision-fusion-20261022/model-candidates/attention64/vision.onnx`. `attention-transform.json` 기준 MultiHeadAttention 16개 층에서 68→64 패딩을 제거한 변환 그래프(노드 709→622). 전제: 배치1, 유효 위치 쌍만, -1 패딩 패치 없음; 가중치/scale 1/heads 12와 실제·셔플 forward 및 모든 이미지 패치 유지.
+- `attention64`: `<external-evidence>/illegal-ad/validation/vision-fusion-20261022/model-candidates/attention64/vision.onnx`. `attention-transform.json` 기준 MultiHeadAttention 16개 층에서 68→64 패딩을 제거한 변환 그래프(노드 709→622). 전제: 배치1, 유효 위치 쌍만, -1 패딩 패치 없음; 가중치/scale 1/heads 12와 실제·셔플 forward 및 모든 이미지 패치 유지.
 - `unpacked`: 출하 그래프 + `{extra:{session:{disable_prepacking:'1'}}}`.
 - `pinned`: 출하 그래프 + `{extra:{session:{intra_op_thread_affinities:'1;2;3;4;5'}}}`.
 
@@ -187,4 +187,4 @@ attention64 대 before 중앙값 차이: 벽시계 -7.25%, CPU -7.27%, 워커 ma
 
 측정 한계: 단일 호스트, 실행당 프로세스 1개, 변형한 것은 그래프/세션 옵션뿐이며 하드웨어/전력/온도/affinity는 고정하지 않았다. 이 수치는 네이티브 encoder 단계 수치이며 전체 scan 수치가 아니다. per-forward 절대 시간은 attention64 약 1.0초, before 약 1.1초다.
 
-증거: `artifacts/vision-fusion-20261022/` (follow-pairs.log 24 JSON 줄, native-probe.mjs, follow-probe.mjs, attention-transform.json, attention-candidate.py, fuse-candidate.py). 후보 모델은 외부 `/mnt/nas/illegal-ad/validation/vision-fusion-20261022/model-candidates/`에 있으며 채택하지 않는다.
+증거: `artifacts/vision-fusion-20261022/` (follow-pairs.log 24 JSON 줄, native-probe.mjs, follow-probe.mjs, attention-transform.json, attention-candidate.py, fuse-candidate.py). 후보 모델은 외부 `<external-evidence>/illegal-ad/validation/vision-fusion-20261022/model-candidates/`에 있으며 채택하지 않는다.

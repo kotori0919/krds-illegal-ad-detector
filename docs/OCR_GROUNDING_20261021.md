@@ -153,7 +153,7 @@ diff 검사와 루트의 소스·계약·원시 결과 대조를 마쳤다. 독�
 제한으로 완료하지 못했다. Windows/패키징/배포/제출은 NOT_RUN이며 commit/push/PR도 없다.
 
 저장공간 소진으로 중단된 첫 검사/개발 replay는 실패 로그로 보존하고 최종 수치에서
-제외했다. 사용자 지시 후 모델 cache/stage를 `/mnt/nas/illegal-ad/model-assets/` 아래
+제외했다. 사용자 지시 후 모델 cache/stage를 `<external-evidence>/illegal-ad/model-assets/` 아래
 별도 디렉터리에 복사하고16파일/총3,575,838,201B의 SHA를 검증한 뒤 링크를 전환했다.
 검증된 로컬 중복만 제거해 약1.8GB를 회수했다. 최종 runs/warmup도 NAS에 보관하며
 코드 저장소는 이동하지 않았다. 개발 NAS 링크는 mount가 필요하지만 제품 코드에는

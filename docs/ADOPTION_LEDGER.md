@@ -571,7 +571,7 @@ GIF외3묶음속도우열주장없음. 같은Ryzen9700X/Linux/CPUFP32/동일NAS�
 (+514/-4)/superpowers보존. commit/push/PR/배포/제출/Windows미실행.
 [상세보고와남은제한](OCR_LOWRES_GIF_20261021.md), ADR0017,인계및
 artifacts/ocr-lowres-gif-20261021/{frozen-protocol,frozen-source-identity,summary,audit}.json.
-최종raw는승인된 /mnt/nas/illegal-ad/validation/ocr-lowres-gif-20261021/ 에보관했다.
+최종raw는승인된 <external-evidence>/illegal-ad/validation/ocr-lowres-gif-20261021/ 에보관했다.
 
 
 ## 2026-10-22 FP32 고정 문자 벡터 사전 계산
@@ -756,7 +756,7 @@ NOT_RUN: Windows에서의 시험 실행(cross sysroot 없음), MSVC CI(계정 �
 설치·대화형 UI 수용, WebView2 부재 offline 설치, 코드 서명.
 
 predecessor `candidate-0.2.1-x86_64-pc-windows-gnullvm-3fb23ff998ea-20261022T160030222Z`는
-삭제하지 않고 `/mnt/nas/illegal-ad-artifacts-archive-20261023/`로 이동했다(819,612,236 B,
+삭제하지 않고 `<external-evidence>/illegal-ad-artifacts-archive-20261023/`로 이동했다(819,612,236 B,
 9개 파일 sha256은 이동 manifest에 기록). 빌드 후 호스트 루트 여유는 약 1.3 GB이며
 staging/target은 NAS에 있다.
 
@@ -777,15 +777,15 @@ installer 크기 759.44 MiB는 모델 약 1.31 GB와 스테이징 `node_modules`
 ### 환경 기록 (OBSERVED_ENVIRONMENT)
 
 호스트 루트 파일시스템 여유가 약 3 GB여서 `src-tauri/target`을
-`/mnt/nas/illegal-ad-build/target-gnullvm-20261023`로 symlink했다. `sourceIdentity()`가 그
+`<external-evidence>/illegal-ad-build/target-gnullvm-20261023`로 symlink했다. `sourceIdentity()`가 그
 symlink를 거부했으므로(`git ls-files --others`에서 EISDIR) 로컬 `.git/info/exclude`에
 `src-tauri/target`을 추가했다(추적되지 않으며 commit하지 않는다).
 
 gitignore 대상이던 오래된 증거 4건을 삭제하지 않고 이동했다: `artifacts/detection-improvement-20261021`과
 `artifacts/NIA_ADOPTION_*_CANDIDATE_20261010.zip` 번들(+ 공개 batch `.sha256`) →
-`/mnt/nas/illegal-ad-artifacts-archive-20261023`. 당시 `artifacts/candidate-*`는 건드리지 않았고,
+`<external-evidence>/illegal-ad-artifacts-archive-20261023`. 당시 `artifacts/candidate-*`는 건드리지 않았고,
 이후 85a286f 재빌드에서 predecessor 후보만 같은 archive로 이동했다(위 재빌드 절).
-이동 manifest: `/mnt/nas/illegal-ad-build/moved-artifacts-20261023.txt`, `/tmp/moved-artifacts-20261023.txt`.
+이동 manifest: `<external-evidence>/illegal-ad-build/moved-artifacts-20261023.txt`, `/tmp/moved-artifacts-20261023.txt`.
 
 ## 2026-10-23 통합 검증과 최종 후보
 
@@ -930,7 +930,7 @@ Chromium sandbox만 해제한다. CI는 계정 결제 차단으로 여전히 시
 `e54fe63` 작업 트리에서 **같은 190개 입력**(`artifacts/vision-cpu-20261022/inputs.json`,
 sha256 `eb1572b6162e76790ae477d921ae5ee1b96789bb7370add137c78a9f3a3e8ad3`)을 새 bench
 디렉터리에서 다시 재생했다. 원시 자료:
-`/mnt/nas/illegal-ad-artifacts-archive-20261023/vision-cpu-current-head/`
+`<external-evidence>/illegal-ad-artifacts-archive-20261023/vision-cpu-current-head/`
 (`inputs.json`, `runs/*-after.json`, `protocol.json`).
 
 | 묶음 | 결과 |
@@ -1084,7 +1084,7 @@ actual error retained. targeted 1 pass, EXIT 0. **Full native validation은 이�
 
 ### 상태와 보존
 
-- 시작 ROOT `/home/monad/develop/illegal_ad`, `dev/bootstrap@f481d73`.
+- 시작 ROOT `<repository>`, `dev/bootstrap@f481d73`.
   staged/unmerged 없음. `git stash list`는 비어 있었다. 인계된 문서 8개,
   `crawl.ts`, `session.rs`, untracked `redirect-domready.test.ts`가 모두 존재했다.
 - 시작 diff/stat/status와 시험 원본을
@@ -1396,3 +1396,27 @@ OBSERVED: 관련6파일38시험 통과, 최종 typecheck/lint EXIT0.
 후속 HEAD의 GitHub 필수 CI로 확인한다. 3211e43의 새 패키징은 추가 결함을 반영하기
 위해 소유한 process group만 TERM으로 중단(EXIT143)했으며 후보로 채택하지 않았다.
 제출 설치본과 릴리스 자산은 그대로 보존한다.
+
+### 최종 CI·main 통합·Windows 재개 후보
+
+OBSERVED: 최종 HEAD `59933580b4fc27fd5e6fc3ec50b7b1c3326dcc35`, source SHA
+`d42ae4ab1879aa26da24f4c6402344d9d19b0c262727706d31eedad801d3176f`의
+GitHub run39931222789 verify/windows-native/required 모두 성공.
+Linux791pass/1skip, Windows MSVC80pass/2ignored, fmt/clippy,
+production sandbox packaged worker 공식1탐지·요청2건, desktop release build 성공이다.
+미해결 리뷰0·MERGEABLE/CLEAN과 정확한 HEAD를 확인하고 보호 규칙을 유지한 채
+PR #2를 merge했다. main `3e20d5830c2447b53c7873c06595364f5aa61a14`는 검증 HEAD와
+동일한 tree다. 후속 브랜치도 main으로 fast-forward하고 이후 기록·검증을 이어간다.
+
+OBSERVED: 같은 clean source290파일에서 gnullvm 새 후보 제작·verify:artifact EXIT0,
+runtime1177파일/8payload+manifest 검증. 후보 폴더는
+`candidate-0.2.1-x86_64-pc-windows-gnullvm-d42ae4ab1879-20261023T092151358Z`다.
+installer747,014,364B, SHA37181bd5eefd9d3620676e402c6f5d01575310b43dae9033a994722f6857fb24.
+NAS/HDD0의 `illegal-ad-maintenance-20261023/`에 후보9파일770,467,147B를 복사해
+누락0/해시불일치0을 확인했다. 원시 CI·패키징·검증·사본 receipt는
+`artifacts/post-submission-20261023/`에 보존한다. main push의 별도 CI 재실행과
+검증 PR의 통과를 구분하며, tree 동일성 때문에 같은 검사를 수동 반복하지 않는다.
+
+NOT_RUN: Pocket4 재확인도 SSH timeout이다. 이 후보의 실제 설치 및 공식 양성 두
+공개 대상 판단·메모·정상 재시작 복원·통합 XLSX·실제 Excel은 기기 복구 후 수행한다.
+제출 태그·두 ZIP·과거 사례 및 설치 후보는 보존한다.

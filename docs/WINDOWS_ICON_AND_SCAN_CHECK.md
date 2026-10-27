@@ -66,7 +66,7 @@ on this newly available environment; it does not change the earlier guest's
 NOT_RUN record or rerun the batch.
 
 Candidate artifacts and inspected native screenshots:
-`/home/monad/.codex/artifacts/illegal-ad/rc-v21-icon-wincheck-20261009`.
+`<local-evidence>/.codex/artifacts/illegal-ad/rc-v21-icon-wincheck-20261009`.
 Installer SHA-256:
 `528a4b23a72ae44325df926fbd75c307c459707fbc6e7bfeaeb610760f985614`.
 Unsigned user-review candidate only; no merge, release publication or submission.

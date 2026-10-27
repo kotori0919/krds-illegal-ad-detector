@@ -1,0 +1,20 @@
+
+ RUN  v3.2.7 /home/monad/Documents/Codex/2026-10-26/task/krds-adult-semantic
+
+ ✓ |packages| packages/detection/test/detection.test.ts (11 tests) 3452ms
+   ✓ live page pipeline > detects HOMOGLYPH + JAMO on fixture positives, silent on negatives  2878ms
+   ✓ live page pipeline > emits valid result.json with identity dedup  569ms
+ ✓ |packages| packages/detection/test/adult-evaluation.test.ts (2 tests) 1120ms
+   ✓ evaluates multipage/query/comment/repeated/nested-frame identities: cases.json  619ms
+   ✓ evaluates multipage/query/comment/repeated/nested-frame identities: holdout.json  500ms
+ ✓ |packages| packages/detection/test/text-policy.test.ts (22 tests) 1270ms
+   ✓ restoration and local public context > executes the restored decision and independent concealed comment in Chromium  375ms
+   ✓ restoration and local public context > maps owned text to original evidence and does not attribute a quoted disguise to a plain offer  478ms
+   ✓ restoration and local public context > omits an oversized source owner explicitly while preserving a later complete owner  337ms
+ ✓ |packages| packages/detection/test/adult-semantics.test.ts (21 tests) 152ms
+
+ Test Files  4 passed (4)
+      Tests  56 passed (56)
+   Start at  00:28:05
+   Duration  7.33s (transform 127ms, setup 564ms, collect 331ms, tests 5.99s, environment 0ms, prepare 139ms)
+

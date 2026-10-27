@@ -5,7 +5,7 @@ Candidate: `rc-v21-105ce20-20261008`, built from
 Draft PR: <https://github.com/snowman0919/krds-illegal-ad-detector/pull/2>.
 
 Local artifact directory:
-`/home/monad/.codex/artifacts/illegal-ad/rc-v21-105ce20-20261008`.
+`<local-evidence>/.codex/artifacts/illegal-ad/rc-v21-105ce20-20261008`.
 Installer: `불법광고 탐지 도구_0.1.0_x64-setup.exe`, 149,627,858 bytes.
 SHA-256: `c254d4a9f51039e9c9ee098e5c322ff8a463de39408757aeff81199e2ca473d7`.
 The manifest hashes the installer and 679 static installed files; NSIS generates

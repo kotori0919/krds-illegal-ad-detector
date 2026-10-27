@@ -1,8 +1,17 @@
+import { DETECTOR_POLICY_VERSION } from "./config.js";
 import type { OfficialResult } from "./result.js";
 import { isTransportProvenance, isTransportFailure } from "./warp.js";
 /** Internal case schema 1. Official output schema and review are independent. */
 export const CASE_SCHEMA_VERSION = 1 as const;
-export const DETECTION_POLICY_VERSION = 2 as const;
+export const DETECTION_POLICY_VERSION = DETECTOR_POLICY_VERSION;
+// Old versions without a decision-policy suffix historically used policy 2.
+// Readers retain those cases; known new decisions must agree with their label.
+function decisionPolicy(toolVersion: string): number | undefined {
+  const separator = toolVersion.lastIndexOf("-policy");
+  if (separator < 0) return 2;
+  const label = toolVersion.slice(separator + "-policy".length);
+  return label === "2" ? 2 : label === String(DETECTION_POLICY_VERSION) ? DETECTION_POLICY_VERSION : undefined;
+}
 export type OperatorJudgment = "unjudged" | "suspected" | "judged-normal" | "needs-more-evidence";
 export interface CaseIssue { code: string; scope: string; retryable: boolean }
 export interface CaseManifest {
@@ -40,12 +49,15 @@ const caseIssue = (value: unknown): value is CaseIssue => record(value) && keys(
   && text(value.code, 128) && value.code.length > 0 && text(value.scope, 64) && value.scope.length > 0 && typeof value.retryable === "boolean";
 
 export function isCaseManifest(value: unknown, official?: OfficialResult): value is CaseManifest {
-  return record(value) && keys(value, ["schemaVersion", "caseId", "entryUrl", "startedAt", "finishedAt", "exportableAt", "status", "toolVersion", "policyVersion", "officialSha256", "evidenceSha256", "findings", "issues", "settings"])
+  if (!record(value) || !text(value.toolVersion, 128)) return false;
+  const policy = decisionPolicy(value.toolVersion);
+  if (policy === undefined || !integer(value.policyVersion) || value.policyVersion !== policy) return false;
+  return keys(value, ["schemaVersion", "caseId", "entryUrl", "startedAt", "finishedAt", "exportableAt", "status", "toolVersion", "policyVersion", "officialSha256", "evidenceSha256", "findings", "issues", "settings"])
     && value.schemaVersion === CASE_SCHEMA_VERSION && isCaseId(value.caseId) && text(value.entryUrl, 8192)
     && (() => { try { const url = new URL(value.entryUrl); return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password; } catch { return false; } })()
     && timestamp(value.startedAt) && timestamp(value.finishedAt) && timestamp(value.exportableAt)
     && text(value.status, 32) && ["succeeded", "cancelled", "failed"].includes(value.status) && text(value.toolVersion, 128) && value.toolVersion.length > 0
-    && value.policyVersion === DETECTION_POLICY_VERSION && hash(value.officialSha256) && (value.evidenceSha256 === undefined || hash(value.evidenceSha256))
+    && hash(value.officialSha256) && (value.evidenceSha256 === undefined || hash(value.evidenceSha256))
     && integer(value.findings, 20_000) && Array.isArray(value.issues) && value.issues.length <= 1000 && value.issues.every(caseIssue) && record(value.settings)
     && (value.settings.connection === undefined || value.settings.connection === "direct" || value.settings.connection === "warp")
     && (value.settings.transport === undefined || isTransportProvenance(value.settings.transport))
@@ -83,7 +95,7 @@ export function isOpenCase(value: unknown): value is OpenCase {
 }
 export function isSupportDiagnostics(value: unknown): value is SupportDiagnostics {
   return record(value) && keys(value, ["toolVersion", "policyVersion", "caseSchema", "storageRoot", "network", "model", "signing"])
-    && text(value.toolVersion, 128) && value.policyVersion === DETECTION_POLICY_VERSION && value.caseSchema === CASE_SCHEMA_VERSION
+    && text(value.toolVersion, 128) && (value.policyVersion === 2 || value.policyVersion === DETECTION_POLICY_VERSION) && value.caseSchema === CASE_SCHEMA_VERSION
     && text(value.storageRoot) && text(value.network, 128) && text(value.model, 128) && text(value.signing, 128);
 }
 

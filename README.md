@@ -4,10 +4,14 @@
 
 2026 행정안전부·한국지능정보사회진흥원 「공공 웹사이트 불법광고 탐지 도구 개발 공모전」 제출 프로젝트입니다.
 
-## 다운로드
+## 10월23일 제출본 다운로드 (보존)
 
 - [접수 첨부용 문서 ZIP — 10MB 이하](https://github.com/kotori0919/krds-illegal-ad-detector/releases/download/submission-2026-10-23/KRDS_ILLEGAL_AD_SUBMISSION_10MB_20261023.zip)
 - [Windows 설치 파일·전체 소스 패키지](https://github.com/kotori0919/krds-illegal-ad-detector/releases/download/submission-2026-10-23/KRDS_ILLEGAL_AD_SUBMISSION_20261023.zip)
+
+이 링크는 `submission-2026-10-23` 제출본이며 아래 정책3 후보의 설치 파일이 아닙니다.
+현재 후보의 새 Windows 설치본은 아직 검증 완료되지 않았습니다.
+[현재 후보 상태와 재현 범위](docs/CANDIDATE_STATUS_KO.md), [데이터 출처](docs/DATA_PROVENANCE_KO.md)를 먼저 확인하세요.
 
 ## 주요 기능
 
@@ -21,8 +25,8 @@
 ## 사용 순서
 
 1. Windows 설치 파일을 실행해 프로그램을 설치합니다.
-2. 점검할 웹사이트 주소와 점검 범위를 지정합니다.
-3. 점검 결과에서 의심 항목의 원문·위치·이미지 근거를 확인합니다.
+2. 공개 `http://` 또는 `https://` 웹사이트 주소와 점검 범위를 지정합니다. 기본 연결은 현재 PC 네트워크를 사용합니다.
+3. 확인 페이지·실패·분석 오류와 부분검사 여부를 먼저 확인하고, 의심 항목의 원문·위치·이미지 근거를 검토합니다. 0건은 위반 부재나 전체 수집의 보장이 아닙니다.
 4. 공식 탐지 항목에 담당자의 판단과 메모를 기록합니다.
 5. 공식 JSON 또는 엑셀 보고서를 저장합니다.
 
@@ -35,7 +39,8 @@
 | [기획서 PDF](docs/SUBMISSION_20261023/PLANNING_8P.pdf) | 개발 배경, 목표, 기술, 구성과 기대 효과 |
 | [사용 설명서](docs/USER_MANUAL.md) | 설치, 점검, 근거 검토와 결과 저장 |
 | [빌드 설명서](docs/BUILD_MANUAL.md) | 개발 환경, 소스 빌드와 Windows 패키징 |
-| [검증 결과](docs/SUBMISSION_20261023/VERIFICATION_SUMMARY.md) | 실행한 시험의 환경과 관측 결과 |
+| [현재 후보 검증](docs/CANDIDATE_STATUS_KO.md) | 정책3 후보의 실행 안내·검증 범위·남은 한계 |
+| [제출 당시 검증](docs/SUBMISSION_20261023/VERIFICATION_SUMMARY.md) | 10월23일 제출본의 역사 기록 |
 | [제출 자료](docs/SUBMISSION_20261023/README.md) | 실행 파일, 소스, 기획서와 문서 구성 |
 | [아키텍처](docs/ARCHITECTURE.md) | 모듈 구조와 실행 경로 |
 
@@ -63,13 +68,17 @@ fixtures/synthetic    정답이 있는 합성 평가 사이트
 ```sh
 npm ci
 npx playwright-core install chromium --only-shell
+npm run build:scanner
 npm run check
+node --test --test-concurrency=1 scripts/test/build-policy.test.mjs scripts/test/pinned-asset-io.test.mjs
 npm run build
 npm run dev
 ```
 
+`build:scanner`는 최초에 고정 모델을 내려받으므로 네트워크 또는 준비된 모델 캐시가 필요합니다. `dev`는 웹 미리보기이며 네이티브 URL 점검을 실행하지 않습니다. URL 점검은 대상 사이트 접속이 필요하지만, 준비된 모델의 추론은 로컬 CPU에서 수행하며 점검 중 외부 AI 호출·모델 다운로드는 없습니다.
+
 Windows 실행 파일은 `npm run build:desktop`, 설치 패키지는 `npm run package:windows`로 생성합니다.
 
 `main`은 PR과 Linux·Windows CI를 통과한 변경을 통합하는 기준 브랜치입니다.
-후속 수정과 검증은 `codex/` 독립 브랜치에서 진행합니다. 제출 당시 소스와 패키지는
+후속 수정과 검증은 독립 브랜치에서 진행합니다. 제출 당시 소스와 패키지는
 `submission-2026-10-23` 태그와 다운로드 파일로 보존합니다.

@@ -26,6 +26,7 @@ it("keeps actual OCR available when fixed reference data is corrupt", async () =
   await mkdir("artifacts", { recursive: true });
   const directory = await mkdtemp(resolve("artifacts/text-reference-corruption-"));
   await cp("packages/evidence/dist/ocr.js", `${directory}/ocr.mjs`);
+  await cp("packages/evidence/dist/ocr-diagnostics.js", `${directory}/ocr-diagnostics.js`);
   await cp("packages/evidence/dist/ocr-worker.mjs", `${directory}/ocr-worker.mjs`);
   await symlink(resolve("packages/evidence/dist/ocr-data"), `${directory}/ocr-data`);
   await mkdir(`${directory}/text-embedding-data`);

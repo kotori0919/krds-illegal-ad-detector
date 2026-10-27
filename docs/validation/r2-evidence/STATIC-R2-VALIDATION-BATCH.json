@@ -1,0 +1,491 @@
+{
+  "revision": 2,
+  "identity_sha256": "4125496324d80b8da50a5407510a67595e16cb25004b42490ec342a9981b7993",
+  "started": "2026-10-26T08:09:34+0900",
+  "source_before": {
+    "packages/detection/src/semantic.ts": "e803be048c78483f4a89562be6fcfe6e3c19efa766bdb2296967f683f3a825a4",
+    "packages/detection/src/adult-solicitation.ts": "c1ef3b705779450f90ff5bd415894fcbdd48c005c87378094af4131ba6144bcf",
+    "packages/detection/src/text-policy.ts": "80c0e7e7f43d5c7f210b1f336fde69067ebd677e595e5800297d22be475c2722",
+    "packages/detection/test/adult-context.test.ts": "17d27a96e745fed5b5a0513e1fd7d24d4173a4925a8792eedadfefebb47d3e26",
+    "packages/detection/test/adult-semantics.test.ts": "488a394e0fe02bd17d254149e86d95071c95d915c5df7514f5c87a02b13a4492",
+    "packages/detection/test/adult-evaluation.test.ts": "357753c1078018191bb38efd9519fde57318c094015985888d2981ad00bea316",
+    "packages/detection/test/fixtures/adult-evaluation/cases.json": "9bdc640d07f8991d973094f42854113b69636781d5f014fafe19480bddbc2e29",
+    "packages/detection/test/fixtures/adult-evaluation/holdout.json": "7ce86935ff4eafbe7b80f340c41eabf1e07a12ed320bfeca589d9fa111a75c5d",
+    "packages/evidence/src/ocr.ts": "3c25a7239f06bfe24a97e93e003ea822b18c8bba29397ac61b6899fd496660c0",
+    "packages/evidence/src/ocr-diagnostics.ts": "17008c03e92909e75941daf6d369885e301cff03b82db9312749b89bf73fc989",
+    "packages/evidence/test/ocr-diagnostics.test.ts": "a576c4f7ece26a6a281eaf4f1319835adcdba1816cf60087acec41930e9ca76e",
+    "packages/contracts/src/config.ts": "2eb87876d172d833cb19431164c3066343bf7af1a176a686053e88481f736312",
+    "packages/contracts/src/policy.json": "02ebb8b0dcd18cd548a2750c6821ad234b037747ca50df26cf545c0b273a0354",
+    "packages/contracts/src/result.ts": "8850dd87e6a9931ae7e15342b8db267312eff517748eba01122c52824cd5354e",
+    "packages/contracts/src/case.ts": "672bf0f7a85828b8d306b36a42d69f99838199483c500086bb5579723ca602e5",
+    "packages/contracts/test/config.test.ts": "f6697bbe2acc2ff02e9e380dd685dddbee9fe2a508442f1b1483f73c33838300",
+    "packages/contracts/test/result.test.ts": "c773e91b6ac7ab1eb67a38229a618ac5681ca8aec8bd19a6ba2f2bc222792b06",
+    "packages/contracts/test/case.test.ts": "cf436392931728c962ce8bbfa22811548167d8d06496083d1dd33b283c55a177",
+    "src-tauri/src/config.rs": "b610640783f20da19a16a3c927c8d6ce654df6fa50fed5b93032c8624677e9d5",
+    "src-tauri/src/case_store.rs": "ed9591d964bb499f81e488a283bceb7468a42425b5304117a522e66235547167",
+    "src-tauri/src/main.rs": "e489686eadf1901e6b1360a0cd9cb2672b7e04b0e609cedf9c9668fd2108f3d4",
+    "docs/CONTRACTS.md": "f89a7adf0b3d30aeea4250a06efb5c40099ed2049c38091d5cd62a9d8fc888b2",
+    "docs/validation/STATIC_CORRECTIONS_KO.md": "0839ffbe8b6c7529c7eafaacf32711c301371a3a5c230b7ef7d79d7d2fa906d6"
+  },
+  "files": [
+    {
+      "profile": "r2-semantic-27",
+      "expected": 27,
+      "exit": 0,
+      "unit": "codex-krds-guard-4e4522312d50456587426f30ba10ee6d.scope",
+      "count": 27,
+      "passed": 27,
+      "failed": 0,
+      "child": {
+        "time": "2026-10-26T08:09:41+0900",
+        "event": "ocr_child_complete",
+        "profile": "r2-semantic-27",
+        "identity_after": "verified",
+        "exit_code": 0,
+        "cgroup_metrics": {
+          "memory.peak": 92680192,
+          "memory.current": 13107200,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "deadline": "30s"
+      },
+      "observation": {
+        "time": "2026-10-26T08:09:41+0900",
+        "event": "ocr_scope_observation",
+        "profile": "r2-semantic-27",
+        "unit": "codex-krds-guard-4e4522312d50456587426f30ba10ee6d.scope",
+        "result": "success",
+        "last_scope_metrics": {
+          "memory.peak": 92680192,
+          "memory.current": 14712832,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_before": {
+          "memory.peak": 103878656,
+          "memory.current": 1843200,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_after": {
+          "memory.peak": 103878656,
+          "memory.current": 3342336,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        }
+      },
+      "reservation_exists": false,
+      "status": "PASS"
+    },
+    {
+      "profile": "r2-ocr-11",
+      "expected": 11,
+      "exit": 0,
+      "unit": "codex-krds-guard-cea448d4d46d48ee914f81dfe31ea07f.scope",
+      "count": 11,
+      "passed": 11,
+      "failed": 0,
+      "child": {
+        "time": "2026-10-26T08:09:48+0900",
+        "event": "ocr_child_complete",
+        "profile": "r2-ocr-11",
+        "identity_after": "verified",
+        "exit_code": 0,
+        "cgroup_metrics": {
+          "memory.peak": 98234368,
+          "memory.current": 13328384,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "deadline": "30s"
+      },
+      "observation": {
+        "time": "2026-10-26T08:09:48+0900",
+        "event": "ocr_scope_observation",
+        "profile": "r2-ocr-11",
+        "unit": "codex-krds-guard-cea448d4d46d48ee914f81dfe31ea07f.scope",
+        "result": "success",
+        "last_scope_metrics": {
+          "memory.peak": 98234368,
+          "memory.current": 14876672,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_before": {
+          "memory.peak": 103878656,
+          "memory.current": 2961408,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_after": {
+          "memory.peak": 103878656,
+          "memory.current": 5230592,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        }
+      },
+      "reservation_exists": false,
+      "status": "PASS"
+    },
+    {
+      "profile": "r2-result-19",
+      "expected": 19,
+      "exit": 0,
+      "unit": "codex-krds-guard-ede8f86ab4d04e46801051fa1b98fff7.scope",
+      "count": 19,
+      "passed": 19,
+      "failed": 0,
+      "child": {
+        "time": "2026-10-26T08:09:55+0900",
+        "event": "ocr_child_complete",
+        "profile": "r2-result-19",
+        "identity_after": "verified",
+        "exit_code": 0,
+        "cgroup_metrics": {
+          "memory.peak": 90714112,
+          "memory.current": 13049856,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "deadline": "30s"
+      },
+      "observation": {
+        "time": "2026-10-26T08:09:55+0900",
+        "event": "ocr_scope_observation",
+        "profile": "r2-result-19",
+        "unit": "codex-krds-guard-ede8f86ab4d04e46801051fa1b98fff7.scope",
+        "result": "success",
+        "last_scope_metrics": {
+          "memory.peak": 90714112,
+          "memory.current": 14917632,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_before": {
+          "memory.peak": 103878656,
+          "memory.current": 2629632,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_after": {
+          "memory.peak": 103878656,
+          "memory.current": 3571712,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        }
+      },
+      "reservation_exists": false,
+      "status": "PASS"
+    },
+    {
+      "profile": "r2-config-13",
+      "expected": 13,
+      "exit": 0,
+      "unit": "codex-krds-guard-96412e69e4b94b999817092a78604483.scope",
+      "count": 13,
+      "passed": 13,
+      "failed": 0,
+      "child": {
+        "time": "2026-10-26T08:10:01+0900",
+        "event": "ocr_child_complete",
+        "profile": "r2-config-13",
+        "identity_after": "verified",
+        "exit_code": 0,
+        "cgroup_metrics": {
+          "memory.peak": 84557824,
+          "memory.current": 12038144,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "deadline": "30s"
+      },
+      "observation": {
+        "time": "2026-10-26T08:10:01+0900",
+        "event": "ocr_scope_observation",
+        "profile": "r2-config-13",
+        "unit": "codex-krds-guard-96412e69e4b94b999817092a78604483.scope",
+        "result": "success",
+        "last_scope_metrics": {
+          "memory.peak": 84557824,
+          "memory.current": 13922304,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_before": {
+          "memory.peak": 103878656,
+          "memory.current": 2998272,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_after": {
+          "memory.peak": 103878656,
+          "memory.current": 3366912,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        }
+      },
+      "reservation_exists": false,
+      "status": "PASS"
+    },
+    {
+      "profile": "r2-case-38",
+      "expected": 38,
+      "exit": 0,
+      "unit": "codex-krds-guard-0d57520a1be24f1885232f2f201e13c3.scope",
+      "count": 38,
+      "passed": 38,
+      "failed": 0,
+      "child": {
+        "time": "2026-10-26T08:10:08+0900",
+        "event": "ocr_child_complete",
+        "profile": "r2-case-38",
+        "identity_after": "verified",
+        "exit_code": 0,
+        "cgroup_metrics": {
+          "memory.peak": 89190400,
+          "memory.current": 12996608,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "deadline": "30s"
+      },
+      "observation": {
+        "time": "2026-10-26T08:10:08+0900",
+        "event": "ocr_scope_observation",
+        "profile": "r2-case-38",
+        "unit": "codex-krds-guard-0d57520a1be24f1885232f2f201e13c3.scope",
+        "result": "success",
+        "last_scope_metrics": {
+          "memory.peak": 89190400,
+          "memory.current": 12996608,
+          "memory.swap.current": 0,
+          "pids.current": 1,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_before": {
+          "memory.peak": 103878656,
+          "memory.current": 2854912,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        },
+        "aggregate_after": {
+          "memory.peak": 103878656,
+          "memory.current": 5140480,
+          "memory.swap.current": 0,
+          "pids.current": 0,
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0,
+            "sock_throttled": 0
+          }
+        }
+      },
+      "reservation_exists": false,
+      "status": "PASS"
+    }
+  ],
+  "native": "NOT_RUN: Rust build required; not authorized",
+  "source_after": {
+    "packages/detection/src/semantic.ts": "e803be048c78483f4a89562be6fcfe6e3c19efa766bdb2296967f683f3a825a4",
+    "packages/detection/src/adult-solicitation.ts": "c1ef3b705779450f90ff5bd415894fcbdd48c005c87378094af4131ba6144bcf",
+    "packages/detection/src/text-policy.ts": "80c0e7e7f43d5c7f210b1f336fde69067ebd677e595e5800297d22be475c2722",
+    "packages/detection/test/adult-context.test.ts": "17d27a96e745fed5b5a0513e1fd7d24d4173a4925a8792eedadfefebb47d3e26",
+    "packages/detection/test/adult-semantics.test.ts": "488a394e0fe02bd17d254149e86d95071c95d915c5df7514f5c87a02b13a4492",
+    "packages/detection/test/adult-evaluation.test.ts": "357753c1078018191bb38efd9519fde57318c094015985888d2981ad00bea316",
+    "packages/detection/test/fixtures/adult-evaluation/cases.json": "9bdc640d07f8991d973094f42854113b69636781d5f014fafe19480bddbc2e29",
+    "packages/detection/test/fixtures/adult-evaluation/holdout.json": "7ce86935ff4eafbe7b80f340c41eabf1e07a12ed320bfeca589d9fa111a75c5d",
+    "packages/evidence/src/ocr.ts": "3c25a7239f06bfe24a97e93e003ea822b18c8bba29397ac61b6899fd496660c0",
+    "packages/evidence/src/ocr-diagnostics.ts": "17008c03e92909e75941daf6d369885e301cff03b82db9312749b89bf73fc989",
+    "packages/evidence/test/ocr-diagnostics.test.ts": "a576c4f7ece26a6a281eaf4f1319835adcdba1816cf60087acec41930e9ca76e",
+    "packages/contracts/src/config.ts": "2eb87876d172d833cb19431164c3066343bf7af1a176a686053e88481f736312",
+    "packages/contracts/src/policy.json": "02ebb8b0dcd18cd548a2750c6821ad234b037747ca50df26cf545c0b273a0354",
+    "packages/contracts/src/result.ts": "8850dd87e6a9931ae7e15342b8db267312eff517748eba01122c52824cd5354e",
+    "packages/contracts/src/case.ts": "672bf0f7a85828b8d306b36a42d69f99838199483c500086bb5579723ca602e5",
+    "packages/contracts/test/config.test.ts": "f6697bbe2acc2ff02e9e380dd685dddbee9fe2a508442f1b1483f73c33838300",
+    "packages/contracts/test/result.test.ts": "c773e91b6ac7ab1eb67a38229a618ac5681ca8aec8bd19a6ba2f2bc222792b06",
+    "packages/contracts/test/case.test.ts": "cf436392931728c962ce8bbfa22811548167d8d06496083d1dd33b283c55a177",
+    "src-tauri/src/config.rs": "b610640783f20da19a16a3c927c8d6ce654df6fa50fed5b93032c8624677e9d5",
+    "src-tauri/src/case_store.rs": "ed9591d964bb499f81e488a283bceb7468a42425b5304117a522e66235547167",
+    "src-tauri/src/main.rs": "e489686eadf1901e6b1360a0cd9cb2672b7e04b0e609cedf9c9668fd2108f3d4",
+    "docs/CONTRACTS.md": "f89a7adf0b3d30aeea4250a06efb5c40099ed2049c38091d5cd62a9d8fc888b2",
+    "docs/validation/STATIC_CORRECTIONS_KO.md": "0839ffbe8b6c7529c7eafaacf32711c301371a3a5c230b7ef7d79d7d2fa906d6"
+  },
+  "source_unchanged": true,
+  "finished": "2026-10-26T08:10:08+0900",
+  "r1_artifacts_preserved": true
+}

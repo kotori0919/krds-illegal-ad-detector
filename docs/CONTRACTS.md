@@ -1,6 +1,6 @@
 # 수신팀이 유지할 계약
 
-공식 결과, 내부 Case, 탐지 정책, 설치 산출물은 서로 다른 버전을 가진다. 앱 후보는 `0.2.0`, 탐지 결과의 `meta.tool_version`은 `0.2.0-policy2`, Case schema는 `1`, 설정 계약은 `configVersion: 1`이다. 탐지 규칙이나 중복 제거가 의도적으로 바뀌면 정책 버전을 올리고 기존 결과를 다시 해석해 덮어쓰지 않는다. 공식 JSON에 내부 버전 필드를 추가하지 않는다.
+공식 결과, 내부 Case, 탐지 정책, 설치 산출물은 서로 다른 버전을 가진다. 앱 후보는 `0.2.1`, 새 탐지 결과의 `meta.tool_version`은 `0.2.1-policy3`, Case schema는 `1`, 설정 계약은 `configVersion: 1`이다. 탐지 규칙이나 중복 제거가 의도적으로 바뀌면 정책 버전을 올리고 기존 결과를 다시 해석해 덮어쓰지 않는다. 공식 JSON에 내부 버전 필드를 추가하지 않는다. 성인 서비스 CTA 판정 변경은 detectorPolicyVersion 3으로 식별한다. `text-policy-2`는 원문 span/복원 증거 형식이며 이번에 바꾸지 않는다. configVersion 1 및 Case schema 1도 유지하고, 과거 policy2 결과/fixture를 그대로 읽는다.
 
 ## 소유 경계와 데이터 흐름
 

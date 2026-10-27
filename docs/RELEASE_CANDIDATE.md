@@ -14,7 +14,7 @@ Draft; this record does not authorize merge, publication or contest submission.
 - Host SHA-256: `1b1bb0f95c872b1b1fc6f1b6222c434e97871c132d3c98458cabb2443b048ed0`.
 - Scanner SHA-256: `8cdfea07cdd2e2edb79a21bd7e79a31e1db308898fbf68913f1335c673d89cea`.
 - Private durable artifact directory:
-  `/home/monad/.codex/artifacts/illegal-ad/rc-5e44feb-20261008/` (mode `0700`).
+  `<local-evidence>/.codex/artifacts/illegal-ad/rc-5e44feb-20261008/` (mode `0700`).
   Its single `manifest.json` inventories the installer, host, worker, loader DLLs,
   Node, browser, Tesseract/WASM, language data, embedded frontend inputs,
   configuration and lockfile hashes, plus evidence references and hashes.

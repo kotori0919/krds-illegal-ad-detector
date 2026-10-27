@@ -1,0 +1,13 @@
+{
+  "dataset": "authored-adult-evaluation-20261026-v1",
+  "scope": "Frozen before implementation. Separate from development fixtures; same author, not blinded or external ground truth. Text-only, loopback DOM evaluation.",
+  "pages": [
+    {"path":"/board?id=41", "html":"<article><h1>보건 소식</h1><p style='display:none'>성인 성교육 온라인 회원가입 안내</p><ul><li class='reply'>정상 댓글</li><li class='reply' style='opacity:0'>성인 사이트 지금 가입</li><li class='reply' style='opacity:0'>성인 사이트 지금 가입</li></ul><a href='/board?id=42'>다음 글</a><iframe id='outer' src='/outer'></iframe></article>", "expected":[{"selector":"li.reply:nth-of-type(2)","text":"성인 사이트 지금 가입","technique":"TRANSPARENT"},{"selector":"li.reply:nth-of-type(3)","text":"성인 사이트 지금 가입","technique":"TRANSPARENT"}]},
+    {"path":"/board?id=42", "html":"<main><p id='a' style='position:absolute;left:-9000px'>포르노 무제한 시청</p><p id='b'>성.인.방.송 지금 입장</p><p id='c'>ㅇㅑㄷㅗㅇ 무료 시청</p><p id='d' style='display:none'>성인 영상 중독 예방 상담 가입 안내</p><p id='e' style='opacity:0'>성인방송 광고 예방: ‘지금 가입 무료 시청’ 문구를 신고하세요.</p><p id='f' style='display:none'>도서관 성인 영상자료 대출 회원가입</p><p id='g' style='opacity:0'>성인 건강검진 예약과 보건 교육</p><a href='/board?id=41'>이전</a></main>", "expected":[{"selector":"#a","text":"포르노 무제한 시청","technique":"OFFSCREEN"},{"selector":"#b","text":"성.인.방.송 지금 입장","technique":"HOMOGLYPH"},{"selector":"#c","text":"ㅇㅑㄷㅗㅇ 무료 시청","technique":"JAMO"}]},
+    {"path":"/outer", "html":"<iframe id='inner' src='/inner'></iframe>","expected":[]},
+    {"path":"/inner", "html":"<p id='nested' style='display:none'>성인방송 가입 즉시 시청</p><p style='opacity:0'>음란물 차단 교육 신청</p>", "expected":[{"selector":"#nested","text":"성인방송 가입 즉시 시청","technique":"OFFSCREEN"}]},
+    {"path":"/normal", "html":"<p style='opacity:0'>야동 시청 피해 예방 교육 회원가입</p><p style='display:none'>성인방송 단속 기사: 신규가입 유도 사례 설명</p><p style='position:absolute;left:-9000px'>성인 영상 무료 시청 광고를 신고하세요</p><p>ㅅㅓㅇㅇㅣㄴ 영상 예방 교육</p><p>성.인.영.상 중독 예방 자료</p>","expected":[]}
+  ],
+  "entries":["/board?id=41","/board?id=42","/normal"],
+  "framePaths":{"/outer":[{"src":"/outer","selector":"#outer"}],"/inner":[{"src":"/outer","selector":"#outer"},{"src":"/inner","selector":"#inner"}]}
+}

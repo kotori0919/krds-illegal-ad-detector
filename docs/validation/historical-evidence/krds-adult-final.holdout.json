@@ -1,0 +1,82 @@
+{
+  "dataset": "authored-adult-holdout-20261026-v1",
+  "usage": "same-author authored holdout; no policy tuning",
+  "sha256": "7ce86935ff4eafbe7b80f340c41eabf1e07a12ed320bfeca589d9fa111a75c5d",
+  "scope": "Authored same-author text/DOM corpus; production crawler + detector + official serializer + live locator roundtrip. Excludes OCR, native UI, persistence, cold process start, Windows and external sites.",
+  "browser": "actual Playwright Chromium",
+  "concurrency": 1,
+  "checkedPages": 3,
+  "documents": 5,
+  "expected": 6,
+  "tp": 6,
+  "fp": 0,
+  "fn": 0,
+  "duplicates": 0,
+  "resolved": 6,
+  "officialFindings": 6,
+  "failedPages": 0,
+  "timedOut": false,
+  "observed": [
+    {
+      "page": "/board?id=41",
+      "location": "div:nth-of-type(2)",
+      "technique": "TRANSPARENT",
+      "raw": "성인방송 회원가입",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=41",
+      "location": "div:nth-of-type(3)",
+      "technique": "TRANSPARENT",
+      "raw": "성인방송 회원가입",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=41",
+      "location": "#wrap >>> #content >>> #private",
+      "technique": "OFFSCREEN",
+      "raw": "음란물 무료 시청",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=42",
+      "location": "#move",
+      "technique": "OFFSCREEN",
+      "raw": "야동 지금 입장",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=42",
+      "location": "#dots",
+      "technique": "HOMOGLYPH",
+      "raw": "성.인.사.이.트 회원가입",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    },
+    {
+      "page": "/board?id=42",
+      "location": "#letters",
+      "technique": "JAMO",
+      "raw": "ㅍㅗㄹㅡㄴㅗ 즉시 시청",
+      "reasons": [
+        "AD_CATEGORY",
+        "AD_OFFER"
+      ]
+    }
+  ],
+  "elapsedSec": 0.499
+}

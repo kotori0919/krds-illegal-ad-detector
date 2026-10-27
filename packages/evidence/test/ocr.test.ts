@@ -117,12 +117,13 @@ it("uses actual text embeddings, preserves normal/public text and recovers after
 }, 25_000);
 
 it("retains OCR when the optional model assets are missing without retrying initialization", async () => {
-  const { mkdir, cp, symlink, rm } = await import("node:fs/promises");
+  const { mkdir, mkdtemp, cp, symlink, rm } = await import("node:fs/promises");
   const { resolve } = await import("node:path");
   const { pathToFileURL } = await import("node:url");
-  const directory = resolve("artifacts/text-embedding-missing-model-test");
-  await mkdir(directory, { recursive: true });
+  await mkdir("artifacts", { recursive: true });
+  const directory = await mkdtemp(resolve("artifacts/text-embedding-missing-model-"));
   await cp("packages/evidence/dist/ocr.js", `${directory}/ocr.mjs`);
+  await cp("packages/evidence/dist/ocr-diagnostics.js", `${directory}/ocr-diagnostics.js`);
   await cp("packages/evidence/dist/ocr-worker.mjs", `${directory}/ocr-worker.mjs`);
   await rm(`${directory}/ocr-data`, { force: true });
   await symlink(resolve("packages/evidence/dist/ocr-data"), `${directory}/ocr-data`, "dir");

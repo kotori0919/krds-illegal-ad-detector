@@ -6,7 +6,8 @@ function freeze<T extends object>(value: T): Readonly<T> {
   for (const child of Object.values(value)) if (child && typeof child === "object") freeze(child);
   return Object.freeze(value);
 }
-if (policy.configVersion !== 1 || policy.detectorPolicyVersion !== 2 || policy.optionalModels.enabled !== false) {
+export const DETECTOR_POLICY_VERSION = 3 as const;
+if (policy.configVersion !== 1 || policy.detectorPolicyVersion !== DETECTOR_POLICY_VERSION || policy.optionalModels.enabled !== false) {
   throw new Error("Unsupported or unsafe shipped configuration");
 }
 export const CONFIG_VERSION = 1 as const;
@@ -36,7 +37,7 @@ export function validateScanLimits(input: unknown, audience: LimitsAudience = "o
 
 export interface EffectiveScanConfiguration {
   configVersion: 1;
-  detectorPolicyVersion: 2;
+  detectorPolicyVersion: typeof DETECTOR_POLICY_VERSION;
   limits: ScanLimits;
   concurrency: number;
   settleMs: number;
@@ -58,5 +59,5 @@ export function validateScanConfiguration(input: unknown, audience: LimitsAudien
   const concurrency = number("concurrency");
   const settleMs = number("settleMs");
   if (errors.length || !limits.ok) return { ok: false, errors };
-  return { ok: true, value: { configVersion: CONFIG_VERSION, detectorPolicyVersion: 2, limits: limits.value, concurrency, settleMs } };
+  return { ok: true, value: { configVersion: CONFIG_VERSION, detectorPolicyVersion: DETECTOR_POLICY_VERSION, limits: limits.value, concurrency, settleMs } };
 }

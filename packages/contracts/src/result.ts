@@ -6,9 +6,10 @@
  * the same technique on one element collapse to one finding.
  */
 
+import { DETECTOR_POLICY_VERSION } from "./config.js";
 import { EXTRA_TECHNIQUE, type OfficialTechnique } from "./technique.js";
 
-export const TOOL_VERSION = "0.2.1-policy2";
+export const TOOL_VERSION = `0.2.1-policy${DETECTOR_POLICY_VERSION}`;
 export const EXTRA_FINDING_TYPES = ["IMAGE_ONLY_ILLEGAL_AD", "REUSED_AD_CREATIVE",
   "AD_INFRASTRUCTURE_CORRELATION", "ZERO_WIDTH_OBFUSCATION"] as const;
 

@@ -271,7 +271,7 @@ speed comparison: browser smoke checks and an incremental cross-build ran on
 the shared Linux host during the VM run. The default remains two workers.
 The worker SHA-256 was
 `e027c05f45b6ce3bcf7676fe6856c4dd47cc0a085c23456c7191437f802f1131`.
-The guest report is `C:\Users\cleanval\Documents\windows-v2-large-bench.json`;
+The guest report is `C:\Users\<user>\Documents\windows-v2-large-bench.json`;
 `/tmp/illegal-ad-toolchain/large-final.png` and `large-report-machine.png`
 record the output and runtime fields. This generated L2 scenario does not
 establish live public-site performance or complete native product acceptance.
@@ -285,7 +285,7 @@ real bundled worker against the same served municipal fixture for C1–C4.
 The script checks official, detail, and extra validators, the complete
 official finding set in emitted order including IDs/evidence text, failed-page
 identities, and ground truth. Machine fields are read from the guest runtime. The
-report is `C:\\Users\\cleanval\\Documents\\windows-v2-bench.json` in the VM.
+report is `C:\\Users\\<user>\\Documents\\windows-v2-bench.json` in the VM.
 
 Memory is the sampled peak of `node.exe` plus `chrome-headless-shell.exe`
 working sets from Windows `tasklist` every 500 ms, less each run's idle

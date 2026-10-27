@@ -1,0 +1,76 @@
+{
+  "status": "REVISION2_EDITED_NOT_RUN; previous five-file 89/89 PASS belongs only to revision1",
+  "baseHEAD": "ae12f7c766d8f1c7f882afb71cd93499b260729f",
+  "branch": "fix/adult-semantic-20261026",
+  "worktree": "/home/monad/Documents/Codex/2026-10-26/task/krds-adult-semantic",
+  "previousSemanticSHA256": "aaf417f72c0fc3ebb3ae140165613912d6074acb3e1abc9010eba13e617f4029",
+  "files": {
+    "packages/detection/src/semantic.ts": "e803be048c78483f4a89562be6fcfe6e3c19efa766bdb2296967f683f3a825a4",
+    "packages/detection/src/adult-solicitation.ts": "c1ef3b705779450f90ff5bd415894fcbdd48c005c87378094af4131ba6144bcf",
+    "packages/detection/src/text-policy.ts": "80c0e7e7f43d5c7f210b1f336fde69067ebd677e595e5800297d22be475c2722",
+    "packages/detection/test/adult-context.test.ts": "17d27a96e745fed5b5a0513e1fd7d24d4173a4925a8792eedadfefebb47d3e26",
+    "packages/detection/test/adult-semantics.test.ts": "488a394e0fe02bd17d254149e86d95071c95d915c5df7514f5c87a02b13a4492",
+    "packages/detection/test/adult-evaluation.test.ts": "357753c1078018191bb38efd9519fde57318c094015985888d2981ad00bea316",
+    "packages/detection/test/fixtures/adult-evaluation/cases.json": "9bdc640d07f8991d973094f42854113b69636781d5f014fafe19480bddbc2e29",
+    "packages/detection/test/fixtures/adult-evaluation/holdout.json": "7ce86935ff4eafbe7b80f340c41eabf1e07a12ed320bfeca589d9fa111a75c5d",
+    "packages/evidence/src/ocr.ts": "3c25a7239f06bfe24a97e93e003ea822b18c8bba29397ac61b6899fd496660c0",
+    "packages/evidence/src/ocr-diagnostics.ts": "17008c03e92909e75941daf6d369885e301cff03b82db9312749b89bf73fc989",
+    "packages/evidence/test/ocr-diagnostics.test.ts": "a576c4f7ece26a6a281eaf4f1319835adcdba1816cf60087acec41930e9ca76e",
+    "packages/contracts/src/config.ts": "2eb87876d172d833cb19431164c3066343bf7af1a176a686053e88481f736312",
+    "packages/contracts/src/policy.json": "02ebb8b0dcd18cd548a2750c6821ad234b037747ca50df26cf545c0b273a0354",
+    "packages/contracts/src/result.ts": "8850dd87e6a9931ae7e15342b8db267312eff517748eba01122c52824cd5354e",
+    "packages/contracts/src/case.ts": "672bf0f7a85828b8d306b36a42d69f99838199483c500086bb5579723ca602e5",
+    "packages/contracts/test/config.test.ts": "f6697bbe2acc2ff02e9e380dd685dddbee9fe2a508442f1b1483f73c33838300",
+    "packages/contracts/test/result.test.ts": "c773e91b6ac7ab1eb67a38229a618ac5681ca8aec8bd19a6ba2f2bc222792b06",
+    "packages/contracts/test/case.test.ts": "cf436392931728c962ce8bbfa22811548167d8d06496083d1dd33b283c55a177",
+    "src-tauri/src/config.rs": "b610640783f20da19a16a3c927c8d6ce654df6fa50fed5b93032c8624677e9d5",
+    "src-tauri/src/case_store.rs": "ed9591d964bb499f81e488a283bceb7468a42425b5304117a522e66235547167",
+    "src-tauri/src/main.rs": "e489686eadf1901e6b1360a0cd9cb2672b7e04b0e609cedf9c9668fd2108f3d4",
+    "docs/CONTRACTS.md": "f89a7adf0b3d30aeea4250a06efb5c40099ed2049c38091d5cd62a9d8fc888b2",
+    "docs/validation/STATIC_CORRECTIONS_KO.md": "0839ffbe8b6c7529c7eafaacf32711c301371a3a5c230b7ef7d79d7d2fa906d6"
+  },
+  "expectedCountsNotCollected": {
+    "packages/detection/test/adult-context.test.ts": 27,
+    "packages/evidence/test/ocr-diagnostics.test.ts": 11,
+    "packages/contracts/test/result.test.ts": 19,
+    "packages/contracts/test/config.test.ts": 13,
+    "packages/contracts/test/case.test.ts": 38
+  },
+  "newNativeTest": "case_store::tests::decision_policy_labels_preserve_history_and_reject_future_versions",
+  "newSemanticTestNames": [
+    "separates solicitation (14 positive/negative pairs)",
+    "attributes only the affirmed CTA and its transformed category",
+    "preserves gambling and financial solicitation independently of adult context",
+    "does not claim unsupported English adult categories or CTA coverage"
+  ],
+  "newOcrTestNames": [
+    "captures changing error names once before allowlist checking and output",
+    "contains throwing name getters without replacing the original cause",
+    "replaces oversized names with OTHER without logging their contents"
+  ],
+  "newPolicyTestNames": [
+    "identifies new decisions through existing tool_version and accepts historical versions",
+    "reads historical policy2 cases and requires policy3 labels to match new metadata"
+  ],
+  "revision": 2,
+  "parentManifestSHA256": "15fef6414593d7e4fe04761822cde794d763de70aa6cb68941b14a391d19786b",
+  "expectedFiveFileTotalNotCollected": 108,
+  "revisionChangedFiles": [
+    "packages/detection/src/adult-solicitation.ts",
+    "packages/detection/test/adult-context.test.ts",
+    "packages/contracts/src/case.ts",
+    "packages/contracts/test/case.test.ts",
+    "src-tauri/src/case_store.rs"
+  ],
+  "additionalNativeTest": "case_store::tests::missing_or_null_policy_fields_are_rejected_for_all_policy_labels",
+  "newRevisionTestNames": [
+    "rejects a nearby modified prohibition: %s (8 rows)",
+    "keeps a separate affirmative CTA after a modified prohibition",
+    "does not treat emphasis or blocking bypass wording alone as negation",
+    "rejects $toolVersion manifest with $field policyVersion (9 rows)"
+  ],
+  "revisionReport": {
+    "path": "docs/validation/STATIC_CORRECTIONS_R2_KO.md",
+    "sha256": "fee96aac579eff51d52705e3122f316c9282d643d9c349f6bb6d547e178772c6"
+  }
+}

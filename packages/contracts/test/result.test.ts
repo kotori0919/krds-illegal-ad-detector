@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  TOOL_VERSION,
   findingIdentityKey,
   serializeOfficialResult,
   validateExtraResult,
@@ -196,4 +197,14 @@ describe("findingIdentityKey", () => {
     });
     expect(a).not.toBe(b);
   });
+});
+
+it("identifies new decisions through existing tool_version and accepts historical versions", () => {
+  const historical = validResult();
+  historical.meta.tool_version = "0.2.1-policy2";
+  expect(validateOfficialResult(historical).ok).toBe(true);
+  const current = validResult();
+  current.meta.tool_version = TOOL_VERSION;
+  expect(TOOL_VERSION).toBe("0.2.1-policy3");
+  expect(validateOfficialResult(current).ok).toBe(true);
 });

@@ -10,6 +10,15 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 pub const CASE_SCHEMA: u32 = 1;
+// Preserve historical labels; new policy3 output must carry matching metadata.
+fn decision_policy(tool_version: &str) -> Option<u32> {
+    match tool_version.rsplit_once("-policy") {
+        Some((_, "2")) => Some(2),
+        Some((_, "3")) => Some(3),
+        Some(_) => None,
+        None => Some(2),
+    }
+}
 fn json_limit() -> u64 {
     crate::config::number("storage", "officialBytes")
 }
@@ -287,7 +296,10 @@ impl CaseStore {
                 .as_str()
                 .unwrap_or_default()
                 .into(),
-            policy_version: 2,
+            policy_version: decision_policy(
+                parsed["meta"]["tool_version"].as_str().unwrap_or_default(),
+            )
+            .ok_or_else(|| "unsupported decision policy".to_string())?,
             official_sha256: digest(canonical.as_bytes()),
             evidence_sha256: read_bounded(&staging.join("evidence.json"), 8_000_000)
                 .ok()
@@ -791,7 +803,7 @@ fn manifest_metadata_valid(manifest: &CaseManifest) -> bool {
             "succeeded" | "cancelled" | "failed"
         )
         && bounded(&manifest.tool_version, 128)
-        && manifest.policy_version == 2
+        && Some(manifest.policy_version) == decision_policy(&manifest.tool_version)
         && hash(&manifest.official_sha256)
         && manifest.evidence_sha256.as_deref().is_none_or(hash)
         && manifest.findings <= 20_000
@@ -810,7 +822,7 @@ fn validate_manifest(manifest: &CaseManifest, official: &str) -> Result<(), Stri
         || manifest.started_at != parsed["meta"]["started_at"]
         || manifest.finished_at != parsed["meta"]["finished_at"]
         || manifest.tool_version != parsed["meta"]["tool_version"]
-        || manifest.policy_version != 2
+        || Some(manifest.policy_version) != decision_policy(&manifest.tool_version)
         || chrono::DateTime::parse_from_rfc3339(&manifest.exportable_at).is_err()
     {
         return Err("case manifest disagrees with official output or policy".into());
@@ -1006,6 +1018,34 @@ mod tests {
                 "{}",
                 sample["name"]
             );
+        }
+    }
+
+    #[test]
+    fn decision_policy_labels_preserve_history_and_reject_future_versions() {
+        assert_eq!(decision_policy("0.2.0-policy2"), Some(2));
+        assert_eq!(decision_policy("0.2.1-policy3"), Some(3));
+        assert_eq!(decision_policy("legacy"), Some(2));
+        assert_eq!(decision_policy("0.2.1-policy4"), None);
+    }
+
+    #[test]
+    fn missing_or_null_policy_fields_are_rejected_for_all_policy_labels() {
+        let corpus: Value = serde_json::from_str(include_str!(
+            "../../packages/contracts/test/fixtures/case-conformance.json"
+        ))
+        .unwrap();
+        for tool in ["0.2.1-policy2", "0.2.1-policy3", "0.2.1-policy4"] {
+            for missing in [true, false] {
+                let mut manifest = corpus["valid"]["manifest"].clone();
+                manifest["toolVersion"] = json!(tool);
+                if missing {
+                    manifest.as_object_mut().unwrap().remove("policyVersion");
+                } else {
+                    manifest["policyVersion"] = Value::Null;
+                }
+                assert!(serde_json::from_value::<CaseManifest>(manifest).is_err());
+            }
         }
     }
 
