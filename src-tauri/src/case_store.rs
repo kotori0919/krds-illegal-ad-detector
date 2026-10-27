@@ -296,8 +296,10 @@ impl CaseStore {
                 .as_str()
                 .unwrap_or_default()
                 .into(),
-            policy_version: decision_policy(parsed["meta"]["tool_version"].as_str().unwrap_or_default())
-                .ok_or_else(|| "unsupported decision policy".to_string())?,
+            policy_version: decision_policy(
+                parsed["meta"]["tool_version"].as_str().unwrap_or_default(),
+            )
+            .ok_or_else(|| "unsupported decision policy".to_string())?,
             official_sha256: digest(canonical.as_bytes()),
             evidence_sha256: read_bounded(&staging.join("evidence.json"), 8_000_000)
                 .ok()
@@ -1031,7 +1033,8 @@ mod tests {
     fn missing_or_null_policy_fields_are_rejected_for_all_policy_labels() {
         let corpus: Value = serde_json::from_str(include_str!(
             "../../packages/contracts/test/fixtures/case-conformance.json"
-        )).unwrap();
+        ))
+        .unwrap();
         for tool in ["0.2.1-policy2", "0.2.1-policy3", "0.2.1-policy4"] {
             for missing in [true, false] {
                 let mut manifest = corpus["valid"]["manifest"].clone();
