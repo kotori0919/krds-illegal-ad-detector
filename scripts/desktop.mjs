@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import process from "node:process";
 import { inventory, json, npm, root, run, sha256, sourceIdentity, stage, verifyFiles, workerName, writeJson } from "./build-support.mjs";
+import { buildPolicyIdentity } from "./lib/build-policy.mjs";
 import { msvcEnvironment } from "./msvc-environment.mjs";
 import { installedExecutableIdentity, projectNsisIdentity } from "./nsis-identity.mjs";
 
@@ -36,7 +37,7 @@ if (action === "resources") {
     releaseInputs.loaders={libunwind:await sha256(join(stage,"libunwind.dll")),webview2:await sha256(join(stage,"WebView2Loader.dll"))};
   }
   const manifest = { schemaVersion: 1, builtAt, buildId: `${appVersion}-${target}-${source.sourceSha256.slice(0,12)}-${builtAt.replace(/[^0-9TZ]/g,"")}`,
-    caseSchemaVersion: 1, detectorPolicyVersion: 2, appVersion, source,
+    ...buildPolicyIdentity, appVersion, source,
     target, releaseInputs, tools: { node: process.version, rust: execFileSync("rustc", ["--version"], { encoding: "utf8" }).trim(),
       tauri:tauriVersion,tauriNpmPackage:tauriPackage },
     lockfiles: { npm: await sha256(join(root,"package-lock.json")), cargo: await sha256(join(root,"src-tauri/Cargo.lock")),
